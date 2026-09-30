@@ -45,16 +45,22 @@ internal static partial class Program
         AssertTrue(surface.TryGetPresentedEnterProgress(text, out double bodyStart) && bodyStart < 1);
         AssertTrue(surface.TryGetPresentedEnterProgress(title, out double titleStart) && titleStart == 1);
         AssertEqual(titleX + 32, surface.Scene!.Nodes.Single(node => node.Entity == title).Rect.X);
+        // Retarget without yielding: verify continuity while the track is definitely active.
+        bodyTransition.Key = "identity";
+        shell.Tree.MarkDirty(group, XsrUiDirtyKinds.Paint); surface.CommitScene();
+        AssertTrue(surface.TryGetPresentedEnterProgress(text, out double immediate) && immediate >= bodyStart && immediate <= 1);
         await Task.Delay(40);
         // The continuation can be delayed beyond the animation duration on a loaded CI worker.
         // Completion is valid; only an in-flight retarget must retain the sampled progress.
         AssertTrue(surface.TryGetPresentedEnterProgress(text, out double middle) && middle > bodyStart && middle <= 1);
         AssertTrue(shell.Renderer.GetTransitionOffset(shell.TitleBar) is >= 0 and < 32);
-        bodyTransition.Key = "identity";
+        bodyTransition.Key = "picker";
         shell.Tree.MarkDirty(group, XsrUiDirtyKinds.Paint); surface.CommitScene();
-        AssertTrue(surface.TryGetPresentedEnterProgress(text, out double retargeted) && retargeted >= (middle < 1 ? middle : 0) && retargeted <= 1);
+        // Between sampling and CommitScene the previous track may finish. A new track
+        // legitimately starts at zero; wall-clock scheduling cannot prove continuity here.
+        AssertTrue(surface.TryGetPresentedEnterProgress(text, out double retargeted) && retargeted >= 0 && retargeted <= 1);
         shell.Renderer.ReducedMotion = true;
-        bodyTransition.Key = "picker"; titleTransition.Key = "main";
+        bodyTransition.Key = "identity"; titleTransition.Key = "main";
         shell.Tree.MarkDirty(group, XsrUiDirtyKinds.Paint); shell.Tree.MarkDirty(shell.TitleBar, XsrUiDirtyKinds.Paint); surface.CommitScene();
         AssertTrue(surface.TryGetPresentedEnterProgress(text, out double settled) && settled == 1);
         AssertTrue(surface.TryGetPresentedEnterProgress(title, out double titleSettled) && titleSettled == 1);
