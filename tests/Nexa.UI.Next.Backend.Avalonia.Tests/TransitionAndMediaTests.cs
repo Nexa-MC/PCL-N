@@ -49,9 +49,15 @@ internal static partial class Program
         bodyTransition.Key = "identity";
         shell.Tree.MarkDirty(group, XsrUiDirtyKinds.Paint); surface.CommitScene();
         AssertTrue(surface.TryGetPresentedEnterProgress(text, out double immediate) && immediate >= bodyStart && immediate <= 1);
-        await Task.Delay(40);
-        // The continuation can be delayed beyond the animation duration on a loaded CI worker.
-        // Completion is valid; only an in-flight retarget must retain the sampled progress.
+        // Wait for a dispatcher animation tick rather than assuming Task.Delay advances it.
+        // A busy worker may run this continuation before the native timer; completion is valid.
+        var progressDeadline = System.Diagnostics.Stopwatch.StartNew();
+        while (progressDeadline.Elapsed < TimeSpan.FromSeconds(3)
+            && (!surface.TryGetPresentedEnterProgress(text, out double sampled) || sampled <= bodyStart
+                || shell.Renderer.GetTransitionOffset(shell.TitleBar) >= 32))
+        {
+            await Task.Delay(16);
+        }
         AssertTrue(surface.TryGetPresentedEnterProgress(text, out double middle) && middle > bodyStart && middle <= 1);
         AssertTrue(shell.Renderer.GetTransitionOffset(shell.TitleBar) is >= 0 and < 32);
         bodyTransition.Key = "picker";
