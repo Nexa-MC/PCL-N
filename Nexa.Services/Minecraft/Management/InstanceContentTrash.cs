@@ -14,47 +14,64 @@ public static class InstanceContentTrash
     private const string TrashFolder = ".nexa-content-trash";
     private static readonly HashSet<string> Pages = new(StringComparer.Ordinal) { "mods", "resourcepacks", "shaderpacks", "schematics", "saves", "screenshots" };
 
-    public static async Task<XsrResult> RemoveAsync(InstanceContentRemoveCommand command, XsrStateStore store, CancellationToken token = default)
+    public static Task<XsrResult> RemoveAsync(InstanceContentRemoveCommand command, XsrStateStore store, CancellationToken token = default) => RemoveBatchAsync([command], store, token: token);
+
+    internal static async Task<XsrResult> RemoveBatchAsync(IReadOnlyList<InstanceContentRemoveCommand> commands, XsrStateStore store, Func<CancellationToken, Task>? validate = null, CancellationToken token = default)
     {
         try
         {
+            if (commands.Count is 0 or > 513 || commands.Any(item => item.InstanceDirectory != commands[0].InstanceDirectory)
+                || commands.DistinctBy(item => (item.PageId, item.Name)).Count() != commands.Count) throw new InvalidDataException("移除列表无效。");
+            var command = commands[0];
             var snapshot = await InstanceManagementService.ReadAsync(new(command.InstanceDirectory), token).ConfigureAwait(false);
             using var lease = await InstanceRecoveryOperationGate.EnterRestoreAsync(Directory.GetParent(snapshot.InstanceDirectory)!.Parent!.FullName, token).ConfigureAwait(false);
             snapshot = await InstanceManagementService.ReadAsync(new(command.InstanceDirectory), token).ConfigureAwait(false);
             RejectRunning(snapshot, store, token);
-            if (!Pages.Contains(command.PageId) || !MinecraftVersionPaths.IsSafeReference(command.Name)) throw new InvalidDataException("请选择有效的内容项。");
-            string directory = snapshot.Pages.SingleOrDefault(page => page.Id == command.PageId)?.Directory ?? throw new InvalidDataException("当前版本不提供此内容页。");
-            string source = Path.Combine(directory, command.Name);
-            RecoveryBlobStore.CheckLinks(source);
-            FileSystemInfo item = command.IsDirectory ? new DirectoryInfo(source) : new FileInfo(source);
-            if (!item.Exists || item.LastWriteTimeUtc.Ticks != command.ExpectedModifiedUtcTicks
-                || item is FileInfo file && file.Length != command.ExpectedSize)
-                throw new IOException("内容已变化，请刷新后再移除。");
-            string trash = Path.Combine(snapshot.GameDirectory, TrashFolder);
-            RecoveryBlobStore.CheckLinks(trash);
-            Directory.CreateDirectory(trash);
-            string id = Guid.NewGuid().ToString("N"), transaction = Path.Combine(trash, id);
-            Directory.CreateDirectory(transaction);
-            JsonObject record = new()
-            {
-                ["version"] = 1,
-                ["instance"] = snapshot.InstanceDirectory,
-                ["game"] = snapshot.GameDirectory,
-                ["page"] = command.PageId,
-                ["name"] = command.Name,
-                ["directory"] = command.IsDirectory,
-                ["removedAt"] = DateTimeOffset.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-            };
-            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(record.ToJsonString());
-            using (var journal = new FileStream(Path.Combine(transaction, "record.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
-            { journal.Write(bytes); journal.Flush(true); }
-            token.ThrowIfCancellationRequested();
-            Move(source, Path.Combine(transaction, "content"), command.IsDirectory);
+            if (validate is not null) await validate(token).ConfigureAwait(false);
+            foreach (var item in commands) ValidateRemoval(item, snapshot);
+            foreach (var removal in commands) RemoveOne(removal, snapshot, token);
             return XsrResult.Success();
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { return XsrResult.Failure(XsrRuntimeErrors.Cancelled()); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or ArgumentException)
         { return XsrResult.Failure(MinecraftErrors.InvalidRequest(error.Message)); }
+    }
+
+    private static void ValidateRemoval(InstanceContentRemoveCommand command, InstanceManagementSnapshot snapshot)
+    {
+        if (!Pages.Contains(command.PageId) || !MinecraftVersionPaths.IsSafeReference(command.Name)) throw new InvalidDataException("请选择有效的内容项。");
+        string directory = snapshot.Pages.SingleOrDefault(page => page.Id == command.PageId)?.Directory ?? throw new InvalidDataException("当前版本不提供此内容页。");
+        string source = Path.Combine(directory, command.Name);
+        RecoveryBlobStore.CheckLinks(source);
+        FileSystemInfo item = command.IsDirectory ? new DirectoryInfo(source) : new FileInfo(source);
+        if (!item.Exists || item.LastWriteTimeUtc.Ticks != command.ExpectedModifiedUtcTicks
+            || item is FileInfo file && file.Length != command.ExpectedSize)
+            throw new IOException("内容已变化，请刷新后再移除。");
+    }
+    private static void RemoveOne(InstanceContentRemoveCommand command, InstanceManagementSnapshot snapshot, CancellationToken token)
+    {
+        ValidateRemoval(command, snapshot);
+        string source = Path.Combine(snapshot.GameDirectory, command.PageId, command.Name);
+        string trash = Path.Combine(snapshot.GameDirectory, TrashFolder);
+        RecoveryBlobStore.CheckLinks(trash);
+        Directory.CreateDirectory(trash);
+        string id = Guid.NewGuid().ToString("N"), transaction = Path.Combine(trash, id);
+        Directory.CreateDirectory(transaction);
+        JsonObject record = new()
+        {
+            ["version"] = 1,
+            ["instance"] = snapshot.InstanceDirectory,
+            ["game"] = snapshot.GameDirectory,
+            ["page"] = command.PageId,
+            ["name"] = command.Name,
+            ["directory"] = command.IsDirectory,
+            ["removedAt"] = DateTimeOffset.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+        };
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(record.ToJsonString());
+        using (var journal = new FileStream(Path.Combine(transaction, "record.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+        { journal.Write(bytes); journal.Flush(true); }
+        token.ThrowIfCancellationRequested();
+        Move(source, Path.Combine(transaction, "content"), command.IsDirectory);
     }
 
     public static async Task<XsrResult> RestoreAsync(InstanceContentRestoreCommand command, XsrStateStore store, CancellationToken token = default)

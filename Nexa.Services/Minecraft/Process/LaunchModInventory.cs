@@ -12,6 +12,7 @@ public sealed record LaunchModIdentity(string Id, string Version, string Format,
 {
     public string? ContentSha256 { get; init; }
     public bool NestedCandidate { get; init; }
+    public IReadOnlyDictionary<string, string> ProvidedIds { get; init; } = new Dictionary<string, string>();
 }
 public sealed record LaunchModInventory(IReadOnlyList<LaunchModIdentity> Mods, int UnknownFiles, bool Complete);
 public sealed record JvmRunContext(Guid SessionId, string Loader, string LoaderVersion, LaunchModInventory Inventory)
@@ -48,6 +49,15 @@ public static partial class LaunchModInventoryReader
             await using var content = entry.Open(); using var buffer = new MemoryStream();
             await ArchiveReadBudget.CopyAsync(content, buffer, entry.Length, 256 * 1024, budget, token).ConfigureAwait(false);
             string text = Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
+            if (format.EndsWith(".toml", StringComparison.Ordinal) && text.Contains("${file.jarVersion}", StringComparison.Ordinal)
+                && zip.GetEntry("META-INF/MANIFEST.MF") is { } manifest)
+            {
+                await using var manifestInput = manifest.Open(); using var manifestBuffer = new MemoryStream();
+                await ArchiveReadBudget.CopyAsync(manifestInput, manifestBuffer, manifest.Length, 64 * 1024, budget, token).ConfigureAwait(false);
+                string value = Encoding.UTF8.GetString(manifestBuffer.GetBuffer(), 0, (int)manifestBuffer.Length).Split('\n')
+                    .FirstOrDefault(line => line.StartsWith("Implementation-Version:", StringComparison.OrdinalIgnoreCase))?[23..].Trim() ?? "";
+                if (SafeVersion(value)) text = text.Replace("${file.jarVersion}", value, StringComparison.Ordinal);
+            }
             var parsed = Parse(text, format, enabled);
             if (parsed.Count == 0) unknown++;
             else
@@ -135,12 +145,35 @@ public static partial class LaunchModInventoryReader
         List<LaunchModIdentity> result = [];
         if (format.EndsWith(".toml", StringComparison.Ordinal))
         {
-            // Deliberately partial: recognize literal mod tables, never claim a TOML dependency resolver.
+            var blocks = text.Split("[[dependencies.", StringSplitOptions.None).Skip(1).Take(257).ToArray();
             foreach (string block in text.Split("[[mods]]", StringSplitOptions.None).Skip(1).Take(128))
             {
                 string id = Literal(block, "modId"), version = Literal(block, "version");
-                if (SafeId(id)) result.Add(new(id, SafeVersion(version) ? version : "unknown", format, enabled,
-                    new Dictionary<string, string>(), false));
+                if (!SafeId(id)) continue;
+                Dictionary<string, string> depends = new(StringComparer.Ordinal);
+                bool full = blocks.Length <= 256;
+                foreach (string dependency in blocks)
+                {
+                    int end = dependency.IndexOf("]]", StringComparison.Ordinal);
+                    if (end < 0) { full = false; continue; }
+                    string owner = dependency[..end].Trim().Trim('"', '\'');
+                    if (owner != id) continue;
+                    string table = dependency[(end + 2)..];
+                    string target = Literal(table, "modId"), range = Literal(table, "versionRange"), type = Literal(table, "type");
+                    if (Literal(table, "side") == "SERVER") continue;
+                    bool? mandatory = null;
+                    foreach (string line in table.Split('\n'))
+                    {
+                        string value = line.Trim(); if (value.StartsWith('[')) break;
+                        if (value.StartsWith("mandatory", StringComparison.Ordinal) && value.IndexOf('=') is int separator && separator >= 0)
+                        { string literal = value[(separator + 1)..].Split('#')[0].Trim(); mandatory = literal == "true" ? true : literal == "false" ? false : null; }
+                    }
+                    if (type is "optional" or "discouraged" or "incompatible" || mandatory == false) continue;
+                    if (type != "required" && mandatory != true || !SafeId(target) || !SafeRange(range) || depends.Count >= 64) { full = false; continue; }
+                    if (!depends.TryAdd(target, range)) full = false;
+                }
+                if (text.Contains("[dependencies", StringComparison.Ordinal) && blocks.Length == 0) full = false;
+                result.Add(new(id, SafeVersion(version) ? version : "unknown", format, enabled, depends, full));
             }
             return result.AsReadOnly();
         }
@@ -158,7 +191,9 @@ public static partial class LaunchModInventoryReader
             if (item["depends"] is JsonObject depends)
                 foreach (var pair in depends.Take(65))
                 {
-                    string range = pair.Value is JsonValue scalar && scalar.TryGetValue<string>(out string? value) ? value : "";
+                    string range = pair.Value is JsonValue scalar && scalar.TryGetValue<string>(out string? value) ? value
+                        : pair.Value is JsonArray alternatives && alternatives.Count is > 0 and <= 16 && alternatives.All(a => a is JsonValue v && v.TryGetValue<string>(out _))
+                            ? string.Join(" || ", alternatives.Select(a => a!.GetValue<string>())) : "";
                     if (dependencies.Count >= 64 || !SafeId(pair.Key) || !SafeRange(range)) { full = false; continue; }
                     dependencies[pair.Key] = range;
                 }
@@ -177,7 +212,21 @@ public static partial class LaunchModInventoryReader
                 }
             }
             else if (item["depends"] is not null) full = false;
-            result.Add(new(id, SafeVersion(version) ? version : "unknown", format, enabled, dependencies, full));
+            Dictionary<string, string> provided = new(StringComparer.Ordinal);
+            if (item["provides"] is JsonArray aliases && format is "fabric.mod.json" or "quilt.mod.json")
+            {
+                if (aliases.Count > 64) full = false;
+                foreach (var alias in aliases.Take(64))
+                {
+                    string aliasId = alias is JsonValue scalar && scalar.TryGetValue<string>(out string? value) ? value
+                        : format == "quilt.mod.json" && alias is JsonObject declaration ? Text(declaration, "id") : "";
+                    string aliasVersion = format == "quilt.mod.json" && alias is JsonObject record && record["version"] is not null
+                        ? Text(record, "version") : version;
+                    if (!SafeId(aliasId) || !SafeVersion(aliasVersion) || !provided.TryAdd(aliasId, aliasVersion)) full = false;
+                }
+            }
+            else if (item["provides"] is not null) full = false;
+            result.Add(new(id, SafeVersion(version) ? version : "unknown", format, enabled, dependencies, full) { ProvidedIds = provided });
         }
         return result.AsReadOnly();
     }

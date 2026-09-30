@@ -64,6 +64,8 @@ public static class FoundationRuntimeComposer
             async (command, token) => await InstanceContentService.SetModEnabledAsync(command, host.StateStore, token).ConfigureAwait(false));
         commands.Register<InstanceContentRemoveCommand>(InstanceManagementContract.RemoveContent,
             async (command, token) => await InstanceContentTrash.RemoveAsync(command, host.StateStore, token).ConfigureAwait(false));
+        commands.Register<InstanceModRemovalCommand>(InstanceManagementContract.RemoveMod,
+            async (command, token) => await InstanceModRemovalService.RemoveAsync(command, host.StateStore, token).ConfigureAwait(false));
         commands.Register<InstanceContentRestoreCommand>(InstanceManagementContract.RestoreContent,
             async (command, token) => await InstanceContentTrash.RestoreAsync(command, host.StateStore, token).ConfigureAwait(false));
         commands.Register(
@@ -108,6 +110,8 @@ public static class FoundationRuntimeComposer
         XsrCommandRouter commandRouter = commands.Build(dispatchObserver, timeProvider);
 
         XsrQueryRouterBuilder queries = new();
+        queries.Register<InstanceModRemovalQuery, InstanceModRemovalPreview>(InstanceManagementContract.ModRemovalPreview,
+            async (query, token) => Nexa.Xsr.XsrResult.Success(await InstanceModRemovalService.PreviewAsync(query, token).ConfigureAwait(false)));
         queries.Register<InstanceManagementQuery, InstanceManagementSnapshot>(InstanceManagementContract.Query,
             async (query, token) =>
             {

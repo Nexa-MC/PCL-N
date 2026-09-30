@@ -4,6 +4,19 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("resource identity malformed providers preserve healthy source and cancellation", ResourceIdentityMalformedProviderPreservesHealthySource),
+        ("resource provided aliases retain versions and reject incomplete declarations", ResourceProvidedAliasesKeepVersionsAndRejectIncompleteDeclarations),
+        ("resource installed content identifies hashes and rejects stale identity", ResourceInstalledContentUsesHashesAndRejectsStaleIdentity),
+        ("resource mod install verifies actual dependency tables before importing", ResourceModInstallationVerifiesActualDependenciesBeforeImport),
+        ("resource mod removal preserves shared dependencies and revalidates", ResourceModRemovalPreservesSharedDependenciesAndRevalidates),
+        ("resource favorites persist by provider identity", ResourceFavoritesPersistByProviderIdentity),
+        ("resource dependencies are compatible ordered and bounded", ResourceDependenciesAreCompatibleOrderedAndBounded),
+        ("resource search cache avoids duplicate provider work", ResourceSearchCacheAvoidsDuplicateProviderWork),
+        ("resource dual source Chinese identity and partial failure", ResourceDualSourceChineseIdentityAndPartialFailure),
+        ("resource mirror fallback protects credentials", ResourceMirrorFallbackDoesNotLeakCredentials),
+        ("resource translation validates original", ResourceTranslationRequiresMatchingOriginal),
+        ("resource CurseForge filters and file permissions", ResourceCurseForgeMapsFiltersFilesAndDeniedDownloads),
+        ("resource download validates bytes hashes publication and cancellation", ResourceDownloadsValidateActualBytesHashAndNeverOverwrite),
         ("resource catalog filters and validates provider results", ResourceCatalogFiltersAndValidatesProviderResults),
         ("resource icons are bounded cached and restricted to provider", ResourceIconsAreBoundedCachedAndRestrictedToProvider),
         ("resource catalog bounds actual response and honors cancellation", ResourceCatalogBoundsActualResponseAndHonorsCancellation),

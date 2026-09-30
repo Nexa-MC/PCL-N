@@ -23,11 +23,12 @@ public sealed class PngImage
     public static PngImage? TryCreatePreview(ReadOnlySpan<byte> bytes)
         => Create(bytes, 16 * 1_048_576, 4096);
 
-    /// <summary>Static PNG/WebP resource icons. The historical carrier name is retained;
+    /// <summary>Static PNG/WebP/JPEG resource icons. The historical carrier name is retained;
     /// skin and screenshot factories remain strictly PNG-only.</summary>
     public static PngImage? TryCreateResourceIcon(ReadOnlySpan<byte> bytes)
     {
         if (TryCreate(bytes) is { } png) return png;
+        if (bytes.Length is >= 4 and <= 1_048_576 && bytes[0] == 0xff && bytes[1] == 0xd8) return CreateJpegIcon(bytes);
         if (bytes.Length is < 30 or > 1_048_576 || !bytes[..4].SequenceEqual("RIFF"u8)
             || !bytes[8..12].SequenceEqual("WEBP"u8)
             || BinaryPrimitives.ReadUInt32LittleEndian(bytes[4..8]) != bytes.Length - 8) return null;
@@ -66,6 +67,35 @@ public sealed class PngImage
         if (width == 0) { width = imageWidth; height = imageHeight; }
         return width is > 0 and <= 1024 && height is > 0 and <= 1024 && imageWidth == width && imageHeight == height
             ? new(bytes.ToArray(), width, height) : null;
+    }
+
+    private static PngImage? CreateJpegIcon(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes[^2] != 0xff || bytes[^1] != 0xd9) return null;
+        int width = 0, height = 0;
+        for (int offset = 2; offset < bytes.Length - 2;)
+        {
+            if (bytes[offset++] != 0xff) return null;
+            while (offset < bytes.Length && bytes[offset] == 0xff) offset++;
+            if (offset >= bytes.Length) return null;
+            int marker = bytes[offset++];
+            if (marker is 0xd8 or 0xd9 or 0) return null;
+            if (marker == 1 || marker is >= 0xd0 and <= 0xd7) continue;
+            if (bytes.Length - offset < 2) return null;
+            int length = BinaryPrimitives.ReadUInt16BigEndian(bytes.Slice(offset, 2));
+            if (length < 2 || length > bytes.Length - offset) return null;
+            if (marker is 0xc0 or 0xc1 or 0xc2)
+            {
+                if (width != 0 || length < 8 || bytes[offset + 2] != 8 || bytes[offset + 7] is < 1 or > 4 || length != 8 + 3 * bytes[offset + 7]) return null;
+                height = BinaryPrimitives.ReadUInt16BigEndian(bytes.Slice(offset + 3, 2));
+                width = BinaryPrimitives.ReadUInt16BigEndian(bytes.Slice(offset + 5, 2));
+                if (width is < 1 or > 1024 || height is < 1 or > 1024) return null;
+            }
+            else if (marker == 0xda) return width > 0 ? new(bytes.ToArray(), width, height) : null;
+            else if (marker is >= 0xc0 and <= 0xcf && marker is not (0xc4 or 0xcc)) return null;
+            offset += length;
+        }
+        return null;
     }
 
     private static PngImage? Create(ReadOnlySpan<byte> bytes, int byteLimit, int dimensionLimit)

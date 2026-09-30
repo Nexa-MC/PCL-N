@@ -8,8 +8,8 @@ public sealed class ResourceIconService(HttpClient http) : IDisposable
     private readonly Dictionary<string, PngImage> _cache = new(StringComparer.Ordinal);
     private readonly object _gate = new();
     public static bool IsAllowed(string url) => url.Length <= 2048 && Uri.TryCreate(url, UriKind.Absolute, out var uri)
-        && uri.Scheme == "https" && uri.Host == "cdn.modrinth.com" && uri.IsDefaultPort
-        && uri.UserInfo.Length == 0 && uri.Fragment.Length == 0 && uri.AbsolutePath.StartsWith("/data/", StringComparison.Ordinal);
+        && uri.Scheme == "https" && uri.IsDefaultPort
+        && uri.UserInfo.Length == 0 && uri.Fragment.Length == 0 && (uri.Host == "cdn.modrinth.com" && uri.AbsolutePath.StartsWith("/data/", StringComparison.Ordinal) || uri.Host is "media.forgecdn.net" or "mediafilez.forgecdn.net" && uri.AbsolutePath.StartsWith("/avatars/", StringComparison.Ordinal));
 
     public async Task<ResourceIconResult> ReadAsync(ResourceIconQuery query, CancellationToken token)
     {
