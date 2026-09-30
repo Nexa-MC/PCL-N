@@ -36,6 +36,9 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("language catalog covers locales templates and fallbacks", LanguageCatalogCoversLocalesTemplatesAndFallbacks),
+        ("language settings switch live without rebuilding controls", LanguageSettingSwitchesLiveAndPreservesControls),
+        ("first run uses system language without settings state", FirstRunUsesSystemLanguageWithoutSettingsState),
         ("installed content online info preserves local details and rejects stale results", InstalledContentOnlineInfoKeepsLocalDetailsAndDiscardsStaleResults),
         ("resource optional dependencies wait for user choice", ResourceOptionalDependenciesWaitForUserChoice),
         ("resources page downloads by identity and projects Chinese text", ResourcesPageDownloadsByIdentityAndProjectsChineseText),

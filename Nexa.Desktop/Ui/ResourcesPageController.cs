@@ -30,6 +30,7 @@ internal sealed class ResourcesPageController : IDisposable
     private readonly Dictionary<string, XsrUiEntityId> _entities = [];
     private readonly List<XsrUiEntityId> _listActions = [];
     private readonly List<XsrUiEntityId> _detailActions = [];
+    private readonly List<(XsrUiEntityId Track, double Minimum)> _segments = [];
     private readonly XsrUiEntityId _search, _game, _loader, _status, _previous, _next, _detailBody;
     private CancellationTokenSource _stop = new();
     private CancellationTokenSource _contextStop = new();
@@ -138,6 +139,7 @@ internal sealed class ResourcesPageController : IDisposable
             _visible = visible; _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
         }
         if (!visible) return;
+        UpdateSegmentWidths();
         if (_optionalVisible && _shell.Stage.Navigation.Current != DetailPage)
         { _optionalVisible = false; _planStop.Cancel(); _planning = null; _installDraft = null; }
         while (_presentation.TryDequeue(out var publish)) publish();
@@ -183,8 +185,8 @@ internal sealed class ResourcesPageController : IDisposable
             {
                 var text = _shell.Tree.GetComponent<XsrUiText>(entity);
                 if (text is null) continue;
-                _shell.Tree.SetComponent(entity, new XsrUiText(description) { MaxLines = text.MaxLines, TrimOverflow = true });
-                _shell.Tree.SetComponent(entity, new XsrUiSemantic(XsrUiSemanticRole.Text, description));
+                _shell.Tree.SetComponent(entity, new XsrUiText(description) { MaxLines = text.MaxLines, TrimOverflow = true, Localize = false });
+                _shell.Tree.SetComponent(entity, new XsrUiSemantic(XsrUiSemanticRole.Text, description) { Localize = false });
                 _shell.Tree.MarkDirty(entity, XsrUiDirtyKinds.Paint);
             }
         }
@@ -277,8 +279,8 @@ internal sealed class ResourcesPageController : IDisposable
                 _icons.Add((icon, read)); Wake(read);
             }
             var copy = Stack(row, "ResourceProjectCopy"); E(copy).Weight = 1;
-            Text(copy, project.DisplayName, 15, Ink, 22, 600);
-            Translate(Text(copy, project.DisplayDescription, 12, Muted, 20), project);
+            LiteralText(copy, project.DisplayName, 15, Ink, 22, 600);
+            Translate(LiteralText(copy, project.DisplayDescription, 12, Muted, 20), project);
             Text(copy, $"{project.SourceLabel}  ·  {project.Author}  ·  {FormatDownloads(project.Downloads)} 次下载", 11, Muted, 18);
             _listActions.Add(IconButton(row, "ResourceDetails." + project.Id, "详情", "lucide/info", () =>
             {
@@ -308,10 +310,10 @@ internal sealed class ResourcesPageController : IDisposable
         var heading = Stack(_detailBody, "ResourceDetailHeading", true);
         ProjectIcon(heading, "ResourceDetailIcon", detail.Project, 64);
         var headingCopy = Stack(heading, "ResourceDetailHeadingCopy"); E(headingCopy).Weight = 1;
-        Text(headingCopy, detail.Project.DisplayName, 25, Ink, 36, 650);
-        Text(headingCopy, detail.Project.Author + " · " + detail.Project.SourceLabel, 12, Muted, 24);
+        LiteralText(headingCopy, detail.Project.DisplayName, 25, Ink, 36, 650);
+        LiteralText(headingCopy, detail.Project.Author + " · " + detail.Project.SourceLabel, 12, Muted, 24);
         _detailActions.Add(IconButton(heading, "ResourceFavorite", IsSaved(detail.Project) ? "取消收藏" : "收藏", "lucide/star", () => ToggleFavorite(detail.Project)));
-        Translate(Text(_detailBody, detail.Project.DisplayDescription, 14, Muted, 68, lines: 3), detail.Project);
+        Translate(LiteralText(_detailBody, detail.Project.DisplayDescription, 14, Muted, 68, lines: 3), detail.Project);
         if (!string.IsNullOrEmpty(detail.Notice)) Text(_detailBody, detail.Notice, 12, Muted, 24);
         var tools = Stack(_detailBody, "ResourceDetailTools", horizontal: true);
         var info = Text(tools, $"{detail.Project.SourceLabel}  ·  {FormatDownloads(detail.Project.Downloads)} 次下载  ·  {detail.License}", 12, Muted, 34); E(info).Weight = 1;
@@ -326,7 +328,7 @@ internal sealed class ResourcesPageController : IDisposable
             _shell.Tree.SetComponent(type, new XsrUiImage(version.Channel == "正式版" ? "lucide/circle-check" : version.Channel == "Beta" ? "lucide/flask-conical" : "lucide/test-tube"));
             Style(type, XsrUiColor.Transparent, version.Channel == "正式版" ? new(40, 135, 90) : version.Channel == "Beta" ? Blue : new(188, 125, 42), 0);
             var copy = Stack(row, "ResourceVersionCopy"); E(copy).Weight = 1;
-            Text(copy, version.Name, 15, Ink, 28, 550);
+            LiteralText(copy, version.Name, 15, Ink, 28, 550);
             Text(copy, $"{version.Provider}  ·  {version.Channel}  ·  {string.Join(" / ", version.Loaders)}  ·  Minecraft {string.Join(", ", version.Games)}", 12, Muted, 34, lines: 2);
             _detailActions.Add(IconButton(row, "ResourceDownload." + version.Id, version.File is null ? "前往下载" : "下载", version.File is null ? "lucide/arrow-up-right" : "lucide/download", () => { if (version.File is null) _open(new Uri(version.Website)); else _ = DownloadAsync(version); }));
         }
@@ -479,7 +481,7 @@ internal sealed class ResourcesPageController : IDisposable
         foreach (var option in plan.Optional)
         {
             var row = Card(_detailBody, "ResourceOptional." + option.Source.ProjectId);
-            var name = Text(row, option.Name, 14, Ink, 32); E(name).Weight = 1;
+            var name = LiteralText(row, option.Name, 14, Ink, 32); E(name).Weight = 1;
             _detailActions.Add(Button(row, "ResourceOptionalToggle." + option.Source.ProjectId, _optionalSelection.Contains(option.Source) ? "✓ 已选择" : "□ 选择", 86, () =>
             {
                 if (!_optionalSelection.Add(option.Source)) _optionalSelection.Remove(option.Source);
@@ -574,6 +576,9 @@ internal sealed class ResourcesPageController : IDisposable
         var surface = Stack(parent, name); Style(surface, White, Ink, 10);
         var body = Stack(surface, name + ".Body", true); E(body).Padding = new(12, 8, 12, 8); return body;
     }
+    private XsrUiEntityId LiteralText(XsrUiEntityId parent, string value, double size, XsrUiColor color, double height, double weight = 400, int lines = 1) =>
+        DesktopLiteralText.Preserve(_shell.Tree, Text(parent, value, size, color, height, weight, lines));
+
     private XsrUiEntityId Text(XsrUiEntityId parent, string value, double size, XsrUiColor color, double height, double weight = 400, int lines = 1)
     {
         var entity = Element(parent, "ResourceText", XsrUiSemanticRole.Text, value); E(entity).Height = height;
@@ -604,6 +609,7 @@ internal sealed class ResourcesPageController : IDisposable
     private void Segment(XsrUiEntityId parent, string name, string[] labels, Action<int> selected, double width = 84, int initial = 0)
     {
         var track = Stack(parent, name, true); _shell.Tree.GetComponent<XsrUiStackPanel>(track)!.Spacing = 0; E(track).Width = width * labels.Length;
+        _segments.Add((track, width));
         Style(track, Tint, Ink, 10);
         var thumb = Element(track, name + "Thumb"); E(thumb).IsVisible = false; Style(thumb, White, Ink, 8);
         _shell.Tree.SetComponent(thumb, new XsrUiTransition()); _shell.Tree.SetComponent(track, new XsrUiSegmentedTrack(thumb));
@@ -635,6 +641,23 @@ internal sealed class ResourcesPageController : IDisposable
             Hover = DesktopUiPalette.CapsuleHover
         });
         _shell.Tree.MarkDirty(entity, XsrUiDirtyKinds.Paint);
+    }
+
+    private void UpdateSegmentWidths()
+    {
+        foreach (var (track, minimum) in _segments)
+        {
+            double total = 0;
+            foreach (var option in _shell.Tree.Children(track))
+            {
+                if (_shell.Tree.GetComponent<XsrUiText>(option) is not { } caption) continue;
+                string text = _shell.Renderer.LocalizeText(caption.Content);
+                double desired = Math.Max(minimum, text.Sum(character => character > 127 ? 13 : 7) + 20);
+                if (E(option).Width != desired) { E(option).Width = desired; _shell.Tree.MarkDirty(option, XsrUiDirtyKinds.Layout); }
+                total += desired;
+            }
+            if (E(track).Width != total) { E(track).Width = total; _shell.Tree.MarkDirty(track, XsrUiDirtyKinds.Layout); }
+        }
     }
     public void Dispose() { _disposed = true; _planStop.Cancel(); _planStop.Dispose(); _contextStop.Cancel(); _contextStop.Dispose(); _downloadsStop.Cancel(); _downloadsStop.Dispose(); _iconStop.Cancel(); _iconStop.Dispose(); _stop.Cancel(); _stop.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame; }
 }

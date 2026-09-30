@@ -336,6 +336,7 @@ internal sealed partial class LaunchPageController
             _shell.Tree.Walk(row, entity =>
             {
                 string name = _shell.Tree.Name(entity);
+                if (name.StartsWith("CatalogName", StringComparison.Ordinal)) DesktopLiteralText.Preserve(_shell.Tree, entity);
                 if (name.StartsWith("CatalogDetail", StringComparison.Ordinal)) _shell.Tree.GetComponent<XsrUiText>(entity)!.Content = detail;
                 StyleText(entity, name.StartsWith("CatalogDetail", StringComparison.Ordinal) ? SecondaryText : PrimaryText, 14);
                 if (name.StartsWith("CatalogCheck", StringComparison.Ordinal)) ApplyVisual(entity, XsrUiColor.Transparent, selected ? BadgeText : XsrUiColor.Transparent, 0);

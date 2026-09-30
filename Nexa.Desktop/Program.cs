@@ -241,6 +241,8 @@ internal static class Program
             },
             uiIntents);
 
+        using var languageSession = new DesktopLanguageSession(shell, host.StateStore);
+
         using DesktopFeedbackService feedback = new();
         using DesktopFeedbackPresenter feedbackPresenter = new(
             shell, uiIntents, feedback, runtime.Host.StateStore);
@@ -404,6 +406,7 @@ internal static class Program
         var store = builder.Build(context.StateBridge);
         DesktopUiIntentSink intents = new();
         var shell = PxmlShellComposer.Compose(store, context, new XsrUiShellOptions { Title = "NexaCL" }, intents);
+        using var languageSession = new DesktopLanguageSession(shell, store);
         var runtime = FirstRunRuntimeComposer.Compose(service);
         runtime.Queries.TryResolve(FirstRunContract.Status, out var read);
         var status = runtime.Queries.QueryAsync<FirstRunQuery, FirstRunStatus>(read, new()).AsTask().GetAwaiter().GetResult();

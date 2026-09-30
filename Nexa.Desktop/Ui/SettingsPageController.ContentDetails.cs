@@ -81,11 +81,13 @@ internal sealed partial class SettingsPageController
         BuildOnlineContent(hero, item);
     }
 
-    private void ManagementFactIn(XsrUiEntityId parent, string label, string value)
+    private void ManagementFactIn(XsrUiEntityId parent, string label, string value, bool? literal = null)
     {
         var row = Stack(parent, "ContentDetailFact", XsrUiOrientation.Horizontal, 20);
         _shell.Tree.GetComponent<XsrUiElement>(Text(row, label, 12, Muted, 28))!.Width = 90;
-        _shell.Tree.GetComponent<XsrUiElement>(Text(row, value, 13, Ink, 28))!.Weight = 1;
+        var content = Text(row, value, 13, Ink, 28);
+        if (literal ?? (label is "文件名" or "所在目录" or "版本" or "资源包格式" or "作者" or "名称" or "已安装版本")) DesktopLiteralText.Preserve(_shell.Tree, content);
+        _shell.Tree.GetComponent<XsrUiElement>(content)!.Weight = 1;
     }
 
     private static string FormatContentSize(long bytes) => bytes >= 1024 * 1024
@@ -115,7 +117,7 @@ internal sealed partial class SettingsPageController
         var body = Stack(card, "ManagementScreenshotBody", XsrUiOrientation.Vertical, 8);
         _shell.Tree.GetComponent<XsrUiElement>(body)!.Padding = new(12, 12, 12, 12);
         ContentImage(body, item, null, 140);
-        Text(body, item.Name, 12, Ink, 26);
+        DesktopLiteralText.Preserve(_shell.Tree, Text(body, item.Name, 12, Ink, 26));
     }
 
     private static string ResourcePackTitle(InstanceContentEntry item) =>
@@ -136,7 +138,7 @@ internal sealed partial class SettingsPageController
     }
 
     // Legacy Minecraft formatting is presentation only; raw control codes never become labels.
-    private void ContentName(XsrUiEntityId parent, string value, double size, double? height, int maxLines = 1, XsrUiColor? foreground = null)
+    private void ContentName(XsrUiEntityId parent, string value, double size, double? height, int maxLines = 1, XsrUiColor? foreground = null, bool literal = true)
     {
         XsrUiColor color = foreground ?? Ink;
         bool bold = false, italic = false, underline = false, strike = false;
@@ -170,9 +172,10 @@ internal sealed partial class SettingsPageController
         }
         Flush();
         var entity = Text(parent, plain.ToString(), size, foreground ?? Ink, height ?? 0, maxLines == 1 ? 550 : 400);
+        if (literal) DesktopLiteralText.Preserve(_shell.Tree, entity);
         _shell.Tree.GetComponent<XsrUiElement>(entity)!.Height = height;
         var text = _shell.Tree.GetComponent<XsrUiText>(entity)!;
-        text.Runs = runs.AsReadOnly();
+        text.Runs = literal ? runs.AsReadOnly() : [];
         text.MaxLines = maxLines;
         _shell.Tree.GetComponent<XsrUiVisualStyle>(entity)!.WrapText = maxLines != 1;
     }

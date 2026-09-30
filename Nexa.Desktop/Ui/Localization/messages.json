@@ -1,0 +1,7833 @@
+[
+  {
+    "source": "\n\n更改比较未完成。",
+    "en": "\n\nCould not compare changes.",
+    "zh-Hant": "\n\n更改比較未完成。"
+  },
+  {
+    "source": "\n\n无法确定本次运行的实例，未比较更改。",
+    "en": "\n\nCould not identify this run's instance. Changes were not compared.",
+    "zh-Hant": "\n\n無法確定本次運行的實例，未比較更改。"
+  },
+  {
+    "source": "\n\n暂时无法读取更改清单。",
+    "en": "\n\nCould not read the change list.",
+    "zh-Hant": "\n\n暫時無法讀取更改清單。"
+  },
+  {
+    "source": "\n\n正在比较上次成功运行后的更改…",
+    "en": "\n\nComparing changes since the last successful run…",
+    "zh-Hant": "\n\n正在比較上次成功運行后的更改…"
+  },
+  {
+    "source": "\n此位置由环境变量指定。",
+    "en": "\nThis location is set by an environment variable.",
+    "zh-Hant": "\n此位置由環境變量指定。"
+  },
+  {
+    "source": "\n存档、截图和日志不受影响。",
+    "en": "\nWorlds, screenshots and logs are unaffected.",
+    "zh-Hant": "\n存檔、截圖和日誌不受影響。"
+  },
+  {
+    "source": "\n更换位置时，请选择一个空文件夹。",
+    "en": "\nChoose an empty folder when changing location.",
+    "zh-Hant": "\n更換位置時，請選擇一個空資料夾。"
+  },
+  {
+    "source": "\n以下模组仍需要它：",
+    "en": "\nThese mods still require it:",
+    "zh-Hant": "\n以下模組仍需要它："
+  },
+  {
+    "source": "\n以下前置已无其他模组需要，可选择一并移除：\n",
+    "en": "\nThese dependencies are no longer needed by other mods and can also be removed:\n",
+    "zh-Hant": "\n以下前置已無其他模組需要，可選擇一并移除：\n"
+  },
+  {
+    "source": "    仅共享必要遥测",
+    "en": "    Share essential telemetry only",
+    "zh-Hant": "    僅共享必要遙測"
+  },
+  {
+    "source": "    同时共享诊断信息",
+    "en": "    Share diagnostics as well",
+    "zh-Hant": "    同時共享診斷信息"
+  },
+  {
+    "source": " · 包异常",
+    "en": " · Invalid package",
+    "zh-Hant": " · 包異常"
+  },
+  {
+    "source": " · 可更新",
+    "en": " · Update available",
+    "zh-Hant": " · 可更新"
+  },
+  {
+    "source": " · 尚未迁移",
+    "en": " · Not yet migrated",
+    "zh-Hant": " · 尚未遷移"
+  },
+  {
+    "source": " · 未全部列出",
+    "en": " · Partial list",
+    "zh-Hant": " · 未全部列出"
+  },
+  {
+    "source": " · 已禁用",
+    "en": " · Disabled",
+    "zh-Hant": " · 已禁用"
+  },
+  {
+    "source": " · 已启用",
+    "en": " · Enabled",
+    "zh-Hant": " · 已啟用"
+  },
+  {
+    "source": " · 已停用",
+    "en": " · Disabled",
+    "zh-Hant": " · 已停用"
+  },
+  {
+    "source": " · 游戏异常退出",
+    "en": " · Game crashed",
+    "zh-Hant": " · 游戲異常退出"
+  },
+  {
+    "source": " · 最新",
+    "en": " · Latest",
+    "zh-Hant": " · 最新"
+  },
+  {
+    "source": " 已可下载。",
+    "en": " is available to download.",
+    "zh-Hant": " 已可下載。"
+  },
+  {
+    "source": "，不可更改",
+    "en": ", cannot be changed",
+    "zh-Hant": "，不可更改"
+  },
+  {
+    "source": "，尚未可用",
+    "en": ", not yet available",
+    "zh-Hant": "，尚未可用"
+  },
+  {
+    "source": "，已加入拖放选择",
+    "en": ", selected for dragging",
+    "zh-Hant": "，已加入拖放選擇"
+  },
+  {
+    "source": ".NET Intrinsics（当前进程可用指令集）",
+    "en": ".NET intrinsics (available process instructions)",
+    "zh-Hant": ".NET Intrinsics（當前進程可用指令集）"
+  },
+  {
+    "source": "（已统计）",
+    "en": " (calculated)",
+    "zh-Hant": "（已統計）"
+  },
+  {
+    "source": "□ 选择",
+    "en": "Select",
+    "zh-Hant": "□ 選擇"
+  },
+  {
+    "source": "□ 隐藏前置",
+    "en": "□ Hide libraries",
+    "zh-Hant": "□ 隱藏前置"
+  },
+  {
+    "source": "□ 隐藏已有",
+    "en": "□ Hide installed",
+    "zh-Hant": "□ 隱藏已有"
+  },
+  {
+    "source": "✓  测试版本必须启用",
+    "en": "✓ Required for test builds",
+    "zh-Hant": "✓  測試版本必須啟用"
+  },
+  {
+    "source": "✓  仅共享必要遥测",
+    "en": "✓  Share essential telemetry only",
+    "zh-Hant": "✓  僅共享必要遙測"
+  },
+  {
+    "source": "✓  同时共享诊断信息",
+    "en": "✓  Share diagnostics as well",
+    "zh-Hant": "✓  同時共享診斷信息"
+  },
+  {
+    "source": "✓ 已选择",
+    "en": "✓ Selected",
+    "zh-Hant": "✓ 已選擇"
+  },
+  {
+    "source": "✓ 隐藏前置",
+    "en": "✓ Hide libraries",
+    "zh-Hant": "✓ 隱藏前置"
+  },
+  {
+    "source": "✓ 隐藏已有",
+    "en": "✓ Hide installed",
+    "zh-Hant": "✓ 隱藏已有"
+  },
+  {
+    "source": "1 / 4 · 欢迎",
+    "en": "1 / 4 · Welcome",
+    "zh-Hant": "1 / 4 · 歡迎"
+  },
+  {
+    "source": "1–16 位英文字母、数字或下划线",
+    "en": "1–16 letters, numbers or underscores",
+    "zh-Hant": "1–16 位英文字母、數字或下劃線"
+  },
+  {
+    "source": "安全堆内存上限",
+    "en": "Safe heap limit",
+    "zh-Hant": "安全堆記憶體上限"
+  },
+  {
+    "source": "安全复制",
+    "en": "Safe copy",
+    "zh-Hant": "安全復制"
+  },
+  {
+    "source": "安装",
+    "en": "Install",
+    "zh-Hant": "安裝"
+  },
+  {
+    "source": "安装 ",
+    "en": "Install ",
+    "zh-Hant": "安裝 "
+  },
+  {
+    "source": "安装 Bedrock 版",
+    "en": "Install Bedrock Edition",
+    "zh-Hant": "安裝 Bedrock 版"
+  },
+  {
+    "source": "安装 Bedrock 版 Minecraft",
+    "en": "Install Minecraft Bedrock Edition",
+    "zh-Hant": "安裝 Bedrock 版 Minecraft"
+  },
+  {
+    "source": "安装 Java 版",
+    "en": "Install Java Edition",
+    "zh-Hant": "安裝 Java 版"
+  },
+  {
+    "source": "安装 Java 版 Minecraft",
+    "en": "Install Minecraft Java Edition",
+    "zh-Hant": "安裝 Java 版 Minecraft"
+  },
+  {
+    "source": "安装撤回尚未完成",
+    "en": "Installation rollback is incomplete",
+    "zh-Hant": "安裝撤回尚未完成"
+  },
+  {
+    "source": "安装和下载进度会显示在这里。",
+    "en": "Download and installation progress appears here.",
+    "zh-Hant": "安裝和下載進度會顯示在這里。"
+  },
+  {
+    "source": "安装恢复路由未注册。",
+    "en": "Installation recovery is unavailable.",
+    "zh-Hant": "安裝恢復路由未注冊。"
+  },
+  {
+    "source": "安装恢复未完成：",
+    "en": "Installation recovery failed: ",
+    "zh-Hant": "安裝恢復未完成："
+  },
+  {
+    "source": "安装加载器",
+    "en": "Install loader",
+    "zh-Hant": "安裝載入器"
+  },
+  {
+    "source": "安装缺失依赖",
+    "en": "Install missing dependencies",
+    "zh-Hant": "安裝缺失依賴"
+  },
+  {
+    "source": "安装尚未完成",
+    "en": "Installation is incomplete",
+    "zh-Hant": "安裝尚未完成"
+  },
+  {
+    "source": "安装停止路由未注册。",
+    "en": "Installation stop is unavailable.",
+    "zh-Hant": "安裝停止路由未注冊。"
+  },
+  {
+    "source": "安装选项",
+    "en": "Installation options",
+    "zh-Hant": "安裝選項"
+  },
+  {
+    "source": "按当前估算，建议增加分配的内存。此结果不是硬性启动要求。",
+    "en": "Consider allocating more memory based on this estimate. This is not a required launch minimum.",
+    "zh-Hant": "按當前估算，建議增加分配的記憶體。此結果不是硬性啟動要求。"
+  },
+  {
+    "source": "按文件大小统计；版本文件不含快照及版本目录外的共享文件。快照含压缩对象、清单和暂存。",
+    "en": "Based on file sizes. Version files exclude snapshots and shared files outside the version folder. Snapshots include compressed objects, manifests and staging data.",
+    "zh-Hant": "按檔案大小統計；版本檔案不含快照及版本目錄外的共享檔案。快照含壓縮對象、清單和暫存。"
+  },
+  {
+    "source": "搬家检查",
+    "en": "Migration check",
+    "zh-Hant": "搬家檢查"
+  },
+  {
+    "source": "版本",
+    "en": "Version",
+    "zh-Hant": "版本"
+  },
+  {
+    "source": "版本安装",
+    "en": "Version installation",
+    "zh-Hant": "版本安裝"
+  },
+  {
+    "source": "版本更改未完成。",
+    "en": "Version changes are incomplete.",
+    "zh-Hant": "版本更改未完成。"
+  },
+  {
+    "source": "版本将移入游戏目录的 .recycle 文件夹，可手动恢复。共享资源不会移除。",
+    "en": "The version will move to the game folder's .recycle folder and can be restored manually. Shared assets are kept.",
+    "zh-Hant": "版本將移入游戲目錄的 .recycle 資料夾，可手動恢復。共享資源不會移除。"
+  },
+  {
+    "source": "版本名称",
+    "en": "Version name",
+    "zh-Hant": "版本名稱"
+  },
+  {
+    "source": "版本目录服务尚未就绪。",
+    "en": "The version library is not ready.",
+    "zh-Hant": "版本目錄服務尚未就緒。"
+  },
+  {
+    "source": "版本清单没有提供可启动的主类。",
+    "en": "The version manifest does not specify a launchable main class.",
+    "zh-Hant": "版本清單沒有提供可啟動的主類。"
+  },
+  {
+    "source": "版本清单无法用于启动。",
+    "en": "The version manifest cannot be used to launch the game.",
+    "zh-Hant": "版本清單無法用于啟動。"
+  },
+  {
+    "source": "版本设置",
+    "en": "Version settings",
+    "zh-Hant": "版本設定"
+  },
+  {
+    "source": "版本设置里可以单独给某个版本指定 Java 和内存。",
+    "en": "Set Java and memory for each version in version settings.",
+    "zh-Hant": "版本設定里可以單獨給某個版本指定 Java 和記憶體。"
+  },
+  {
+    "source": "版本未标注",
+    "en": "Version unspecified",
+    "zh-Hant": "版本未標注"
+  },
+  {
+    "source": "版本文件",
+    "en": "Version files",
+    "zh-Hant": "版本檔案"
+  },
+  {
+    "source": "版本元数据无效",
+    "en": "Invalid version metadata",
+    "zh-Hant": "版本元資料無效"
+  },
+  {
+    "source": "版本元数据无效（警告）",
+    "en": "Invalid version metadata (Warning)",
+    "zh-Hant": "版本元資料無效（警告）"
+  },
+  {
+    "source": "版本元数据无效（提示）",
+    "en": "Invalid version metadata (Information)",
+    "zh-Hant": "版本元資料無效（提示）"
+  },
+  {
+    "source": "版本元数据无效（严重）",
+    "en": "Invalid version metadata (Critical)",
+    "zh-Hant": "版本元資料無效（嚴重）"
+  },
+  {
+    "source": "版本元数据无效（正常）",
+    "en": "Invalid version metadata (Ready)",
+    "zh-Hant": "版本元資料無效（正常）"
+  },
+  {
+    "source": "版本元数据无效（阻止启动）",
+    "en": "Invalid version metadata (Blocked)",
+    "zh-Hant": "版本元資料無效（阻止啟動）"
+  },
+  {
+    "source": "帮助改进测试版本",
+    "en": "Help improve test builds",
+    "zh-Hant": "幫助改進測試版本"
+  },
+  {
+    "source": "包含可选文件",
+    "en": "Include optional files",
+    "zh-Hant": "包含可選檔案"
+  },
+  {
+    "source": "包检测",
+    "en": "Package inspection",
+    "zh-Hant": "包檢測"
+  },
+  {
+    "source": "包异常",
+    "en": "Invalid package",
+    "zh-Hant": "包異常"
+  },
+  {
+    "source": "包装命令",
+    "en": "Wrapper command",
+    "zh-Hant": "包裝命令"
+  },
+  {
+    "source": "保存",
+    "en": "Save",
+    "zh-Hant": "保存"
+  },
+  {
+    "source": "保存版本修改",
+    "en": "Save version changes",
+    "zh-Hant": "保存版本修改"
+  },
+  {
+    "source": "保存改名",
+    "en": "Save name",
+    "zh-Hant": "保存改名"
+  },
+  {
+    "source": "保存文件夹名称",
+    "en": "Save folder name",
+    "zh-Hant": "保存資料夾名稱"
+  },
+  {
+    "source": "保存修改",
+    "en": "Save changes",
+    "zh-Hant": "保存修改"
+  },
+  {
+    "source": "保留历史快照",
+    "en": "Keep snapshot history",
+    "zh-Hant": "保留歷史快照"
+  },
+  {
+    "source": "保留数量",
+    "en": "Retention count",
+    "zh-Hant": "保留數量"
+  },
+  {
+    "source": "备份",
+    "en": "Backup",
+    "zh-Hant": "備份"
+  },
+  {
+    "source": "背景",
+    "en": "Background",
+    "zh-Hant": "背景"
+  },
+  {
+    "source": "背景来源",
+    "en": "Background source",
+    "zh-Hant": "背景來源"
+  },
+  {
+    "source": "背景适配",
+    "en": "Background scaling",
+    "zh-Hant": "背景適配"
+  },
+  {
+    "source": "背景透明度",
+    "en": "Background opacity",
+    "zh-Hant": "背景透明度"
+  },
+  {
+    "source": "背景音乐",
+    "en": "Background music",
+    "zh-Hant": "背景音樂"
+  },
+  {
+    "source": "本次启动会收集本地运行指标用于诊断。",
+    "en": "Local runtime metrics will be collected for diagnostics during this launch.",
+    "zh-Hant": "本次啟動會收集本地運行指標用于診斷。"
+  },
+  {
+    "source": "本地备份",
+    "en": "Local backup",
+    "zh-Hant": "本地備份"
+  },
+  {
+    "source": "本地库加载失败。请检查系统架构与版本文件。",
+    "en": "Native library loading failed. Check the system architecture and version files.",
+    "zh-Hant": "本地庫載入失敗。請檢查系統架構與版本檔案。"
+  },
+  {
+    "source": "本机库与平台不兼容",
+    "en": "Incompatible native libraries",
+    "zh-Hant": "本機庫與平臺不兼容"
+  },
+  {
+    "source": "本机库与平台不兼容（警告）",
+    "en": "Incompatible native libraries (Warning)",
+    "zh-Hant": "本機庫與平臺不兼容（警告）"
+  },
+  {
+    "source": "本机库与平台不兼容（提示）",
+    "en": "Incompatible native libraries (Information)",
+    "zh-Hant": "本機庫與平臺不兼容（提示）"
+  },
+  {
+    "source": "本机库与平台不兼容（严重）",
+    "en": "Incompatible native libraries (Critical)",
+    "zh-Hant": "本機庫與平臺不兼容（嚴重）"
+  },
+  {
+    "source": "本机库与平台不兼容（正常）",
+    "en": "Incompatible native libraries (Ready)",
+    "zh-Hant": "本機庫與平臺不兼容（正常）"
+  },
+  {
+    "source": "本机库与平台不兼容（阻止启动）",
+    "en": "Incompatible native libraries (Blocked)",
+    "zh-Hant": "本機庫與平臺不兼容（阻止啟動）"
+  },
+  {
+    "source": "崩溃报告",
+    "en": "Crash reports",
+    "zh-Hant": "崩潰報告"
+  },
+  {
+    "source": "崩溃分析",
+    "en": "Crash analysis",
+    "zh-Hant": "崩潰分析"
+  },
+  {
+    "source": "笔记本电脑",
+    "en": "Laptop",
+    "zh-Hant": "筆記本電腦"
+  },
+  {
+    "source": "必需的启动前命令没有成功完成。",
+    "en": "A required pre-launch command did not complete successfully.",
+    "zh-Hant": "必需的啟動前命令沒有成功完成。"
+  },
+  {
+    "source": "必要遥测始终启用，仅包含版本、系统、架构及分类运行结果。诊断信息包括脱敏错误堆栈、耗时、资源占用、算法指标、功能使用情况、模组清单、加载器版本和游戏设置变化；正式版可关闭，测试版必须启用。不上传账户、路径或日志正文。",
+    "en": "Essential telemetry is always enabled and includes the version, system, architecture and categorized outcomes. Diagnostics include redacted error stacks, timings, resource usage, algorithm metrics, feature usage, mod inventories, loader versions and game setting changes. Diagnostics are optional in releases and required in test builds. Accounts, paths and log contents are not uploaded.",
+    "zh-Hant": "必要遙測始終啟用，僅包含版本、系統、架構及分類運行結果。診斷信息包括脫敏錯誤堆棧、耗時、資源占用、算法指標、功能使用情況、模組清單、載入器版本和游戲設定變化；正式版可關閉，測試版必須啟用。不上傳帳戶、路徑或日誌正文。"
+  },
+  {
+    "source": "必要遥测始终启用，用于统计应用运行和更新结果。\n可选诊断信息用于用户体验改进计划，包含脱敏错误堆栈、耗时、资源占用、算法指标、功能使用情况、模组清单、加载器版本和游戏设置变化，可在设置中关闭。不上传账户、路径或日志正文。",
+    "en": "Essential telemetry is always enabled to measure application and update outcomes.\nOptional diagnostics support the user experience program and include redacted error stacks, timings, resource usage, algorithm metrics, feature usage, mod inventories, loader versions and game setting changes. You can turn them off in Settings. Accounts, paths and log contents are not uploaded.",
+    "zh-Hant": "必要遙測始終啟用，用于統計應用運行和更新結果。\n可選診斷信息用于用戶體驗改進計劃，包含脫敏錯誤堆棧、耗時、資源占用、算法指標、功能使用情況、模組清單、載入器版本和游戲設定變化，可在設定中關閉。不上傳帳戶、路徑或日誌正文。"
+  },
+  {
+    "source": "必要遥测始终启用。CI、Alpha 和 Beta 还必须启用诊断信息，用于用户体验改进计划。\n诊断包含脱敏错误堆栈、耗时、资源占用、算法指标、功能使用情况、模组清单、加载器版本和游戏设置变化，不上传账户、路径或日志正文。",
+    "en": "Essential telemetry is always enabled. CI, Alpha and Beta builds also require diagnostics for the user experience program.\nDiagnostics include redacted error stacks, timings, resource usage, algorithm metrics, feature usage, mod inventories, loader versions and game setting changes. Accounts, paths and log contents are not uploaded.",
+    "zh-Hant": "必要遙測始終啟用。CI、Alpha 和 Beta 還必須啟用診斷信息，用于用戶體驗改進計劃。\n診斷包含脫敏錯誤堆棧、耗時、資源占用、算法指標、功能使用情況、模組清單、載入器版本和游戲設定變化，不上傳帳戶、路徑或日誌正文。"
+  },
+  {
+    "source": "便携包",
+    "en": "Portable archive",
+    "zh-Hant": "便攜包"
+  },
+  {
+    "source": "便携模式",
+    "en": "Portable mode",
+    "zh-Hant": "便攜模式"
+  },
+  {
+    "source": "标题",
+    "en": "Title",
+    "zh-Hant": "標題"
+  },
+  {
+    "source": "补全文件",
+    "en": "Complete missing files",
+    "zh-Hant": "補全檔案"
+  },
+  {
+    "source": "不共享使用数据",
+    "en": "Do not share usage data",
+    "zh-Hant": "不共享使用資料"
+  },
+  {
+    "source": "不可更改",
+    "en": "Cannot be changed",
+    "zh-Hant": "不可更改"
+  },
+  {
+    "source": "不可用",
+    "en": "Unavailable",
+    "zh-Hant": "不可用"
+  },
+  {
+    "source": "不使用",
+    "en": "None",
+    "zh-Hant": "不使用"
+  },
+  {
+    "source": "部分安装任务未能恢复，记录已保留；请查看任务中心。",
+    "en": "Some installations could not resume. Records were kept; see Task Center.",
+    "zh-Hant": "部分安裝任務未能恢復，記錄已保留；請查看任務中心。"
+  },
+  {
+    "source": "部分来源获取失败，点击重试。",
+    "en": "Some sources are unavailable. Retry to reconnect.",
+    "zh-Hant": "部分來源獲取失敗，點擊重試。"
+  },
+  {
+    "source": "部分来源暂时无法连接。",
+    "en": "Some sources are currently unavailable.",
+    "zh-Hant": "部分來源暫時無法連接。"
+  },
+  {
+    "source": "部分模组没有可用的资源画像。",
+    "en": "Resource profiles are unavailable for some mods.",
+    "zh-Hant": "部分模組沒有可用的資源畫像。"
+  },
+  {
+    "source": "部分模组暂时无法识别，未识别的项目仍会显示。",
+    "en": "Some mods could not be identified. They will still appear in the list.",
+    "zh-Hant": "部分模組暫時無法識別，未識別的項目仍會顯示。"
+  },
+  {
+    "source": "部分启动库无法加入类路径。",
+    "en": "Some required libraries could not be added to the classpath.",
+    "zh-Hant": "部分啟動庫無法加入類路徑。"
+  },
+  {
+    "source": "彩色背景",
+    "en": "Colorful background",
+    "zh-Hant": "彩色背景"
+  },
+  {
+    "source": "操作确认",
+    "en": "Confirm actions",
+    "zh-Hant": "操作確認"
+  },
+  {
+    "source": "操作未完成，当前登录会话可能已结束，请重试。",
+    "en": "The action failed. Your sign-in session may have expired. Please retry.",
+    "zh-Hant": "操作未完成，當前登錄會話可能已結束，請重試。"
+  },
+  {
+    "source": "操作系统",
+    "en": "Operating system",
+    "zh-Hant": "操作系統"
+  },
+  {
+    "source": "操作系统不受支持",
+    "en": "Unsupported operating system",
+    "zh-Hant": "操作系統不受支援"
+  },
+  {
+    "source": "操作系统不受支持（警告）",
+    "en": "Unsupported operating system (Warning)",
+    "zh-Hant": "操作系統不受支援（警告）"
+  },
+  {
+    "source": "操作系统不受支持（提示）",
+    "en": "Unsupported operating system (Information)",
+    "zh-Hant": "操作系統不受支援（提示）"
+  },
+  {
+    "source": "操作系统不受支持（严重）",
+    "en": "Unsupported operating system (Critical)",
+    "zh-Hant": "操作系統不受支援（嚴重）"
+  },
+  {
+    "source": "操作系统不受支持（正常）",
+    "en": "Unsupported operating system (Ready)",
+    "zh-Hant": "操作系統不受支援（正常）"
+  },
+  {
+    "source": "操作系统不受支持（阻止启动）",
+    "en": "Unsupported operating system (Blocked)",
+    "zh-Hant": "操作系統不受支援（阻止啟動）"
+  },
+  {
+    "source": "测试版",
+    "en": "Beta",
+    "zh-Hant": "測試版"
+  },
+  {
+    "source": "测试版本必须启用",
+    "en": "Required for test builds",
+    "zh-Hant": "測試版本必須啟用"
+  },
+  {
+    "source": "策略",
+    "en": "Policy",
+    "zh-Hant": "策略"
+  },
+  {
+    "source": "查看步骤",
+    "en": "Show steps",
+    "zh-Hant": "查看步驟"
+  },
+  {
+    "source": "查看关于 Nexa",
+    "en": "Show About Nexa",
+    "zh-Hant": "查看關于 Nexa"
+  },
+  {
+    "source": "查看回声洞",
+    "en": "Show Echo Cave",
+    "zh-Hant": "查看回聲洞"
+  },
+  {
+    "source": "查看截图 ",
+    "en": "View screenshot ",
+    "zh-Hant": "查看截圖 "
+  },
+  {
+    "source": "查看你知道吗",
+    "en": "Show tips",
+    "zh-Hant": "查看你知道嗎"
+  },
+  {
+    "source": "查看任务记录，打开任务中心",
+    "en": "View task history in Task Center",
+    "zh-Hant": "查看任務記錄，打開任務中心"
+  },
+  {
+    "source": "查看项目",
+    "en": "View project",
+    "zh-Hant": "查看項目"
+  },
+  {
+    "source": "超低功耗模式",
+    "en": "Low power mode",
+    "zh-Hant": "超低功耗模式"
+  },
+  {
+    "source": "成功快照",
+    "en": "Successful-run snapshot",
+    "zh-Hant": "成功快照"
+  },
+  {
+    "source": "冲突 / 异常",
+    "en": "Conflicts / errors",
+    "zh-Hant": "沖突 / 異常"
+  },
+  {
+    "source": "初始化",
+    "en": "Initialize",
+    "zh-Hant": "初始化"
+  },
+  {
+    "source": "处理模组冲突",
+    "en": "Resolve mod conflicts",
+    "zh-Hant": "處理模組沖突"
+  },
+  {
+    "source": "处理器",
+    "en": "Processor",
+    "zh-Hant": "處理器"
+  },
+  {
+    "source": "处理器可能即将降频。",
+    "en": "The CPU may begin thermal throttling.",
+    "zh-Hant": "處理器可能即將降頻。"
+  },
+  {
+    "source": "处理器温度接近上限",
+    "en": "CPU temperature near limit",
+    "zh-Hant": "處理器溫度接近上限"
+  },
+  {
+    "source": "处理器温度接近上限（警告）",
+    "en": "CPU temperature near limit (Warning)",
+    "zh-Hant": "處理器溫度接近上限（警告）"
+  },
+  {
+    "source": "处理器温度接近上限（提示）",
+    "en": "CPU temperature near limit (Information)",
+    "zh-Hant": "處理器溫度接近上限（提示）"
+  },
+  {
+    "source": "处理器温度接近上限（严重）",
+    "en": "CPU temperature near limit (Critical)",
+    "zh-Hant": "處理器溫度接近上限（嚴重）"
+  },
+  {
+    "source": "处理器温度接近上限（正常）",
+    "en": "CPU temperature near limit (Ready)",
+    "zh-Hant": "處理器溫度接近上限（正常）"
+  },
+  {
+    "source": "处理器温度接近上限（阻止启动）",
+    "en": "CPU temperature near limit (Blocked)",
+    "zh-Hant": "處理器溫度接近上限（阻止啟動）"
+  },
+  {
+    "source": "处理器温度偏高",
+    "en": "High CPU temperature",
+    "zh-Hant": "處理器溫度偏高"
+  },
+  {
+    "source": "处理器温度偏高（警告）",
+    "en": "High CPU temperature (Warning)",
+    "zh-Hant": "處理器溫度偏高（警告）"
+  },
+  {
+    "source": "处理器温度偏高（提示）",
+    "en": "High CPU temperature (Information)",
+    "zh-Hant": "處理器溫度偏高（提示）"
+  },
+  {
+    "source": "处理器温度偏高（严重）",
+    "en": "High CPU temperature (Critical)",
+    "zh-Hant": "處理器溫度偏高（嚴重）"
+  },
+  {
+    "source": "处理器温度偏高（正常）",
+    "en": "High CPU temperature (Ready)",
+    "zh-Hant": "處理器溫度偏高（正常）"
+  },
+  {
+    "source": "处理器温度偏高（阻止启动）",
+    "en": "High CPU temperature (Blocked)",
+    "zh-Hant": "處理器溫度偏高（阻止啟動）"
+  },
+  {
+    "source": "传递给 Minecraft 的额外启动参数。",
+    "en": "Extra arguments passed to Minecraft.",
+    "zh-Hant": "傳遞給 Minecraft 的額外啟動參數。"
+  },
+  {
+    "source": "窗口",
+    "en": "Window",
+    "zh-Hant": "窗口"
+  },
+  {
+    "source": "窗口与启动",
+    "en": "Window and launch",
+    "zh-Hant": "窗口與啟動"
+  },
+  {
+    "source": "创建档案",
+    "en": "Create profile",
+    "zh-Hant": "創建檔案"
+  },
+  {
+    "source": "创造模式快捷栏",
+    "en": "Creative hotbar",
+    "zh-Hant": "創造模式快捷欄"
+  },
+  {
+    "source": "磁盘空间不足",
+    "en": "Low disk space",
+    "zh-Hant": "磁盤空間不足"
+  },
+  {
+    "source": "磁盘空间不足（警告）",
+    "en": "Low disk space (Warning)",
+    "zh-Hant": "磁盤空間不足（警告）"
+  },
+  {
+    "source": "磁盘空间不足（提示）",
+    "en": "Low disk space (Information)",
+    "zh-Hant": "磁盤空間不足（提示）"
+  },
+  {
+    "source": "磁盘空间不足（严重）",
+    "en": "Low disk space (Critical)",
+    "zh-Hant": "磁盤空間不足（嚴重）"
+  },
+  {
+    "source": "磁盘空间不足（正常）",
+    "en": "Low disk space (Ready)",
+    "zh-Hant": "磁盤空間不足（正常）"
+  },
+  {
+    "source": "磁盘空间不足（阻止启动）",
+    "en": "Low disk space (Blocked)",
+    "zh-Hant": "磁盤空間不足（阻止啟動）"
+  },
+  {
+    "source": "磁盘空间严重不足",
+    "en": "Critically low disk space",
+    "zh-Hant": "磁盤空間嚴重不足"
+  },
+  {
+    "source": "磁盘空间严重不足（警告）",
+    "en": "Critically low disk space (Warning)",
+    "zh-Hant": "磁盤空間嚴重不足（警告）"
+  },
+  {
+    "source": "磁盘空间严重不足（提示）",
+    "en": "Critically low disk space (Information)",
+    "zh-Hant": "磁盤空間嚴重不足（提示）"
+  },
+  {
+    "source": "磁盘空间严重不足（严重）",
+    "en": "Critically low disk space (Critical)",
+    "zh-Hant": "磁盤空間嚴重不足（嚴重）"
+  },
+  {
+    "source": "磁盘空间严重不足（正常）",
+    "en": "Critically low disk space (Ready)",
+    "zh-Hant": "磁盤空間嚴重不足（正常）"
+  },
+  {
+    "source": "磁盘空间严重不足（阻止启动）",
+    "en": "Critically low disk space (Blocked)",
+    "zh-Hant": "磁盤空間嚴重不足（阻止啟動）"
+  },
+  {
+    "source": "此操作需要确认。",
+    "en": "Confirm this operation to continue.",
+    "zh-Hant": "此操作需要確認。"
+  },
+  {
+    "source": "此分类的设置正在准备中。",
+    "en": "Settings for this category are being prepared.",
+    "zh-Hant": "此分類的設定正在準備中。"
+  },
+  {
+    "source": "此功能",
+    "en": "This feature",
+    "zh-Hant": "此功能"
+  },
+  {
+    "source": "此功能尚未迁移到 Nexa，因此不会开始下载或显示虚假的安装进度。",
+    "en": "This feature is not yet available in Nexa. No download or installation will begin.",
+    "zh-Hant": "此功能尚未遷移到 Nexa，因此不會開始下載或顯示虛假的安裝進度。"
+  },
+  {
+    "source": "此目录中还没有内容。",
+    "en": "This folder is empty.",
+    "zh-Hant": "此目錄中還沒有內容。"
+  },
+  {
+    "source": "此实例无法在当前操作系统上运行。",
+    "en": "This instance cannot run on the current operating system.",
+    "zh-Hant": "此實例無法在當前操作系統上運行。"
+  },
+  {
+    "source": "此通道没有可用的新版本。",
+    "en": "No new version is available for this channel.",
+    "zh-Hant": "此通道沒有可用的新版本。"
+  },
+  {
+    "source": "此游戏版本暂无兼容版本。",
+    "en": "No compatible version is available for this game version.",
+    "zh-Hant": "此游戲版本暫無兼容版本。"
+  },
+  {
+    "source": "存储",
+    "en": "Storage",
+    "zh-Hant": "存儲"
+  },
+  {
+    "source": "存储优化",
+    "en": "Storage optimization",
+    "zh-Hant": "存儲優化"
+  },
+  {
+    "source": "存储优化建议",
+    "en": "Storage recommendations",
+    "zh-Hant": "存儲優化建議"
+  },
+  {
+    "source": "存储与迁移",
+    "en": "Storage and migration",
+    "zh-Hant": "存儲與遷移"
+  },
+  {
+    "source": "存档",
+    "en": "Worlds",
+    "zh-Hant": "存檔"
+  },
+  {
+    "source": "存档 · 已启用",
+    "en": "Worlds · Enabled",
+    "zh-Hant": "存檔 · 已啟用"
+  },
+  {
+    "source": "存档 · 已停用",
+    "en": "Worlds · Disabled",
+    "zh-Hant": "存檔 · 已停用"
+  },
+  {
+    "source": "存在不能同时加载的模组。",
+    "en": "Some installed mods cannot be loaded together.",
+    "zh-Hant": "存在不能同時載入的模組。"
+  },
+  {
+    "source": "存在未知模组",
+    "en": "Unrecognized mods",
+    "zh-Hant": "存在未知模組"
+  },
+  {
+    "source": "存在未知模组画像",
+    "en": "Missing mod profiles",
+    "zh-Hant": "存在未知模組畫像"
+  },
+  {
+    "source": "存在未知模组画像（警告）",
+    "en": "Missing mod profiles (Warning)",
+    "zh-Hant": "存在未知模組畫像（警告）"
+  },
+  {
+    "source": "存在未知模组画像（提示）",
+    "en": "Missing mod profiles (Information)",
+    "zh-Hant": "存在未知模組畫像（提示）"
+  },
+  {
+    "source": "存在未知模组画像（严重）",
+    "en": "Missing mod profiles (Critical)",
+    "zh-Hant": "存在未知模組畫像（嚴重）"
+  },
+  {
+    "source": "存在未知模组画像（正常）",
+    "en": "Missing mod profiles (Ready)",
+    "zh-Hant": "存在未知模組畫像（正常）"
+  },
+  {
+    "source": "存在未知模组画像（阻止启动）",
+    "en": "Missing mod profiles (Blocked)",
+    "zh-Hant": "存在未知模組畫像（阻止啟動）"
+  },
+  {
+    "source": "打开",
+    "en": "Open",
+    "zh-Hant": "打開"
+  },
+  {
+    "source": "打开 settings.json",
+    "en": "Open settings.json",
+    "zh-Hant": "打開 settings.json"
+  },
+  {
+    "source": "打开版本文件夹",
+    "en": "Open version folder",
+    "zh-Hant": "打開版本資料夾"
+  },
+  {
+    "source": "打开目录",
+    "en": "Open folder",
+    "zh-Hant": "打開目錄"
+  },
+  {
+    "source": "打开内容文件夹",
+    "en": "Open content folder",
+    "zh-Hant": "打開內容資料夾"
+  },
+  {
+    "source": "打开任务中心",
+    "en": "Open Task Center",
+    "zh-Hant": "打開任務中心"
+  },
+  {
+    "source": "打开日志目录",
+    "en": "Open log folder",
+    "zh-Hant": "打開日誌目錄"
+  },
+  {
+    "source": "打开所在文件夹",
+    "en": "Show in folder",
+    "zh-Hant": "打開所在資料夾"
+  },
+  {
+    "source": "打开文件夹",
+    "en": "Open folder",
+    "zh-Hant": "打開資料夾"
+  },
+  {
+    "source": "打开页面文件设置",
+    "en": "Open page file settings",
+    "zh-Hant": "打開頁面檔案設定"
+  },
+  {
+    "source": "大小",
+    "en": "Size",
+    "zh-Hant": "大小"
+  },
+  {
+    "source": "代理",
+    "en": "Proxy",
+    "zh-Hant": "代理"
+  },
+  {
+    "source": "代码缓存",
+    "en": "Code cache",
+    "zh-Hant": "代碼快取"
+  },
+  {
+    "source": "待前置能力",
+    "en": "Waiting for prerequisites",
+    "zh-Hant": "待前置能力"
+  },
+  {
+    "source": "单实例运行",
+    "en": "Single instance",
+    "zh-Hant": "單實例運行"
+  },
+  {
+    "source": "当前 Java 不满足实例的硬性要求。",
+    "en": "The selected Java runtime does not meet this instance's requirements.",
+    "zh-Hant": "當前 Java 不滿足實例的硬性要求。"
+  },
+  {
+    "source": "当前 Java 可以运行，但不是建议版本。",
+    "en": "The selected Java runtime is supported, but a different version is recommended.",
+    "zh-Hant": "當前 Java 可以運行，但不是建議版本。"
+  },
+  {
+    "source": "当前版本",
+    "en": "Current version",
+    "zh-Hant": "當前版本"
+  },
+  {
+    "source": "当前步骤",
+    "en": "Current step",
+    "zh-Hant": "當前步驟"
+  },
+  {
+    "source": "当前处理器温度可能影响持续性能。",
+    "en": "The current CPU temperature may affect sustained performance.",
+    "zh-Hant": "當前處理器溫度可能影響持續性能。"
+  },
+  {
+    "source": "当前环境没有可执行此操作的服务。",
+    "en": "No service is available to perform this operation.",
+    "zh-Hant": "當前環境沒有可執行此操作的服務。"
+  },
+  {
+    "source": "当前加载器版本不能用于此 Minecraft 版本。",
+    "en": "This loader version does not support the selected Minecraft version.",
+    "zh-Hant": "當前載入器版本不能用于此 Minecraft 版本。"
+  },
+  {
+    "source": "当前可用物理内存",
+    "en": "Available physical memory",
+    "zh-Hant": "當前可用物理記憶體"
+  },
+  {
+    "source": "当前没有选择版本。添加模组或修改核心前，请先选择版本。",
+    "en": "Select a version before adding mods or modifying the core.",
+    "zh-Hant": "當前沒有選擇版本。添加模組或修改核心前，請先選擇版本。"
+  },
+  {
+    "source": "当前目录",
+    "en": "Current folder",
+    "zh-Hant": "當前目錄"
+  },
+  {
+    "source": "当前目录：",
+    "en": "Current folder: ",
+    "zh-Hant": "當前目錄："
+  },
+  {
+    "source": "当前内存分配可能造成频繁换页。",
+    "en": "This memory allocation may cause frequent paging.",
+    "zh-Hant": "當前記憶體分配可能造成頻繁換頁。"
+  },
+  {
+    "source": "当前筛选下没有资源。",
+    "en": "No resources match these filters.",
+    "zh-Hant": "當前篩選下沒有資源。"
+  },
+  {
+    "source": "当前实例没有可用的 Java 运行时。",
+    "en": "No usable Java runtime was found for this instance.",
+    "zh-Hant": "當前實例沒有可用的 Java 運行時。"
+  },
+  {
+    "source": "当前实例需要模组加载器。",
+    "en": "This instance requires a mod loader.",
+    "zh-Hant": "當前實例需要模組載入器。"
+  },
+  {
+    "source": "当前实例需要先选择一个账户。",
+    "en": "Select an account before launching this instance.",
+    "zh-Hant": "當前實例需要先選擇一個帳戶。"
+  },
+  {
+    "source": "当前使用低性能显卡",
+    "en": "Lower-performance graphics adapter selected",
+    "zh-Hant": "當前使用低性能顯示卡"
+  },
+  {
+    "source": "当前使用低性能显卡（警告）",
+    "en": "Lower-performance graphics adapter selected (Warning)",
+    "zh-Hant": "當前使用低性能顯示卡（警告）"
+  },
+  {
+    "source": "当前使用低性能显卡（提示）",
+    "en": "Lower-performance graphics adapter selected (Information)",
+    "zh-Hant": "當前使用低性能顯示卡（提示）"
+  },
+  {
+    "source": "当前使用低性能显卡（严重）",
+    "en": "Lower-performance graphics adapter selected (Critical)",
+    "zh-Hant": "當前使用低性能顯示卡（嚴重）"
+  },
+  {
+    "source": "当前使用低性能显卡（正常）",
+    "en": "Lower-performance graphics adapter selected (Ready)",
+    "zh-Hant": "當前使用低性能顯示卡（正常）"
+  },
+  {
+    "source": "当前使用低性能显卡（阻止启动）",
+    "en": "Lower-performance graphics adapter selected (Blocked)",
+    "zh-Hant": "當前使用低性能顯示卡（阻止啟動）"
+  },
+  {
+    "source": "当前数据不足以生成高置信度建议。",
+    "en": "More data is needed for a high-confidence recommendation.",
+    "zh-Hant": "當前資料不足以生成高置信度建議。"
+  },
+  {
+    "source": "当前提交预算无法继续增长。",
+    "en": "The current commit budget cannot grow further.",
+    "zh-Hant": "當前提交預算無法繼續增長。"
+  },
+  {
+    "source": "当前显卡温度可能影响持续性能。",
+    "en": "The current GPU temperature may affect sustained performance.",
+    "zh-Hant": "當前顯示卡溫度可能影響持續性能。"
+  },
+  {
+    "source": "当前选择已改变，请重新选择筛选。",
+    "en": "The selection changed. Choose the filters again.",
+    "zh-Hant": "當前選擇已改變，請重新選擇篩選。"
+  },
+  {
+    "source": "当前账户凭据无法通过验证。",
+    "en": "The selected account credentials could not be verified.",
+    "zh-Hant": "當前帳戶憑據無法通過驗證。"
+  },
+  {
+    "source": "当前主要使用触屏，但实例没有触屏支持。",
+    "en": "Touch is the primary input, but this instance does not support it.",
+    "zh-Hant": "當前主要使用觸屏，但實例沒有觸屏支援。"
+  },
+  {
+    "source": "当前主要使用手柄，但实例没有手柄支持。",
+    "en": "A controller is the primary input, but this instance does not support it.",
+    "zh-Hant": "當前主要使用手柄，但實例沒有手柄支援。"
+  },
+  {
+    "source": "当前状态",
+    "en": "Current status",
+    "zh-Hant": "當前狀態"
+  },
+  {
+    "source": "档案文件路径",
+    "en": "Profile file path",
+    "zh-Hant": "檔案檔案路徑"
+  },
+  {
+    "source": "导出日志",
+    "en": "Export logs",
+    "zh-Hant": "導出日誌"
+  },
+  {
+    "source": "导出设置",
+    "en": "Export settings",
+    "zh-Hant": "導出設定"
+  },
+  {
+    "source": "导入",
+    "en": "Import",
+    "zh-Hant": "導入"
+  },
+  {
+    "source": "导入 ",
+    "en": "Import ",
+    "zh-Hant": "導入 "
+  },
+  {
+    "source": "导入旧 Nexa 档案，不修改旧文件。",
+    "en": "Import existing Nexa profiles without changing the original files.",
+    "zh-Hant": "導入舊 Nexa 檔案，不修改舊檔案。"
+  },
+  {
+    "source": "导入旧档案",
+    "en": "Import existing profiles",
+    "zh-Hant": "導入舊檔案"
+  },
+  {
+    "source": "导入设置",
+    "en": "Import settings",
+    "zh-Hant": "導入設定"
+  },
+  {
+    "source": "导入未完成：",
+    "en": "Import failed: ",
+    "zh-Hant": "導入未完成："
+  },
+  {
+    "source": "导入未完成。",
+    "en": "Import is incomplete.",
+    "zh-Hant": "導入未完成。"
+  },
+  {
+    "source": "地址",
+    "en": "Address",
+    "zh-Hant": "地址"
+  },
+  {
+    "source": "登录",
+    "en": "Sign in",
+    "zh-Hant": "登錄"
+  },
+  {
+    "source": "登录并添加",
+    "en": "Sign in and add",
+    "zh-Hant": "登錄并添加"
+  },
+  {
+    "source": "登录方式",
+    "en": "Sign-in method",
+    "zh-Hant": "登錄方式"
+  },
+  {
+    "source": "登录名或邮箱",
+    "en": "Username or email",
+    "zh-Hant": "登錄名或郵箱"
+  },
+  {
+    "source": "登录信息仅发送到你填写的认证服务器。",
+    "en": "Sign-in details are sent only to the authentication server you enter.",
+    "zh-Hant": "登錄信息僅發送到你填寫的認證伺服器。"
+  },
+  {
+    "source": "等待游戏窗口",
+    "en": "Waiting for the game window",
+    "zh-Hant": "等待游戲窗口"
+  },
+  {
+    "source": "等待账户档案",
+    "en": "Waiting for account profile",
+    "zh-Hant": "等待帳戶檔案"
+  },
+  {
+    "source": "低",
+    "en": "Low",
+    "zh-Hant": "低"
+  },
+  {
+    "source": "第三方",
+    "en": "Third-party",
+    "zh-Hant": "第三方"
+  },
+  {
+    "source": "第三方 · ",
+    "en": "Third-party · ",
+    "zh-Hant": "第三方 · "
+  },
+  {
+    "source": "第三方账户",
+    "en": "Third-party account",
+    "zh-Hant": "第三方帳戶"
+  },
+  {
+    "source": "电源",
+    "en": "Power",
+    "zh-Hant": "電源"
+  },
+  {
+    "source": "调整堆内存",
+    "en": "Adjust heap memory",
+    "zh-Hant": "調整堆記憶體"
+  },
+  {
+    "source": "订阅方案",
+    "en": "Subscription",
+    "zh-Hant": "訂閱方案"
+  },
+  {
+    "source": "动画",
+    "en": "Animation",
+    "zh-Hant": "動畫"
+  },
+  {
+    "source": "动态代码",
+    "en": "Dynamic code",
+    "zh-Hant": "動態代碼"
+  },
+  {
+    "source": "堆内存超过可用物理内存",
+    "en": "Heap exceeds available physical memory",
+    "zh-Hant": "堆記憶體超過可用物理記憶體"
+  },
+  {
+    "source": "堆内存超过可用物理内存（警告）",
+    "en": "Heap exceeds available physical memory (Warning)",
+    "zh-Hant": "堆記憶體超過可用物理記憶體（警告）"
+  },
+  {
+    "source": "堆内存超过可用物理内存（提示）",
+    "en": "Heap exceeds available physical memory (Information)",
+    "zh-Hant": "堆記憶體超過可用物理記憶體（提示）"
+  },
+  {
+    "source": "堆内存超过可用物理内存（严重）",
+    "en": "Heap exceeds available physical memory (Critical)",
+    "zh-Hant": "堆記憶體超過可用物理記憶體（嚴重）"
+  },
+  {
+    "source": "堆内存超过可用物理内存（正常）",
+    "en": "Heap exceeds available physical memory (Ready)",
+    "zh-Hant": "堆記憶體超過可用物理記憶體（正常）"
+  },
+  {
+    "source": "堆内存超过可用物理内存（阻止启动）",
+    "en": "Heap exceeds available physical memory (Blocked)",
+    "zh-Hant": "堆記憶體超過可用物理記憶體（阻止啟動）"
+  },
+  {
+    "source": "堆内存低于估算下限",
+    "en": "Heap below estimated minimum",
+    "zh-Hant": "堆記憶體低于估算下限"
+  },
+  {
+    "source": "堆内存低于估算下限（警告）",
+    "en": "Heap below estimated minimum (Warning)",
+    "zh-Hant": "堆記憶體低于估算下限（警告）"
+  },
+  {
+    "source": "堆内存低于估算下限（提示）",
+    "en": "Heap below estimated minimum (Information)",
+    "zh-Hant": "堆記憶體低于估算下限（提示）"
+  },
+  {
+    "source": "堆内存低于估算下限（严重）",
+    "en": "Heap below estimated minimum (Critical)",
+    "zh-Hant": "堆記憶體低于估算下限（嚴重）"
+  },
+  {
+    "source": "堆内存低于估算下限（正常）",
+    "en": "Heap below estimated minimum (Ready)",
+    "zh-Hant": "堆記憶體低于估算下限（正常）"
+  },
+  {
+    "source": "堆内存低于估算下限（阻止启动）",
+    "en": "Heap below estimated minimum (Blocked)",
+    "zh-Hant": "堆記憶體低于估算下限（阻止啟動）"
+  },
+  {
+    "source": "堆内存估算下限",
+    "en": "Estimated minimum heap",
+    "zh-Hant": "堆記憶體估算下限"
+  },
+  {
+    "source": "堆内存硬性下限",
+    "en": "Required minimum heap",
+    "zh-Hant": "堆記憶體硬性下限"
+  },
+  {
+    "source": "发现很可能导致启动失败的模组组合。",
+    "en": "Some mod combinations are likely to prevent the game from starting.",
+    "zh-Hant": "發現很可能導致啟動失敗的模組組合。"
+  },
+  {
+    "source": "发现可能影响运行的模组组合。",
+    "en": "Some mod combinations may affect the game.",
+    "zh-Hant": "發現可能影響運行的模組組合。"
+  },
+  {
+    "source": "发现一项需要处理的启动条件。",
+    "en": "A launch condition requires attention.",
+    "zh-Hant": "發現一項需要處理的啟動條件。"
+  },
+  {
+    "source": "发行商",
+    "en": "Vendor",
+    "zh-Hant": "發行商"
+  },
+  {
+    "source": "繁體中文",
+    "en": "繁體中文",
+    "zh-Hant": "繁體中文"
+  },
+  {
+    "source": "返回",
+    "en": "Back",
+    "zh-Hant": "返回"
+  },
+  {
+    "source": "返回列表",
+    "en": "Back to list",
+    "zh-Hant": "返回列表"
+  },
+  {
+    "source": "返回上一级",
+    "en": "Go back",
+    "zh-Hant": "返回上一級"
+  },
+  {
+    "source": "返回首页",
+    "en": "Back to home",
+    "zh-Hant": "返回首頁"
+  },
+  {
+    "source": "返回账户",
+    "en": "Back to accounts",
+    "zh-Hant": "返回帳戶"
+  },
+  {
+    "source": "返回正在启动",
+    "en": "Back to launch progress",
+    "zh-Hant": "返回正在啟動"
+  },
+  {
+    "source": "分配的堆内存低于预计启动需求。",
+    "en": "Allocated heap memory is below the estimated launch requirement.",
+    "zh-Hant": "分配的堆記憶體低于預計啟動需求。"
+  },
+  {
+    "source": "分配的堆内存低于预计运行需求。",
+    "en": "Allocated heap memory is below the estimated runtime requirement.",
+    "zh-Hant": "分配的堆記憶體低于預計運行需求。"
+  },
+  {
+    "source": "否",
+    "en": "No",
+    "zh-Hant": "否"
+  },
+  {
+    "source": "服务器",
+    "en": "Servers",
+    "zh-Hant": "伺服器"
+  },
+  {
+    "source": "服务器列表",
+    "en": "Server list",
+    "zh-Hant": "伺服器列表"
+  },
+  {
+    "source": "服务器列表管理尚未迁移。",
+    "en": "Server management is not yet available.",
+    "zh-Hant": "伺服器列表管理尚未遷移。"
+  },
+  {
+    "source": "服务器认证",
+    "en": "Server authentication",
+    "zh-Hant": "伺服器認證"
+  },
+  {
+    "source": "复制授权码",
+    "en": "Copy code",
+    "zh-Hant": "復制授權碼"
+  },
+  {
+    "source": "概览",
+    "en": "Overview",
+    "zh-Hant": "概覽"
+  },
+  {
+    "source": "感谢使用 Nexa，也欢迎向社区反馈问题与建议！",
+    "en": "Thanks for using Nexa. Share issues and suggestions with the community.",
+    "zh-Hant": "感謝使用 Nexa，也歡迎向社區反饋問題與建議！"
+  },
+  {
+    "source": "高",
+    "en": "High",
+    "zh-Hant": "高"
+  },
+  {
+    "source": "高级",
+    "en": "Advanced",
+    "zh-Hant": "高級"
+  },
+  {
+    "source": "格式区域",
+    "en": "Regional format",
+    "zh-Hant": "格式區域"
+  },
+  {
+    "source": "跟随系统",
+    "en": "System",
+    "zh-Hant": "跟隨系統"
+  },
+  {
+    "source": "更多操作",
+    "en": "More actions",
+    "zh-Hant": "更多操作"
+  },
+  {
+    "source": "更新",
+    "en": "Update",
+    "zh-Hant": "更新"
+  },
+  {
+    "source": "更新安全",
+    "en": "Update security",
+    "zh-Hant": "更新安全"
+  },
+  {
+    "source": "更新前 Snapshot",
+    "en": "Snapshot before update",
+    "zh-Hant": "更新前 Snapshot"
+  },
+  {
+    "source": "更新日志",
+    "en": "Changelog",
+    "zh-Hant": "更新日誌"
+  },
+  {
+    "source": "更新通道",
+    "en": "Update channel",
+    "zh-Hant": "更新通道"
+  },
+  {
+    "source": "更新与安全",
+    "en": "Updates and security",
+    "zh-Hant": "更新與安全"
+  },
+  {
+    "source": "更新与高级",
+    "en": "Updates and advanced",
+    "zh-Hant": "更新與高級"
+  },
+  {
+    "source": "更衣橱",
+    "en": "Skins",
+    "zh-Hant": "更衣櫥"
+  },
+  {
+    "source": "共享基本使用数据",
+    "en": "Share basic usage data",
+    "zh-Hant": "共享基本使用資料"
+  },
+  {
+    "source": "共享系统内存",
+    "en": "Shared system memory",
+    "zh-Hant": "共享系統記憶體"
+  },
+  {
+    "source": "估算",
+    "en": "Estimate",
+    "zh-Hant": "估算"
+  },
+  {
+    "source": "估算置信度",
+    "en": "Estimate confidence",
+    "zh-Hant": "估算置信度"
+  },
+  {
+    "source": "估算置信分",
+    "en": "Estimate confidence score",
+    "zh-Hant": "估算置信分"
+  },
+  {
+    "source": "估算状态",
+    "en": "Estimate status",
+    "zh-Hant": "估算狀態"
+  },
+  {
+    "source": "固定上限可能阻止系统按需增加提交预算。",
+    "en": "A fixed limit may prevent the system from expanding its commit budget.",
+    "zh-Hant": "固定上限可能阻止系統按需增加提交預算。"
+  },
+  {
+    "source": "关闭",
+    "en": "Off",
+    "zh-Hant": "關閉"
+  },
+  {
+    "source": "关闭 Info 通知",
+    "en": "Dismiss information notification",
+    "zh-Hant": "關閉 Info 通知"
+  },
+  {
+    "source": "关闭按钮行为",
+    "en": "Close button behavior",
+    "zh-Hant": "關閉按鈕行為"
+  },
+  {
+    "source": "关闭目录下拉框",
+    "en": "Close folder selector",
+    "zh-Hant": "關閉目錄下拉框"
+  },
+  {
+    "source": "关闭时安装独立版本；开启后依赖原版。下次安装生效。",
+    "en": "Off installs an independent version. On creates a version that inherits from vanilla. Applies to the next installation.",
+    "zh-Hant": "關閉時安裝獨立版本；開啟后依賴原版。下次安裝生效。"
+  },
+  {
+    "source": "关于 Nexa",
+    "en": "About Nexa",
+    "zh-Hant": "關于 Nexa"
+  },
+  {
+    "source": "关于 Nexa，当前卡片",
+    "en": "About Nexa, current card",
+    "zh-Hant": "關于 Nexa，當前卡片"
+  },
+  {
+    "source": "官方文件夹",
+    "en": "Official folder",
+    "zh-Hant": "官方資料夾"
+  },
+  {
+    "source": "官方优先",
+    "en": "Official first",
+    "zh-Hant": "官方優先"
+  },
+  {
+    "source": "光影",
+    "en": "Shaders",
+    "zh-Hant": "光影"
+  },
+  {
+    "source": "光影包",
+    "en": "Shader packs",
+    "zh-Hant": "光影包"
+  },
+  {
+    "source": "光影包 · 已启用",
+    "en": "Shader packs · Enabled",
+    "zh-Hant": "光影包 · 已啟用"
+  },
+  {
+    "source": "光影包 · 已停用",
+    "en": "Shader packs · Disabled",
+    "zh-Hant": "光影包 · 已停用"
+  },
+  {
+    "source": "光影显存",
+    "en": "Shader video memory",
+    "zh-Hant": "光影顯存"
+  },
+  {
+    "source": "光影需要 Iris / OptiFine 等支持，否则版本页不会显示光影入口。",
+    "en": "Shaders require Iris, OptiFine or similar support. The shader page appears only when supported.",
+    "zh-Hant": "光影需要 Iris / OptiFine 等支援，否則版本頁不會顯示光影入口。"
+  },
+  {
+    "source": "还没有账户档案。\n点击上方＋添加，或导入旧档案。",
+    "en": "No account profiles yet.\nUse + above to add one, or import existing profiles.",
+    "zh-Hant": "還沒有帳戶檔案。\n點擊上方＋添加，或導入舊檔案。"
+  },
+  {
+    "source": "还原",
+    "en": "Restore",
+    "zh-Hant": "還原"
+  },
+  {
+    "source": "核心补丁会合并归档内容并备份原核心，只支持拥有独立核心的版本。加载器安装会执行此安装器，创建独立版本。",
+    "en": "Core patches merge archive contents and back up the original core. Only versions with an independent core are supported. Loader installers run to create an independent version.",
+    "zh-Hant": "核心補丁會合并歸檔內容并備份原核心，只支援擁有獨立核心的版本。載入器安裝會執行此安裝器，創建獨立版本。"
+  },
+  {
+    "source": "核心文件已修改",
+    "en": "Modified core files",
+    "zh-Hant": "核心檔案已修改"
+  },
+  {
+    "source": "核心文件已修改（警告）",
+    "en": "Modified core files (Warning)",
+    "zh-Hant": "核心檔案已修改（警告）"
+  },
+  {
+    "source": "核心文件已修改（提示）",
+    "en": "Modified core files (Information)",
+    "zh-Hant": "核心檔案已修改（提示）"
+  },
+  {
+    "source": "核心文件已修改（严重）",
+    "en": "Modified core files (Critical)",
+    "zh-Hant": "核心檔案已修改（嚴重）"
+  },
+  {
+    "source": "核心文件已修改（正常）",
+    "en": "Modified core files (Ready)",
+    "zh-Hant": "核心檔案已修改（正常）"
+  },
+  {
+    "source": "核心文件已修改（阻止启动）",
+    "en": "Modified core files (Blocked)",
+    "zh-Hant": "核心檔案已修改（阻止啟動）"
+  },
+  {
+    "source": "后台下载",
+    "en": "Background downloads",
+    "zh-Hant": "后臺下載"
+  },
+  {
+    "source": "后台运行",
+    "en": "Run in background",
+    "zh-Hant": "后臺運行"
+  },
+  {
+    "source": "欢迎",
+    "en": "Welcome",
+    "zh-Hant": "歡迎"
+  },
+  {
+    "source": "欢迎使用 NexaCL",
+    "en": "Welcome to NexaCL",
+    "zh-Hant": "歡迎使用 NexaCL"
+  },
+  {
+    "source": "缓存",
+    "en": "Cache",
+    "zh-Hant": "快取"
+  },
+  {
+    "source": "恢复范围内没有更改。",
+    "en": "No changes within the recovery scope.",
+    "zh-Hant": "恢復范圍內沒有更改。"
+  },
+  {
+    "source": "恢复记录已保留。处理任务提示中的问题后，可重试取消或回滚。",
+    "en": "Recovery records were kept. Resolve the issue shown in the task, then retry cancellation or rollback.",
+    "zh-Hant": "恢復記錄已保留。處理任務提示中的問題后，可重試取消或回滾。"
+  },
+  {
+    "source": "恢复继承",
+    "en": "Reset override",
+    "zh-Hant": "恢復繼承"
+  },
+  {
+    "source": "恢复默认",
+    "en": "Restore defaults",
+    "zh-Hant": "恢復預設"
+  },
+  {
+    "source": "恢复上次成功运行的状态",
+    "en": "Restore the last successful run",
+    "zh-Hant": "恢復上次成功運行的狀態"
+  },
+  {
+    "source": "恢复未完成，快照与原错误记录已保留。",
+    "en": "Recovery failed. The snapshot and original error records were kept.",
+    "zh-Hant": "恢復未完成，快照與原錯誤記錄已保留。"
+  },
+  {
+    "source": "回到首批",
+    "en": "Back to first batch",
+    "zh-Hant": "回到首批"
+  },
+  {
+    "source": "回滚",
+    "en": "Roll back",
+    "zh-Hant": "回滾"
+  },
+  {
+    "source": "回滚此项",
+    "en": "Roll back this change",
+    "zh-Hant": "回滾此項"
+  },
+  {
+    "source": "回滚更改…",
+    "en": "Rolling back changes…",
+    "zh-Hant": "回滾更改…"
+  },
+  {
+    "source": "回滚全部",
+    "en": "Roll back all",
+    "zh-Hant": "回滾全部"
+  },
+  {
+    "source": "回滚全部更改",
+    "en": "Roll back all changes",
+    "zh-Hant": "回滾全部更改"
+  },
+  {
+    "source": "回滚所选更改",
+    "en": "Roll back selected changes",
+    "zh-Hant": "回滾所選更改"
+  },
+  {
+    "source": "回声洞",
+    "en": "Echo Cave",
+    "zh-Hant": "回聲洞"
+  },
+  {
+    "source": "回声洞，当前卡片",
+    "en": "Echo Cave, current card",
+    "zh-Hant": "回聲洞，當前卡片"
+  },
+  {
+    "source": "获取 Java",
+    "en": "Get Java",
+    "zh-Hant": "獲取 Java"
+  },
+  {
+    "source": "获取启动参数",
+    "en": "Prepare launch arguments",
+    "zh-Hant": "獲取啟動參數"
+  },
+  {
+    "source": "获取失败，请重试。",
+    "en": "Could not load. Please retry.",
+    "zh-Hant": "獲取失敗，請重試。"
+  },
+  {
+    "source": "机器画像",
+    "en": "Machine profile",
+    "zh-Hant": "機器畫像"
+  },
+  {
+    "source": "基本",
+    "en": "Basic",
+    "zh-Hant": "基本"
+  },
+  {
+    "source": "基础堆内存",
+    "en": "Base heap memory",
+    "zh-Hant": "基礎堆記憶體"
+  },
+  {
+    "source": "继承",
+    "en": "Inherit",
+    "zh-Hant": "繼承"
+  },
+  {
+    "source": "继承全局",
+    "en": "Inherit global settings",
+    "zh-Hant": "繼承全局"
+  },
+  {
+    "source": "继承中",
+    "en": "Inherited",
+    "zh-Hant": "繼承中"
+  },
+  {
+    "source": "继续",
+    "en": "Continue",
+    "zh-Hant": "繼續"
+  },
+  {
+    "source": "继续修改",
+    "en": "Continue editing",
+    "zh-Hant": "繼續修改"
+  },
+  {
+    "source": "加载器",
+    "en": "Loader",
+    "zh-Hant": "載入器"
+  },
+  {
+    "source": "加载器相似度",
+    "en": "Loader similarity",
+    "zh-Hant": "載入器相似度"
+  },
+  {
+    "source": "加载器与 Minecraft 不兼容",
+    "en": "Loader incompatible with Minecraft",
+    "zh-Hant": "載入器與 Minecraft 不兼容"
+  },
+  {
+    "source": "加载器与 Minecraft 不兼容（警告）",
+    "en": "Loader incompatible with Minecraft (Warning)",
+    "zh-Hant": "載入器與 Minecraft 不兼容（警告）"
+  },
+  {
+    "source": "加载器与 Minecraft 不兼容（提示）",
+    "en": "Loader incompatible with Minecraft (Information)",
+    "zh-Hant": "載入器與 Minecraft 不兼容（提示）"
+  },
+  {
+    "source": "加载器与 Minecraft 不兼容（严重）",
+    "en": "Loader incompatible with Minecraft (Critical)",
+    "zh-Hant": "載入器與 Minecraft 不兼容（嚴重）"
+  },
+  {
+    "source": "加载器与 Minecraft 不兼容（正常）",
+    "en": "Loader incompatible with Minecraft (Ready)",
+    "zh-Hant": "載入器與 Minecraft 不兼容（正常）"
+  },
+  {
+    "source": "加载器与 Minecraft 不兼容（阻止启动）",
+    "en": "Loader incompatible with Minecraft (Blocked)",
+    "zh-Hant": "載入器與 Minecraft 不兼容（阻止啟動）"
+  },
+  {
+    "source": "加载失败",
+    "en": "Could not load",
+    "zh-Hant": "載入失敗"
+  },
+  {
+    "source": "架构",
+    "en": "Architecture",
+    "zh-Hant": "架構"
+  },
+  {
+    "source": "兼容性检查",
+    "en": "Compatibility check",
+    "zh-Hant": "兼容性檢查"
+  },
+  {
+    "source": "减少动态效果",
+    "en": "Reduce motion",
+    "zh-Hant": "減少動態效果"
+  },
+  {
+    "source": "减少界面切换和展开时的动态效果。",
+    "en": "Reduce motion during navigation and expansion.",
+    "zh-Hant": "減少界面切換和展開時的動態效果。"
+  },
+  {
+    "source": "剪贴板内容检测",
+    "en": "Detect clipboard content",
+    "zh-Hant": "剪貼板內容檢測"
+  },
+  {
+    "source": "检测到待处理事项",
+    "en": "Action needed",
+    "zh-Hant": "檢測到待處理事項"
+  },
+  {
+    "source": "检测到待处理事项（警告）",
+    "en": "Action needed (Warning)",
+    "zh-Hant": "檢測到待處理事項（警告）"
+  },
+  {
+    "source": "检测到待处理事项（提示）",
+    "en": "Action needed (Information)",
+    "zh-Hant": "檢測到待處理事項（提示）"
+  },
+  {
+    "source": "检测到待处理事项（严重）",
+    "en": "Action needed (Critical)",
+    "zh-Hant": "檢測到待處理事項（嚴重）"
+  },
+  {
+    "source": "检测到待处理事项（正常）",
+    "en": "Action needed (Ready)",
+    "zh-Hant": "檢測到待處理事項（正常）"
+  },
+  {
+    "source": "检测到待处理事项（阻止启动）",
+    "en": "Action needed (Blocked)",
+    "zh-Hant": "檢測到待處理事項（阻止啟動）"
+  },
+  {
+    "source": "检测到模组冲突。请检查近期添加或更新的模组。",
+    "en": "Mod conflicts detected. Check recently added or updated mods.",
+    "zh-Hant": "檢測到模組沖突。請檢查近期添加或更新的模組。"
+  },
+  {
+    "source": "检测时间：",
+    "en": "Checked at: ",
+    "zh-Hant": "檢測時間："
+  },
+  {
+    "source": "检测未完成，请重试。",
+    "en": "Check failed. Please retry.",
+    "zh-Hant": "檢測未完成，請重試。"
+  },
+  {
+    "source": "检查更新",
+    "en": "Check for updates",
+    "zh-Hant": "檢查更新"
+  },
+  {
+    "source": "检查启动条件",
+    "en": "Check launch requirements",
+    "zh-Hant": "檢查啟動條件"
+  },
+  {
+    "source": "检查提交预算",
+    "en": "Check commit budget",
+    "zh-Hant": "檢查提交預算"
+  },
+  {
+    "source": "检查中…",
+    "en": "Checking…",
+    "zh-Hant": "檢查中…"
+  },
+  {
+    "source": "简体中文",
+    "en": "简体中文",
+    "zh-Hant": "簡體中文"
+  },
+  {
+    "source": "建议堆内存",
+    "en": "Recommended heap",
+    "zh-Hant": "建議堆記憶體"
+  },
+  {
+    "source": "将对当前选中的实例执行此操作。",
+    "en": "This action applies to the selected instance.",
+    "zh-Hant": "將對當前選中的實例執行此操作。"
+  },
+  {
+    "source": "降低资源设置",
+    "en": "Lower resource settings",
+    "zh-Hant": "降低資源設定"
+  },
+  {
+    "source": "交互",
+    "en": "Interaction",
+    "zh-Hant": "交互"
+  },
+  {
+    "source": "结束游戏",
+    "en": "Stop game",
+    "zh-Hant": "結束游戲"
+  },
+  {
+    "source": "结束游戏？",
+    "en": "Stop the game?",
+    "zh-Hant": "結束游戲？"
+  },
+  {
+    "source": "截图",
+    "en": "Screenshots",
+    "zh-Hant": "截圖"
+  },
+  {
+    "source": "解压 Natives",
+    "en": "Extract native libraries",
+    "zh-Hant": "解壓 Natives"
+  },
+  {
+    "source": "界面语言",
+    "en": "Interface language",
+    "zh-Hant": "界面語言"
+  },
+  {
+    "source": "今天也要元气满满地启动 Minecraft 哦！",
+    "en": "Ready for another Minecraft adventure?",
+    "zh-Hant": "今天也要元氣滿滿地啟動 Minecraft 哦！"
+  },
+  {
+    "source": "仅共享必要遥测",
+    "en": "Share essential telemetry only",
+    "zh-Hant": "僅共享必要遙測"
+  },
+  {
+    "source": "仅移除此模组",
+    "en": "Remove only this mod",
+    "zh-Hant": "僅移除此模組"
+  },
+  {
+    "source": "进程架构",
+    "en": "Process architecture",
+    "zh-Hant": "進程架構"
+  },
+  {
+    "source": "进程可用逻辑处理器",
+    "en": "Logical processors available to this process",
+    "zh-Hant": "進程可用邏輯處理器"
+  },
+  {
+    "source": "进程优先级",
+    "en": "Process priority",
+    "zh-Hant": "進程優先級"
+  },
+  {
+    "source": "进行中",
+    "en": "Active",
+    "zh-Hant": "進行中"
+  },
+  {
+    "source": "禁用",
+    "en": "Disable",
+    "zh-Hant": "禁用"
+  },
+  {
+    "source": "禁用最近新增 Mods",
+    "en": "Disable recently added mods",
+    "zh-Hant": "禁用最近新增 Mods"
+  },
+  {
+    "source": "精简备份",
+    "en": "Compact backup",
+    "zh-Hant": "精簡備份"
+  },
+  {
+    "source": "警告",
+    "en": "Warning",
+    "zh-Hant": "警告"
+  },
+  {
+    "source": "警告数",
+    "en": "Warning count",
+    "zh-Hant": "警告數"
+  },
+  {
+    "source": "镜像优先",
+    "en": "Mirror first",
+    "zh-Hant": "鏡像優先"
+  },
+  {
+    "source": "镜像源",
+    "en": "Mirrors",
+    "zh-Hant": "鏡像源"
+  },
+  {
+    "source": "旧 Snapshot",
+    "en": "Old snapshots",
+    "zh-Hant": "舊 Snapshot"
+  },
+  {
+    "source": "开发者",
+    "en": "Developer",
+    "zh-Hant": "開發者"
+  },
+  {
+    "source": "开发者选项",
+    "en": "Developer options",
+    "zh-Hant": "開發者選項"
+  },
+  {
+    "source": "开机启动",
+    "en": "Launch at sign-in",
+    "zh-Hant": "開機啟動"
+  },
+  {
+    "source": "开启",
+    "en": "On",
+    "zh-Hant": "開啟"
+  },
+  {
+    "source": "开始安装",
+    "en": "Install",
+    "zh-Hant": "開始安裝"
+  },
+  {
+    "source": "开始安装 Java 版 Minecraft",
+    "en": "Install Minecraft Java Edition",
+    "zh-Hant": "開始安裝 Java 版 Minecraft"
+  },
+  {
+    "source": "开始使用",
+    "en": "Get started",
+    "zh-Hant": "開始使用"
+  },
+  {
+    "source": "可更新",
+    "en": "Updates available",
+    "zh-Hant": "可更新"
+  },
+  {
+    "source": "可更新至 ",
+    "en": "Update available: ",
+    "zh-Hant": "可更新至 "
+  },
+  {
+    "source": "可用",
+    "en": "Available",
+    "zh-Hant": "可用"
+  },
+  {
+    "source": "可用物理内存低于预计启动需求。",
+    "en": "Available physical memory is below the estimated launch requirement.",
+    "zh-Hant": "可用物理記憶體低于預計啟動需求。"
+  },
+  {
+    "source": "可用物理内存低于预计运行需求。",
+    "en": "Available physical memory is below the estimated runtime requirement.",
+    "zh-Hant": "可用物理記憶體低于預計運行需求。"
+  },
+  {
+    "source": "可用物理内存总量",
+    "en": "Total usable physical memory",
+    "zh-Hant": "可用物理記憶體總量"
+  },
+  {
+    "source": "空间使用",
+    "en": "Storage usage",
+    "zh-Hant": "空間使用"
+  },
+  {
+    "source": "快照",
+    "en": "Snapshot",
+    "zh-Hant": "快照"
+  },
+  {
+    "source": "快照版",
+    "en": "Snapshot",
+    "zh-Hant": "快照版"
+  },
+  {
+    "source": "快照保留",
+    "en": "Snapshot retention",
+    "zh-Hant": "快照保留"
+  },
+  {
+    "source": "快照存储",
+    "en": "Snapshot storage",
+    "zh-Hant": "快照存儲"
+  },
+  {
+    "source": "快照恢复事务尚未处理完毕，已暂停自动安装恢复。",
+    "en": "Snapshot recovery is incomplete. Automatic installation recovery is paused.",
+    "zh-Hant": "快照恢復事務尚未處理完畢，已暫停自動安裝恢復。"
+  },
+  {
+    "source": "快照与存储",
+    "en": "Snapshots and storage",
+    "zh-Hant": "快照與存儲"
+  },
+  {
+    "source": "垃圾回收器本机内存",
+    "en": "Garbage collector native memory",
+    "zh-Hant": "垃圾回收器本機記憶體"
+  },
+  {
+    "source": "来源",
+    "en": "Source",
+    "zh-Hant": "來源"
+  },
+  {
+    "source": "来源优先级",
+    "en": "Source priority",
+    "zh-Hant": "來源優先級"
+  },
+  {
+    "source": "类路径无法解析",
+    "en": "Unresolved classpath",
+    "zh-Hant": "類路徑無法解析"
+  },
+  {
+    "source": "类路径无法解析（警告）",
+    "en": "Unresolved classpath (Warning)",
+    "zh-Hant": "類路徑無法解析（警告）"
+  },
+  {
+    "source": "类路径无法解析（提示）",
+    "en": "Unresolved classpath (Information)",
+    "zh-Hant": "類路徑無法解析（提示）"
+  },
+  {
+    "source": "类路径无法解析（严重）",
+    "en": "Unresolved classpath (Critical)",
+    "zh-Hant": "類路徑無法解析（嚴重）"
+  },
+  {
+    "source": "类路径无法解析（正常）",
+    "en": "Unresolved classpath (Ready)",
+    "zh-Hant": "類路徑無法解析（正常）"
+  },
+  {
+    "source": "类路径无法解析（阻止启动）",
+    "en": "Unresolved classpath (Blocked)",
+    "zh-Hant": "類路徑無法解析（阻止啟動）"
+  },
+  {
+    "source": "离线",
+    "en": "Offline",
+    "zh-Hant": "離線"
+  },
+  {
+    "source": "离线档案",
+    "en": "Offline profile",
+    "zh-Hant": "離線檔案"
+  },
+  {
+    "source": "离线模式",
+    "en": "Offline mode",
+    "zh-Hant": "離線模式"
+  },
+  {
+    "source": "离线游戏名称",
+    "en": "Offline player name",
+    "zh-Hant": "離線游戲名稱"
+  },
+  {
+    "source": "离线账户",
+    "en": "Offline account",
+    "zh-Hant": "離線帳戶"
+  },
+  {
+    "source": "历史本机内存 P95",
+    "en": "Historical native memory P95",
+    "zh-Hant": "歷史本機記憶體 P95"
+  },
+  {
+    "source": "历史堆内存 P95",
+    "en": "Historical heap P95",
+    "zh-Hant": "歷史堆記憶體 P95"
+  },
+  {
+    "source": "历史启动时间 P95",
+    "en": "Historical launch time P95",
+    "zh-Hant": "歷史啟動時間 P95"
+  },
+  {
+    "source": "历史物理内存 P95",
+    "en": "Historical physical memory P95",
+    "zh-Hant": "歷史物理記憶體 P95"
+  },
+  {
+    "source": "历史显存 P95",
+    "en": "Historical video memory P95",
+    "zh-Hant": "歷史顯存 P95"
+  },
+  {
+    "source": "历史校准可用",
+    "en": "Historical calibration available",
+    "zh-Hant": "歷史校準可用"
+  },
+  {
+    "source": "历史校准权重",
+    "en": "Historical calibration weight",
+    "zh-Hant": "歷史校準權重"
+  },
+  {
+    "source": "历史样本不足",
+    "en": "Insufficient historical samples",
+    "zh-Hant": "歷史樣本不足"
+  },
+  {
+    "source": "历史样本数",
+    "en": "Historical sample count",
+    "zh-Hant": "歷史樣本數"
+  },
+  {
+    "source": "历史样本总体相似度",
+    "en": "Overall historical similarity",
+    "zh-Hant": "歷史樣本總體相似度"
+  },
+  {
+    "source": "连同前置移除",
+    "en": "Remove with dependencies",
+    "zh-Hant": "連同前置移除"
+  },
+  {
+    "source": "临时 Config",
+    "en": "Temporary configuration",
+    "zh-Hant": "臨時 Config"
+  },
+  {
+    "source": "临时 JVM Arguments",
+    "en": "Temporary JVM arguments",
+    "zh-Hant": "臨時 JVM Arguments"
+  },
+  {
+    "source": "临时 Mods",
+    "en": "Temporary mods",
+    "zh-Hant": "臨時 Mods"
+  },
+  {
+    "source": "临时 Resource Packs",
+    "en": "Temporary resource packs",
+    "zh-Hant": "臨時 Resource Packs"
+  },
+  {
+    "source": "临时 Shader",
+    "en": "Temporary shaders",
+    "zh-Hant": "臨時 Shader"
+  },
+  {
+    "source": "临时目录",
+    "en": "Temporary folder",
+    "zh-Hant": "臨時目錄"
+  },
+  {
+    "source": "临时文件",
+    "en": "Temporary files",
+    "zh-Hant": "臨時檔案"
+  },
+  {
+    "source": "留在启动器",
+    "en": "Keep launcher open",
+    "zh-Hant": "留在啟動器"
+  },
+  {
+    "source": "路径",
+    "en": "Path",
+    "zh-Hant": "路徑"
+  },
+  {
+    "source": "路径依赖检查",
+    "en": "Path dependency check",
+    "zh-Hant": "路徑依賴檢查"
+  },
+  {
+    "source": "没有本地版本时，点启动会引导你前往下载页安装游戏。",
+    "en": "If no version is installed, Launch takes you to downloads to install the game.",
+    "zh-Hant": "沒有本地版本時，點啟動會引導你前往下載頁安裝游戲。"
+  },
+  {
+    "source": "没有符合当前筛选条件的版本。",
+    "en": "No versions match these filters.",
+    "zh-Hant": "沒有符合當前篩選條件的版本。"
+  },
+  {
+    "source": "没有符合筛选条件的可下载版本，请打开详情选择。",
+    "en": "No downloadable version matches these filters. Open details to choose one.",
+    "zh-Hant": "沒有符合篩選條件的可下載版本，請打開詳情選擇。"
+  },
+  {
+    "source": "没有进行中的任务",
+    "en": "No active tasks",
+    "zh-Hant": "沒有進行中的任務"
+  },
+  {
+    "source": "没有匹配的版本。",
+    "en": "No matching versions.",
+    "zh-Hant": "沒有匹配的版本。"
+  },
+  {
+    "source": "没有匹配的内容。",
+    "en": "No matching content.",
+    "zh-Hant": "沒有匹配的內容。"
+  },
+  {
+    "source": "没有已移除的内容。",
+    "en": "No removed content.",
+    "zh-Hant": "沒有已移除的內容。"
+  },
+  {
+    "source": "没有找到匹配的资源。试试其他关键词或筛选条件。",
+    "en": "No matching resources found. Try different keywords or filters.",
+    "zh-Hant": "沒有找到匹配的資源。試試其他關鍵詞或篩選條件。"
+  },
+  {
+    "source": "每行一个参数，应用后用于下次启动。",
+    "en": "One argument per line. Applies to the next launch.",
+    "zh-Hant": "每行一個參數，應用后用于下次啟動。"
+  },
+  {
+    "source": "密码",
+    "en": "Password",
+    "zh-Hant": "密碼"
+  },
+  {
+    "source": "描述",
+    "en": "Description",
+    "zh-Hant": "描述"
+  },
+  {
+    "source": "名称",
+    "en": "Name",
+    "zh-Hant": "名稱"
+  },
+  {
+    "source": "名称 / 图标",
+    "en": "Name / icon",
+    "zh-Hant": "名稱 / 圖標"
+  },
+  {
+    "source": "命令历史",
+    "en": "Command history",
+    "zh-Hant": "命令歷史"
+  },
+  {
+    "source": "模糊",
+    "en": "Blur",
+    "zh-Hant": "模糊"
+  },
+  {
+    "source": "模糊采样",
+    "en": "Blur sampling",
+    "zh-Hant": "模糊采樣"
+  },
+  {
+    "source": "模糊强度",
+    "en": "Blur strength",
+    "zh-Hant": "模糊強度"
+  },
+  {
+    "source": "模态遮罩",
+    "en": "Modal overlay",
+    "zh-Hant": "模態遮罩"
+  },
+  {
+    "source": "模型显存",
+    "en": "Model video memory",
+    "zh-Hant": "模型顯存"
+  },
+  {
+    "source": "模型资源内存",
+    "en": "Model memory",
+    "zh-Hant": "模型資源記憶體"
+  },
+  {
+    "source": "模组",
+    "en": "Mods",
+    "zh-Hant": "模組"
+  },
+  {
+    "source": "模组 · 已启用",
+    "en": "Mods · Enabled",
+    "zh-Hant": "模組 · 已啟用"
+  },
+  {
+    "source": "模组 · 已停用",
+    "en": "Mods · Disabled",
+    "zh-Hant": "模組 · 已停用"
+  },
+  {
+    "source": "模组安装失败。",
+    "en": "Mod installation failed.",
+    "zh-Hant": "模組安裝失敗。"
+  },
+  {
+    "source": "模组本机内存",
+    "en": "Mod native memory",
+    "zh-Hant": "模組本機記憶體"
+  },
+  {
+    "source": "模组存在硬性冲突",
+    "en": "Conflicting mods",
+    "zh-Hant": "模組存在硬性沖突"
+  },
+  {
+    "source": "模组存在硬性冲突（警告）",
+    "en": "Conflicting mods (Warning)",
+    "zh-Hant": "模組存在硬性沖突（警告）"
+  },
+  {
+    "source": "模组存在硬性冲突（提示）",
+    "en": "Conflicting mods (Information)",
+    "zh-Hant": "模組存在硬性沖突（提示）"
+  },
+  {
+    "source": "模组存在硬性冲突（严重）",
+    "en": "Conflicting mods (Critical)",
+    "zh-Hant": "模組存在硬性沖突（嚴重）"
+  },
+  {
+    "source": "模组存在硬性冲突（正常）",
+    "en": "Conflicting mods (Ready)",
+    "zh-Hant": "模組存在硬性沖突（正常）"
+  },
+  {
+    "source": "模组存在硬性冲突（阻止启动）",
+    "en": "Conflicting mods (Blocked)",
+    "zh-Hant": "模組存在硬性沖突（阻止啟動）"
+  },
+  {
+    "source": "模组堆内存",
+    "en": "Mod heap memory",
+    "zh-Hant": "模組堆記憶體"
+  },
+  {
+    "source": "模组兼容性警告",
+    "en": "Mod compatibility warning",
+    "zh-Hant": "模組兼容性警告"
+  },
+  {
+    "source": "模组兼容性警告（警告）",
+    "en": "Mod compatibility warning (Warning)",
+    "zh-Hant": "模組兼容性警告（警告）"
+  },
+  {
+    "source": "模组兼容性警告（提示）",
+    "en": "Mod compatibility warning (Information)",
+    "zh-Hant": "模組兼容性警告（提示）"
+  },
+  {
+    "source": "模组兼容性警告（严重）",
+    "en": "Mod compatibility warning (Critical)",
+    "zh-Hant": "模組兼容性警告（嚴重）"
+  },
+  {
+    "source": "模组兼容性警告（正常）",
+    "en": "Mod compatibility warning (Ready)",
+    "zh-Hant": "模組兼容性警告（正常）"
+  },
+  {
+    "source": "模组兼容性警告（阻止启动）",
+    "en": "Mod compatibility warning (Blocked)",
+    "zh-Hant": "模組兼容性警告（阻止啟動）"
+  },
+  {
+    "source": "模组兼容性严重问题",
+    "en": "Serious mod compatibility issue",
+    "zh-Hant": "模組兼容性嚴重問題"
+  },
+  {
+    "source": "模组兼容性严重问题（警告）",
+    "en": "Serious mod compatibility issue (Warning)",
+    "zh-Hant": "模組兼容性嚴重問題（警告）"
+  },
+  {
+    "source": "模组兼容性严重问题（提示）",
+    "en": "Serious mod compatibility issue (Information)",
+    "zh-Hant": "模組兼容性嚴重問題（提示）"
+  },
+  {
+    "source": "模组兼容性严重问题（严重）",
+    "en": "Serious mod compatibility issue (Critical)",
+    "zh-Hant": "模組兼容性嚴重問題（嚴重）"
+  },
+  {
+    "source": "模组兼容性严重问题（正常）",
+    "en": "Serious mod compatibility issue (Ready)",
+    "zh-Hant": "模組兼容性嚴重問題（正常）"
+  },
+  {
+    "source": "模组兼容性严重问题（阻止启动）",
+    "en": "Serious mod compatibility issue (Blocked)",
+    "zh-Hant": "模組兼容性嚴重問題（阻止啟動）"
+  },
+  {
+    "source": "模组缺少必需依赖",
+    "en": "Missing required mod dependencies",
+    "zh-Hant": "模組缺少必需依賴"
+  },
+  {
+    "source": "模组缺少必需依赖（警告）",
+    "en": "Missing required mod dependencies (Warning)",
+    "zh-Hant": "模組缺少必需依賴（警告）"
+  },
+  {
+    "source": "模组缺少必需依赖（提示）",
+    "en": "Missing required mod dependencies (Information)",
+    "zh-Hant": "模組缺少必需依賴（提示）"
+  },
+  {
+    "source": "模组缺少必需依赖（严重）",
+    "en": "Missing required mod dependencies (Critical)",
+    "zh-Hant": "模組缺少必需依賴（嚴重）"
+  },
+  {
+    "source": "模组缺少必需依赖（正常）",
+    "en": "Missing required mod dependencies (Ready)",
+    "zh-Hant": "模組缺少必需依賴（正常）"
+  },
+  {
+    "source": "模组缺少必需依赖（阻止启动）",
+    "en": "Missing required mod dependencies (Blocked)",
+    "zh-Hant": "模組缺少必需依賴（阻止啟動）"
+  },
+  {
+    "source": "模组数量",
+    "en": "Mod count",
+    "zh-Hant": "模組數量"
+  },
+  {
+    "source": "模组相似度",
+    "en": "Mod similarity",
+    "zh-Hant": "模組相似度"
+  },
+  {
+    "source": "模组与 Minecraft 版本不兼容",
+    "en": "Mods incompatible with Minecraft",
+    "zh-Hant": "模組與 Minecraft 版本不兼容"
+  },
+  {
+    "source": "模组与 Minecraft 版本不兼容（警告）",
+    "en": "Mods incompatible with Minecraft (Warning)",
+    "zh-Hant": "模組與 Minecraft 版本不兼容（警告）"
+  },
+  {
+    "source": "模组与 Minecraft 版本不兼容（提示）",
+    "en": "Mods incompatible with Minecraft (Information)",
+    "zh-Hant": "模組與 Minecraft 版本不兼容（提示）"
+  },
+  {
+    "source": "模组与 Minecraft 版本不兼容（严重）",
+    "en": "Mods incompatible with Minecraft (Critical)",
+    "zh-Hant": "模組與 Minecraft 版本不兼容（嚴重）"
+  },
+  {
+    "source": "模组与 Minecraft 版本不兼容（正常）",
+    "en": "Mods incompatible with Minecraft (Ready)",
+    "zh-Hant": "模組與 Minecraft 版本不兼容（正常）"
+  },
+  {
+    "source": "模组与 Minecraft 版本不兼容（阻止启动）",
+    "en": "Mods incompatible with Minecraft (Blocked)",
+    "zh-Hant": "模組與 Minecraft 版本不兼容（阻止啟動）"
+  },
+  {
+    "source": "模组与加载器不兼容",
+    "en": "Mods incompatible with loader",
+    "zh-Hant": "模組與載入器不兼容"
+  },
+  {
+    "source": "模组与加载器不兼容（警告）",
+    "en": "Mods incompatible with loader (Warning)",
+    "zh-Hant": "模組與載入器不兼容（警告）"
+  },
+  {
+    "source": "模组与加载器不兼容（提示）",
+    "en": "Mods incompatible with loader (Information)",
+    "zh-Hant": "模組與載入器不兼容（提示）"
+  },
+  {
+    "source": "模组与加载器不兼容（严重）",
+    "en": "Mods incompatible with loader (Critical)",
+    "zh-Hant": "模組與載入器不兼容（嚴重）"
+  },
+  {
+    "source": "模组与加载器不兼容（正常）",
+    "en": "Mods incompatible with loader (Ready)",
+    "zh-Hant": "模組與載入器不兼容（正常）"
+  },
+  {
+    "source": "模组与加载器不兼容（阻止启动）",
+    "en": "Mods incompatible with loader (Blocked)",
+    "zh-Hant": "模組與載入器不兼容（阻止啟動）"
+  },
+  {
+    "source": "模组站尚未收录此文件，已保留本地信息。",
+    "en": "This file was not found online. Local details are still available.",
+    "zh-Hant": "模組站尚未收錄此檔案，已保留本地信息。"
+  },
+  {
+    "source": "默认 Renderer Backend",
+    "en": "Default renderer backend",
+    "zh-Hant": "預設 Renderer Backend"
+  },
+  {
+    "source": "默认窗口标题",
+    "en": "Default window title",
+    "zh-Hant": "預設窗口標題"
+  },
+  {
+    "source": "默认窗口模式",
+    "en": "Default window mode",
+    "zh-Hant": "預設窗口模式"
+  },
+  {
+    "source": "默认服务器",
+    "en": "Default server",
+    "zh-Hant": "預設伺服器"
+  },
+  {
+    "source": "默认高度",
+    "en": "Default height",
+    "zh-Hant": "預設高度"
+  },
+  {
+    "source": "默认高级启动",
+    "en": "Advanced launch defaults",
+    "zh-Hant": "預設高級啟動"
+  },
+  {
+    "source": "默认宽度",
+    "en": "Default width",
+    "zh-Hant": "預設寬度"
+  },
+  {
+    "source": "默认内存",
+    "en": "Default memory",
+    "zh-Hant": "預設記憶體"
+  },
+  {
+    "source": "默认实例隔离",
+    "en": "Default instance isolation",
+    "zh-Hant": "預設實例隔離"
+  },
+  {
+    "source": "默认实例位置",
+    "en": "Default instance location",
+    "zh-Hant": "預設實例位置"
+  },
+  {
+    "source": "默认游戏目录策略",
+    "en": "Default game folder policy",
+    "zh-Hant": "預設游戲目錄策略"
+  },
+  {
+    "source": "默认只保留最新成功快照。关闭历史保留后，下次成功采集时清理旧快照。",
+    "en": "Only the latest successful snapshot is kept by default. Disabling history removes older snapshots after the next successful capture.",
+    "zh-Hant": "預設只保留最新成功快照。關閉歷史保留后，下次成功采集時清理舊快照。"
+  },
+  {
+    "source": "默认资源",
+    "en": "Default resources",
+    "zh-Hant": "預設資源"
+  },
+  {
+    "source": "默认资源配置",
+    "en": "Default resource settings",
+    "zh-Hant": "預設資源配置"
+  },
+  {
+    "source": "内存",
+    "en": "Memory",
+    "zh-Hant": "記憶體"
+  },
+  {
+    "source": "内存策略",
+    "en": "Memory policy",
+    "zh-Hant": "記憶體策略"
+  },
+  {
+    "source": "内容",
+    "en": "Content",
+    "zh-Hant": "內容"
+  },
+  {
+    "source": "内容更新",
+    "en": "Content updates",
+    "zh-Hant": "內容更新"
+  },
+  {
+    "source": "内容可信",
+    "en": "Content trust",
+    "zh-Hant": "內容可信"
+  },
+  {
+    "source": "内容来源",
+    "en": "Content source",
+    "zh-Hant": "內容來源"
+  },
+  {
+    "source": "你可以使用左上角返回，继续选择 Java 版安装。",
+    "en": "Use Back at the top left to continue choosing a Java Edition installation.",
+    "zh-Hant": "你可以使用左上角返回，繼續選擇 Java 版安裝。"
+  },
+  {
+    "source": "你知道吗，当前卡片",
+    "en": "Tips, current card",
+    "zh-Hant": "你知道嗎，當前卡片"
+  },
+  {
+    "source": "你知道吗？",
+    "en": "Did you know?",
+    "zh-Hant": "你知道嗎？"
+  },
+  {
+    "source": "你知道吗？点击换一条",
+    "en": "Did you know? Click for another tip",
+    "zh-Hant": "你知道嗎？點擊換一條"
+  },
+  {
+    "source": "配置文件",
+    "en": "Configuration files",
+    "zh-Hant": "配置檔案"
+  },
+  {
+    "source": "平台不支持",
+    "en": "Unsupported on this platform",
+    "zh-Hant": "平臺不支援"
+  },
+  {
+    "source": "平台不支持：macOS 无提交预算概念",
+    "en": "Not supported: macOS does not expose a commit budget",
+    "zh-Hant": "平臺不支援：macOS 無提交預算概念"
+  },
+  {
+    "source": "平台功能",
+    "en": "Platform capabilities",
+    "zh-Hant": "平臺功能"
+  },
+  {
+    "source": "普通 Minecraft 目录",
+    "en": "Standard Minecraft folder",
+    "zh-Hant": "普通 Minecraft 目錄"
+  },
+  {
+    "source": "其他用途",
+    "en": "Other use",
+    "zh-Hant": "其他用途"
+  },
+  {
+    "source": "启动",
+    "en": "Launch",
+    "zh-Hant": "啟動"
+  },
+  {
+    "source": "启动本机内存",
+    "en": "Launch native memory",
+    "zh-Hant": "啟動本機記憶體"
+  },
+  {
+    "source": "启动堆内存",
+    "en": "Launch heap memory",
+    "zh-Hant": "啟動堆記憶體"
+  },
+  {
+    "source": "启动堆内存不足",
+    "en": "Insufficient launch heap",
+    "zh-Hant": "啟動堆記憶體不足"
+  },
+  {
+    "source": "启动堆内存不足（警告）",
+    "en": "Insufficient launch heap (Warning)",
+    "zh-Hant": "啟動堆記憶體不足（警告）"
+  },
+  {
+    "source": "启动堆内存不足（提示）",
+    "en": "Insufficient launch heap (Information)",
+    "zh-Hant": "啟動堆記憶體不足（提示）"
+  },
+  {
+    "source": "启动堆内存不足（严重）",
+    "en": "Insufficient launch heap (Critical)",
+    "zh-Hant": "啟動堆記憶體不足（嚴重）"
+  },
+  {
+    "source": "启动堆内存不足（正常）",
+    "en": "Insufficient launch heap (Ready)",
+    "zh-Hant": "啟動堆記憶體不足（正常）"
+  },
+  {
+    "source": "启动堆内存不足（阻止启动）",
+    "en": "Insufficient launch heap (Blocked)",
+    "zh-Hant": "啟動堆記憶體不足（阻止啟動）"
+  },
+  {
+    "source": "启动堆提交量",
+    "en": "Launch heap commit",
+    "zh-Hant": "啟動堆提交量"
+  },
+  {
+    "source": "启动非堆提交量",
+    "en": "Launch non-heap commit",
+    "zh-Hant": "啟動非堆提交量"
+  },
+  {
+    "source": "启动和运行需求都超过当前可用内存。",
+    "en": "Estimated launch and runtime requirements both exceed available memory.",
+    "zh-Hant": "啟動和運行需求都超過當前可用記憶體。"
+  },
+  {
+    "source": "启动进程",
+    "en": "Start process",
+    "zh-Hant": "啟動進程"
+  },
+  {
+    "source": "启动进度",
+    "en": "Launch progress",
+    "zh-Hant": "啟動進度"
+  },
+  {
+    "source": "启动进度条",
+    "en": "Launch progress bar",
+    "zh-Hant": "啟動進度條"
+  },
+  {
+    "source": "启动可用内存不足",
+    "en": "Insufficient available launch memory",
+    "zh-Hant": "啟動可用記憶體不足"
+  },
+  {
+    "source": "启动可用内存不足（警告）",
+    "en": "Insufficient available launch memory (Warning)",
+    "zh-Hant": "啟動可用記憶體不足（警告）"
+  },
+  {
+    "source": "启动可用内存不足（提示）",
+    "en": "Insufficient available launch memory (Information)",
+    "zh-Hant": "啟動可用記憶體不足（提示）"
+  },
+  {
+    "source": "启动可用内存不足（严重）",
+    "en": "Insufficient available launch memory (Critical)",
+    "zh-Hant": "啟動可用記憶體不足（嚴重）"
+  },
+  {
+    "source": "启动可用内存不足（正常）",
+    "en": "Insufficient available launch memory (Ready)",
+    "zh-Hant": "啟動可用記憶體不足（正常）"
+  },
+  {
+    "source": "启动可用内存不足（阻止启动）",
+    "en": "Insufficient available launch memory (Blocked)",
+    "zh-Hant": "啟動可用記憶體不足（阻止啟動）"
+  },
+  {
+    "source": "启动配置",
+    "en": "Launch profiles",
+    "zh-Hant": "啟動配置"
+  },
+  {
+    "source": "启动器安全模式",
+    "en": "Launcher safe mode",
+    "zh-Hant": "啟動器安全模式"
+  },
+  {
+    "source": "启动器标志",
+    "en": "Launcher logo",
+    "zh-Hant": "啟動器標志"
+  },
+  {
+    "source": "启动器透明度",
+    "en": "Launcher opacity",
+    "zh-Hant": "啟動器透明度"
+  },
+  {
+    "source": "启动器行为",
+    "en": "Launcher behavior",
+    "zh-Hant": "啟動器行為"
+  },
+  {
+    "source": "启动前检查",
+    "en": "Pre-launch checks",
+    "zh-Hant": "啟動前檢查"
+  },
+  {
+    "source": "启动前命令",
+    "en": "Pre-launch command",
+    "zh-Hant": "啟動前命令"
+  },
+  {
+    "source": "启动前命令失败",
+    "en": "Pre-launch command failed",
+    "zh-Hant": "啟動前命令失敗"
+  },
+  {
+    "source": "启动前命令失败（警告）",
+    "en": "Pre-launch command failed (Warning)",
+    "zh-Hant": "啟動前命令失敗（警告）"
+  },
+  {
+    "source": "启动前命令失败（提示）",
+    "en": "Pre-launch command failed (Information)",
+    "zh-Hant": "啟動前命令失敗（提示）"
+  },
+  {
+    "source": "启动前命令失败（严重）",
+    "en": "Pre-launch command failed (Critical)",
+    "zh-Hant": "啟動前命令失敗（嚴重）"
+  },
+  {
+    "source": "启动前命令失败（正常）",
+    "en": "Pre-launch command failed (Ready)",
+    "zh-Hant": "啟動前命令失敗（正常）"
+  },
+  {
+    "source": "启动前命令失败（阻止启动）",
+    "en": "Pre-launch command failed (Blocked)",
+    "zh-Hant": "啟動前命令失敗（阻止啟動）"
+  },
+  {
+    "source": "启动前请确认",
+    "en": "Confirm before launching",
+    "zh-Hant": "啟動前請確認"
+  },
+  {
+    "source": "启动前请确认账户档案已选好，否则会跳转到登录页。",
+    "en": "Select an account profile before launching, or you will be taken to sign-in.",
+    "zh-Hant": "啟動前請確認帳戶檔案已選好，否則會跳轉到登錄頁。"
+  },
+  {
+    "source": "启动失败：产品启动命令未注册。",
+    "en": "Launch failed: the launch action is unavailable.",
+    "zh-Hant": "啟動失敗：產品啟動命令未注冊。"
+  },
+  {
+    "source": "启动时",
+    "en": "On launch",
+    "zh-Hant": "啟動時"
+  },
+  {
+    "source": "启动时播放",
+    "en": "Play on launch",
+    "zh-Hant": "啟動時播放"
+  },
+  {
+    "source": "启动时行为",
+    "en": "Launch behavior",
+    "zh-Hant": "啟動時行為"
+  },
+  {
+    "source": "启动提交量",
+    "en": "Launch commit",
+    "zh-Hant": "啟動提交量"
+  },
+  {
+    "source": "启动提交量余量",
+    "en": "Launch commit margin",
+    "zh-Hant": "啟動提交量余量"
+  },
+  {
+    "source": "启动提交预算不足",
+    "en": "Insufficient launch commit budget",
+    "zh-Hant": "啟動提交預算不足"
+  },
+  {
+    "source": "启动提交预算不足（警告）",
+    "en": "Insufficient launch commit budget (Warning)",
+    "zh-Hant": "啟動提交預算不足（警告）"
+  },
+  {
+    "source": "启动提交预算不足（提示）",
+    "en": "Insufficient launch commit budget (Information)",
+    "zh-Hant": "啟動提交預算不足（提示）"
+  },
+  {
+    "source": "启动提交预算不足（严重）",
+    "en": "Insufficient launch commit budget (Critical)",
+    "zh-Hant": "啟動提交預算不足（嚴重）"
+  },
+  {
+    "source": "启动提交预算不足（正常）",
+    "en": "Insufficient launch commit budget (Ready)",
+    "zh-Hant": "啟動提交預算不足（正常）"
+  },
+  {
+    "source": "启动提交预算不足（阻止启动）",
+    "en": "Insufficient launch commit budget (Blocked)",
+    "zh-Hant": "啟動提交預算不足（阻止啟動）"
+  },
+  {
+    "source": "启动提示",
+    "en": "Launch hints",
+    "zh-Hant": "啟動提示"
+  },
+  {
+    "source": "启动贴士",
+    "en": "Launch tips",
+    "zh-Hant": "啟動貼士"
+  },
+  {
+    "source": "启动物理内存",
+    "en": "Launch physical memory",
+    "zh-Hant": "啟動物理記憶體"
+  },
+  {
+    "source": "启动物理内存余量",
+    "en": "Launch physical memory margin",
+    "zh-Hant": "啟動物理記憶體余量"
+  },
+  {
+    "source": "启动行为",
+    "en": "Launch behavior",
+    "zh-Hant": "啟動行為"
+  },
+  {
+    "source": "启动性能",
+    "en": "Launch performance",
+    "zh-Hant": "啟動性能"
+  },
+  {
+    "source": "启动需要账户",
+    "en": "Account required",
+    "zh-Hant": "啟動需要帳戶"
+  },
+  {
+    "source": "启动需要账户（警告）",
+    "en": "Account required (Warning)",
+    "zh-Hant": "啟動需要帳戶（警告）"
+  },
+  {
+    "source": "启动需要账户（提示）",
+    "en": "Account required (Information)",
+    "zh-Hant": "啟動需要帳戶（提示）"
+  },
+  {
+    "source": "启动需要账户（严重）",
+    "en": "Account required (Critical)",
+    "zh-Hant": "啟動需要帳戶（嚴重）"
+  },
+  {
+    "source": "启动需要账户（正常）",
+    "en": "Account required (Ready)",
+    "zh-Hant": "啟動需要帳戶（正常）"
+  },
+  {
+    "source": "启动需要账户（阻止启动）",
+    "en": "Account required (Blocked)",
+    "zh-Hant": "啟動需要帳戶（阻止啟動）"
+  },
+  {
+    "source": "启动页",
+    "en": "Home",
+    "zh-Hant": "啟動頁"
+  },
+  {
+    "source": "启动页信息卡片，可使用上下方向键翻页",
+    "en": "Home information cards. Use Up and Down to change cards",
+    "zh-Hant": "啟動頁信息卡片，可使用上下方向鍵翻頁"
+  },
+  {
+    "source": "启动游戏",
+    "en": "Launch game",
+    "zh-Hant": "啟動游戲"
+  },
+  {
+    "source": "启动预检",
+    "en": "Launch preflight",
+    "zh-Hant": "啟動預檢"
+  },
+  {
+    "source": "启用",
+    "en": "Enable",
+    "zh-Hant": "啟用"
+  },
+  {
+    "source": "启用 AI",
+    "en": "Enable AI",
+    "zh-Hant": "啟用 AI"
+  },
+  {
+    "source": "启用背景音乐",
+    "en": "Enable background music",
+    "zh-Hant": "啟用背景音樂"
+  },
+  {
+    "source": "启用动画",
+    "en": "Enable animations",
+    "zh-Hant": "啟用動畫"
+  },
+  {
+    "source": "迁移",
+    "en": "Migration",
+    "zh-Hant": "遷移"
+  },
+  {
+    "source": "签名验证",
+    "en": "Signature verification",
+    "zh-Hant": "簽名驗證"
+  },
+  {
+    "source": "前往下载",
+    "en": "Go to downloads",
+    "zh-Hant": "前往下載"
+  },
+  {
+    "source": "强调色",
+    "en": "Accent color",
+    "zh-Hant": "強調色"
+  },
+  {
+    "source": "切换档案",
+    "en": "Switch profile",
+    "zh-Hant": "切換檔案"
+  },
+  {
+    "source": "切换到推荐 Java",
+    "en": "Use recommended Java",
+    "zh-Hant": "切換到推薦 Java"
+  },
+  {
+    "source": "切换加载器",
+    "en": "Change loader",
+    "zh-Hant": "切換載入器"
+  },
+  {
+    "source": "清除已完成",
+    "en": "Clear completed",
+    "zh-Hant": "清除已完成"
+  },
+  {
+    "source": "清除已完成的任务",
+    "en": "Clear completed tasks",
+    "zh-Hant": "清除已完成的任務"
+  },
+  {
+    "source": "清理",
+    "en": "Clean up",
+    "zh-Hant": "清理"
+  },
+  {
+    "source": "请等待本功能上线，到时你可以前往官网上投稿~",
+    "en": "Submissions will open on the website when this feature is available.",
+    "zh-Hant": "請等待本功能上線，到時你可以前往官網上投稿~"
+  },
+  {
+    "source": "请每次拖入一个文件或文件夹。",
+    "en": "Drop one file or folder at a time.",
+    "zh-Hant": "請每次拖入一個檔案或資料夾。"
+  },
+  {
+    "source": "请确认是否继续。",
+    "en": "Confirm to continue.",
+    "zh-Hant": "請確認是否繼續。"
+  },
+  {
+    "source": "请输入版本名称。",
+    "en": "Enter a version name.",
+    "zh-Hant": "請輸入版本名稱。"
+  },
+  {
+    "source": "请先选择 Minecraft 版本。",
+    "en": "Select a Minecraft version first.",
+    "zh-Hant": "請先選擇 Minecraft 版本。"
+  },
+  {
+    "source": "请先选择游戏目录，再拖入文件。",
+    "en": "Select a game folder before dropping files.",
+    "zh-Hant": "請先選擇游戲目錄，再拖入檔案。"
+  },
+  {
+    "source": "请先在主页选择要安装模组的版本。",
+    "en": "Select a version on Home before installing mods.",
+    "zh-Hant": "請先在主頁選擇要安裝模組的版本。"
+  },
+  {
+    "source": "请选择或创建一个账户档案后再启动。",
+    "en": "Select or create an account profile before launching.",
+    "zh-Hant": "請選擇或創建一個帳戶檔案后再啟動。"
+  },
+  {
+    "source": "请在安装页选择或下载游戏版本。",
+    "en": "Choose or download a game version on the installation page.",
+    "zh-Hant": "請在安裝頁選擇或下載游戲版本。"
+  },
+  {
+    "source": "取消",
+    "en": "Cancel",
+    "zh-Hant": "取消"
+  },
+  {
+    "source": "取消安装／回滚并退出",
+    "en": "Cancel or roll back and quit",
+    "zh-Hant": "取消安裝／回滾并退出"
+  },
+  {
+    "source": "取消安装并退出",
+    "en": "Cancel installation and quit",
+    "zh-Hant": "取消安裝并退出"
+  },
+  {
+    "source": "取消登录",
+    "en": "Cancel sign-in",
+    "zh-Hant": "取消登錄"
+  },
+  {
+    "source": "取消任务",
+    "en": "Cancel task",
+    "zh-Hant": "取消任務"
+  },
+  {
+    "source": "取消收藏",
+    "en": "Remove favorite",
+    "zh-Hant": "取消收藏"
+  },
+  {
+    "source": "取消修改名称",
+    "en": "Cancel renaming",
+    "zh-Hant": "取消修改名稱"
+  },
+  {
+    "source": "取消选择 ",
+    "en": "Deselect ",
+    "zh-Hant": "取消選擇 "
+  },
+  {
+    "source": "全部",
+    "en": "All",
+    "zh-Hant": "全部"
+  },
+  {
+    "source": "全屏",
+    "en": "Full screen",
+    "zh-Hant": "全屏"
+  },
+  {
+    "source": "缺少可用 Java",
+    "en": "Java unavailable",
+    "zh-Hant": "缺少可用 Java"
+  },
+  {
+    "source": "缺少可用 Java（警告）",
+    "en": "Java unavailable (Warning)",
+    "zh-Hant": "缺少可用 Java（警告）"
+  },
+  {
+    "source": "缺少可用 Java（提示）",
+    "en": "Java unavailable (Information)",
+    "zh-Hant": "缺少可用 Java（提示）"
+  },
+  {
+    "source": "缺少可用 Java（严重）",
+    "en": "Java unavailable (Critical)",
+    "zh-Hant": "缺少可用 Java（嚴重）"
+  },
+  {
+    "source": "缺少可用 Java（正常）",
+    "en": "Java unavailable (Ready)",
+    "zh-Hant": "缺少可用 Java（正常）"
+  },
+  {
+    "source": "缺少可用 Java（阻止启动）",
+    "en": "Java unavailable (Blocked)",
+    "zh-Hant": "缺少可用 Java（阻止啟動）"
+  },
+  {
+    "source": "缺少模组依赖。请检查模组要求。",
+    "en": "Required mod dependencies are missing. Check the mod requirements.",
+    "zh-Hant": "缺少模組依賴。請檢查模組要求。"
+  },
+  {
+    "source": "确认",
+    "en": "Confirm",
+    "zh-Hant": "確認"
+  },
+  {
+    "source": "确认导入",
+    "en": "Confirm import",
+    "zh-Hant": "確認導入"
+  },
+  {
+    "source": "确认以下选择。开始使用后，NexaCL 会自动重新打开。",
+    "en": "Review your choices. NexaCL will reopen when setup is complete.",
+    "zh-Hant": "確認以下選擇。開始使用后，NexaCL 會自動重新打開。"
+  },
+  {
+    "source": "让每一次出发都更简单。Nexa 是由社区独立维护的跨平台 Minecraft 启动器。",
+    "en": "A simpler way to start. Nexa is an independently maintained, cross-platform Minecraft launcher.",
+    "zh-Hant": "讓每一次出發都更簡單。Nexa 是由社區獨立維護的跨平臺 Minecraft 啟動器。"
+  },
+  {
+    "source": "热门",
+    "en": "Popular",
+    "zh-Hant": "熱門"
+  },
+  {
+    "source": "认证服务器地址",
+    "en": "Authentication server address",
+    "zh-Hant": "認證伺服器地址"
+  },
+  {
+    "source": "任务",
+    "en": "Tasks",
+    "zh-Hant": "任務"
+  },
+  {
+    "source": "任务管理页可以取消正在进行的下载与安装任务。",
+    "en": "Cancel active downloads and installations in Task Center.",
+    "zh-Hant": "任務管理頁可以取消正在進行的下載與安裝任務。"
+  },
+  {
+    "source": "任务进度条",
+    "en": "Task progress bar",
+    "zh-Hant": "任務進度條"
+  },
+  {
+    "source": "任务中心",
+    "en": "Task Center",
+    "zh-Hant": "任務中心"
+  },
+  {
+    "source": "仍然启动",
+    "en": "Launch anyway",
+    "zh-Hant": "仍然啟動"
+  },
+  {
+    "source": "日志",
+    "en": "Logs",
+    "zh-Hant": "日誌"
+  },
+  {
+    "source": "日志（尚未实现）",
+    "en": "Logs (not yet available)",
+    "zh-Hant": "日誌（尚未實現）"
+  },
+  {
+    "source": "日志保留",
+    "en": "Log retention",
+    "zh-Hant": "日誌保留"
+  },
+  {
+    "source": "日志等级",
+    "en": "Log level",
+    "zh-Hant": "日誌等級"
+  },
+  {
+    "source": "如何使用 ",
+    "en": "How to use ",
+    "zh-Hant": "如何使用 "
+  },
+  {
+    "source": "散热",
+    "en": "Cooling",
+    "zh-Hant": "散熱"
+  },
+  {
+    "source": "扫描",
+    "en": "Scan",
+    "zh-Hant": "掃描"
+  },
+  {
+    "source": "扫描本机 Java",
+    "en": "Scan local Java runtimes",
+    "zh-Hant": "掃描本機 Java"
+  },
+  {
+    "source": "删除",
+    "en": "Delete",
+    "zh-Hant": "刪除"
+  },
+  {
+    "source": "删除 ",
+    "en": "Delete ",
+    "zh-Hant": "刪除 "
+  },
+  {
+    "source": "删除参数 ",
+    "en": "Remove argument ",
+    "zh-Hant": "刪除參數 "
+  },
+  {
+    "source": "删除档案",
+    "en": "Delete profile",
+    "zh-Hant": "刪除檔案"
+  },
+  {
+    "source": "删除托管 Java",
+    "en": "Delete managed Java",
+    "zh-Hant": "刪除托管 Java"
+  },
+  {
+    "source": "上次正常版本",
+    "en": "Last working version",
+    "zh-Hant": "上次正常版本"
+  },
+  {
+    "source": "上一步",
+    "en": "Previous",
+    "zh-Hant": "上一步"
+  },
+  {
+    "source": "上一次文件修复没有完成。",
+    "en": "The previous file repair did not complete.",
+    "zh-Hant": "上一次檔案修復沒有完成。"
+  },
+  {
+    "source": "上一页",
+    "en": "Previous page",
+    "zh-Hant": "上一頁"
+  },
+  {
+    "source": "尚未检测或未识别",
+    "en": "Not checked or unidentified",
+    "zh-Hant": "尚未檢測或未識別"
+  },
+  {
+    "source": "尚未接入",
+    "en": "Not yet connected",
+    "zh-Hant": "尚未接入"
+  },
+  {
+    "source": "尚未接入检测提供方",
+    "en": "No detection provider connected",
+    "zh-Hant": "尚未接入檢測提供方"
+  },
+  {
+    "source": "尚未可用",
+    "en": "Not yet available",
+    "zh-Hant": "尚未可用"
+  },
+  {
+    "source": "尚未迁移",
+    "en": "Not yet migrated",
+    "zh-Hant": "尚未遷移"
+  },
+  {
+    "source": "尚未确定 Minecraft 目录。",
+    "en": "No Minecraft folder selected.",
+    "zh-Hant": "尚未確定 Minecraft 目錄。"
+  },
+  {
+    "source": "尚无成功运行的快照。",
+    "en": "No successful-run snapshot yet.",
+    "zh-Hant": "尚無成功運行的快照。"
+  },
+  {
+    "source": "尚无法确定具体原因。以下是本次运行记录中的错误信息。",
+    "en": "The cause could not be determined. Error details from this run follow.",
+    "zh-Hant": "尚無法確定具體原因。以下是本次運行記錄中的錯誤信息。"
+  },
+  {
+    "source": "设为首选",
+    "en": "Set as preferred",
+    "zh-Hant": "設為首選"
+  },
+  {
+    "source": "设置",
+    "en": "Settings",
+    "zh-Hant": "設定"
+  },
+  {
+    "source": "设置 → 个性化 可以调整主题色与窗口背景。",
+    "en": "Adjust accent colors and the window background in Settings → Appearance.",
+    "zh-Hant": "設定 → 個性化 可以調整主題色與窗口背景。"
+  },
+  {
+    "source": "设置 NexaCL",
+    "en": "Set up NexaCL",
+    "zh-Hant": "設定 NexaCL"
+  },
+  {
+    "source": "设置分类",
+    "en": "Settings categories",
+    "zh-Hant": "設定分類"
+  },
+  {
+    "source": "设置数据",
+    "en": "Settings data",
+    "zh-Hant": "設定資料"
+  },
+  {
+    "source": "设置未保存：",
+    "en": "Settings were not saved: ",
+    "zh-Hant": "設定未保存："
+  },
+  {
+    "source": "设置子页面，可拖动或使用左右方向键切换",
+    "en": "Settings pages. Swipe or use Left and Right to switch",
+    "zh-Hant": "設定子頁面，可拖動或使用左右方向鍵切換"
+  },
+  {
+    "source": "声音资源内存",
+    "en": "Sound memory",
+    "zh-Hant": "聲音資源記憶體"
+  },
+  {
+    "source": "剩余空间可能无法完成启动。",
+    "en": "There may not be enough free disk space to complete launch.",
+    "zh-Hant": "剩余空間可能無法完成啟動。"
+  },
+  {
+    "source": "剩余提交预算",
+    "en": "Remaining commit budget",
+    "zh-Hant": "剩余提交預算"
+  },
+  {
+    "source": "失败",
+    "en": "Failed",
+    "zh-Hant": "失敗"
+  },
+  {
+    "source": "实际磁盘占用",
+    "en": "Actual disk usage",
+    "zh-Hant": "實際磁盤占用"
+  },
+  {
+    "source": "实例",
+    "en": "Instance",
+    "zh-Hant": "實例"
+  },
+  {
+    "source": "实例包含校验失败的文件。",
+    "en": "Some instance files failed verification.",
+    "zh-Hant": "實例包含校驗失敗的檔案。"
+  },
+  {
+    "source": "实例隔离开启后，Mod 与配置会写在版本文件夹内。",
+    "en": "With instance isolation enabled, mods and configuration are stored in the version folder.",
+    "zh-Hant": "實例隔離開啟后，Mod 與配置會寫在版本資料夾內。"
+  },
+  {
+    "source": "实例路径不可写",
+    "en": "Instance path not writable",
+    "zh-Hant": "實例路徑不可寫"
+  },
+  {
+    "source": "实例路径不可写（警告）",
+    "en": "Instance path not writable (Warning)",
+    "zh-Hant": "實例路徑不可寫（警告）"
+  },
+  {
+    "source": "实例路径不可写（提示）",
+    "en": "Instance path not writable (Information)",
+    "zh-Hant": "實例路徑不可寫（提示）"
+  },
+  {
+    "source": "实例路径不可写（严重）",
+    "en": "Instance path not writable (Critical)",
+    "zh-Hant": "實例路徑不可寫（嚴重）"
+  },
+  {
+    "source": "实例路径不可写（正常）",
+    "en": "Instance path not writable (Ready)",
+    "zh-Hant": "實例路徑不可寫（正常）"
+  },
+  {
+    "source": "实例路径不可写（阻止启动）",
+    "en": "Instance path not writable (Blocked)",
+    "zh-Hant": "實例路徑不可寫（阻止啟動）"
+  },
+  {
+    "source": "实例路径不可用",
+    "en": "Instance path unavailable",
+    "zh-Hant": "實例路徑不可用"
+  },
+  {
+    "source": "实例路径不可用（警告）",
+    "en": "Instance path unavailable (Warning)",
+    "zh-Hant": "實例路徑不可用（警告）"
+  },
+  {
+    "source": "实例路径不可用（提示）",
+    "en": "Instance path unavailable (Information)",
+    "zh-Hant": "實例路徑不可用（提示）"
+  },
+  {
+    "source": "实例路径不可用（严重）",
+    "en": "Instance path unavailable (Critical)",
+    "zh-Hant": "實例路徑不可用（嚴重）"
+  },
+  {
+    "source": "实例路径不可用（正常）",
+    "en": "Instance path unavailable (Ready)",
+    "zh-Hant": "實例路徑不可用（正常）"
+  },
+  {
+    "source": "实例路径不可用（阻止启动）",
+    "en": "Instance path unavailable (Blocked)",
+    "zh-Hant": "實例路徑不可用（阻止啟動）"
+  },
+  {
+    "source": "实例逻辑占用",
+    "en": "Logical instance size",
+    "zh-Hant": "實例邏輯占用"
+  },
+  {
+    "source": "实例目录",
+    "en": "Instance folder",
+    "zh-Hant": "實例目錄"
+  },
+  {
+    "source": "实例缺少当前平台可用的本机库。",
+    "en": "This instance lacks native libraries for the current platform.",
+    "zh-Hant": "實例缺少當前平臺可用的本機庫。"
+  },
+  {
+    "source": "实例缺少加载器",
+    "en": "Missing mod loader",
+    "zh-Hant": "實例缺少載入器"
+  },
+  {
+    "source": "实例缺少加载器（警告）",
+    "en": "Missing mod loader (Warning)",
+    "zh-Hant": "實例缺少載入器（警告）"
+  },
+  {
+    "source": "实例缺少加载器（提示）",
+    "en": "Missing mod loader (Information)",
+    "zh-Hant": "實例缺少載入器（提示）"
+  },
+  {
+    "source": "实例缺少加载器（严重）",
+    "en": "Missing mod loader (Critical)",
+    "zh-Hant": "實例缺少載入器（嚴重）"
+  },
+  {
+    "source": "实例缺少加载器（正常）",
+    "en": "Missing mod loader (Ready)",
+    "zh-Hant": "實例缺少載入器（正常）"
+  },
+  {
+    "source": "实例缺少加载器（阻止启动）",
+    "en": "Missing mod loader (Blocked)",
+    "zh-Hant": "實例缺少載入器（阻止啟動）"
+  },
+  {
+    "source": "实例缺少启动所需文件。",
+    "en": "Some files required to launch this instance are missing.",
+    "zh-Hant": "實例缺少啟動所需檔案。"
+  },
+  {
+    "source": "实例所在磁盘的剩余空间偏低。",
+    "en": "The disk containing this instance is low on free space.",
+    "zh-Hant": "實例所在磁盤的剩余空間偏低。"
+  },
+  {
+    "source": "实例信息",
+    "en": "Instance information",
+    "zh-Hant": "實例信息"
+  },
+  {
+    "source": "实验功能",
+    "en": "Experimental features",
+    "zh-Hant": "實驗功能"
+  },
+  {
+    "source": "使用全局标题",
+    "en": "Use global title",
+    "zh-Hant": "使用全局標題"
+  },
+  {
+    "source": "使用体验计划",
+    "en": "User experience program",
+    "zh-Hant": "使用體驗計劃"
+  },
+  {
+    "source": "使用已发现的旧档案",
+    "en": "Use discovered profiles",
+    "zh-Hant": "使用已發現的舊檔案"
+  },
+  {
+    "source": "使用原生架构的 Java 可获得更稳定的性能。",
+    "en": "Use a native Java runtime for more consistent performance.",
+    "zh-Hant": "使用原生架構的 Java 可獲得更穩定的性能。"
+  },
+  {
+    "source": "世界",
+    "en": "Worlds",
+    "zh-Hant": "世界"
+  },
+  {
+    "source": "视频背景自动暂停",
+    "en": "Pause background video automatically",
+    "zh-Hant": "視頻背景自動暫停"
+  },
+  {
+    "source": "是",
+    "en": "Yes",
+    "zh-Hant": "是"
+  },
+  {
+    "source": "适用于当前游戏的版本",
+    "en": "Versions for the current game",
+    "zh-Hant": "適用于當前游戲的版本"
+  },
+  {
+    "source": "释放后台内存",
+    "en": "Free background memory",
+    "zh-Hant": "釋放后臺記憶體"
+  },
+  {
+    "source": "收藏",
+    "en": "Favorites",
+    "zh-Hant": "收藏"
+  },
+  {
+    "source": "收起步骤",
+    "en": "Hide steps",
+    "zh-Hant": "收起步驟"
+  },
+  {
+    "source": "收起任务步骤",
+    "en": "Hide task steps",
+    "zh-Hant": "收起任務步驟"
+  },
+  {
+    "source": "首选 IP 栈",
+    "en": "Preferred IP stack",
+    "zh-Hant": "首選 IP 棧"
+  },
+  {
+    "source": "首选 Java",
+    "en": "Preferred Java",
+    "zh-Hant": "首選 Java"
+  },
+  {
+    "source": "首选发行版",
+    "en": "Preferred distribution",
+    "zh-Hant": "首選發行版"
+  },
+  {
+    "source": "授权地址无效，请重新发起登录。",
+    "en": "The authorization address is invalid. Start sign-in again.",
+    "zh-Hant": "授權地址無效，請重新發起登錄。"
+  },
+  {
+    "source": "授权码尚未生成，请稍后重试。",
+    "en": "The authorization code is not ready. Retry shortly.",
+    "zh-Hant": "授權碼尚未生成，請稍后重試。"
+  },
+  {
+    "source": "授权码已复制。",
+    "en": "Authorization code copied.",
+    "zh-Hant": "授權碼已復制。"
+  },
+  {
+    "source": "输入",
+    "en": "Input",
+    "zh-Hant": "輸入"
+  },
+  {
+    "source": "输入参数",
+    "en": "Enter argument",
+    "zh-Hant": "輸入參數"
+  },
+  {
+    "source": "数据包",
+    "en": "Data packs",
+    "zh-Hant": "資料包"
+  },
+  {
+    "source": "数据共享范围",
+    "en": "Data sharing",
+    "zh-Hant": "資料共享范圍"
+  },
+  {
+    "source": "数据位置",
+    "en": "Data location",
+    "zh-Hant": "資料位置"
+  },
+  {
+    "source": "数据与隐私",
+    "en": "Data and privacy",
+    "zh-Hant": "資料與隱私"
+  },
+  {
+    "source": "数据与诊断",
+    "en": "Data and diagnostics",
+    "zh-Hant": "資料與診斷"
+  },
+  {
+    "source": "刷新",
+    "en": "Refresh",
+    "zh-Hant": "刷新"
+  },
+  {
+    "source": "刷新版本",
+    "en": "Refresh versions",
+    "zh-Hant": "刷新版本"
+  },
+  {
+    "source": "搜索",
+    "en": "Search",
+    "zh-Hant": "搜索"
+  },
+  {
+    "source": "搜索版本",
+    "en": "Search versions",
+    "zh-Hant": "搜索版本"
+  },
+  {
+    "source": "搜索名称、文件名或版本",
+    "en": "Search name, filename or version",
+    "zh-Hant": "搜索名稱、檔名或版本"
+  },
+  {
+    "source": "搜索内容",
+    "en": "Search content",
+    "zh-Hant": "搜索內容"
+  },
+  {
+    "source": "搜索资源",
+    "en": "Search resources",
+    "zh-Hant": "搜索資源"
+  },
+  {
+    "source": "随机播放",
+    "en": "Shuffle",
+    "zh-Hant": "隨機播放"
+  },
+  {
+    "source": "所选实例目录不存在或无法访问。",
+    "en": "The selected instance directory does not exist or cannot be accessed.",
+    "zh-Hant": "所選實例目錄不存在或無法訪問。"
+  },
+  {
+    "source": "所在目录",
+    "en": "Folder",
+    "zh-Hant": "所在目錄"
+  },
+  {
+    "source": "锁定窗口大小",
+    "en": "Lock window size",
+    "zh-Hant": "鎖定窗口大小"
+  },
+  {
+    "source": "台式机",
+    "en": "Desktop",
+    "zh-Hant": "臺式機"
+  },
+  {
+    "source": "提交量保留",
+    "en": "Commit reserve",
+    "zh-Hant": "提交量保留"
+  },
+  {
+    "source": "提交上限",
+    "en": "Commit limit",
+    "zh-Hant": "提交上限"
+  },
+  {
+    "source": "提交预算达到上限",
+    "en": "Commit budget at limit",
+    "zh-Hant": "提交預算達到上限"
+  },
+  {
+    "source": "提交预算达到上限（警告）",
+    "en": "Commit budget at limit (Warning)",
+    "zh-Hant": "提交預算達到上限（警告）"
+  },
+  {
+    "source": "提交预算达到上限（提示）",
+    "en": "Commit budget at limit (Information)",
+    "zh-Hant": "提交預算達到上限（提示）"
+  },
+  {
+    "source": "提交预算达到上限（严重）",
+    "en": "Commit budget at limit (Critical)",
+    "zh-Hant": "提交預算達到上限（嚴重）"
+  },
+  {
+    "source": "提交预算达到上限（正常）",
+    "en": "Commit budget at limit (Ready)",
+    "zh-Hant": "提交預算達到上限（正常）"
+  },
+  {
+    "source": "提交预算达到上限（阻止启动）",
+    "en": "Commit budget at limit (Blocked)",
+    "zh-Hant": "提交預算達到上限（阻止啟動）"
+  },
+  {
+    "source": "提交预算接近上限",
+    "en": "Commit budget near limit",
+    "zh-Hant": "提交預算接近上限"
+  },
+  {
+    "source": "提交预算接近上限（警告）",
+    "en": "Commit budget near limit (Warning)",
+    "zh-Hant": "提交預算接近上限（警告）"
+  },
+  {
+    "source": "提交预算接近上限（提示）",
+    "en": "Commit budget near limit (Information)",
+    "zh-Hant": "提交預算接近上限（提示）"
+  },
+  {
+    "source": "提交预算接近上限（严重）",
+    "en": "Commit budget near limit (Critical)",
+    "zh-Hant": "提交預算接近上限（嚴重）"
+  },
+  {
+    "source": "提交预算接近上限（正常）",
+    "en": "Commit budget near limit (Ready)",
+    "zh-Hant": "提交預算接近上限（正常）"
+  },
+  {
+    "source": "提交预算接近上限（阻止启动）",
+    "en": "Commit budget near limit (Blocked)",
+    "zh-Hant": "提交預算接近上限（阻止啟動）"
+  },
+  {
+    "source": "提示",
+    "en": "Information",
+    "zh-Hant": "提示"
+  },
+  {
+    "source": "添加",
+    "en": "Add",
+    "zh-Hant": "添加"
+  },
+  {
+    "source": "添加 Fabric API",
+    "en": "Add Fabric API",
+    "zh-Hant": "添加 Fabric API"
+  },
+  {
+    "source": "添加 QSL",
+    "en": "Add QSL",
+    "zh-Hant": "添加 QSL"
+  },
+  {
+    "source": "添加模组",
+    "en": "Add mods",
+    "zh-Hant": "添加模組"
+  },
+  {
+    "source": "添加目录",
+    "en": "Add folder",
+    "zh-Hant": "添加目錄"
+  },
+  {
+    "source": "添加文件夹",
+    "en": "Add folder",
+    "zh-Hant": "添加資料夾"
+  },
+  {
+    "source": "添加游戏目录",
+    "en": "Add game folder",
+    "zh-Hant": "添加游戲目錄"
+  },
+  {
+    "source": "添加账户",
+    "en": "Add account",
+    "zh-Hant": "添加帳戶"
+  },
+  {
+    "source": "添加自定义 Java",
+    "en": "Add custom Java",
+    "zh-Hant": "添加自定義 Java"
+  },
+  {
+    "source": "停用",
+    "en": "Disable",
+    "zh-Hant": "停用"
+  },
+  {
+    "source": "通过 Cloudflare 检查当前平台的新版本。",
+    "en": "Check for updates for this platform through Cloudflare.",
+    "zh-Hant": "通過 Cloudflare 檢查當前平臺的新版本。"
+  },
+  {
+    "source": "通用",
+    "en": "General",
+    "zh-Hant": "通用"
+  },
+  {
+    "source": "通知",
+    "en": "Notification",
+    "zh-Hant": "通知"
+  },
+  {
+    "source": "通知内容",
+    "en": "Notification content",
+    "zh-Hant": "通知內容"
+  },
+  {
+    "source": "同时共享诊断信息",
+    "en": "Also share diagnostics",
+    "zh-Hant": "同時共享診斷信息"
+  },
+  {
+    "source": "投影（.litematic 等）需要安装 Litematica 等投影类 Mod。",
+    "en": "Schematics such as .litematic require Litematica or another schematic mod.",
+    "zh-Hant": "投影（.litematic 等）需要安裝 Litematica 等投影類 Mod。"
+  },
+  {
+    "source": "图标",
+    "en": "Icon",
+    "zh-Hant": "圖標"
+  },
+  {
+    "source": "图像尺寸",
+    "en": "Image dimensions",
+    "zh-Hant": "圖像尺寸"
+  },
+  {
+    "source": "图形初始化失败。请检查显卡驱动。",
+    "en": "Graphics initialization failed. Check the graphics driver.",
+    "zh-Hant": "圖形初始化失敗。請檢查顯示卡驅動。"
+  },
+  {
+    "source": "推断",
+    "en": "Inferred",
+    "zh-Hant": "推斷"
+  },
+  {
+    "source": "外观",
+    "en": "Appearance",
+    "zh-Hant": "外觀"
+  },
+  {
+    "source": "完成",
+    "en": "Finished",
+    "zh-Hant": "完成"
+  },
+  {
+    "source": "完整文件夹路径",
+    "en": "Full folder path",
+    "zh-Hant": "完整資料夾路徑"
+  },
+  {
+    "source": "完整资源建议仍在计算。",
+    "en": "Resource recommendations are still being calculated.",
+    "zh-Hant": "完整資源建議仍在計算。"
+  },
+  {
+    "source": "网络",
+    "en": "Network",
+    "zh-Hant": "網絡"
+  },
+  {
+    "source": "网络故障诊断",
+    "en": "Network diagnostics",
+    "zh-Hant": "網絡故障診斷"
+  },
+  {
+    "source": "网络自动检测",
+    "en": "Automatic network detection",
+    "zh-Hant": "網絡自動檢測"
+  },
+  {
+    "source": "微软登录",
+    "en": "Sign in with Microsoft",
+    "zh-Hant": "微軟登錄"
+  },
+  {
+    "source": "微软账户",
+    "en": "Microsoft account",
+    "zh-Hant": "微軟帳戶"
+  },
+  {
+    "source": "为数据选择一个位置",
+    "en": "Choose a data location",
+    "zh-Hant": "為資料選擇一個位置"
+  },
+  {
+    "source": "未保存的游戏进度可能丢失。",
+    "en": "Unsaved game progress may be lost.",
+    "zh-Hant": "未保存的游戲進度可能丟失。"
+  },
+  {
+    "source": "未发现更新",
+    "en": "No updates available",
+    "zh-Hant": "未發現更新"
+  },
+  {
+    "source": "未记录",
+    "en": "Not recorded",
+    "zh-Hant": "未記錄"
+  },
+  {
+    "source": "未检测",
+    "en": "Not checked",
+    "zh-Hant": "未檢測"
+  },
+  {
+    "source": "未检测到已连接设备",
+    "en": "No connected devices detected",
+    "zh-Hant": "未檢測到已連接設備"
+  },
+  {
+    "source": "未开始",
+    "en": "Not started",
+    "zh-Hant": "未開始"
+  },
+  {
+    "source": "未能安全停止安装，请查看任务状态后重试。",
+    "en": "Could not safely stop installation. Check the task status and retry.",
+    "zh-Hant": "未能安全停止安裝，請查看任務狀態后重試。"
+  },
+  {
+    "source": "未能安全停止安装：",
+    "en": "Could not safely stop installation: ",
+    "zh-Hant": "未能安全停止安裝："
+  },
+  {
+    "source": "未能保存版本选择，请检查设置目录是否可写。",
+    "en": "Could not save the selected version. Check write access to the settings folder.",
+    "zh-Hant": "未能保存版本選擇，請檢查設定目錄是否可寫。"
+  },
+  {
+    "source": "未能保存设置，请重试。",
+    "en": "Could not save settings. Please retry.",
+    "zh-Hant": "未能保存設定，請重試。"
+  },
+  {
+    "source": "未能保存设置。",
+    "en": "Could not save settings.",
+    "zh-Hant": "未能保存設定。"
+  },
+  {
+    "source": "未识别到游戏目录、版本目录、JAR 或受支持的整合包。",
+    "en": "No game folder, version folder, JAR or supported modpack was identified.",
+    "zh-Hant": "未識別到游戲目錄、版本目錄、JAR 或受支援的整合包。"
+  },
+  {
+    "source": "未提供",
+    "en": "Not provided",
+    "zh-Hant": "未提供"
+  },
+  {
+    "source": "未选择档案",
+    "en": "No profile selected",
+    "zh-Hant": "未選擇檔案"
+  },
+  {
+    "source": "未选择账户",
+    "en": "No account selected",
+    "zh-Hant": "未選擇帳戶"
+  },
+  {
+    "source": "未找到可启动的游戏版本",
+    "en": "No launchable game version found",
+    "zh-Hant": "未找到可啟動的游戲版本"
+  },
+  {
+    "source": "未知",
+    "en": "Unknown",
+    "zh-Hant": "未知"
+  },
+  {
+    "source": "文件",
+    "en": "Files",
+    "zh-Hant": "檔案"
+  },
+  {
+    "source": "文件关联",
+    "en": "File associations",
+    "zh-Hant": "檔案關聯"
+  },
+  {
+    "source": "文件夹",
+    "en": "Folder",
+    "zh-Hant": "資料夾"
+  },
+  {
+    "source": "文件夹名称",
+    "en": "Folder name",
+    "zh-Hant": "資料夾名稱"
+  },
+  {
+    "source": "文件夹名称，留空则显示完整路径",
+    "en": "Folder name. Leave empty to show the full path",
+    "zh-Hant": "資料夾名稱，留空則顯示完整路徑"
+  },
+  {
+    "source": "文件较大，暂不进行在线识别。",
+    "en": "This file is too large for online identification.",
+    "zh-Hant": "檔案較大，暫不進行在線識別。"
+  },
+  {
+    "source": "文件名",
+    "en": "Filename",
+    "zh-Hant": "檔名"
+  },
+  {
+    "source": "文件完整性",
+    "en": "File integrity",
+    "zh-Hant": "檔案完整性"
+  },
+  {
+    "source": "文件系统",
+    "en": "File system",
+    "zh-Hant": "檔案系統"
+  },
+  {
+    "source": "纹理显存",
+    "en": "Texture video memory",
+    "zh-Hant": "紋理顯存"
+  },
+  {
+    "source": "问题数",
+    "en": "Issue count",
+    "zh-Hant": "問題數"
+  },
+  {
+    "source": "无法把当前图像设置计入估算。",
+    "en": "Current graphics settings could not be included in the estimate.",
+    "zh-Hant": "無法把當前圖像設定計入估算。"
+  },
+  {
+    "source": "无法打开版本目录：",
+    "en": "Could not open version folder: ",
+    "zh-Hant": "無法打開版本目錄："
+  },
+  {
+    "source": "无法打开浏览器，请检查系统默认浏览器设置。",
+    "en": "Could not open the browser. Check the system's default browser setting.",
+    "zh-Hant": "無法打開瀏覽器，請檢查系統預設瀏覽器設定。"
+  },
+  {
+    "source": "无法打开目录，请检查目录是否存在。",
+    "en": "Could not open folder. Check that it exists.",
+    "zh-Hant": "無法打開目錄，請檢查目錄是否存在。"
+  },
+  {
+    "source": "无法打开目录选择器，请使用完整路径添加目录。",
+    "en": "Could not open the folder picker. Add the folder using its full path.",
+    "zh-Hant": "無法打開目錄選擇器，請使用完整路徑添加目錄。"
+  },
+  {
+    "source": "无法打开文件夹选择器，请重试。",
+    "en": "Could not open the folder picker. Please retry.",
+    "zh-Hant": "無法打開資料夾選擇器，請重試。"
+  },
+  {
+    "source": "无法打开文件选择器，也可以在上方填写文件路径。",
+    "en": "Could not open the file picker. Enter the file path above instead.",
+    "zh-Hant": "無法打開檔案選擇器，也可以在上方填寫檔案路徑。"
+  },
+  {
+    "source": "无法打开下载页面，请稍后重试。",
+    "en": "Could not open downloads. Please retry later.",
+    "zh-Hant": "無法打開下載頁面，請稍后重試。"
+  },
+  {
+    "source": "无法打开项目页面。",
+    "en": "Could not open project page.",
+    "zh-Hant": "無法打開項目頁面。"
+  },
+  {
+    "source": "无法读取版本内容，请检查目录后重试。",
+    "en": "Could not read version content. Check the folder and retry.",
+    "zh-Hant": "無法讀取版本內容，請檢查目錄后重試。"
+  },
+  {
+    "source": "无法读取版本信息，请返回后重试。",
+    "en": "Could not read version information. Go back and retry.",
+    "zh-Hant": "無法讀取版本信息，請返回后重試。"
+  },
+  {
+    "source": "无法读取版本修改信息。",
+    "en": "Could not read version changes.",
+    "zh-Hant": "無法讀取版本修改信息。"
+  },
+  {
+    "source": "无法读取此目录",
+    "en": "Could not read this folder",
+    "zh-Hant": "無法讀取此目錄"
+  },
+  {
+    "source": "无法读取此游戏目录，请检查完整路径和访问权限。",
+    "en": "Could not read this game folder. Check its full path and access permissions.",
+    "zh-Hant": "無法讀取此游戲目錄，請檢查完整路徑和訪問權限。"
+  },
+  {
+    "source": "无法读取当前版本，请手动填写筛选条件。",
+    "en": "Could not read the current version. Enter filters manually.",
+    "zh-Hant": "無法讀取當前版本，請手動填寫篩選條件。"
+  },
+  {
+    "source": "无法读取或保存收藏夹，请重试。",
+    "en": "Could not read or save favorites. Please retry.",
+    "zh-Hant": "無法讀取或保存收藏夾，請重試。"
+  },
+  {
+    "source": "无法读取平台功能，请重试。",
+    "en": "Could not read platform capabilities. Please retry.",
+    "zh-Hant": "無法讀取平臺功能，請重試。"
+  },
+  {
+    "source": "无法读取设置，请重新打开设置页。",
+    "en": "Could not read settings. Reopen Settings.",
+    "zh-Hant": "無法讀取設定，請重新打開設定頁。"
+  },
+  {
+    "source": "无法读取拖入的文件夹。",
+    "en": "Could not read the dropped folder.",
+    "zh-Hant": "無法讀取拖入的資料夾。"
+  },
+  {
+    "source": "无法复制授权码，请手动输入。",
+    "en": "Could not copy the code. Enter it manually.",
+    "zh-Hant": "無法復制授權碼，請手動輸入。"
+  },
+  {
+    "source": "无法检查依赖关系，请刷新后重试。",
+    "en": "Could not check dependencies. Refresh and retry.",
+    "zh-Hant": "無法檢查依賴關系，請刷新后重試。"
+  },
+  {
+    "source": "无法结束游戏：",
+    "en": "Could not stop game: ",
+    "zh-Hant": "無法結束游戲："
+  },
+  {
+    "source": "无法结束游戏。",
+    "en": "Could not stop game.",
+    "zh-Hant": "無法結束游戲。"
+  },
+  {
+    "source": "无法解析依赖，请重试。",
+    "en": "Could not resolve dependencies. Please retry.",
+    "zh-Hant": "無法解析依賴，請重試。"
+  },
+  {
+    "source": "无法删除此版本。",
+    "en": "Could not delete this version.",
+    "zh-Hant": "無法刪除此版本。"
+  },
+  {
+    "source": "无法生成当前实例的资源建议。",
+    "en": "Resource recommendations could not be generated for this instance.",
+    "zh-Hant": "無法生成當前實例的資源建議。"
+  },
+  {
+    "source": "无法识别拖入内容：",
+    "en": "Could not identify dropped content: ",
+    "zh-Hant": "無法識別拖入內容："
+  },
+  {
+    "source": "无法使用所选 Java。",
+    "en": "Could not use the selected Java runtime.",
+    "zh-Hant": "無法使用所選 Java。"
+  },
+  {
+    "source": "无匹配版本",
+    "en": "No matching versions",
+    "zh-Hant": "無匹配版本"
+  },
+  {
+    "source": "无引用内容",
+    "en": "Unreferenced content",
+    "zh-Hant": "無引用內容"
+  },
+  {
+    "source": "物理内存严重不足",
+    "en": "Critically low physical memory",
+    "zh-Hant": "物理記憶體嚴重不足"
+  },
+  {
+    "source": "物理内存严重不足（警告）",
+    "en": "Critically low physical memory (Warning)",
+    "zh-Hant": "物理記憶體嚴重不足（警告）"
+  },
+  {
+    "source": "物理内存严重不足（提示）",
+    "en": "Critically low physical memory (Information)",
+    "zh-Hant": "物理記憶體嚴重不足（提示）"
+  },
+  {
+    "source": "物理内存严重不足（严重）",
+    "en": "Critically low physical memory (Critical)",
+    "zh-Hant": "物理記憶體嚴重不足（嚴重）"
+  },
+  {
+    "source": "物理内存严重不足（正常）",
+    "en": "Critically low physical memory (Ready)",
+    "zh-Hant": "物理記憶體嚴重不足（正常）"
+  },
+  {
+    "source": "物理内存严重不足（阻止启动）",
+    "en": "Critically low physical memory (Blocked)",
+    "zh-Hant": "物理記憶體嚴重不足（阻止啟動）"
+  },
+  {
+    "source": "系统",
+    "en": "System",
+    "zh-Hant": "系統"
+  },
+  {
+    "source": "系统 / 浅色 / 深色",
+    "en": "System / Light / Dark",
+    "zh-Hant": "系統 / 淺色 / 深色"
+  },
+  {
+    "source": "系统版本",
+    "en": "OS version",
+    "zh-Hant": "系統版本"
+  },
+  {
+    "source": "系统保留内存",
+    "en": "System memory reserve",
+    "zh-Hant": "系統保留記憶體"
+  },
+  {
+    "source": "系统存在性能更高的图形适配器。",
+    "en": "A higher-performance graphics adapter is available.",
+    "zh-Hant": "系統存在性能更高的圖形適配器。"
+  },
+  {
+    "source": "系统集成",
+    "en": "System integration",
+    "zh-Hant": "系統集成"
+  },
+  {
+    "source": "系统架构",
+    "en": "System architecture",
+    "zh-Hant": "系統架構"
+  },
+  {
+    "source": "系统兼容",
+    "en": "System compatibility",
+    "zh-Hant": "系統兼容"
+  },
+  {
+    "source": "系统兼容策略",
+    "en": "System compatibility policy",
+    "zh-Hant": "系統兼容策略"
+  },
+  {
+    "source": "系统可用提交量已经较低。",
+    "en": "Available system commit is low.",
+    "zh-Hant": "系統可用提交量已經較低。"
+  },
+  {
+    "source": "系统媒体控制",
+    "en": "System media controls",
+    "zh-Hant": "系統媒體控制"
+  },
+  {
+    "source": "系统提交预算低于预计启动需求。",
+    "en": "The system commit budget is below the estimated launch requirement.",
+    "zh-Hant": "系統提交預算低于預計啟動需求。"
+  },
+  {
+    "source": "系统提交预算低于预计运行需求。",
+    "en": "The system commit budget is below the estimated runtime requirement.",
+    "zh-Hant": "系統提交預算低于預計運行需求。"
+  },
+  {
+    "source": "系统通知操作",
+    "en": "System notification actions",
+    "zh-Hant": "系統通知操作"
+  },
+  {
+    "source": "系统需要增加页面文件以满足启动需求。",
+    "en": "The system needs to expand the page file to meet launch requirements.",
+    "zh-Hant": "系統需要增加頁面檔案以滿足啟動需求。"
+  },
+  {
+    "source": "系统诊断",
+    "en": "System diagnostics",
+    "zh-Hant": "系統診斷"
+  },
+  {
+    "source": "下一批更改",
+    "en": "Next batch of changes",
+    "zh-Hant": "下一批更改"
+  },
+  {
+    "source": "下一项",
+    "en": "Next item",
+    "zh-Hant": "下一項"
+  },
+  {
+    "source": "下一页",
+    "en": "Next page",
+    "zh-Hant": "下一頁"
+  },
+  {
+    "source": "下载",
+    "en": "Download",
+    "zh-Hant": "下載"
+  },
+  {
+    "source": "下载 Java",
+    "en": "Download Java",
+    "zh-Hant": "下載 Java"
+  },
+  {
+    "source": "下载安装包",
+    "en": "Download installer",
+    "zh-Hant": "下載安裝包"
+  },
+  {
+    "source": "下载次数",
+    "en": "Downloads",
+    "zh-Hant": "下載次數"
+  },
+  {
+    "source": "下载合适的 Java",
+    "en": "Download compatible Java",
+    "zh-Hant": "下載合適的 Java"
+  },
+  {
+    "source": "下载缓存",
+    "en": "Download cache",
+    "zh-Hant": "下載快取"
+  },
+  {
+    "source": "下载社区资源不会打断当前页面，任务进度在右下角查看。",
+    "en": "Community resources download in the background. Track progress at the bottom right.",
+    "zh-Hant": "下載社區資源不會打斷當前頁面，任務進度在右下角查看。"
+  },
+  {
+    "source": "下载速度",
+    "en": "Download speed",
+    "zh-Hant": "下載速度"
+  },
+  {
+    "source": "下载速度限制",
+    "en": "Download speed limit",
+    "zh-Hant": "下載速度限制"
+  },
+  {
+    "source": "下载线程",
+    "en": "Download concurrency",
+    "zh-Hant": "下載線程"
+  },
+  {
+    "source": "下载游戏",
+    "en": "Download game",
+    "zh-Hant": "下載游戲"
+  },
+  {
+    "source": "下载与网络",
+    "en": "Downloads and network",
+    "zh-Hant": "下載與網絡"
+  },
+  {
+    "source": "下载源策略",
+    "en": "Download source policy",
+    "zh-Hant": "下載源策略"
+  },
+  {
+    "source": "先完成几项设置，然后开始你的 Minecraft。",
+    "en": "Complete a few settings, then start Minecraft.",
+    "zh-Hant": "先完成幾項設定，然后開始你的 Minecraft。"
+  },
+  {
+    "source": "显存安全余量",
+    "en": "Video memory safety margin",
+    "zh-Hant": "顯存安全余量"
+  },
+  {
+    "source": "显存低于启动需求",
+    "en": "Insufficient launch video memory",
+    "zh-Hant": "顯存低于啟動需求"
+  },
+  {
+    "source": "显存低于启动需求（警告）",
+    "en": "Insufficient launch video memory (Warning)",
+    "zh-Hant": "顯存低于啟動需求（警告）"
+  },
+  {
+    "source": "显存低于启动需求（提示）",
+    "en": "Insufficient launch video memory (Information)",
+    "zh-Hant": "顯存低于啟動需求（提示）"
+  },
+  {
+    "source": "显存低于启动需求（严重）",
+    "en": "Insufficient launch video memory (Critical)",
+    "zh-Hant": "顯存低于啟動需求（嚴重）"
+  },
+  {
+    "source": "显存低于启动需求（正常）",
+    "en": "Insufficient launch video memory (Ready)",
+    "zh-Hant": "顯存低于啟動需求（正常）"
+  },
+  {
+    "source": "显存低于启动需求（阻止启动）",
+    "en": "Insufficient launch video memory (Blocked)",
+    "zh-Hant": "顯存低于啟動需求（阻止啟動）"
+  },
+  {
+    "source": "显存溢出到系统内存",
+    "en": "Video memory spillover",
+    "zh-Hant": "顯存溢出到系統記憶體"
+  },
+  {
+    "source": "显卡",
+    "en": "Graphics",
+    "zh-Hant": "顯示卡"
+  },
+  {
+    "source": "显卡可能即将降频。",
+    "en": "The GPU may begin thermal throttling.",
+    "zh-Hant": "顯示卡可能即將降頻。"
+  },
+  {
+    "source": "显卡温度接近上限",
+    "en": "GPU temperature near limit",
+    "zh-Hant": "顯示卡溫度接近上限"
+  },
+  {
+    "source": "显卡温度接近上限（警告）",
+    "en": "GPU temperature near limit (Warning)",
+    "zh-Hant": "顯示卡溫度接近上限（警告）"
+  },
+  {
+    "source": "显卡温度接近上限（提示）",
+    "en": "GPU temperature near limit (Information)",
+    "zh-Hant": "顯示卡溫度接近上限（提示）"
+  },
+  {
+    "source": "显卡温度接近上限（严重）",
+    "en": "GPU temperature near limit (Critical)",
+    "zh-Hant": "顯示卡溫度接近上限（嚴重）"
+  },
+  {
+    "source": "显卡温度接近上限（正常）",
+    "en": "GPU temperature near limit (Ready)",
+    "zh-Hant": "顯示卡溫度接近上限（正常）"
+  },
+  {
+    "source": "显卡温度接近上限（阻止启动）",
+    "en": "GPU temperature near limit (Blocked)",
+    "zh-Hant": "顯示卡溫度接近上限（阻止啟動）"
+  },
+  {
+    "source": "显卡温度偏高",
+    "en": "High GPU temperature",
+    "zh-Hant": "顯示卡溫度偏高"
+  },
+  {
+    "source": "显卡温度偏高（警告）",
+    "en": "High GPU temperature (Warning)",
+    "zh-Hant": "顯示卡溫度偏高（警告）"
+  },
+  {
+    "source": "显卡温度偏高（提示）",
+    "en": "High GPU temperature (Information)",
+    "zh-Hant": "顯示卡溫度偏高（提示）"
+  },
+  {
+    "source": "显卡温度偏高（严重）",
+    "en": "High GPU temperature (Critical)",
+    "zh-Hant": "顯示卡溫度偏高（嚴重）"
+  },
+  {
+    "source": "显卡温度偏高（正常）",
+    "en": "High GPU temperature (Ready)",
+    "zh-Hant": "顯示卡溫度偏高（正常）"
+  },
+  {
+    "source": "显卡温度偏高（阻止启动）",
+    "en": "High GPU temperature (Blocked)",
+    "zh-Hant": "顯示卡溫度偏高（阻止啟動）"
+  },
+  {
+    "source": "显卡与渲染器",
+    "en": "Graphics and renderer",
+    "zh-Hant": "顯示卡與渲染器"
+  },
+  {
+    "source": "显示",
+    "en": "Display",
+    "zh-Hant": "顯示"
+  },
+  {
+    "source": "显示 Cleanroom 安装选项",
+    "en": "Show Cleanroom installation options",
+    "zh-Hant": "顯示 Cleanroom 安裝選項"
+  },
+  {
+    "source": "显示 Fabric 安装选项",
+    "en": "Show Fabric installation options",
+    "zh-Hant": "顯示 Fabric 安裝選項"
+  },
+  {
+    "source": "显示 Fabric API 安装选项",
+    "en": "Show Fabric API installation options",
+    "zh-Hant": "顯示 Fabric API 安裝選項"
+  },
+  {
+    "source": "显示 Forge 安装选项",
+    "en": "Show Forge installation options",
+    "zh-Hant": "顯示 Forge 安裝選項"
+  },
+  {
+    "source": "显示 LabyMod 安装选项",
+    "en": "Show LabyMod installation options",
+    "zh-Hant": "顯示 LabyMod 安裝選項"
+  },
+  {
+    "source": "显示 Legacy Fabric 安装选项",
+    "en": "Show Legacy Fabric installation options",
+    "zh-Hant": "顯示 Legacy Fabric 安裝選項"
+  },
+  {
+    "source": "显示 LiteLoader 安装选项",
+    "en": "Show LiteLoader installation options",
+    "zh-Hant": "顯示 LiteLoader 安裝選項"
+  },
+  {
+    "source": "显示 Minecraft 安装选项",
+    "en": "Show Minecraft installation options",
+    "zh-Hant": "顯示 Minecraft 安裝選項"
+  },
+  {
+    "source": "显示 NeoForge 安装选项",
+    "en": "Show NeoForge installation options",
+    "zh-Hant": "顯示 NeoForge 安裝選項"
+  },
+  {
+    "source": "显示 OptiFabric 安装选项",
+    "en": "Show OptiFabric installation options",
+    "zh-Hant": "顯示 OptiFabric 安裝選項"
+  },
+  {
+    "source": "显示 OptiFine 安装选项",
+    "en": "Show OptiFine installation options",
+    "zh-Hant": "顯示 OptiFine 安裝選項"
+  },
+  {
+    "source": "显示 QSL 安装选项",
+    "en": "Show QSL installation options",
+    "zh-Hant": "顯示 QSL 安裝選項"
+  },
+  {
+    "source": "显示 Quilt 安装选项",
+    "en": "Show Quilt installation options",
+    "zh-Hant": "顯示 Quilt 安裝選項"
+  },
+  {
+    "source": "线程本机内存",
+    "en": "Native thread memory",
+    "zh-Hant": "線程本機記憶體"
+  },
+  {
+    "source": "相关",
+    "en": "Relevant",
+    "zh-Hant": "相關"
+  },
+  {
+    "source": "详情",
+    "en": "Details",
+    "zh-Hant": "詳情"
+  },
+  {
+    "source": "想快速进服？在版本设置的服务器页添加地址后一键启动。",
+    "en": "Add a server address in version settings to launch directly into a server.",
+    "zh-Hant": "想快速進服？在版本設定的伺服器頁添加地址后一鍵啟動。"
+  },
+  {
+    "source": "项目主页 ↗",
+    "en": "Project page ↗",
+    "zh-Hant": "項目主頁 ↗"
+  },
+  {
+    "source": "校准后本机内存",
+    "en": "Calibrated native memory",
+    "zh-Hant": "校準后本機記憶體"
+  },
+  {
+    "source": "校准后堆内存",
+    "en": "Calibrated heap memory",
+    "zh-Hant": "校準后堆記憶體"
+  },
+  {
+    "source": "校准后提交量",
+    "en": "Calibrated commit",
+    "zh-Hant": "校準后提交量"
+  },
+  {
+    "source": "校准后物理内存",
+    "en": "Calibrated physical memory",
+    "zh-Hant": "校準后物理記憶體"
+  },
+  {
+    "source": "校准后显存",
+    "en": "Calibrated video memory",
+    "zh-Hant": "校準后顯存"
+  },
+  {
+    "source": "新版本 ",
+    "en": "New version ",
+    "zh-Hant": "新版本 "
+  },
+  {
+    "source": "新增",
+    "en": "Added",
+    "zh-Hant": "新增"
+  },
+  {
+    "source": "形态",
+    "en": "Form factor",
+    "zh-Hant": "形態"
+  },
+  {
+    "source": "修复",
+    "en": "Repair",
+    "zh-Hant": "修復"
+  },
+  {
+    "source": "修复操作未完成，请查看任务详情。",
+    "en": "Repair failed. See task details.",
+    "zh-Hant": "修復操作未完成，請查看任務詳情。"
+  },
+  {
+    "source": "修复操作未完成。",
+    "en": "Repair is incomplete.",
+    "zh-Hant": "修復操作未完成。"
+  },
+  {
+    "source": "修复操作已完成。",
+    "en": "Repair completed.",
+    "zh-Hant": "修復操作已完成。"
+  },
+  {
+    "source": "修复加载器",
+    "en": "Repair loader",
+    "zh-Hant": "修復載入器"
+  },
+  {
+    "source": "修复游戏版本",
+    "en": "Repair game version",
+    "zh-Hant": "修復游戲版本"
+  },
+  {
+    "source": "修复游戏文件",
+    "en": "Repair game files",
+    "zh-Hant": "修復游戲檔案"
+  },
+  {
+    "source": "修改",
+    "en": "Modify",
+    "zh-Hant": "修改"
+  },
+  {
+    "source": "修改版本",
+    "en": "Modify version",
+    "zh-Hant": "修改版本"
+  },
+  {
+    "source": "修改后的核心文件降低了估算置信度。",
+    "en": "Modified core files reduce the confidence of this estimate.",
+    "zh-Hant": "修改后的核心檔案降低了估算置信度。"
+  },
+  {
+    "source": "修改时间",
+    "en": "Modified",
+    "zh-Hant": "修改時間"
+  },
+  {
+    "source": "修改文件夹名称",
+    "en": "Rename folder",
+    "zh-Hant": "修改資料夾名稱"
+  },
+  {
+    "source": "需要扩大提交预算",
+    "en": "Commit budget needs to grow",
+    "zh-Hant": "需要擴大提交預算"
+  },
+  {
+    "source": "需要扩大提交预算（警告）",
+    "en": "Commit budget needs to grow (Warning)",
+    "zh-Hant": "需要擴大提交預算（警告）"
+  },
+  {
+    "source": "需要扩大提交预算（提示）",
+    "en": "Commit budget needs to grow (Information)",
+    "zh-Hant": "需要擴大提交預算（提示）"
+  },
+  {
+    "source": "需要扩大提交预算（严重）",
+    "en": "Commit budget needs to grow (Critical)",
+    "zh-Hant": "需要擴大提交預算（嚴重）"
+  },
+  {
+    "source": "需要扩大提交预算（正常）",
+    "en": "Commit budget needs to grow (Ready)",
+    "zh-Hant": "需要擴大提交預算（正常）"
+  },
+  {
+    "source": "需要扩大提交预算（阻止启动）",
+    "en": "Commit budget needs to grow (Blocked)",
+    "zh-Hant": "需要擴大提交預算（阻止啟動）"
+  },
+  {
+    "source": "需要确认",
+    "en": "Confirmation required",
+    "zh-Hant": "需要確認"
+  },
+  {
+    "source": "需要先处理启动问题",
+    "en": "Resolve launch issues first",
+    "zh-Hant": "需要先處理啟動問題"
+  },
+  {
+    "source": "选择 ",
+    "en": "Select ",
+    "zh-Hant": "選擇 "
+  },
+  {
+    "source": "选择 Cleanroom",
+    "en": "Select Cleanroom",
+    "zh-Hant": "選擇 Cleanroom"
+  },
+  {
+    "source": "选择 Cleanroom 加载器",
+    "en": "Select Cleanroom loader",
+    "zh-Hant": "選擇 Cleanroom 載入器"
+  },
+  {
+    "source": "选择 Fabric",
+    "en": "Select Fabric",
+    "zh-Hant": "選擇 Fabric"
+  },
+  {
+    "source": "选择 Fabric 加载器",
+    "en": "Select Fabric loader",
+    "zh-Hant": "選擇 Fabric 載入器"
+  },
+  {
+    "source": "选择 Forge",
+    "en": "Select Forge",
+    "zh-Hant": "選擇 Forge"
+  },
+  {
+    "source": "选择 Forge 加载器",
+    "en": "Select Forge loader",
+    "zh-Hant": "選擇 Forge 載入器"
+  },
+  {
+    "source": "选择 JAR 用途",
+    "en": "Choose JAR usage",
+    "zh-Hant": "選擇 JAR 用途"
+  },
+  {
+    "source": "选择 Java",
+    "en": "Choose Java",
+    "zh-Hant": "選擇 Java"
+  },
+  {
+    "source": "选择 Java 版本",
+    "en": "Choose Java version",
+    "zh-Hant": "選擇 Java 版本"
+  },
+  {
+    "source": "选择 LabyMod",
+    "en": "Select LabyMod",
+    "zh-Hant": "選擇 LabyMod"
+  },
+  {
+    "source": "选择 LabyMod 加载器",
+    "en": "Select LabyMod loader",
+    "zh-Hant": "選擇 LabyMod 載入器"
+  },
+  {
+    "source": "选择 Legacy Fabric",
+    "en": "Select Legacy Fabric",
+    "zh-Hant": "選擇 Legacy Fabric"
+  },
+  {
+    "source": "选择 Legacy Fabric 加载器",
+    "en": "Select Legacy Fabric loader",
+    "zh-Hant": "選擇 Legacy Fabric 載入器"
+  },
+  {
+    "source": "选择 LiteLoader",
+    "en": "Select LiteLoader",
+    "zh-Hant": "選擇 LiteLoader"
+  },
+  {
+    "source": "选择 LiteLoader 加载器",
+    "en": "Select LiteLoader loader",
+    "zh-Hant": "選擇 LiteLoader 載入器"
+  },
+  {
+    "source": "选择 NeoForge",
+    "en": "Select NeoForge",
+    "zh-Hant": "選擇 NeoForge"
+  },
+  {
+    "source": "选择 NeoForge 加载器",
+    "en": "Select NeoForge loader",
+    "zh-Hant": "選擇 NeoForge 載入器"
+  },
+  {
+    "source": "选择 OptiFine",
+    "en": "Select OptiFine",
+    "zh-Hant": "選擇 OptiFine"
+  },
+  {
+    "source": "选择 OptiFine 加载器",
+    "en": "Select OptiFine loader",
+    "zh-Hant": "選擇 OptiFine 載入器"
+  },
+  {
+    "source": "选择 Quilt",
+    "en": "Select Quilt",
+    "zh-Hant": "選擇 Quilt"
+  },
+  {
+    "source": "选择 Quilt 加载器",
+    "en": "Select Quilt loader",
+    "zh-Hant": "選擇 Quilt 載入器"
+  },
+  {
+    "source": "选择版本",
+    "en": "Select version",
+    "zh-Hant": "選擇版本"
+  },
+  {
+    "source": "选择档案文件",
+    "en": "Select profile file",
+    "zh-Hant": "選擇檔案檔案"
+  },
+  {
+    "source": "选择高性能显卡",
+    "en": "Use high-performance GPU",
+    "zh-Hant": "選擇高性能顯示卡"
+  },
+  {
+    "source": "选择角色 ",
+    "en": "Select player ",
+    "zh-Hant": "選擇角色 "
+  },
+  {
+    "source": "选择可选依赖",
+    "en": "Choose optional dependencies",
+    "zh-Hant": "選擇可選依賴"
+  },
+  {
+    "source": "选择使用的 Java 版本",
+    "en": "Choose the Java version to use",
+    "zh-Hant": "選擇使用的 Java 版本"
+  },
+  {
+    "source": "选择文件…",
+    "en": "Choose file…",
+    "zh-Hant": "選擇檔案…"
+  },
+  {
+    "source": "选择文件夹",
+    "en": "Choose folder",
+    "zh-Hant": "選擇資料夾"
+  },
+  {
+    "source": "选择诊断信息的共享方式",
+    "en": "Choose diagnostic sharing",
+    "zh-Hant": "選擇診斷信息的共享方式"
+  },
+  {
+    "source": "渲染器显存",
+    "en": "Renderer video memory",
+    "zh-Hant": "渲染器顯存"
+  },
+  {
+    "source": "循环依赖会一起安装。",
+    "en": "Circular dependencies will be installed together.",
+    "zh-Hant": "循環依賴會一起安裝。"
+  },
+  {
+    "source": "严重",
+    "en": "Critical",
+    "zh-Hant": "嚴重"
+  },
+  {
+    "source": "严重问题数",
+    "en": "Critical issue count",
+    "zh-Hant": "嚴重問題數"
+  },
+  {
+    "source": "验证",
+    "en": "Verify",
+    "zh-Hant": "驗證"
+  },
+  {
+    "source": "验证 Java",
+    "en": "Verify Java",
+    "zh-Hant": "驗證 Java"
+  },
+  {
+    "source": "页面文件磁盘空间不足",
+    "en": "Low page file disk space",
+    "zh-Hant": "頁面檔案磁盤空間不足"
+  },
+  {
+    "source": "页面文件磁盘空间不足（警告）",
+    "en": "Low page file disk space (Warning)",
+    "zh-Hant": "頁面檔案磁盤空間不足（警告）"
+  },
+  {
+    "source": "页面文件磁盘空间不足（提示）",
+    "en": "Low page file disk space (Information)",
+    "zh-Hant": "頁面檔案磁盤空間不足（提示）"
+  },
+  {
+    "source": "页面文件磁盘空间不足（严重）",
+    "en": "Low page file disk space (Critical)",
+    "zh-Hant": "頁面檔案磁盤空間不足（嚴重）"
+  },
+  {
+    "source": "页面文件磁盘空间不足（正常）",
+    "en": "Low page file disk space (Ready)",
+    "zh-Hant": "頁面檔案磁盤空間不足（正常）"
+  },
+  {
+    "source": "页面文件磁盘空间不足（阻止启动）",
+    "en": "Low page file disk space (Blocked)",
+    "zh-Hant": "頁面檔案磁盤空間不足（阻止啟動）"
+  },
+  {
+    "source": "页面文件所在磁盘的剩余空间偏低。",
+    "en": "The disk containing the page file is low on free space.",
+    "zh-Hant": "頁面檔案所在磁盤的剩余空間偏低。"
+  },
+  {
+    "source": "页面文件已固定上限",
+    "en": "Fixed page file limit",
+    "zh-Hant": "頁面檔案已固定上限"
+  },
+  {
+    "source": "页面文件已固定上限（警告）",
+    "en": "Fixed page file limit (Warning)",
+    "zh-Hant": "頁面檔案已固定上限（警告）"
+  },
+  {
+    "source": "页面文件已固定上限（提示）",
+    "en": "Fixed page file limit (Information)",
+    "zh-Hant": "頁面檔案已固定上限（提示）"
+  },
+  {
+    "source": "页面文件已固定上限（严重）",
+    "en": "Fixed page file limit (Critical)",
+    "zh-Hant": "頁面檔案已固定上限（嚴重）"
+  },
+  {
+    "source": "页面文件已固定上限（正常）",
+    "en": "Fixed page file limit (Ready)",
+    "zh-Hant": "頁面檔案已固定上限（正常）"
+  },
+  {
+    "source": "页面文件已固定上限（阻止启动）",
+    "en": "Fixed page file limit (Blocked)",
+    "zh-Hant": "頁面檔案已固定上限（阻止啟動）"
+  },
+  {
+    "source": "页统计不可读",
+    "en": "Page statistics unavailable",
+    "zh-Hant": "頁統計不可讀"
+  },
+  {
+    "source": "一次只能选择一个主加载器。",
+    "en": "Choose one primary loader at a time.",
+    "zh-Hant": "一次只能選擇一個主載入器。"
+  },
+  {
+    "source": "依赖 / 冲突",
+    "en": "Dependencies / conflicts",
+    "zh-Hant": "依賴 / 沖突"
+  },
+  {
+    "source": "移除",
+    "en": "Remove",
+    "zh-Hant": "移除"
+  },
+  {
+    "source": "移除的内容仍保存在游戏目录中。还原不会覆盖同名文件。",
+    "en": "Removed content stays in the game folder. Restoring never overwrites an existing file.",
+    "zh-Hant": "移除的內容仍保存在游戲目錄中。還原不會覆蓋同名檔案。"
+  },
+  {
+    "source": "移除模组",
+    "en": "Remove mod",
+    "zh-Hant": "移除模組"
+  },
+  {
+    "source": "移除目录，保留文件",
+    "en": "Remove folder from list, keep files",
+    "zh-Hant": "移除目錄，保留檔案"
+  },
+  {
+    "source": "移除内容",
+    "en": "Remove content",
+    "zh-Hant": "移除內容"
+  },
+  {
+    "source": "移除任务",
+    "en": "Remove task",
+    "zh-Hant": "移除任務"
+  },
+  {
+    "source": "移动实例",
+    "en": "Move instance",
+    "zh-Hant": "移動實例"
+  },
+  {
+    "source": "移至已移除内容",
+    "en": "Move to removed content",
+    "zh-Hant": "移至已移除內容"
+  },
+  {
+    "source": "已安装",
+    "en": "Installed",
+    "zh-Hant": "已安裝"
+  },
+  {
+    "source": "已安装 Java",
+    "en": "Installed Java",
+    "zh-Hant": "已安裝 Java"
+  },
+  {
+    "source": "已安装版本",
+    "en": "Installed versions",
+    "zh-Hant": "已安裝版本"
+  },
+  {
+    "source": "已安装的运行时",
+    "en": "Installed runtimes",
+    "zh-Hant": "已安裝的運行時"
+  },
+  {
+    "source": "已关闭",
+    "en": "Off",
+    "zh-Hant": "已關閉"
+  },
+  {
+    "source": "已恢复所选更改。",
+    "en": "Selected changes restored.",
+    "zh-Hant": "已恢復所選更改。"
+  },
+  {
+    "source": "已节省空间",
+    "en": "Space saved",
+    "zh-Hant": "已節省空間"
+  },
+  {
+    "source": "已禁用",
+    "en": "Disabled",
+    "zh-Hant": "已禁用"
+  },
+  {
+    "source": "已启用",
+    "en": "Enabled",
+    "zh-Hant": "已啟用"
+  },
+  {
+    "source": "已请求取消启动",
+    "en": "Launch cancellation requested",
+    "zh-Hant": "已請求取消啟動"
+  },
+  {
+    "source": "已取消",
+    "en": "Cancelled",
+    "zh-Hant": "已取消"
+  },
+  {
+    "source": "已识别，版本信息暂不可用",
+    "en": "Identified. Version details are currently unavailable.",
+    "zh-Hant": "已識別，版本信息暫不可用"
+  },
+  {
+    "source": "已提交内存",
+    "en": "Committed memory",
+    "zh-Hant": "已提交記憶體"
+  },
+  {
+    "source": "已停用",
+    "en": "Disabled",
+    "zh-Hant": "已停用"
+  },
+  {
+    "source": "已完成",
+    "en": "Completed",
+    "zh-Hant": "已完成"
+  },
+  {
+    "source": "已选择 ",
+    "en": "Selected ",
+    "zh-Hant": "已選擇 "
+  },
+  {
+    "source": "已验证",
+    "en": "Verified",
+    "zh-Hant": "已驗證"
+  },
+  {
+    "source": "已暂停",
+    "en": "Paused",
+    "zh-Hant": "已暫停"
+  },
+  {
+    "source": "音量",
+    "en": "Volume",
+    "zh-Hant": "音量"
+  },
+  {
+    "source": "隐藏",
+    "en": "Hide",
+    "zh-Hant": "隱藏"
+  },
+  {
+    "source": "隐藏前置",
+    "en": "Hide libraries",
+    "zh-Hant": "隱藏前置"
+  },
+  {
+    "source": "隐藏已有",
+    "en": "Hide installed",
+    "zh-Hant": "隱藏已有"
+  },
+  {
+    "source": "隐私保护",
+    "en": "Privacy protection",
+    "zh-Hant": "隱私保護"
+  },
+  {
+    "source": "隐私与诊断",
+    "en": "Privacy and diagnostics",
+    "zh-Hant": "隱私與診斷"
+  },
+  {
+    "source": "应用",
+    "en": "Apply",
+    "zh-Hant": "應用"
+  },
+  {
+    "source": "硬件加速",
+    "en": "Hardware acceleration",
+    "zh-Hant": "硬件加速"
+  },
+  {
+    "source": "硬件指标缺失",
+    "en": "Missing hardware metrics",
+    "zh-Hant": "硬件指標缺失"
+  },
+  {
+    "source": "用户名",
+    "en": "Username",
+    "zh-Hant": "用戶名"
+  },
+  {
+    "source": "优先使用本机已安装的版本，缺失时自动下载。",
+    "en": "Use an installed runtime first, or download one automatically if missing.",
+    "zh-Hant": "優先使用本機已安裝的版本，缺失時自動下載。"
+  },
+  {
+    "source": "游戏",
+    "en": "Game",
+    "zh-Hant": "游戲"
+  },
+  {
+    "source": "游戏版本",
+    "en": "Game version",
+    "zh-Hant": "游戲版本"
+  },
+  {
+    "source": "游戏崩溃时，可在版本文件夹的 logs/latest.log 查看日志。",
+    "en": "After a crash, view logs/latest.log in the version folder.",
+    "zh-Hant": "游戲崩潰時，可在版本資料夾的 logs/latest.log 查看日誌。"
+  },
+  {
+    "source": "游戏参数",
+    "en": "Game arguments",
+    "zh-Hant": "游戲參數"
+  },
+  {
+    "source": "游戏窗口",
+    "en": "Game window",
+    "zh-Hant": "游戲窗口"
+  },
+  {
+    "source": "游戏结束",
+    "en": "Game exited",
+    "zh-Hant": "游戲結束"
+  },
+  {
+    "source": "游戏名称",
+    "en": "Game name",
+    "zh-Hant": "游戲名稱"
+  },
+  {
+    "source": "游戏目录",
+    "en": "Game folder",
+    "zh-Hant": "游戲目錄"
+  },
+  {
+    "source": "游戏目录的完整路径",
+    "en": "Full game folder path",
+    "zh-Hant": "游戲目錄的完整路徑"
+  },
+  {
+    "source": "游戏内存不足。请关闭占用内存的应用，并检查内存分配。",
+    "en": "The game ran out of memory. Close memory-heavy apps and check memory allocation.",
+    "zh-Hant": "游戲記憶體不足。請關閉占用記憶體的應用，并檢查記憶體分配。"
+  },
+  {
+    "source": "游戏缺少触屏支持",
+    "en": "Touch support missing",
+    "zh-Hant": "游戲缺少觸屏支援"
+  },
+  {
+    "source": "游戏缺少触屏支持（警告）",
+    "en": "Touch support missing (Warning)",
+    "zh-Hant": "游戲缺少觸屏支援（警告）"
+  },
+  {
+    "source": "游戏缺少触屏支持（提示）",
+    "en": "Touch support missing (Information)",
+    "zh-Hant": "游戲缺少觸屏支援（提示）"
+  },
+  {
+    "source": "游戏缺少触屏支持（严重）",
+    "en": "Touch support missing (Critical)",
+    "zh-Hant": "游戲缺少觸屏支援（嚴重）"
+  },
+  {
+    "source": "游戏缺少触屏支持（正常）",
+    "en": "Touch support missing (Ready)",
+    "zh-Hant": "游戲缺少觸屏支援（正常）"
+  },
+  {
+    "source": "游戏缺少触屏支持（阻止启动）",
+    "en": "Touch support missing (Blocked)",
+    "zh-Hant": "游戲缺少觸屏支援（阻止啟動）"
+  },
+  {
+    "source": "游戏缺少手柄支持",
+    "en": "Controller support missing",
+    "zh-Hant": "游戲缺少手柄支援"
+  },
+  {
+    "source": "游戏缺少手柄支持（警告）",
+    "en": "Controller support missing (Warning)",
+    "zh-Hant": "游戲缺少手柄支援（警告）"
+  },
+  {
+    "source": "游戏缺少手柄支持（提示）",
+    "en": "Controller support missing (Information)",
+    "zh-Hant": "游戲缺少手柄支援（提示）"
+  },
+  {
+    "source": "游戏缺少手柄支持（严重）",
+    "en": "Controller support missing (Critical)",
+    "zh-Hant": "游戲缺少手柄支援（嚴重）"
+  },
+  {
+    "source": "游戏缺少手柄支持（正常）",
+    "en": "Controller support missing (Ready)",
+    "zh-Hant": "游戲缺少手柄支援（正常）"
+  },
+  {
+    "source": "游戏缺少手柄支持（阻止启动）",
+    "en": "Controller support missing (Blocked)",
+    "zh-Hant": "游戲缺少手柄支援（阻止啟動）"
+  },
+  {
+    "source": "游戏设置",
+    "en": "Game settings",
+    "zh-Hant": "游戲設定"
+  },
+  {
+    "source": "游戏设置不可读",
+    "en": "Game settings cannot be read",
+    "zh-Hant": "游戲設定不可讀"
+  },
+  {
+    "source": "游戏设置不可读（警告）",
+    "en": "Game settings cannot be read (Warning)",
+    "zh-Hant": "游戲設定不可讀（警告）"
+  },
+  {
+    "source": "游戏设置不可读（提示）",
+    "en": "Game settings cannot be read (Information)",
+    "zh-Hant": "游戲設定不可讀（提示）"
+  },
+  {
+    "source": "游戏设置不可读（严重）",
+    "en": "Game settings cannot be read (Critical)",
+    "zh-Hant": "游戲設定不可讀（嚴重）"
+  },
+  {
+    "source": "游戏设置不可读（正常）",
+    "en": "Game settings cannot be read (Ready)",
+    "zh-Hant": "游戲設定不可讀（正常）"
+  },
+  {
+    "source": "游戏设置不可读（阻止启动）",
+    "en": "Game settings cannot be read (Blocked)",
+    "zh-Hant": "游戲設定不可讀（阻止啟動）"
+  },
+  {
+    "source": "游戏时间",
+    "en": "Play time",
+    "zh-Hant": "游戲時間"
+  },
+  {
+    "source": "游戏退出后 Nexa 行为",
+    "en": "Nexa behavior after game exit",
+    "zh-Hant": "游戲退出后 Nexa 行為"
+  },
+  {
+    "source": "游戏文件",
+    "en": "Game files",
+    "zh-Hant": "游戲檔案"
+  },
+  {
+    "source": "游戏文件可能不完整。请修复版本文件。",
+    "en": "Game files may be incomplete. Repair the version files.",
+    "zh-Hant": "游戲檔案可能不完整。請修復版本檔案。"
+  },
+  {
+    "source": "游戏文件缺失",
+    "en": "Missing game files",
+    "zh-Hant": "游戲檔案缺失"
+  },
+  {
+    "source": "游戏文件缺失（警告）",
+    "en": "Missing game files (Warning)",
+    "zh-Hant": "游戲檔案缺失（警告）"
+  },
+  {
+    "source": "游戏文件缺失（提示）",
+    "en": "Missing game files (Information)",
+    "zh-Hant": "游戲檔案缺失（提示）"
+  },
+  {
+    "source": "游戏文件缺失（严重）",
+    "en": "Missing game files (Critical)",
+    "zh-Hant": "游戲檔案缺失（嚴重）"
+  },
+  {
+    "source": "游戏文件缺失（正常）",
+    "en": "Missing game files (Ready)",
+    "zh-Hant": "游戲檔案缺失（正常）"
+  },
+  {
+    "source": "游戏文件缺失（阻止启动）",
+    "en": "Missing game files (Blocked)",
+    "zh-Hant": "游戲檔案缺失（阻止啟動）"
+  },
+  {
+    "source": "游戏文件损坏",
+    "en": "Corrupted game files",
+    "zh-Hant": "游戲檔案損壞"
+  },
+  {
+    "source": "游戏文件损坏（警告）",
+    "en": "Corrupted game files (Warning)",
+    "zh-Hant": "游戲檔案損壞（警告）"
+  },
+  {
+    "source": "游戏文件损坏（提示）",
+    "en": "Corrupted game files (Information)",
+    "zh-Hant": "游戲檔案損壞（提示）"
+  },
+  {
+    "source": "游戏文件损坏（严重）",
+    "en": "Corrupted game files (Critical)",
+    "zh-Hant": "游戲檔案損壞（嚴重）"
+  },
+  {
+    "source": "游戏文件损坏（正常）",
+    "en": "Corrupted game files (Ready)",
+    "zh-Hant": "游戲檔案損壞（正常）"
+  },
+  {
+    "source": "游戏文件损坏（阻止启动）",
+    "en": "Corrupted game files (Blocked)",
+    "zh-Hant": "游戲檔案損壞（阻止啟動）"
+  },
+  {
+    "source": "游戏文件修复失败",
+    "en": "Game file repair failed",
+    "zh-Hant": "游戲檔案修復失敗"
+  },
+  {
+    "source": "游戏文件修复失败（警告）",
+    "en": "Game file repair failed (Warning)",
+    "zh-Hant": "游戲檔案修復失敗（警告）"
+  },
+  {
+    "source": "游戏文件修复失败（提示）",
+    "en": "Game file repair failed (Information)",
+    "zh-Hant": "游戲檔案修復失敗（提示）"
+  },
+  {
+    "source": "游戏文件修复失败（严重）",
+    "en": "Game file repair failed (Critical)",
+    "zh-Hant": "游戲檔案修復失敗（嚴重）"
+  },
+  {
+    "source": "游戏文件修复失败（正常）",
+    "en": "Game file repair failed (Ready)",
+    "zh-Hant": "游戲檔案修復失敗（正常）"
+  },
+  {
+    "source": "游戏文件修复失败（阻止启动）",
+    "en": "Game file repair failed (Blocked)",
+    "zh-Hant": "游戲檔案修復失敗（阻止啟動）"
+  },
+  {
+    "source": "游戏选项",
+    "en": "Game options",
+    "zh-Hant": "游戲選項"
+  },
+  {
+    "source": "游戏已启动",
+    "en": "Game launched",
+    "zh-Hant": "游戲已啟動"
+  },
+  {
+    "source": "游戏资源交接",
+    "en": "Game resource handoff",
+    "zh-Hant": "游戲資源交接"
+  },
+  {
+    "source": "有任务未成功",
+    "en": "Some tasks failed",
+    "zh-Hant": "有任務未成功"
+  },
+  {
+    "source": "有效堆内存上限",
+    "en": "Useful heap limit",
+    "zh-Hant": "有效堆記憶體上限"
+  },
+  {
+    "source": "愚人节版",
+    "en": "April Fools edition",
+    "zh-Hant": "愚人節版"
+  },
+  {
+    "source": "与上次成功运行相比，恢复范围内没有更改。",
+    "en": "No recoverable changes since the last successful run.",
+    "zh-Hant": "與上次成功運行相比，恢復范圍內沒有更改。"
+  },
+  {
+    "source": "与最新快照比较",
+    "en": "Compare with latest snapshot",
+    "zh-Hant": "與最新快照比較"
+  },
+  {
+    "source": "语言与区域",
+    "en": "Language and region",
+    "zh-Hant": "語言與區域"
+  },
+  {
+    "source": "预计启动显存超过当前预算。",
+    "en": "Estimated launch video memory exceeds the available budget.",
+    "zh-Hant": "預計啟動顯存超過當前預算。"
+  },
+  {
+    "source": "预计运行显存接近当前预算。",
+    "en": "Estimated runtime video memory is close to the available budget.",
+    "zh-Hant": "預計運行顯存接近當前預算。"
+  },
+  {
+    "source": "预计总显存",
+    "en": "Estimated video memory",
+    "zh-Hant": "預計總顯存"
+  },
+  {
+    "source": "预检可用",
+    "en": "Preflight available",
+    "zh-Hant": "預檢可用"
+  },
+  {
+    "source": "预检完成",
+    "en": "Preflight complete",
+    "zh-Hant": "預檢完成"
+  },
+  {
+    "source": "预检运行中",
+    "en": "Preflight running",
+    "zh-Hant": "預檢運行中"
+  },
+  {
+    "source": "预启动处理",
+    "en": "Pre-launch processing",
+    "zh-Hant": "預啟動處理"
+  },
+  {
+    "source": "元空间",
+    "en": "Metaspace",
+    "zh-Hant": "元空間"
+  },
+  {
+    "source": "原版 Minecraft",
+    "en": "Vanilla Minecraft",
+    "zh-Hant": "原版 Minecraft"
+  },
+  {
+    "source": "原子更新",
+    "en": "Atomic update",
+    "zh-Hant": "原子更新"
+  },
+  {
+    "source": "远古版",
+    "en": "Historical",
+    "zh-Hant": "遠古版"
+  },
+  {
+    "source": "云账户",
+    "en": "Cloud account",
+    "zh-Hant": "云帳戶"
+  },
+  {
+    "source": "运行本机内存",
+    "en": "Runtime native memory",
+    "zh-Hant": "運行本機記憶體"
+  },
+  {
+    "source": "运行堆内存",
+    "en": "Runtime heap memory",
+    "zh-Hant": "運行堆記憶體"
+  },
+  {
+    "source": "运行堆内存不足",
+    "en": "Insufficient runtime heap",
+    "zh-Hant": "運行堆記憶體不足"
+  },
+  {
+    "source": "运行堆内存不足（警告）",
+    "en": "Insufficient runtime heap (Warning)",
+    "zh-Hant": "運行堆記憶體不足（警告）"
+  },
+  {
+    "source": "运行堆内存不足（提示）",
+    "en": "Insufficient runtime heap (Information)",
+    "zh-Hant": "運行堆記憶體不足（提示）"
+  },
+  {
+    "source": "运行堆内存不足（严重）",
+    "en": "Insufficient runtime heap (Critical)",
+    "zh-Hant": "運行堆記憶體不足（嚴重）"
+  },
+  {
+    "source": "运行堆内存不足（正常）",
+    "en": "Insufficient runtime heap (Ready)",
+    "zh-Hant": "運行堆記憶體不足（正常）"
+  },
+  {
+    "source": "运行堆内存不足（阻止启动）",
+    "en": "Insufficient runtime heap (Blocked)",
+    "zh-Hant": "運行堆記憶體不足（阻止啟動）"
+  },
+  {
+    "source": "运行堆提交量",
+    "en": "Runtime heap commit",
+    "zh-Hant": "運行堆提交量"
+  },
+  {
+    "source": "运行非堆提交量",
+    "en": "Runtime non-heap commit",
+    "zh-Hant": "運行非堆提交量"
+  },
+  {
+    "source": "运行环境",
+    "en": "Runtime environment",
+    "zh-Hant": "運行環境"
+  },
+  {
+    "source": "运行可用内存偏低",
+    "en": "Low available runtime memory",
+    "zh-Hant": "運行可用記憶體偏低"
+  },
+  {
+    "source": "运行可用内存偏低（警告）",
+    "en": "Low available runtime memory (Warning)",
+    "zh-Hant": "運行可用記憶體偏低（警告）"
+  },
+  {
+    "source": "运行可用内存偏低（提示）",
+    "en": "Low available runtime memory (Information)",
+    "zh-Hant": "運行可用記憶體偏低（提示）"
+  },
+  {
+    "source": "运行可用内存偏低（严重）",
+    "en": "Low available runtime memory (Critical)",
+    "zh-Hant": "運行可用記憶體偏低（嚴重）"
+  },
+  {
+    "source": "运行可用内存偏低（正常）",
+    "en": "Low available runtime memory (Ready)",
+    "zh-Hant": "運行可用記憶體偏低（正常）"
+  },
+  {
+    "source": "运行可用内存偏低（阻止启动）",
+    "en": "Low available runtime memory (Blocked)",
+    "zh-Hant": "運行可用記憶體偏低（阻止啟動）"
+  },
+  {
+    "source": "运行时",
+    "en": "Runtime",
+    "zh-Hant": "運行時"
+  },
+  {
+    "source": "运行提交量",
+    "en": "Runtime commit",
+    "zh-Hant": "運行提交量"
+  },
+  {
+    "source": "运行提交量余量",
+    "en": "Runtime commit margin",
+    "zh-Hant": "運行提交量余量"
+  },
+  {
+    "source": "运行提交预算偏低",
+    "en": "Low runtime commit budget",
+    "zh-Hant": "運行提交預算偏低"
+  },
+  {
+    "source": "运行提交预算偏低（警告）",
+    "en": "Low runtime commit budget (Warning)",
+    "zh-Hant": "運行提交預算偏低（警告）"
+  },
+  {
+    "source": "运行提交预算偏低（提示）",
+    "en": "Low runtime commit budget (Information)",
+    "zh-Hant": "運行提交預算偏低（提示）"
+  },
+  {
+    "source": "运行提交预算偏低（严重）",
+    "en": "Low runtime commit budget (Critical)",
+    "zh-Hant": "運行提交預算偏低（嚴重）"
+  },
+  {
+    "source": "运行提交预算偏低（正常）",
+    "en": "Low runtime commit budget (Ready)",
+    "zh-Hant": "運行提交預算偏低（正常）"
+  },
+  {
+    "source": "运行提交预算偏低（阻止启动）",
+    "en": "Low runtime commit budget (Blocked)",
+    "zh-Hant": "運行提交預算偏低（阻止啟動）"
+  },
+  {
+    "source": "运行物理内存",
+    "en": "Runtime physical memory",
+    "zh-Hant": "運行物理記憶體"
+  },
+  {
+    "source": "运行物理内存余量",
+    "en": "Runtime physical memory margin",
+    "zh-Hant": "運行物理記憶體余量"
+  },
+  {
+    "source": "运行显存余量不足",
+    "en": "Low runtime video memory margin",
+    "zh-Hant": "運行顯存余量不足"
+  },
+  {
+    "source": "运行显存余量不足（警告）",
+    "en": "Low runtime video memory margin (Warning)",
+    "zh-Hant": "運行顯存余量不足（警告）"
+  },
+  {
+    "source": "运行显存余量不足（提示）",
+    "en": "Low runtime video memory margin (Information)",
+    "zh-Hant": "運行顯存余量不足（提示）"
+  },
+  {
+    "source": "运行显存余量不足（严重）",
+    "en": "Low runtime video memory margin (Critical)",
+    "zh-Hant": "運行顯存余量不足（嚴重）"
+  },
+  {
+    "source": "运行显存余量不足（正常）",
+    "en": "Low runtime video memory margin (Ready)",
+    "zh-Hant": "運行顯存余量不足（正常）"
+  },
+  {
+    "source": "运行显存余量不足（阻止启动）",
+    "en": "Low runtime video memory margin (Blocked)",
+    "zh-Hant": "運行顯存余量不足（阻止啟動）"
+  },
+  {
+    "source": "运行诊断数据收集",
+    "en": "Runtime diagnostics collection",
+    "zh-Hant": "運行診斷資料收集"
+  },
+  {
+    "source": "运行诊断数据收集（警告）",
+    "en": "Runtime diagnostics collection (Warning)",
+    "zh-Hant": "運行診斷資料收集（警告）"
+  },
+  {
+    "source": "运行诊断数据收集（提示）",
+    "en": "Runtime diagnostics collection (Information)",
+    "zh-Hant": "運行診斷資料收集（提示）"
+  },
+  {
+    "source": "运行诊断数据收集（严重）",
+    "en": "Runtime diagnostics collection (Critical)",
+    "zh-Hant": "運行診斷資料收集（嚴重）"
+  },
+  {
+    "source": "运行诊断数据收集（正常）",
+    "en": "Runtime diagnostics collection (Ready)",
+    "zh-Hant": "運行診斷資料收集（正常）"
+  },
+  {
+    "source": "运行诊断数据收集（阻止启动）",
+    "en": "Runtime diagnostics collection (Blocked)",
+    "zh-Hant": "運行診斷資料收集（阻止啟動）"
+  },
+  {
+    "source": "在浏览器中授权",
+    "en": "Authorize in browser",
+    "zh-Hant": "在瀏覽器中授權"
+  },
+  {
+    "source": "在社区页可以搜索 Mod、整合包、资源包与光影。",
+    "en": "Search mods, modpacks, resource packs and shaders on Resources.",
+    "zh-Hant": "在社區頁可以搜索 Mod、整合包、資源包與光影。"
+  },
+  {
+    "source": "在线信息",
+    "en": "Online information",
+    "zh-Hant": "在線信息"
+  },
+  {
+    "source": "暂不可用",
+    "en": "Currently unavailable",
+    "zh-Hant": "暫不可用"
+  },
+  {
+    "source": "暂不支持启动",
+    "en": "Launching is not yet supported",
+    "zh-Hant": "暫不支援啟動"
+  },
+  {
+    "source": "暂时无法获取在线信息，请稍后重试。",
+    "en": "Could not load online information. Please retry later.",
+    "zh-Hant": "暫時無法獲取在線信息，請稍后重試。"
+  },
+  {
+    "source": "暂时无法加载详情。请重试。",
+    "en": "Could not load details. Please retry.",
+    "zh-Hant": "暫時無法載入詳情。請重試。"
+  },
+  {
+    "source": "暂时无法加载资源。请检查网络后重试。",
+    "en": "Could not load resources. Check your connection and retry.",
+    "zh-Hant": "暫時無法載入資源。請檢查網絡后重試。"
+  },
+  {
+    "source": "暂时无法检查更新，请重试。",
+    "en": "Could not check for updates. Please retry.",
+    "zh-Hant": "暫時無法檢查更新，請重試。"
+  },
+  {
+    "source": "暂时无法连接模组站，已保留本地信息。",
+    "en": "Online services are unavailable. Local details are still available.",
+    "zh-Hant": "暫時無法連接模組站，已保留本地信息。"
+  },
+  {
+    "source": "暂时无法列出快照。",
+    "en": "Could not list snapshots.",
+    "zh-Hant": "暫時無法列出快照。"
+  },
+  {
+    "source": "暂时无法预览此图片，可在文件夹中查看原文件。",
+    "en": "Preview is unavailable. Open the original file in its folder.",
+    "zh-Hant": "暫時無法預覽此圖片，可在資料夾中查看原檔案。"
+  },
+  {
+    "source": "暂停并退出",
+    "en": "Pause and quit",
+    "zh-Hant": "暫停并退出"
+  },
+  {
+    "source": "暂停后，下次启动会继续。取消安装或回滚修改会撤回当前运行及排队恢复的任务。",
+    "en": "Paused tasks resume next time. Cancelling installation or rolling back changes withdraws active and queued recovery tasks.",
+    "zh-Hant": "暫停后，下次啟動會繼續。取消安裝或回滾修改會撤回當前運行及排隊恢復的任務。"
+  },
+  {
+    "source": "暂未找到适用于当前游戏的版本。",
+    "en": "No version is available for the current game.",
+    "zh-Hant": "暫未找到適用于當前游戲的版本。"
+  },
+  {
+    "source": "暂无任务",
+    "en": "No tasks",
+    "zh-Hant": "暫無任務"
+  },
+  {
+    "source": "暂无已安装版本",
+    "en": "No installed versions",
+    "zh-Hant": "暫無已安裝版本"
+  },
+  {
+    "source": "展开任务步骤",
+    "en": "Show task steps",
+    "zh-Hant": "展開任務步驟"
+  },
+  {
+    "source": "掌机",
+    "en": "Handheld",
+    "zh-Hant": "掌機"
+  },
+  {
+    "source": "账户",
+    "en": "Accounts",
+    "zh-Hant": "帳戶"
+  },
+  {
+    "source": "账户、设置、缓存和日志将保存在这里。游戏目录单独管理。",
+    "en": "Accounts, settings, caches and logs are stored here. Game folders are managed separately.",
+    "zh-Hant": "帳戶、設定、快取和日誌將保存在這里。游戲目錄單獨管理。"
+  },
+  {
+    "source": "账户、设置、缓存和日志将保存在这里。游戏目录单独管理。\n此位置由环境变量指定。",
+    "en": "Accounts, settings, cache and logs will be saved here. Game folders are managed separately.\nThis location is specified by an environment variable.",
+    "zh-Hant": "帳戶、設定、快取和日誌將保存在這里。游戲目錄單獨管理。\n此位置由環境變量指定。"
+  },
+  {
+    "source": "账户、设置、缓存和日志将保存在这里。游戏目录单独管理。\n更换位置时，请选择一个空文件夹。",
+    "en": "Accounts, settings, cache and logs will be saved here. Game folders are managed separately.\nChoose an empty folder when changing this location.",
+    "zh-Hant": "帳戶、設定、快取和日誌將保存在這里。游戲目錄單獨管理。\n更換位置時，請選擇一個空資料夾。"
+  },
+  {
+    "source": "账户安全存储不可用，原档案已保留。\n请解锁系统密钥库并重启后重试。",
+    "en": "Secure account storage is unavailable. Original profiles were kept.\nUnlock the system key store and restart to retry.",
+    "zh-Hant": "帳戶安全存儲不可用，原檔案已保留。\n請解鎖系統密鑰庫并重啟后重試。"
+  },
+  {
+    "source": "账户操作未注册。",
+    "en": "Account actions are unavailable.",
+    "zh-Hant": "帳戶操作未注冊。"
+  },
+  {
+    "source": "账户档案",
+    "en": "Account profiles",
+    "zh-Hant": "帳戶檔案"
+  },
+  {
+    "source": "账户切换命令未注册。",
+    "en": "Account switching is unavailable.",
+    "zh-Hant": "帳戶切換命令未注冊。"
+  },
+  {
+    "source": "账户认证失败",
+    "en": "Account authentication failed",
+    "zh-Hant": "帳戶認證失敗"
+  },
+  {
+    "source": "账户认证失败（警告）",
+    "en": "Account authentication failed (Warning)",
+    "zh-Hant": "帳戶認證失敗（警告）"
+  },
+  {
+    "source": "账户认证失败（提示）",
+    "en": "Account authentication failed (Information)",
+    "zh-Hant": "帳戶認證失敗（提示）"
+  },
+  {
+    "source": "账户认证失败（严重）",
+    "en": "Account authentication failed (Critical)",
+    "zh-Hant": "帳戶認證失敗（嚴重）"
+  },
+  {
+    "source": "账户认证失败（正常）",
+    "en": "Account authentication failed (Ready)",
+    "zh-Hant": "帳戶認證失敗（正常）"
+  },
+  {
+    "source": "账户认证失败（阻止启动）",
+    "en": "Account authentication failed (Blocked)",
+    "zh-Hant": "帳戶認證失敗（阻止啟動）"
+  },
+  {
+    "source": "账户头像",
+    "en": "Account avatar",
+    "zh-Hant": "帳戶頭像"
+  },
+  {
+    "source": "这项功能尚未迁移到 Nexa。你可以返回首页，继续选择版本和启动游戏。",
+    "en": "This feature is not yet available in Nexa. Go back to Home to select a version and launch the game.",
+    "zh-Hant": "這項功能尚未遷移到 Nexa。你可以返回首頁，繼續選擇版本和啟動游戲。"
+  },
+  {
+    "source": "诊断",
+    "en": "Diagnostics",
+    "zh-Hant": "診斷"
+  },
+  {
+    "source": "诊断数据",
+    "en": "Diagnostic data",
+    "zh-Hant": "診斷資料"
+  },
+  {
+    "source": "诊断信息 · 用户体验改进计划",
+    "en": "Diagnostics · User experience program",
+    "zh-Hant": "診斷信息 · 用戶體驗改進計劃"
+  },
+  {
+    "source": "诊断与修复",
+    "en": "Diagnostics and repair",
+    "zh-Hant": "診斷與修復"
+  },
+  {
+    "source": "整合包",
+    "en": "Modpacks",
+    "zh-Hant": "整合包"
+  },
+  {
+    "source": "整合包安装未完成：",
+    "en": "Modpack installation failed: ",
+    "zh-Hant": "整合包安裝未完成："
+  },
+  {
+    "source": "整合包安装未完成。",
+    "en": "Modpack installation is incomplete.",
+    "zh-Hant": "整合包安裝未完成。"
+  },
+  {
+    "source": "整合包版本",
+    "en": "Modpack version",
+    "zh-Hant": "整合包版本"
+  },
+  {
+    "source": "整合包导出功能尚未迁移。",
+    "en": "Modpack export is not yet available.",
+    "zh-Hant": "整合包導出功能尚未遷移。"
+  },
+  {
+    "source": "整体状态：",
+    "en": "Overall status: ",
+    "zh-Hant": "整體狀態："
+  },
+  {
+    "source": "整体状态：警告",
+    "en": "Overall status: Warning",
+    "zh-Hant": "整體狀態：警告"
+  },
+  {
+    "source": "整体状态：提示",
+    "en": "Overall status: Information",
+    "zh-Hant": "整體狀態：提示"
+  },
+  {
+    "source": "整体状态：严重",
+    "en": "Overall status: Critical",
+    "zh-Hant": "整體狀態：嚴重"
+  },
+  {
+    "source": "整体状态：正常",
+    "en": "Overall status: Ready",
+    "zh-Hant": "整體狀態：正常"
+  },
+  {
+    "source": "整体状态：阻止启动",
+    "en": "Overall status: Blocked",
+    "zh-Hant": "整體狀態：阻止啟動"
+  },
+  {
+    "source": "正版登录后可在账户页查看与刷新皮肤。",
+    "en": "After signing in, view and refresh skins on the account page.",
+    "zh-Hant": "正版登錄后可在帳戶頁查看與刷新皮膚。"
+  },
+  {
+    "source": "正常",
+    "en": "Ready",
+    "zh-Hant": "正常"
+  },
+  {
+    "source": "正式版",
+    "en": "Release",
+    "zh-Hant": "正式版"
+  },
+  {
+    "source": "正在保存…",
+    "en": "Saving…",
+    "zh-Hant": "正在保存…"
+  },
+  {
+    "source": "正在比较更改…",
+    "en": "Comparing changes…",
+    "zh-Hant": "正在比較更改…"
+  },
+  {
+    "source": "正在读取版本内容…",
+    "en": "Reading version content…",
+    "zh-Hant": "正在讀取版本內容…"
+  },
+  {
+    "source": "正在读取版本信息。",
+    "en": "Reading version information.",
+    "zh-Hant": "正在讀取版本信息。"
+  },
+  {
+    "source": "正在读取当前版本…",
+    "en": "Reading current version…",
+    "zh-Hant": "正在讀取當前版本…"
+  },
+  {
+    "source": "正在读取目录中的版本…",
+    "en": "Reading versions in this folder…",
+    "zh-Hant": "正在讀取目錄中的版本…"
+  },
+  {
+    "source": "正在获取版本…",
+    "en": "Loading versions…",
+    "zh-Hant": "正在獲取版本…"
+  },
+  {
+    "source": "正在加载详情…",
+    "en": "Loading details…",
+    "zh-Hant": "正在載入詳情…"
+  },
+  {
+    "source": "正在加载资源…",
+    "en": "Loading resources…",
+    "zh-Hant": "正在載入資源…"
+  },
+  {
+    "source": "正在检测平台功能…",
+    "en": "Detecting platform capabilities…",
+    "zh-Hant": "正在檢測平臺功能…"
+  },
+  {
+    "source": "正在检查",
+    "en": "Checking",
+    "zh-Hant": "正在檢查"
+  },
+  {
+    "source": "正在检查更新…",
+    "en": "Checking for updates…",
+    "zh-Hant": "正在檢查更新…"
+  },
+  {
+    "source": "正在启动",
+    "en": "Launching",
+    "zh-Hant": "正在啟動"
+  },
+  {
+    "source": "正在启动…",
+    "en": "Launching…",
+    "zh-Hant": "正在啟動…"
+  },
+  {
+    "source": "正在扫描本地版本…",
+    "en": "Scanning local versions…",
+    "zh-Hant": "正在掃描本地版本…"
+  },
+  {
+    "source": "正在识别文件并获取项目资料…",
+    "en": "Identifying file and loading project information…",
+    "zh-Hant": "正在識別檔案并獲取項目資料…"
+  },
+  {
+    "source": "正在刷新…",
+    "en": "Refreshing…",
+    "zh-Hant": "正在刷新…"
+  },
+  {
+    "source": "正在搜索双源目录…",
+    "en": "Searching both catalogs…",
+    "zh-Hant": "正在搜索雙源目錄…"
+  },
+  {
+    "source": "正在统计存储与读取快照…",
+    "en": "Calculating storage and reading snapshots…",
+    "zh-Hant": "正在統計存儲與讀取快照…"
+  },
+  {
+    "source": "正在准备",
+    "en": "Preparing",
+    "zh-Hant": "正在準備"
+  },
+  {
+    "source": "正在准备 Java",
+    "en": "Preparing Java",
+    "zh-Hant": "正在準備 Java"
+  },
+  {
+    "source": "知道了",
+    "en": "OK",
+    "zh-Hant": "知道了"
+  },
+  {
+    "source": "直接缓冲区",
+    "en": "Direct buffers",
+    "zh-Hant": "直接緩沖區"
+  },
+  {
+    "source": "指定 GPU",
+    "en": "Select GPU",
+    "zh-Hant": "指定 GPU"
+  },
+  {
+    "source": "指定 Runtime",
+    "en": "Select runtime",
+    "zh-Hant": "指定 Runtime"
+  },
+  {
+    "source": "至少一个模组不支持当前加载器。",
+    "en": "One or more mods do not support the selected loader.",
+    "zh-Hant": "至少一個模組不支援當前載入器。"
+  },
+  {
+    "source": "至少一个模组不支持当前游戏版本。",
+    "en": "One or more mods do not support the selected Minecraft version.",
+    "zh-Hant": "至少一個模組不支援當前游戲版本。"
+  },
+  {
+    "source": "至少一个模组的必需依赖尚未安装。",
+    "en": "A required dependency is missing for one or more mods.",
+    "zh-Hant": "至少一個模組的必需依賴尚未安裝。"
+  },
+  {
+    "source": "智能启动",
+    "en": "Smart launch",
+    "zh-Hant": "智能啟動"
+  },
+  {
+    "source": "中",
+    "en": "Medium",
+    "zh-Hant": "中"
+  },
+  {
+    "source": "重试",
+    "en": "Retry",
+    "zh-Hant": "重試"
+  },
+  {
+    "source": "重试撤回并退出",
+    "en": "Retry rollback and quit",
+    "zh-Hant": "重試撤回并退出"
+  },
+  {
+    "source": "重新登录",
+    "en": "Sign in again",
+    "zh-Hant": "重新登錄"
+  },
+  {
+    "source": "重新获取版本",
+    "en": "Reload versions",
+    "zh-Hant": "重新獲取版本"
+  },
+  {
+    "source": "重新检测",
+    "en": "Detect again",
+    "zh-Hant": "重新檢測"
+  },
+  {
+    "source": "重新检查目录权限",
+    "en": "Recheck directory permissions",
+    "zh-Hant": "重新檢查目錄權限"
+  },
+  {
+    "source": "重新识别",
+    "en": "Identify again",
+    "zh-Hant": "重新識別"
+  },
+  {
+    "source": "重置",
+    "en": "Reset",
+    "zh-Hant": "重置"
+  },
+  {
+    "source": "逐项选择",
+    "en": "Select changes",
+    "zh-Hant": "逐項選擇"
+  },
+  {
+    "source": "主类缺失",
+    "en": "Main class missing",
+    "zh-Hant": "主類缺失"
+  },
+  {
+    "source": "主类缺失（警告）",
+    "en": "Main class missing (Warning)",
+    "zh-Hant": "主類缺失（警告）"
+  },
+  {
+    "source": "主类缺失（提示）",
+    "en": "Main class missing (Information)",
+    "zh-Hant": "主類缺失（提示）"
+  },
+  {
+    "source": "主类缺失（严重）",
+    "en": "Main class missing (Critical)",
+    "zh-Hant": "主類缺失（嚴重）"
+  },
+  {
+    "source": "主类缺失（正常）",
+    "en": "Main class missing (Ready)",
+    "zh-Hant": "主類缺失（正常）"
+  },
+  {
+    "source": "主类缺失（阻止启动）",
+    "en": "Main class missing (Blocked)",
+    "zh-Hant": "主類缺失（阻止啟動）"
+  },
+  {
+    "source": "主题",
+    "en": "Theme",
+    "zh-Hant": "主題"
+  },
+  {
+    "source": "状态",
+    "en": "Status",
+    "zh-Hant": "狀態"
+  },
+  {
+    "source": "准备好了",
+    "en": "Ready",
+    "zh-Hant": "準備好了"
+  },
+  {
+    "source": "资源",
+    "en": "Resources",
+    "zh-Hant": "資源"
+  },
+  {
+    "source": "资源包",
+    "en": "Resource packs",
+    "zh-Hant": "資源包"
+  },
+  {
+    "source": "资源包 · 已启用",
+    "en": "Resource packs · Enabled",
+    "zh-Hant": "資源包 · 已啟用"
+  },
+  {
+    "source": "资源包 · 已停用",
+    "en": "Resource packs · Disabled",
+    "zh-Hant": "資源包 · 已停用"
+  },
+  {
+    "source": "资源包堆内存",
+    "en": "Resource pack heap memory",
+    "zh-Hant": "資源包堆記憶體"
+  },
+  {
+    "source": "资源包格式",
+    "en": "Pack format",
+    "zh-Hant": "資源包格式"
+  },
+  {
+    "source": "资源估算",
+    "en": "Resource estimate",
+    "zh-Hant": "資源估算"
+  },
+  {
+    "source": "资源估算尚未完成",
+    "en": "Resource estimate pending",
+    "zh-Hant": "資源估算尚未完成"
+  },
+  {
+    "source": "资源估算尚未完成（警告）",
+    "en": "Resource estimate pending (Warning)",
+    "zh-Hant": "資源估算尚未完成（警告）"
+  },
+  {
+    "source": "资源估算尚未完成（提示）",
+    "en": "Resource estimate pending (Information)",
+    "zh-Hant": "資源估算尚未完成（提示）"
+  },
+  {
+    "source": "资源估算尚未完成（严重）",
+    "en": "Resource estimate pending (Critical)",
+    "zh-Hant": "資源估算尚未完成（嚴重）"
+  },
+  {
+    "source": "资源估算尚未完成（正常）",
+    "en": "Resource estimate pending (Ready)",
+    "zh-Hant": "資源估算尚未完成（正常）"
+  },
+  {
+    "source": "资源估算尚未完成（阻止启动）",
+    "en": "Resource estimate pending (Blocked)",
+    "zh-Hant": "資源估算尚未完成（阻止啟動）"
+  },
+  {
+    "source": "资源估算失败",
+    "en": "Resource estimate failed",
+    "zh-Hant": "資源估算失敗"
+  },
+  {
+    "source": "资源估算失败（警告）",
+    "en": "Resource estimate failed (Warning)",
+    "zh-Hant": "資源估算失敗（警告）"
+  },
+  {
+    "source": "资源估算失败（提示）",
+    "en": "Resource estimate failed (Information)",
+    "zh-Hant": "資源估算失敗（提示）"
+  },
+  {
+    "source": "资源估算失败（严重）",
+    "en": "Resource estimate failed (Critical)",
+    "zh-Hant": "資源估算失敗（嚴重）"
+  },
+  {
+    "source": "资源估算失败（正常）",
+    "en": "Resource estimate failed (Ready)",
+    "zh-Hant": "資源估算失敗（正常）"
+  },
+  {
+    "source": "资源估算失败（阻止启动）",
+    "en": "Resource estimate failed (Blocked)",
+    "zh-Hant": "資源估算失敗（阻止啟動）"
+  },
+  {
+    "source": "资源估算置信度低",
+    "en": "Low-confidence resource estimate",
+    "zh-Hant": "資源估算置信度低"
+  },
+  {
+    "source": "资源估算置信度低（警告）",
+    "en": "Low-confidence resource estimate (Warning)",
+    "zh-Hant": "資源估算置信度低（警告）"
+  },
+  {
+    "source": "资源估算置信度低（提示）",
+    "en": "Low-confidence resource estimate (Information)",
+    "zh-Hant": "資源估算置信度低（提示）"
+  },
+  {
+    "source": "资源估算置信度低（严重）",
+    "en": "Low-confidence resource estimate (Critical)",
+    "zh-Hant": "資源估算置信度低（嚴重）"
+  },
+  {
+    "source": "资源估算置信度低（正常）",
+    "en": "Low-confidence resource estimate (Ready)",
+    "zh-Hant": "資源估算置信度低（正常）"
+  },
+  {
+    "source": "资源估算置信度低（阻止启动）",
+    "en": "Low-confidence resource estimate (Blocked)",
+    "zh-Hant": "資源估算置信度低（阻止啟動）"
+  },
+  {
+    "source": "资源加载堆内存",
+    "en": "Resource loading heap",
+    "zh-Hant": "資源載入堆記憶體"
+  },
+  {
+    "source": "资源加载峰值",
+    "en": "Peak resource loading memory",
+    "zh-Hant": "資源載入峰值"
+  },
+  {
+    "source": "资源文件验证策略",
+    "en": "Resource verification policy",
+    "zh-Hant": "資源檔案驗證策略"
+  },
+  {
+    "source": "资源下载失败：",
+    "en": "Resource download failed: ",
+    "zh-Hant": "資源下載失敗："
+  },
+  {
+    "source": "资源下载失败。",
+    "en": "Resource download failed.",
+    "zh-Hant": "資源下載失敗。"
+  },
+  {
+    "source": "资源相似度",
+    "en": "Resource similarity",
+    "zh-Hant": "資源相似度"
+  },
+  {
+    "source": "资源详情",
+    "en": "Resource details",
+    "zh-Hant": "資源詳情"
+  },
+  {
+    "source": "资源与性能",
+    "en": "Resources and performance",
+    "zh-Hant": "資源與性能"
+  },
+  {
+    "source": "资源预算检查",
+    "en": "Resource budget check",
+    "zh-Hant": "資源預算檢查"
+  },
+  {
+    "source": "资源运行内存",
+    "en": "Runtime resource memory",
+    "zh-Hant": "資源運行記憶體"
+  },
+  {
+    "source": "自定义",
+    "en": "Custom",
+    "zh-Hant": "自定義"
+  },
+  {
+    "source": "自定义 JVM 参数请谨慎填写，错误参数可能导致无法启动。",
+    "en": "Enter custom JVM arguments carefully. Invalid arguments can prevent launch.",
+    "zh-Hant": "自定義 JVM 參數請謹慎填寫，錯誤參數可能導致無法啟動。"
+  },
+  {
+    "source": "自定义主题",
+    "en": "Custom theme",
+    "zh-Hant": "自定義主題"
+  },
+  {
+    "source": "自动",
+    "en": "Automatic",
+    "zh-Hant": "自動"
+  },
+  {
+    "source": "自动 Repair Plan",
+    "en": "Automatic repair plan",
+    "zh-Hant": "自動 Repair Plan"
+  },
+  {
+    "source": "自动 Snapshot",
+    "en": "Automatic snapshots",
+    "zh-Hant": "自動 Snapshot"
+  },
+  {
+    "source": "自动安装缺失 Java",
+    "en": "Install missing Java automatically",
+    "zh-Hant": "自動安裝缺失 Java"
+  },
+  {
+    "source": "自动安装依赖",
+    "en": "Install dependencies automatically",
+    "zh-Hant": "自動安裝依賴"
+  },
+  {
+    "source": "自动播放",
+    "en": "Autoplay",
+    "zh-Hant": "自動播放"
+  },
+  {
+    "source": "自动策略",
+    "en": "Automatic policy",
+    "zh-Hant": "自動策略"
+  },
+  {
+    "source": "自动化",
+    "en": "Automation",
+    "zh-Hant": "自動化"
+  },
+  {
+    "source": "自动回滚",
+    "en": "Automatic rollback",
+    "zh-Hant": "自動回滾"
+  },
+  {
+    "source": "自动检查",
+    "en": "Automatic checks",
+    "zh-Hant": "自動檢查"
+  },
+  {
+    "source": "自动检查更新",
+    "en": "Check for updates automatically",
+    "zh-Hant": "自動檢查更新"
+  },
+  {
+    "source": "自动清理策略",
+    "en": "Automatic cleanup policy",
+    "zh-Hant": "自動清理策略"
+  },
+  {
+    "source": "自动生成修复方案",
+    "en": "Generate repair plan automatically",
+    "zh-Hant": "自動生成修復方案"
+  },
+  {
+    "source": "自动脱敏",
+    "en": "Automatic redaction",
+    "zh-Hant": "自動脫敏"
+  },
+  {
+    "source": "自动下载",
+    "en": "Download automatically",
+    "zh-Hant": "自動下載"
+  },
+  {
+    "source": "自动修复",
+    "en": "Automatic repair",
+    "zh-Hant": "自動修復"
+  },
+  {
+    "source": "自动选择，或输入 Java 可执行文件路径",
+    "en": "Choose automatically, or enter a Java executable path",
+    "zh-Hant": "自動選擇，或輸入 Java 可執行檔案路徑"
+  },
+  {
+    "source": "自动选择兼容 Java",
+    "en": "Select compatible Java automatically",
+    "zh-Hant": "自動選擇兼容 Java"
+  },
+  {
+    "source": "自动重试",
+    "en": "Automatic retries",
+    "zh-Hant": "自動重試"
+  },
+  {
+    "source": "总览",
+    "en": "Overview",
+    "zh-Hant": "總覽"
+  },
+  {
+    "source": "总体严重度",
+    "en": "Overall severity",
+    "zh-Hant": "總體嚴重度"
+  },
+  {
+    "source": "阻止启动",
+    "en": "Blocked",
+    "zh-Hant": "阻止啟動"
+  },
+  {
+    "source": "阻止问题数",
+    "en": "Blocking issue count",
+    "zh-Hant": "阻止問題數"
+  },
+  {
+    "source": "最大日志数量",
+    "en": "Maximum log count",
+    "zh-Hant": "最大日誌數量"
+  },
+  {
+    "source": "最大占用",
+    "en": "Maximum usage",
+    "zh-Hant": "最大占用"
+  },
+  {
+    "source": "最近变化分析",
+    "en": "Recent-change analysis",
+    "zh-Hant": "最近變化分析"
+  },
+  {
+    "source": "最近启动",
+    "en": "Recent launches",
+    "zh-Hant": "最近啟動"
+  },
+  {
+    "source": "最小化",
+    "en": "Minimize",
+    "zh-Hant": "最小化"
+  },
+  {
+    "source": "最小化行为",
+    "en": "Minimize behavior",
+    "zh-Hant": "最小化行為"
+  },
+  {
+    "source": "作为原版的附属版本安装",
+    "en": "Install as a child of vanilla",
+    "zh-Hant": "作為原版的附屬版本安裝"
+  },
+  {
+    "source": "作者",
+    "en": "Author",
+    "zh-Hant": "作者"
+  },
+  {
+    "source": "AI 诊断",
+    "en": "AI diagnostics",
+    "zh-Hant": "AI 診斷"
+  },
+  {
+    "source": "Assets 验证策略",
+    "en": "Asset verification policy",
+    "zh-Hant": "Assets 驗證策略"
+  },
+  {
+    "source": "Bedrock 版安装迁移状态",
+    "en": "Bedrock installation migration status",
+    "zh-Hant": "Bedrock 版安裝遷移狀態"
+  },
+  {
+    "source": "Bedrock 版安装正在迁移",
+    "en": "Bedrock installation is being migrated",
+    "zh-Hant": "Bedrock 版安裝正在遷移"
+  },
+  {
+    "source": "Bedrock 版图标",
+    "en": "Bedrock Edition icon",
+    "zh-Hant": "Bedrock 版圖標"
+  },
+  {
+    "source": "Cleanroom 安装选项",
+    "en": "Cleanroom installation options",
+    "zh-Hant": "Cleanroom 安裝選項"
+  },
+  {
+    "source": "Endpoint 状态",
+    "en": "Endpoint status",
+    "zh-Hant": "Endpoint 狀態"
+  },
+  {
+    "source": "Fabric 安装选项",
+    "en": "Fabric installation options",
+    "zh-Hant": "Fabric 安裝選項"
+  },
+  {
+    "source": "Fabric API 安装选项",
+    "en": "Fabric API installation options",
+    "zh-Hant": "Fabric API 安裝選項"
+  },
+  {
+    "source": "Forge 安装选项",
+    "en": "Forge installation options",
+    "zh-Hant": "Forge 安裝選項"
+  },
+  {
+    "source": "GitHub / 更新日志",
+    "en": "GitHub / changelog",
+    "zh-Hant": "GitHub / 更新日誌"
+  },
+  {
+    "source": "https://认证服务器",
+    "en": "https://authentication-server",
+    "zh-Hant": "https://認證伺服器"
+  },
+  {
+    "source": "Info 通知",
+    "en": "Information notification",
+    "zh-Hant": "Info 通知"
+  },
+  {
+    "source": "JAR 导入未完成：",
+    "en": "JAR import failed: ",
+    "zh-Hant": "JAR 導入未完成："
+  },
+  {
+    "source": "JAR 导入未完成。",
+    "en": "JAR import is incomplete.",
+    "zh-Hant": "JAR 導入未完成。"
+  },
+  {
+    "source": "Java 安装尚未安全停止。",
+    "en": "Java installation has not safely stopped.",
+    "zh-Hant": "Java 安裝尚未安全停止。"
+  },
+  {
+    "source": "Java 安装未能恢复，记录已保留；请查看任务中心。",
+    "en": "Java installation could not resume. Records were kept; see Task Center.",
+    "zh-Hant": "Java 安裝未能恢復，記錄已保留；請查看任務中心。"
+  },
+  {
+    "source": "Java 版安装子页面",
+    "en": "Java installation pages",
+    "zh-Hant": "Java 版安裝子頁面"
+  },
+  {
+    "source": "Java 版安装子页面，可使用左右方向键或拖动切换",
+    "en": "Java installation pages. Use Left and Right or swipe to switch",
+    "zh-Hant": "Java 版安裝子頁面，可使用左右方向鍵或拖動切換"
+  },
+  {
+    "source": "Java 版安装子页面内容",
+    "en": "Java installation page content",
+    "zh-Hant": "Java 版安裝子頁面內容"
+  },
+  {
+    "source": "Java 不是推荐版本",
+    "en": "Java version not recommended",
+    "zh-Hant": "Java 不是推薦版本"
+  },
+  {
+    "source": "Java 不是推荐版本（警告）",
+    "en": "Java version not recommended (Warning)",
+    "zh-Hant": "Java 不是推薦版本（警告）"
+  },
+  {
+    "source": "Java 不是推荐版本（提示）",
+    "en": "Java version not recommended (Information)",
+    "zh-Hant": "Java 不是推薦版本（提示）"
+  },
+  {
+    "source": "Java 不是推荐版本（严重）",
+    "en": "Java version not recommended (Critical)",
+    "zh-Hant": "Java 不是推薦版本（嚴重）"
+  },
+  {
+    "source": "Java 不是推荐版本（正常）",
+    "en": "Java version not recommended (Ready)",
+    "zh-Hant": "Java 不是推薦版本（正常）"
+  },
+  {
+    "source": "Java 不是推荐版本（阻止启动）",
+    "en": "Java version not recommended (Blocked)",
+    "zh-Hant": "Java 不是推薦版本（阻止啟動）"
+  },
+  {
+    "source": "Java 管理",
+    "en": "Java management",
+    "zh-Hant": "Java 管理"
+  },
+  {
+    "source": "Java 架构不匹配",
+    "en": "Java architecture mismatch",
+    "zh-Hant": "Java 架構不匹配"
+  },
+  {
+    "source": "Java 架构不匹配（警告）",
+    "en": "Java architecture mismatch (Warning)",
+    "zh-Hant": "Java 架構不匹配（警告）"
+  },
+  {
+    "source": "Java 架构不匹配（提示）",
+    "en": "Java architecture mismatch (Information)",
+    "zh-Hant": "Java 架構不匹配（提示）"
+  },
+  {
+    "source": "Java 架构不匹配（严重）",
+    "en": "Java architecture mismatch (Critical)",
+    "zh-Hant": "Java 架構不匹配（嚴重）"
+  },
+  {
+    "source": "Java 架构不匹配（正常）",
+    "en": "Java architecture mismatch (Ready)",
+    "zh-Hant": "Java 架構不匹配（正常）"
+  },
+  {
+    "source": "Java 架构不匹配（阻止启动）",
+    "en": "Java architecture mismatch (Blocked)",
+    "zh-Hant": "Java 架構不匹配（阻止啟動）"
+  },
+  {
+    "source": "Java 兼容性检查",
+    "en": "Java compatibility check",
+    "zh-Hant": "Java 兼容性檢查"
+  },
+  {
+    "source": "Java 下载确认命令未注册。",
+    "en": "Java download confirmation is unavailable.",
+    "zh-Hant": "Java 下載確認命令未注冊。"
+  },
+  {
+    "source": "Java 相似度",
+    "en": "Java similarity",
+    "zh-Hant": "Java 相似度"
+  },
+  {
+    "source": "Java 选择失败：",
+    "en": "Java selection failed: ",
+    "zh-Hant": "Java 選擇失敗："
+  },
+  {
+    "source": "Java 与当前版本不兼容。请选择兼容的 Java 版本。",
+    "en": "Java is incompatible with this version. Choose a compatible Java runtime.",
+    "zh-Hant": "Java 與當前版本不兼容。請選擇兼容的 Java 版本。"
+  },
+  {
+    "source": "Java 与当前实例不兼容",
+    "en": "Incompatible Java runtime",
+    "zh-Hant": "Java 與當前實例不兼容"
+  },
+  {
+    "source": "Java 与当前实例不兼容（警告）",
+    "en": "Incompatible Java runtime (Warning)",
+    "zh-Hant": "Java 與當前實例不兼容（警告）"
+  },
+  {
+    "source": "Java 与当前实例不兼容（提示）",
+    "en": "Incompatible Java runtime (Information)",
+    "zh-Hant": "Java 與當前實例不兼容（提示）"
+  },
+  {
+    "source": "Java 与当前实例不兼容（严重）",
+    "en": "Incompatible Java runtime (Critical)",
+    "zh-Hant": "Java 與當前實例不兼容（嚴重）"
+  },
+  {
+    "source": "Java 与当前实例不兼容（正常）",
+    "en": "Incompatible Java runtime (Ready)",
+    "zh-Hant": "Java 與當前實例不兼容（正常）"
+  },
+  {
+    "source": "Java 与当前实例不兼容（阻止启动）",
+    "en": "Incompatible Java runtime (Blocked)",
+    "zh-Hant": "Java 與當前實例不兼容（阻止啟動）"
+  },
+  {
+    "source": "Java 与当前系统架构不一致。",
+    "en": "The Java architecture differs from the system architecture.",
+    "zh-Hant": "Java 與當前系統架構不一致。"
+  },
+  {
+    "source": "Java 正在通过架构转译运行",
+    "en": "Java running under emulation",
+    "zh-Hant": "Java 正在通過架構轉譯運行"
+  },
+  {
+    "source": "Java 正在通过架构转译运行（警告）",
+    "en": "Java running under emulation (Warning)",
+    "zh-Hant": "Java 正在通過架構轉譯運行（警告）"
+  },
+  {
+    "source": "Java 正在通过架构转译运行（提示）",
+    "en": "Java running under emulation (Information)",
+    "zh-Hant": "Java 正在通過架構轉譯運行（提示）"
+  },
+  {
+    "source": "Java 正在通过架构转译运行（严重）",
+    "en": "Java running under emulation (Critical)",
+    "zh-Hant": "Java 正在通過架構轉譯運行（嚴重）"
+  },
+  {
+    "source": "Java 正在通过架构转译运行（正常）",
+    "en": "Java running under emulation (Ready)",
+    "zh-Hant": "Java 正在通過架構轉譯運行（正常）"
+  },
+  {
+    "source": "Java 正在通过架构转译运行（阻止启动）",
+    "en": "Java running under emulation (Blocked)",
+    "zh-Hant": "Java 正在通過架構轉譯運行（阻止啟動）"
+  },
+  {
+    "source": "JVM 参数",
+    "en": "JVM arguments",
+    "zh-Hant": "JVM 參數"
+  },
+  {
+    "source": "JVM 与 Hooks",
+    "en": "JVM and hooks",
+    "zh-Hant": "JVM 與 Hooks"
+  },
+  {
+    "source": "LabyMod 安装选项",
+    "en": "LabyMod installation options",
+    "zh-Hant": "LabyMod 安裝選項"
+  },
+  {
+    "source": "Launcher 透明度",
+    "en": "Launcher opacity",
+    "zh-Hant": "Launcher 透明度"
+  },
+  {
+    "source": "Layout / Paint 调试",
+    "en": "Layout / paint debugging",
+    "zh-Hant": "Layout / Paint 調試"
+  },
+  {
+    "source": "Legacy Fabric 安装选项",
+    "en": "Legacy Fabric installation options",
+    "zh-Hant": "Legacy Fabric 安裝選項"
+  },
+  {
+    "source": "Linux /proc/meminfo（提交上限受 overcommit 策略影响）",
+    "en": "Linux /proc/meminfo (commit limit depends on the overcommit policy)",
+    "zh-Hant": "Linux /proc/meminfo（提交上限受 overcommit 策略影響）"
+  },
+  {
+    "source": "LiteLoader 安装选项",
+    "en": "LiteLoader installation options",
+    "zh-Hant": "LiteLoader 安裝選項"
+  },
+  {
+    "source": "LittleSkin 账户",
+    "en": "LittleSkin account",
+    "zh-Hant": "LittleSkin 帳戶"
+  },
+  {
+    "source": "Management.检查更新",
+    "en": "Management.Check for updates",
+    "zh-Hant": "Management.檢查更新"
+  },
+  {
+    "source": "Microsoft 账户",
+    "en": "Microsoft account",
+    "zh-Hant": "Microsoft 帳戶"
+  },
+  {
+    "source": "Minecraft 安装选项",
+    "en": "Minecraft installation options",
+    "zh-Hant": "Minecraft 安裝選項"
+  },
+  {
+    "source": "Minecraft 启动后 Nexa 行为",
+    "en": "Nexa behavior after Minecraft starts",
+    "zh-Hant": "Minecraft 啟動后 Nexa 行為"
+  },
+  {
+    "source": "Minecraft 已启动。",
+    "en": "Minecraft launched.",
+    "zh-Hant": "Minecraft 已啟動。"
+  },
+  {
+    "source": "Minecraft 诊断",
+    "en": "Minecraft diagnostics",
+    "zh-Hant": "Minecraft 診斷"
+  },
+  {
+    "source": "NCloud 账户",
+    "en": "NCloud account",
+    "zh-Hant": "NCloud 帳戶"
+  },
+  {
+    "source": "NeoForge 安装选项",
+    "en": "NeoForge installation options",
+    "zh-Hant": "NeoForge 安裝選項"
+  },
+  {
+    "source": "Nexa 保持显示",
+    "en": "Keep Nexa visible",
+    "zh-Hant": "Nexa 保持顯示"
+  },
+  {
+    "source": "Nexa 更新",
+    "en": "Nexa update",
+    "zh-Hant": "Nexa 更新"
+  },
+  {
+    "source": "Nexa 恢复行为",
+    "en": "Nexa restore behavior",
+    "zh-Hant": "Nexa 恢復行為"
+  },
+  {
+    "source": "Nexa 资源估算模型 resource-1",
+    "en": "Nexa resource estimator resource-1",
+    "zh-Hant": "Nexa 資源估算模型 resource-1"
+  },
+  {
+    "source": "NexaCL 无法写入所选实例目录。",
+    "en": "NexaCL cannot write to the selected instance directory.",
+    "zh-Hant": "NexaCL 無法寫入所選實例目錄。"
+  },
+  {
+    "source": "OptiFabric 安装选项",
+    "en": "OptiFabric installation options",
+    "zh-Hant": "OptiFabric 安裝選項"
+  },
+  {
+    "source": "OptiFine 安装选项",
+    "en": "OptiFine installation options",
+    "zh-Hant": "OptiFine 安裝選項"
+  },
+  {
+    "source": "Patch 版本核心",
+    "en": "Patch version core",
+    "zh-Hant": "Patch 版本核心"
+  },
+  {
+    "source": "QSL 安装选项",
+    "en": "QSL installation options",
+    "zh-Hant": "QSL 安裝選項"
+  },
+  {
+    "source": "Quilt 安装选项",
+    "en": "Quilt installation options",
+    "zh-Hant": "Quilt 安裝選項"
+  },
+  {
+    "source": "sysctl 读取失败",
+    "en": "sysctl read failed",
+    "zh-Hant": "sysctl 讀取失敗"
+  },
+  {
+    "source": "UI 动画帧率",
+    "en": "UI animation frame rate",
+    "zh-Hant": "UI 動畫幀率"
+  },
+  {
+    "source": "UI 性能指标",
+    "en": "UI performance metrics",
+    "zh-Hant": "UI 性能指標"
+  },
+  {
+    "source": "UI Renderer 信息",
+    "en": "UI renderer information",
+    "zh-Hant": "UI Renderer 信息"
+  },
+  {
+    "source": "\n安装到：{0}\n独立版本：{1}\n必选文件 {2} 个，可选文件 {3} 个。默认仅安装必选客户端文件。",
+    "en": "\nInstall to: {0}\nIndependent version: {1}\n{2} required files, {3} optional files. Only required client files are installed by default.",
+    "zh-Hant": "\n安裝到：{0}\n獨立版本：{1}\n必選檔案 {2} 個，可選檔案 {3} 個。預設僅安裝必選客戶端檔案。",
+    "template": true
+  },
+  {
+    "source": "\n还有 {0} 个。",
+    "en": "\nAnd {0} more.",
+    "zh-Hant": "\n還有 {0} 個。",
+    "template": true
+  },
+  {
+    "source": "\n以下模组仍需要它：{0}",
+    "en": "\nThese mods still require it: {0}",
+    "zh-Hant": "\n以下模組仍需要它：{0}",
+    "template": true
+  },
+  {
+    "source": " · 剩余 {0} 个文件",
+    "en": " · {0} files remaining",
+    "zh-Hant": " · 剩余 {0} 個檔案",
+    "template": true,
+    "en-one": " · {0} file remaining"
+  },
+  {
+    "source": "{0}  ·  {1}  ·  {2} 次下载",
+    "en": "{0}  ·  {1}  ·  {2} downloads",
+    "zh-Hant": "{0}  ·  {1}  ·  {2} 次下載",
+    "template": true
+  },
+  {
+    "source": "{0}  ·  {1} 次下载  ·  {2}",
+    "en": "{0}  ·  {1} downloads  ·  {2}",
+    "zh-Hant": "{0}  ·  {1} 次下載  ·  {2}",
+    "template": true
+  },
+  {
+    "source": "{0} · 已启用",
+    "en": "{0} · Enabled",
+    "zh-Hant": "{0} · 已啟用",
+    "template": true
+  },
+  {
+    "source": "{0} · 已停用",
+    "en": "{0} · Disabled",
+    "zh-Hant": "{0} · 已停用",
+    "template": true
+  },
+  {
+    "source": "{0} · 正式版",
+    "en": "{0} · Release",
+    "zh-Hant": "{0} · 正式版",
+    "template": true
+  },
+  {
+    "source": "{0} / {1} 项",
+    "en": "{0} / {1} items",
+    "zh-Hant": "{0} / {1} 項",
+    "template": true
+  },
+  {
+    "source": "{0} / {1} 项 · 未全部列出",
+    "en": "{0} / {1} items · More available",
+    "zh-Hant": "{0} / {1} 項 · 未全部列出",
+    "template": true
+  },
+  {
+    "source": "{0} 安装选项",
+    "en": "{0} installation options",
+    "zh-Hant": "{0} 安裝選項",
+    "template": true
+  },
+  {
+    "source": "{0} 个版本",
+    "en": "{0} versions",
+    "zh-Hant": "{0} 個版本",
+    "template": true,
+    "en-one": "{0} version"
+  },
+  {
+    "source": "{0} 个版本 · 已选 {1} 项",
+    "en": "{0} versions · {1} selected",
+    "zh-Hant": "{0} 個版本 · 已選 {1} 項",
+    "template": true,
+    "en-one": "{0} version · {1} selected"
+  },
+  {
+    "source": "{0} 个任务进行中 · {1}%",
+    "en": "{0} active tasks · {1}%",
+    "zh-Hant": "{0} 個任務進行中 · {1}%",
+    "template": true,
+    "en-one": "{0} active task · {1}%"
+  },
+  {
+    "source": "{0} 个文件 · 原始内容 {1}",
+    "en": "{0} files · Original content {1}",
+    "zh-Hant": "{0} 個檔案 · 原始內容 {1}",
+    "template": true,
+    "en-one": "{0} file · Original content {1}"
+  },
+  {
+    "source": "{0} 通知",
+    "en": "{0} notification",
+    "zh-Hant": "{0} 通知",
+    "template": true
+  },
+  {
+    "source": "{0} 项",
+    "en": "{0} items",
+    "zh-Hant": "{0} 項",
+    "template": true,
+    "en-one": "{0} item"
+  },
+  {
+    "source": "{0} 项更改",
+    "en": "{0} changes",
+    "zh-Hant": "{0} 項更改",
+    "template": true,
+    "en-one": "{0} change"
+  },
+  {
+    "source": "{0} 项任务 · {1}%",
+    "en": "{0} tasks · {1}%",
+    "zh-Hant": "{0} 項任務 · {1}%",
+    "template": true,
+    "en-one": "{0} task · {1}%"
+  },
+  {
+    "source": "{0} 项任务记录",
+    "en": "{0} task records",
+    "zh-Hant": "{0} 項任務記錄",
+    "template": true,
+    "en-one": "{0} task record"
+  },
+  {
+    "source": "{0}，当前页",
+    "en": "{0}, current page",
+    "zh-Hant": "{0}，當前頁",
+    "template": true
+  },
+  {
+    "source": "{0}：{1}。按下可查看完整内容",
+    "en": "{0}: {1}. Activate to view full content",
+    "zh-Hant": "{0}：{1}。按下可查看完整內容",
+    "template": true
+  },
+  {
+    "source": "{0}/{1} · 下一页",
+    "en": "{0}/{1} · Next page",
+    "zh-Hant": "{0}/{1} · 下一頁",
+    "template": true
+  },
+  {
+    "source": "{0}/{1} 个文件",
+    "en": "{0}/{1} files",
+    "zh-Hant": "{0}/{1} 個檔案",
+    "template": true
+  },
+  {
+    "source": "安装恢复未完成：{0}",
+    "en": "Installation recovery failed:  {0}",
+    "zh-Hant": "安裝恢復未完成：{0}",
+    "template": true
+  },
+  {
+    "source": "版本  ·  {0} 个",
+    "en": "Versions · {0}",
+    "zh-Hant": "版本  ·  {0} 個",
+    "template": true
+  },
+  {
+    "source": "查看 {0} 设置",
+    "en": "View {0} settings",
+    "zh-Hant": "查看 {0} 設定",
+    "template": true
+  },
+  {
+    "source": "查看截图 {0}",
+    "en": "View screenshot {0}",
+    "zh-Hant": "查看截圖 {0}",
+    "template": true
+  },
+  {
+    "source": "当前版本：{0}。模组将添加到此版本实际使用的 mods 目录。",
+    "en": "Current version: {0}. Mods will be added to its active mods folder.",
+    "zh-Hant": "當前版本：{0}。模組將添加到此版本實際使用的 mods 目錄。",
+    "template": true
+  },
+  {
+    "source": "当前目录：{0}",
+    "en": "Current folder:  {0}",
+    "zh-Hant": "當前目錄：{0}",
+    "template": true
+  },
+  {
+    "source": "导入未完成：{0}",
+    "en": "Import failed:  {0}",
+    "zh-Hant": "導入未完成：{0}",
+    "template": true
+  },
+  {
+    "source": "第 {0} 页 · {1} 项",
+    "en": "Page {0} · {1} items",
+    "zh-Hant": "第 {0} 頁 · {1} 項",
+    "template": true
+  },
+  {
+    "source": "第 {0}/{1} 项：{2} · {3}",
+    "en": "Item {0}/{1}: {2} · {3}",
+    "zh-Hant": "第 {0}/{1} 項：{2} · {3}",
+    "template": true
+  },
+  {
+    "source": "第三方 · {0}",
+    "en": "Third-party · {0}",
+    "zh-Hant": "第三方 · {0}",
+    "template": true
+  },
+  {
+    "source": "复制到 {0}。源文件保留，同名版本不会覆盖。共享的库和资源不包含在此次复制中。",
+    "en": "Copy to {0}. Source files are kept and existing versions are not overwritten. Shared libraries and assets are not copied.",
+    "zh-Hant": "復制到 {0}。源檔案保留，同名版本不會覆蓋。共享的庫和資源不包含在此次復制中。",
+    "template": true
+  },
+  {
+    "source": "更改 {0}/{1} · 下一页",
+    "en": "Changes {0}/{1} · Next page",
+    "zh-Hant": "更改 {0}/{1} · 下一頁",
+    "template": true
+  },
+  {
+    "source": "关闭 {0} 通知",
+    "en": "Dismiss {0} notification",
+    "zh-Hant": "關閉 {0} 通知",
+    "template": true
+  },
+  {
+    "source": "恢复全部 {0} 项更改。",
+    "en": "Restore all {0} changes.",
+    "zh-Hant": "恢復全部 {0} 項更改。",
+    "template": true,
+    "en-one": "Restore all {0} change."
+  },
+  {
+    "source": "检测时间：{0}",
+    "en": "Checked at:  {0}",
+    "zh-Hant": "檢測時間：{0}",
+    "template": true
+  },
+  {
+    "source": "将“{0}”移至已移除内容，可随时还原。",
+    "en": "Move “{0}” to removed content. It can be restored later.",
+    "zh-Hant": "將“{0}”移至已移除內容，可隨時還原。",
+    "template": true
+  },
+  {
+    "source": "将安装 {0} 个模组及必需依赖。",
+    "en": "Install {0} mods and required dependencies.",
+    "zh-Hant": "將安裝 {0} 個模組及必需依賴。",
+    "template": true,
+    "en-one": "Install {0} mod and required dependencies."
+  },
+  {
+    "source": "将恢复 {0} 项更改。存档、截图和日志不受影响。",
+    "en": "Restore {0} changes. Worlds, screenshots and logs are unaffected.",
+    "zh-Hant": "將恢復 {0} 項更改。存檔、截圖和日誌不受影響。",
+    "template": true,
+    "en-one": "Restore {0} change. Worlds, screenshots and logs are unaffected."
+  },
+  {
+    "source": "旧版本 · {0}",
+    "en": "Legacy · {0}",
+    "zh-Hant": "舊版本 · {0}",
+    "template": true
+  },
+  {
+    "source": "可更新至 {0}",
+    "en": "Update available: {0}",
+    "zh-Hant": "可更新至 {0}",
+    "template": true
+  },
+  {
+    "source": "快照 {0}/{1} · 下一页",
+    "en": "Snapshots {0}/{1} · Next page",
+    "zh-Hant": "快照 {0}/{1} · 下一頁",
+    "template": true
+  },
+  {
+    "source": "快照版 · {0}",
+    "en": "Snapshot · {0}",
+    "zh-Hant": "快照版 · {0}",
+    "template": true
+  },
+  {
+    "source": "启动失败：{0}",
+    "en": "Launch failed: {0}",
+    "zh-Hant": "啟動失敗：{0}",
+    "template": true
+  },
+  {
+    "source": "切换档案失败：{0}",
+    "en": "Could not switch profile: {0}",
+    "zh-Hant": "切換檔案失敗：{0}",
+    "template": true
+  },
+  {
+    "source": "任务进行中 {0}%，打开任务中心",
+    "en": "Task progress {0}%, open Task Center",
+    "zh-Hant": "任務進行中 {0}%，打開任務中心",
+    "template": true
+  },
+  {
+    "source": "删除参数 {0}",
+    "en": "Remove argument {0}",
+    "zh-Hant": "刪除參數 {0}",
+    "template": true
+  },
+  {
+    "source": "删除档案 {0}",
+    "en": "Delete profile {0}",
+    "zh-Hant": "刪除檔案 {0}",
+    "template": true
+  },
+  {
+    "source": "删除档案失败：{0}",
+    "en": "Could not delete profile: {0}",
+    "zh-Hant": "刪除檔案失敗：{0}",
+    "template": true
+  },
+  {
+    "source": "上次成功运行后的更改 · {0} 项（{1}/{2}）",
+    "en": "Changes since the last successful run · {0} items ({1}/{2})",
+    "zh-Hant": "上次成功運行后的更改 · {0} 項（{1}/{2}）",
+    "template": true,
+    "en-one": "Changes since the last successful run · {0} item ({1}/{2})"
+  },
+  {
+    "source": "设置未保存：{0}",
+    "en": "Settings were not saved:  {0}",
+    "zh-Hant": "設定未保存：{0}",
+    "template": true
+  },
+  {
+    "source": "数据位置\n{0}\n\n必要遥测：已启用\n诊断信息：{1}",
+    "en": "Data location\n{0}\n\nEssential telemetry: enabled\nDiagnostics: {1}",
+    "zh-Hant": "資料位置\n{0}\n\n必要遙測：已啟用\n診斷信息：{1}",
+    "template": true
+  },
+  {
+    "source": "添加 {0}",
+    "en": "Add {0}",
+    "zh-Hant": "添加 {0}",
+    "template": true
+  },
+  {
+    "source": "未能安全停止安装：{0}",
+    "en": "Could not safely stop installation:  {0}",
+    "zh-Hant": "未能安全停止安裝：{0}",
+    "template": true
+  },
+  {
+    "source": "未找到兼容的 Java {0}。请选择已安装的 Java，或自动下载。",
+    "en": "Compatible Java {0} was not found. Choose an installed runtime or download it automatically.",
+    "zh-Hant": "未找到兼容的 Java {0}。請選擇已安裝的 Java，或自動下載。",
+    "template": true
+  },
+  {
+    "source": "无法打开版本目录：{0}",
+    "en": "Could not open version folder:  {0}",
+    "zh-Hant": "無法打開版本目錄：{0}",
+    "template": true
+  },
+  {
+    "source": "无法结束游戏：{0}",
+    "en": "Could not stop game:  {0}",
+    "zh-Hant": "無法結束游戲：{0}",
+    "template": true
+  },
+  {
+    "source": "无法开始安装 Java 版 {0}（{1}）。",
+    "en": "Could not start installing Java Edition {0} ({1}).",
+    "zh-Hant": "無法開始安裝 Java 版 {0}（{1}）。",
+    "template": true
+  },
+  {
+    "source": "无法识别拖入内容：{0}",
+    "en": "Could not identify dropped content:  {0}",
+    "zh-Hant": "無法識別拖入內容：{0}",
+    "template": true
+  },
+  {
+    "source": "显示 {0} 安装选项",
+    "en": "Show {0} installation options",
+    "zh-Hant": "顯示 {0} 安裝選項",
+    "template": true
+  },
+  {
+    "source": "需要 Java {0}",
+    "en": "Java {0} required",
+    "zh-Hant": "需要 Java {0}",
+    "template": true
+  },
+  {
+    "source": "选择 {0}",
+    "en": "Select {0}",
+    "zh-Hant": "選擇 {0}",
+    "template": true
+  },
+  {
+    "source": "选择 {0} 加载器",
+    "en": "Select {0} loader",
+    "zh-Hant": "選擇 {0} 載入器",
+    "template": true
+  },
+  {
+    "source": "选择 {0}，{1}",
+    "en": "Select {0}, {1}",
+    "zh-Hant": "選擇 {0}，{1}",
+    "template": true
+  },
+  {
+    "source": "移除 {0}",
+    "en": "Remove {0}",
+    "zh-Hant": "移除 {0}",
+    "template": true
+  },
+  {
+    "source": "远古版 · {0}",
+    "en": "Historical · {0}",
+    "zh-Hant": "遠古版 · {0}",
+    "template": true
+  },
+  {
+    "source": "整合包安装未完成：{0}",
+    "en": "Modpack installation failed:  {0}",
+    "zh-Hant": "整合包安裝未完成：{0}",
+    "template": true
+  },
+  {
+    "source": "整体状态：{0}",
+    "en": "Overall status:  {0}",
+    "zh-Hant": "整體狀態：{0}",
+    "template": true
+  },
+  {
+    "source": "正式版 · {0}",
+    "en": "Release · {0}",
+    "zh-Hant": "正式版 · {0}",
+    "template": true
+  },
+  {
+    "source": "正在查找 Java {0}，缺失时将自动下载。",
+    "en": "Looking for Java {0}. Missing runtimes will be downloaded automatically.",
+    "zh-Hant": "正在查找 Java {0}，缺失時將自動下載。",
+    "template": true
+  },
+  {
+    "source": "资源下载失败：{0}",
+    "en": "Resource download failed:  {0}",
+    "zh-Hant": "資源下載失敗：{0}",
+    "template": true
+  },
+  {
+    "source": "JAR 导入未完成：{0}",
+    "en": "JAR import failed:  {0}",
+    "zh-Hant": "JAR 導入未完成：{0}",
+    "template": true
+  },
+  {
+    "source": "Java 下载确认失败：{0}",
+    "en": "Could not confirm Java download: {0}",
+    "zh-Hant": "Java 下載確認失敗：{0}",
+    "template": true
+  },
+  {
+    "source": "Java 选择失败：{0}",
+    "en": "Java selection failed:  {0}",
+    "zh-Hant": "Java 選擇失敗：{0}",
+    "template": true
+  }
+]

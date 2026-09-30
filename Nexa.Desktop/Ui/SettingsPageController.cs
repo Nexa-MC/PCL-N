@@ -232,6 +232,19 @@ internal sealed partial class SettingsPageController : IDisposable
         }
     }
 
+    private void UpdateNavigationWidths()
+    {
+        foreach (var button in _navigation.Keys)
+        {
+            string label = _shell.Renderer.LocalizeText(_shell.Tree.GetComponent<XsrUiText>(button)!.Content);
+            double width = Math.Max(64, label.Sum(character => character > 127 ? 14 : 8) + 24);
+            var element = _shell.Tree.GetComponent<XsrUiElement>(button)!;
+            if (element.Width == width) continue;
+            element.Width = width;
+            _shell.Tree.MarkDirty(button, XsrUiDirtyKinds.Layout);
+        }
+    }
+
     private void BuildSections(bool navigating = false)
     {
 
@@ -389,7 +402,7 @@ internal sealed partial class SettingsPageController : IDisposable
             string label = value?.Source == SettingsLayer.Instance ? "恢复继承" : "继承中";
             if (text.Content != label) { text.Content = label; _shell.Tree.MarkDirty(button, XsrUiDirtyKinds.Paint); }
         }
-        UpdateShiftSelectors(); UpdateArgumentEditors();
+        UpdateNavigationWidths(); UpdateShiftSelectors(); UpdateArgumentEditors();
     }
 
     private void Save(Editor editor, string? selectedValue = null)

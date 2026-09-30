@@ -4,6 +4,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("language settings are immediate validated and durable", Sync(LanguageSettingIsImmediateValidatedAndDurable)),
         ("resource identity malformed providers preserve healthy source and cancellation", ResourceIdentityMalformedProviderPreservesHealthySource),
         ("resource provided aliases retain versions and reject incomplete declarations", ResourceProvidedAliasesKeepVersionsAndRejectIncompleteDeclarations),
         ("resource installed content identifies hashes and rejects stale identity", ResourceInstalledContentUsesHashesAndRejectsStaleIdentity),

@@ -138,8 +138,9 @@ internal sealed class FirstRunController : IDisposable
             "必要遥测始终启用，用于统计应用运行和更新结果。\n可选诊断信息用于用户体验改进计划，包含脱敏错误堆栈、耗时、资源占用、算法指标、功能使用情况、模组清单、加载器版本和游戏设置变化，可在设置中关闭。不上传账户、路径或日志正文。",
             "确认以下选择。开始使用后，NexaCL 会自动重新打开。"];
         if (_status.TelemetryRequired) descriptions[2] = "必要遥测始终启用。CI、Alpha 和 Beta 还必须启用诊断信息，用于用户体验改进计划。\n诊断包含脱敏错误堆栈、耗时、资源占用、算法指标、功能使用情况、模组清单、加载器版本和游戏设置变化，不上传账户、路径或日志正文。";
-        SetText("SetupStep", $"{Step + 1} / 4 · {labels[Step]}"); SetText("SetupTitle", titles[Step]); SetText("SetupDescription", descriptions[Step]);
-        SetText("SetupPath", _directory); SetText("SetupSummary", $"数据位置\n{_directory}\n\n必要遥测：已启用\n诊断信息：{(_consent ? "已启用" : "已关闭")}");
+        SetText("SetupStep", $"{Step + 1} / 4 · {_shell.Renderer.LocalizeText(labels[Step])}"); SetText("SetupTitle", titles[Step]); SetText("SetupDescription", descriptions[Step]);
+        SetText("SetupPath", _directory); SetText("SetupSummary", $"数据位置\n{_directory}\n\n必要遥测：已启用\n诊断信息：{_shell.Renderer.LocalizeText(_consent ? "已启用" : "已关闭")}");
+        DesktopLiteralText.Preserve(_shell.Tree, _nodes["SetupPath"]);
         Show("SetupDirectory", Step == 1); Show("SetupConsent", Step == 2); Show("SetupSummary", Step == 3); Show("SetupBack", Step > 0);
         Show("SetupBrowse", !_status.LocationLocked);
         Show("SetupPrivate", !_status.TelemetryRequired);

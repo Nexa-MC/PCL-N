@@ -284,6 +284,11 @@ internal sealed class VersionSelectionController : IDisposable
         _revision = snapshot.Revision; _filter = filter;
         MinecraftLibraryDirectory current = snapshot.Directories.First(item => MinecraftLibraryService.PathComparer.Equals(item.Path, snapshot.RootDirectory));
         Publish("directory.name", current.DisplayName); Publish("directory.path", current.Path); Publish("directory.named", current.HasName);
+        if (_entities.TryGetValue("LibraryDirectoryName", out var directoryName))
+        {
+            if (_shell.Tree.GetComponent<XsrUiText>(directoryName) is { } nameText) nameText.Localize = current.IsOfficial;
+            if (_shell.Tree.GetComponent<XsrUiSemantic>(directoryName) is { } nameLabel) nameLabel.Localize = current.IsOfficial;
+        }
         IReadOnlyList<MinecraftInstanceDescriptor> shown = [.. snapshot.Instances.Where(instance =>
             instance.Id.Contains(filter, StringComparison.OrdinalIgnoreCase) || instance.VersionId.Contains(filter, StringComparison.OrdinalIgnoreCase))];
         _transferSelection.IntersectWith(shown.Select(item => item.Id));
@@ -428,9 +433,13 @@ internal sealed class VersionSelectionController : IDisposable
             _shell.Tree.Walk(row, entity =>
             {
                 string key = _shell.Tree.Name(entity).Split(':')[0];
-                if (key == "LibraryDirectoryRowName") _shell.Tree.GetComponent<XsrUiText>(entity)!.Content = directory.DisplayName;
+                if (key == "LibraryDirectoryRowName")
+                {
+                    var text = _shell.Tree.GetComponent<XsrUiText>(entity)!;
+                    text.Content = directory.DisplayName; text.Localize = directory.IsOfficial;
+                }
                 if (key == "LibraryDirectoryRowPath")
-                { _shell.Tree.GetComponent<XsrUiText>(entity)!.Content = root; _shell.Tree.GetComponent<XsrUiElement>(entity)!.IsVisible = directory.HasName; }
+                { _shell.Tree.GetComponent<XsrUiText>(entity)!.Content = root; DesktopLiteralText.Preserve(_shell.Tree, entity); _shell.Tree.GetComponent<XsrUiElement>(entity)!.IsVisible = directory.HasName; }
                 if (key == "LibraryDirectoryRename") _shell.Tree.GetComponent<XsrUiElement>(entity)!.IsVisible = !directory.IsOfficial;
                 if (key == "LibraryDirectoryForget") _shell.Tree.GetComponent<XsrUiElement>(entity)!.IsVisible = snapshot.Directories.Count > 1;
                 return true;
@@ -451,7 +460,7 @@ internal sealed class VersionSelectionController : IDisposable
         };
         XsrUiEntityId row = PxmlUiLoader.Load(new(Project(_row.Root)), _shell.Tree, _store, parent);
         _shell.Tree.SetComponent(row, new XsrUiSelection());
-        _shell.Tree.Walk(row, entity => { Style(entity); return true; });
+        _shell.Tree.Walk(row, entity => { Style(entity); if (_shell.Tree.Name(entity).StartsWith("LibraryRowName:", StringComparison.Ordinal)) DesktopLiteralText.Preserve(_shell.Tree, entity); return true; });
         return row;
     }
 

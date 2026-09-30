@@ -6,7 +6,7 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 
 | Key | Type / domain | Builtin | Scope | Legacy source | Applies | Export |
 |---|---|---|---|---|---|---|
-| general.language | Text | auto | G | UiLanguage | Restart | Yes |
+| general.language | Enum (auto, zh-Hans, zh-Hant, en) | auto | G | UiLanguage | Immediate | Yes |
 | general.region | Text | auto | G | UiFormatCulture | Restart | Yes |
 | appearance.animations-disabled | Bool | false | G | SystemDisableUiAnimations | Immediate | Yes |
 | appearance.animation-fps | Number, 1–240 fps | 59 | G | UiAniFPS | Immediate | Yes |

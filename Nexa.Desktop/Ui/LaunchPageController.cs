@@ -380,6 +380,8 @@ internal sealed partial class LaunchPageController : IDisposable
     {
         bool hasProfile = ReadProfiles().Any(profile => profile.Index == SelectedAccountIndex);
         bool hasInstance = !string.IsNullOrWhiteSpace(ReadCell(LaunchPageState.SelectedInstanceKey));
+        if (_pageEntities.TryGetValue("VersionName", out var versionName)
+            && _shell.Tree.GetComponent<XsrUiText>(versionName) is { } versionText) versionText.Localize = !hasInstance;
         string label;
         bool enabled;
         if (!hasInstance)
@@ -1535,6 +1537,13 @@ internal sealed partial class LaunchPageController : IDisposable
             XsrUiEntityId row = PxmlUiLoader.Load(new PxmlHostIr(ProjectProfileNode(_accountRowTemplate.Root, profile)),
                 tree, _store, rowsHost);
             tree.SetComponent(row, new XsrUiSelection());
+            tree.Walk(row, entity =>
+            {
+                string key = tree.Name(entity);
+                if (key.StartsWith("ProfileName:", StringComparison.Ordinal)
+                    || key.StartsWith("ProfileDetail:", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(profile.Info)) DesktopLiteralText.Preserve(tree, entity);
+                return true;
+            });
             _accountRowEntities[profile.Index] = row;
             _accountRowIndexes[row] = profile.Index;
         }
@@ -1632,8 +1641,17 @@ internal sealed partial class LaunchPageController : IDisposable
     {
         IReadOnlyList<LaunchProfileView> profiles = ReadProfiles();
         int index = SelectedAccountIndex;
+        if (_pageEntities.TryGetValue("AccountName", out var accountName))
+        {
+            bool placeholder = index < 0 || index >= profiles.Count;
+            if (_shell.Tree.GetComponent<XsrUiText>(accountName) is { } nameText) nameText.Localize = placeholder;
+            if (_shell.Tree.GetComponent<XsrUiSemantic>(accountName) is { } nameLabel) nameLabel.Localize = placeholder;
+        }
         if (index >= 0 && index < profiles.Count)
         {
+            if (_pageEntities.TryGetValue("AccountKind", out var accountKind)
+                && _shell.Tree.GetComponent<XsrUiText>(accountKind) is { } kindText)
+                kindText.Localize = profiles[index].Kind == LaunchProfileKind.ThirdParty || string.IsNullOrWhiteSpace(profiles[index].Info);
             Publish(LaunchPageState.ProfileNameKey, profiles[index].Username);
             Publish(LaunchPageState.ProfileKindKey, LaunchProfilePresentation.Description(profiles[index]));
         }
@@ -2041,6 +2059,7 @@ internal sealed partial class LaunchPageController : IDisposable
         if (entities.TryGetValue("VersionName", out XsrUiEntityId versionName))
         {
             StyleText(versionName, PrimaryText, fontSize: 20, weight: 600);
+            DesktopLiteralText.Preserve(_shell.Tree, versionName);
         }
 
         if (entities.TryGetValue("InstanceRow", out XsrUiEntityId pickerRow))

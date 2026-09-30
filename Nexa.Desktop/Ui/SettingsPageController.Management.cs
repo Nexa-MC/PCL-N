@@ -155,6 +155,7 @@ internal sealed partial class SettingsPageController
             if (_selected == "mods") BuildModCategories();
             var location = Stack(_sections, "ManagementLocation", XsrUiOrientation.Horizontal, 12);
             var path = Text(location, directory, 12, Muted, 24);
+            DesktopLiteralText.Preserve(_shell.Tree, path);
             _shell.Tree.GetComponent<XsrUiElement>(path)!.Weight = 1;
             _contentCount = Text(location, $"{_contentSnapshot?.Entries.Count ?? 0} 项" + (_contentSnapshot?.Complete == false ? " · 未全部列出" : ""), 12, Muted, 24);
             if (_managementError is not null) Text(_sections, _managementError, 13, Muted, 28);
@@ -190,6 +191,7 @@ internal sealed partial class SettingsPageController
         var caption = Text(row, label, 13, Muted, 32);
         _shell.Tree.GetComponent<XsrUiElement>(caption)!.Width = 120;
         var content = Text(row, value, 14, Ink, 32);
+        if (label is "版本名称" or "实例目录" or "游戏目录" or "名称") DesktopLiteralText.Preserve(_shell.Tree, content);
         _shell.Tree.GetComponent<XsrUiElement>(content)!.Weight = 1;
     }
 
@@ -295,6 +297,7 @@ internal sealed partial class SettingsPageController
         {
             var row = Stack(_sections, "ContentTrashRow", XsrUiOrientation.Horizontal, 12);
             var name = Text(row, item.Name, 14, Ink, 38);
+            DesktopLiteralText.Preserve(_shell.Tree, name);
             _shell.Tree.GetComponent<XsrUiElement>(name)!.Weight = 1;
             ManagementButton(row, "还原", () =>
             {

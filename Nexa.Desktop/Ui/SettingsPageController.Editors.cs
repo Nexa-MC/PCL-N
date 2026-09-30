@@ -46,9 +46,11 @@ internal sealed partial class SettingsPageController
         double width = 6;
         foreach (string value in values)
         {
-            string label = value switch { "true" => "开启", "false" => "关闭", "fullscreen" => "全屏", "windowed" => "窗口", _ => value };
-            double optionWidth = Math.Max(48, label.Length * 13 + 24);
+            string label = value switch { "true" => "开启", "false" => "关闭", "fullscreen" => "全屏", "windowed" => "窗口", "auto" => "跟随系统", "zh-Hans" => "简体中文", "zh-Hant" => "繁體中文", "en" => "English", _ => value };
+            bool nativeName = entry.SettingKey == "general.language" && value != "auto";
+            double optionWidth = Math.Max(48, (nativeName ? label : _shell.Renderer.LocalizeText(label)).Sum(character => character > 127 ? 12 : 7) + 24);
             var option = ActionButton(track, "SettingsOption." + entry.SettingKey + "." + value, label, Choice, optionWidth);
+            if (nativeName) DesktopLiteralText.Preserve(_shell.Tree, option);
             _shell.Tree.SetComponent(option, new XsrUiSelection());
             options[option] = value; width += optionWidth;
         }
@@ -72,6 +74,16 @@ internal sealed partial class SettingsPageController
                 _shell.Tree.GetComponent<XsrUiVisualStyle>(option.Key)!.TextAlignment = XsrUiTextAlignment.Center;
                 if (selected) _shell.Tree.GetComponent<XsrUiSegmentedTrack>(selector.Track)!.Selected = option.Key;
             }
+            double width = 6;
+            foreach (var option in selector.Options.Keys)
+            {
+                var text = _shell.Tree.GetComponent<XsrUiText>(option)!;
+                double desired = Math.Max(48, (text.Localize ? _shell.Renderer.LocalizeText(text.Content) : text.Content).Sum(character => character > 127 ? 12 : 7) + 24);
+                var element = _shell.Tree.GetComponent<XsrUiElement>(option)!;
+                if (element.Width != desired) { element.Width = desired; _shell.Tree.MarkDirty(option, XsrUiDirtyKinds.Layout); }
+                width += desired;
+            }
+            _shell.Tree.GetComponent<XsrUiElement>(selector.Track)!.Width = width;
         }
     }
 

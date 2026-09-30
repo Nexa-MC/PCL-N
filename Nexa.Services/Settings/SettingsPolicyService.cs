@@ -96,6 +96,16 @@ public sealed partial class SettingsPolicyService
             SettingsOverride? inherited = ReadOverride(global[definition.Key]);
             if (definition.LegacyKey is { } key && raw.TryGetValue(key, out string? legacy) && (inherited is not null || legacy != definition.DefaultValue))
                 inherited = new(SettingsOverrideMode.Custom, legacy);
+            if (definition.Key == "general.language" && inherited is { Mode: SettingsOverrideMode.Custom, Value: { } language })
+            {
+                string normalized = language.Replace('_', '-');
+                string? canonical = normalized.Equals("auto", StringComparison.OrdinalIgnoreCase) ? "auto"
+                    : normalized.StartsWith("zh-Hant", StringComparison.OrdinalIgnoreCase) || normalized.Equals("zh-TW", StringComparison.OrdinalIgnoreCase)
+                        || normalized.Equals("zh-HK", StringComparison.OrdinalIgnoreCase) || normalized.Equals("zh-MO", StringComparison.OrdinalIgnoreCase) ? "zh-Hant"
+                    : normalized.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? "zh-Hans"
+                    : normalized.Equals("en", StringComparison.OrdinalIgnoreCase) || normalized.StartsWith("en-", StringComparison.OrdinalIgnoreCase) ? "en" : null;
+                if (canonical is not null) inherited = new(SettingsOverrideMode.Custom, canonical);
+            }
             if (inherited is null && definition.Key == "game.window-mode" && raw.GetValueOrDefault("LaunchArgumentWindowType") == "0")
                 inherited = new(SettingsOverrideMode.Custom, "fullscreen");
             if (inherited is null && definition.Key == "game.memory" && raw.GetValueOrDefault("LaunchRamType") == "1"

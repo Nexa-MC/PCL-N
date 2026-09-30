@@ -6,6 +6,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("localization remeasures and preserves input and literal content", Sync(LocalizationRemeasuresWithoutChangingInputOrLiteralContent)),
         ("file drag cancels click and rejects retired sources", Sync(FileDragCancelsClickAndRejectsRetiredSources)),
         ("VerticalStackReservesVerticalIndicatorGutter", Sync(VerticalStackReservesVerticalIndicatorGutter)),
         ("HorizontalStackReservesRightSideVerticalIndicatorGutter", Sync(HorizontalStackReservesRightSideVerticalIndicatorGutter)),

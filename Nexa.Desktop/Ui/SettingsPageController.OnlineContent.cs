@@ -88,9 +88,9 @@ internal sealed partial class SettingsPageController
             ContentName(titles, project.DisplayName, 19, 30);
             if (project.DisplayDescription.Length > 0) ContentName(_onlineSection, project.DisplayDescription, 13, null, maxLines: 0, foreground: Muted);
             ManagementFactIn(_onlineSection, "来源", project.SourceLabel);
-            ManagementFactIn(_onlineSection, "作者", project.Author.Length > 0 ? project.Author : "未提供");
+            ManagementFactIn(_onlineSection, "作者", project.Author.Length > 0 ? project.Author : "未提供", literal: project.Author.Length > 0);
             ManagementFactIn(_onlineSection, "下载次数", ResourcesPageController.FormatDownloads(project.Downloads));
-            ManagementFactIn(_onlineSection, "已安装版本", _onlineContent.InstalledVersion ?? "暂不可用");
+            ManagementFactIn(_onlineSection, "已安装版本", _onlineContent.InstalledVersion ?? "暂不可用", literal: _onlineContent.InstalledVersion is not null);
             var versions = _onlineContent.Versions.Take(6).ToArray();
             if (versions.Length > 0)
             {
@@ -112,7 +112,7 @@ internal sealed partial class SettingsPageController
             }, 96);
         }
         string? notice = _onlineContent?.Notice ?? _onlineError;
-        if (notice is not null) ContentName(_onlineSection, notice, 13, null, maxLines: 0, foreground: Muted);
+        if (notice is not null) ContentName(_onlineSection, notice, 13, null, maxLines: 0, foreground: Muted, literal: false);
         else if (_onlineRead is not null) Text(_onlineSection, "正在识别文件并获取项目资料…", 13, Muted, 26);
         if (_onlineRead is null)
             ManagementButton(_onlineSection, "重新识别", () => { CancelOnlineContent(); BuildSections(); }, 96);

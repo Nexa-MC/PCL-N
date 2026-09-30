@@ -10,6 +10,8 @@ public sealed class XsrUiText(string content)
 {
     public string Content { get; set; } = content ?? string.Empty;
     public IReadOnlyList<XsrUiTextRun> Runs { get; set; } = [];
+    /// <summary>False for user/provider content that must retain its original spelling.</summary>
+    public bool Localize { get; set; } = true;
 
     public XsrStateId BoundState { get; set; }
 
@@ -121,6 +123,8 @@ public sealed class XsrUiSemantic(XsrUiSemanticRole role, string? label = null)
     public XsrUiSemanticRole Role { get; set; } = role;
 
     public string? Label { get; set; } = label;
+    /// <summary>False for accessible names containing only user/provider content.</summary>
+    public bool Localize { get; set; } = true;
 
     /// <summary>Optional host state whose applied string value is the current accessible label.</summary>
     public XsrStateId BoundLabel { get; set; }

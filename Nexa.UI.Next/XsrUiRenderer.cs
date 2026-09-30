@@ -74,6 +74,26 @@ public sealed partial class XsrUiRenderer
     /// </summary>
     public XsrUiEntityId Focused => _focused;
 
+    private Func<string, string>? _textLocalizer;
+    /// <summary>Optional presentation resolver. Assign again when its language changes.</summary>
+    public Func<string, string>? TextLocalizer
+    {
+        get => _textLocalizer;
+        set
+        {
+            _textLocalizer = value;
+            // Navigation keeps detached pages alive. Drop their measurements as well so
+            // returning to a cached page measures its text in the new language.
+            _desiredSizes.Clear();
+            _stackContentSizes.Clear();
+            _measureConstraints.Clear();
+            _widthSensitiveMeasures.Clear();
+            if (_root.IsAssigned) _tree.Walk(_root, entity => { _tree.MarkDirty(entity, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint); return true; });
+        }
+    }
+
+    public string LocalizeText(string source) => _textLocalizer?.Invoke(source) ?? source;
+
     /// <summary>
     /// Gets or sets the size the root entity is arranged into.
     /// </summary>
@@ -1379,7 +1399,7 @@ public sealed partial class XsrUiRenderer
             input?.CapsuleExpansionProgress ?? 0,
             _tree.GetComponent<XsrUiPager>(entity)?.Snapshot(),
             accessible,
-            _tree.GetComponent<XsrUiTextInput>(entity)?.Snapshot(),
+            LocalizeInput(_tree.GetComponent<XsrUiTextInput>(entity)),
             image?.Raster,
             transitionKey, transition?.OffsetX ?? 0, transition?.PresentedOffsetX ?? 0,
             transition?.OffsetY ?? 0, opacity, transition?.PresentedOffsetY ?? 0, entryOrder,
@@ -1477,22 +1497,31 @@ public sealed partial class XsrUiRenderer
         XsrStateId bound = text.BoundState;
         if (!bound.IsAssigned)
         {
-            return text.Content;
+            return text.Localize && text.Runs.Count == 0 ? LocalizeText(text.Content) : text.Content;
         }
 
         object? value = _state.ReadAppliedValue(bound);
-        return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        string content = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        return text.Localize && text.Runs.Count == 0 ? LocalizeText(content) : content;
     }
 
     private string? ResolveSemanticLabel(XsrUiSemantic? semantic)
     {
         if (semantic is null || !semantic.BoundLabel.IsAssigned)
         {
-            return semantic?.Label;
+            return semantic is { Localize: true, Label: { } label } ? LocalizeText(label) : semantic?.Label;
         }
 
         object? value = _state.ReadAppliedValue(semantic.BoundLabel);
-        return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        string boundLabel = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        return semantic.Localize ? LocalizeText(boundLabel) : boundLabel;
+    }
+
+    private XsrUiTextInputSnapshot? LocalizeInput(XsrUiTextInput? input)
+    {
+        if (input is null) return null;
+        var snapshot = input.Snapshot();
+        return snapshot with { Placeholder = LocalizeText(snapshot.Placeholder) };
     }
 
     // UI.Next uses a deliberately deterministic, backend-neutral text metric. Native backends

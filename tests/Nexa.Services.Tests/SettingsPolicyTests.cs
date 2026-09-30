@@ -10,6 +10,32 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
+    private static void LanguageSettingIsImmediateValidatedAndDurable()
+    {
+        var port = new InMemorySettingsPort();
+        var (_, policy) = PolicyFixture(port);
+        var definition = SettingsPolicySchema.ByKey["general.language"];
+        AssertEqual(SettingsApplyTiming.Immediate, definition.Timing);
+        AssertEqual(SettingsValueKind.Enum, definition.Kind);
+        AssertEqual("auto", Effective(policy, "general.language").Value.Value);
+        foreach (string locale in new[] { "zh-Hans", "zh-Hant", "en", "auto" })
+        {
+            AssertTrue(policy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, locale))).IsSuccess);
+            var (_, reloaded) = PolicyFixture(port);
+            AssertEqual(locale, Effective(reloaded, "general.language").Value.Value);
+        }
+        AssertFalse(policy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "invalid"))).IsSuccess);
+        AssertEqual("auto", Effective(policy, "general.language").Value.Value);
+        AssertFalse(policy.Set(new("general.language", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "en"), Path.GetFullPath("instance"))).IsSuccess);
+        AssertEqual(SettingsCapabilityAvailability.Available, SettingsCatalog.Read(new()).Entries.Single(entry => entry.SettingKey == "general.language").Availability);
+        foreach (var pair in new[] { ("zh_CN", "zh-Hans"), ("zh_HK", "zh-Hant"), ("en_US", "en") })
+        {
+            port.Save(new Dictionary<string, string> { ["UiLanguage"] = pair.Item1 });
+            var (_, legacy) = PolicyFixture(port);
+            AssertEqual(pair.Item2, Effective(legacy, "general.language").Value.Value);
+        }
+    }
+
     private static async ValueTask SettingsQueriesDoNotWaitForDurableWrites()
     {
         foreach (bool fail in new[] { false, true })
