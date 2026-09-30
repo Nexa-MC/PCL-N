@@ -296,10 +296,11 @@ internal static class Program
         var updateQueries = NexaUpdateRuntimeComposer.Compose(updateService);
         settingsPage.ConfigureUpdates(updateQueries, new(buildInfo.ProductVersion, updateRid, updateChannel), platformActions.OpenHttpsUri);
         launchPage.SettingsPage = settingsPage.Page;
-        using var resourcesRuntime = ResourceCatalogRuntimeComposer.Compose();
+        using var resourcesRuntime = ResourceCatalogRuntimeComposer.Compose(host: host, favoritesPath: Path.Combine(settingsFolder, "resources-favorites.json"), installer: installRun.Service);
         using var resourcesPage = new ResourcesPageController(shell, uiIntents, resourcesRuntime.Queries,
             host.StateStore, platformActions.OpenHttpsUri);
         launchPage.ResourcesPage = resourcesPage.Page;
+        resourcesPage.ConfigureDownloads(resourcesRuntime.Commands!, platformActions.PickDownloadDirectoryAsync, feedback);
         resourcesPage.ConfigureInstanceFilter(installCatalog.Queries, () =>
         {
             var selected = ((MinecraftLibrarySnapshot?)host.StateStore.ReadAppliedValue(host.StateStore.Resolve(MinecraftLibraryService.StateKey)))?.SelectedInstance;
@@ -310,6 +311,7 @@ internal static class Program
             () => ((MinecraftLibrarySnapshot?)host.StateStore.ReadAppliedValue(host.StateStore.Resolve(MinecraftLibraryService.StateKey)))?.SelectedInstance?.DirectoryPath);
         launchPage.VersionSettingsPage = versionSettings.Page;
         versionSettings.OpenManagementDirectory = platformActions.OpenDirectory;
+        versionSettings.ConfigureOnlineContent(resourcesRuntime.Queries, platformActions.OpenHttpsUri);
         versionSettings.PickRemediationJava = platformActions.PickJavaFileAsync;
         settingsPage.PickRemediationJava = platformActions.PickJavaFileAsync;
         versionSettings.ManagementChanged = () =>

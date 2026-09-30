@@ -36,6 +36,9 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("installed content online info preserves local details and rejects stale results", InstalledContentOnlineInfoKeepsLocalDetailsAndDiscardsStaleResults),
+        ("resource optional dependencies wait for user choice", ResourceOptionalDependenciesWaitForUserChoice),
+        ("resources page downloads by identity and projects Chinese text", ResourcesPageDownloadsByIdentityAndProjectsChineseText),
         ("resources page uses service queries and preserves search", ResourcesPageUsesServiceQueriesAndPreservesSearch),
         ("resource icons arrive without rebuilding search or rows", ResourceIconsArriveWithoutRebuildingSearchOrRows),
         ("resources page discards superseded search and restores navigation", ResourcesPageDiscardsSupersededSearchAndRestoresNavigation),

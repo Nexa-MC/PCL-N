@@ -187,11 +187,15 @@ public sealed class AvaloniaUiPlatformActions
         return file?.TryGetLocalPath();
     }
 
-    public async Task<string?> PickDirectoryAsync()
+    public Task<string?> PickDirectoryAsync() => PickDirectoryCoreAsync("选择游戏目录");
+
+    public Task<string?> PickDownloadDirectoryAsync() => PickDirectoryCoreAsync("选择资源保存目录");
+
+    private async Task<string?> PickDirectoryCoreAsync(string title)
     {
         if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native folder picker is not ready.");
         IReadOnlyList<IStorageFolder> folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        { Title = "选择游戏目录", AllowMultiple = false });
+        { Title = title, AllowMultiple = false });
         using IStorageFolder? folder = folders.Count > 0 ? folders[0] : null;
         return folder?.TryGetLocalPath();
     }

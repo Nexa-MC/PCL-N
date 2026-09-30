@@ -92,7 +92,7 @@ internal sealed partial class SettingsPageController : IDisposable
         {
             var content = _shell.Tree.GetComponent<XsrUiElement>(_shell.Content)!;
             if (visible) { _previousContentPadding = content.Padding; content.Padding = default; }
-            else { content.Padding = _previousContentPadding; CancelManagementRead(); }
+            else { content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); }
             _visible = visible;
             _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
         }
@@ -166,6 +166,8 @@ internal sealed partial class SettingsPageController : IDisposable
             }
         }
         UpdateManagement();
+        UpdateOnlineContent();
+        UpdateModRemovalPreview();
         int index = _shell.Tree.GetComponent<XsrUiPager>(_pager)!.PageIndex;
         if (index >= 0 && index < Pages.Count && Pages[index].Id != _selected)
             SwitchPage(Pages[index].Id);
@@ -486,6 +488,6 @@ internal sealed partial class SettingsPageController : IDisposable
     };
     public void Dispose()
     {
-        _disposed = true; CancelManagementRead(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
+        _disposed = true; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }
 }

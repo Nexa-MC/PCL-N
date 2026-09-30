@@ -78,6 +78,7 @@ internal sealed partial class SettingsPageController
             ManagementFactIn(hero, "所在目录", directory);
             ManagementButton(hero, item.IsDirectory ? "打开内容文件夹" : "打开所在文件夹", () => OpenContentDirectory(item.IsDirectory ? System.IO.Path.Combine(directory, item.Name) : directory), 128);
         }
+        BuildOnlineContent(hero, item);
     }
 
     private void ManagementFactIn(XsrUiEntityId parent, string label, string value)

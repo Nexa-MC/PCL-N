@@ -10,6 +10,41 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void ResourcesPageDownloadsByIdentityAndProjectsChineseText()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        using var feedback = new DesktopFeedbackService();
+        var project = new ResourceProject("Project", "Original", "Summary", "Author", 1, "https://modrinth.com/project/Project")
+        { ChineseName = "中文名称", Sources = [new(ResourceProvider.Modrinth, "Project"), new(ResourceProvider.CurseForge, "123")] };
+        ResourceDetailQuery? detailQuery = null;
+        var queries = new XsrQueryRouterBuilder();
+        queries.Register<ResourceSearchQuery, ResourceSearchResult>(ResourceCatalogContract.Search, (query, token) => ValueTask.FromResult(XsrResult.Success(new ResourceSearchResult([project], 1, 0))));
+        queries.Register<ResourceTranslationQuery, ResourceTranslation>(ResourceCatalogContract.Translate, (query, token) => ValueTask.FromResult(XsrResult.Success(new ResourceTranslation("中文简介"))));
+        queries.Register<ResourceDetailQuery, ResourceDetail>(ResourceCatalogContract.Detail, (query, token) =>
+        {
+            detailQuery = query;
+            return ValueTask.FromResult(XsrResult.Success(new ResourceDetail(project, "MIT", [new ResourceVersion("File", "Version", "1", "正式版", [], [], "", "https://modrinth.com/project/Project")
+            { Provider = ResourceProvider.CurseForge, ProjectId = "123", File = new("mod.jar", "https://edge.forgecdn.net/files/mod.jar", 3, null, null) }])));
+        });
+        ResourceDownloadCommand? downloaded = null;
+        var commands = new XsrCommandRouterBuilder();
+        commands.Register<ResourceDownloadCommand>(ResourceCatalogContract.Download, (command, token) => { downloaded = command; return ValueTask.FromResult(XsrResult.Success()); });
+        using var page = new ResourcesPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()), fixture.Store, _ => throw new InvalidOperationException("Download must use the command route."));
+        page.ConfigureDownloads(commands.Build(new NoopDispatchObserver()), () => Task.FromResult<string?>("chosen-folder"), feedback);
+        fixture.Shell.Stage.Navigation.Replace(page.Page); fixture.Shell.Renderer.ReducedMotion = true;
+        var scene = fixture.Shell.Render(new(760, 500));
+        scene = fixture.Shell.Render(new(760, 500));
+        AssertTrue(scene.Nodes.Any(node => node.Text == "中文名称"));
+        AssertTrue(scene.Nodes.Any(node => node.Text == "中文简介"));
+        Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDetails.Project"));
+        fixture.Shell.Render(new(760, 500)); AssertEqual(2, detailQuery!.Sources.Count);
+        Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDownload.File"));
+        fixture.Shell.Render(new(760, 500));
+        AssertTrue(SpinWait.SpinUntil(() => downloaded is not null, TimeSpan.FromSeconds(3)));
+        AssertEqual(ResourceProvider.CurseForge, downloaded!.Provider); AssertEqual("123", downloaded.ProjectId);
+        AssertEqual("File", downloaded.VersionId); AssertEqual("chosen-folder", downloaded.DestinationDirectory);
+    }
+
     private static void ResourceIconsArriveWithoutRebuildingSearchOrRows()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));

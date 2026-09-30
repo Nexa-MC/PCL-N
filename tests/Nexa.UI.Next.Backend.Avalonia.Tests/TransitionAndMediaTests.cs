@@ -88,6 +88,18 @@ internal static partial class Program
             media.Raster = new(preview!, [new(new(0, 0, 16, 16), new(0, 0, 1, 1))]) { FitToBounds = true };
             shell.Tree.MarkDirty(image, XsrUiDirtyKinds.Paint); surface.CommitScene();
             AssertTrue(control.HasDecodedRaster);
+            using var jpeg = encoded.Encode(SkiaSharp.SKEncodedImageFormat.Jpeg, 90);
+            byte[] jpegBytes = jpeg.ToArray();
+            AssertTrue(PngImage.TryCreate(jpegBytes) is null);
+            AssertTrue(PngImage.TryCreatePreview(jpegBytes) is null);
+            var jpegIcon = PngImage.TryCreateResourceIcon(jpegBytes);
+            AssertEqual(16, jpegIcon!.Width); AssertEqual(16, jpegIcon.Height);
+            media.Raster = new(jpegIcon, [new(new(0, 0, 16, 16), new(0, 0, 1, 1))]) { FitToBounds = true };
+            shell.Tree.MarkDirty(image, XsrUiDirtyKinds.Paint); surface.CommitScene(); AssertTrue(control.HasDecodedRaster);
+            int frame = Enumerable.Range(0, jpegBytes.Length - 1).First(index => jpegBytes[index] == 0xff && jpegBytes[index + 1] == 0xc0);
+            jpegBytes[frame + 7] = 8; jpegBytes[frame + 8] = 0;
+            AssertTrue(PngImage.TryCreateResourceIcon(jpegBytes) is null);
+            AssertTrue(PngImage.TryCreateResourceIcon(jpegBytes.AsSpan()[..^2]) is null);
         }
 
         media.Raster = null; shell.Tree.MarkDirty(image, XsrUiDirtyKinds.Paint); surface.CommitScene();

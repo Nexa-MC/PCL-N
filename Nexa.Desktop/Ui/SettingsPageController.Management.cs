@@ -271,6 +271,11 @@ internal sealed partial class SettingsPageController
         if (_managementWrite is not null || _management is not { } snapshot
             || !_commands.TryResolve(InstanceManagementContract.RemoveContent, out var route)) return;
         string page = _selected;
+        if (page == "mods" && _queries.TryResolve(InstanceManagementContract.ModRemovalPreview, out var previewRoute))
+        {
+            StartModRemovalPreview(new(snapshot.InstanceDirectory, page, item.Name, item.IsDirectory, item.Size, item.ModifiedUtcTicks), previewRoute);
+            return;
+        }
         _feedback.ShowDialog("content.remove", "移除内容", $"将“{item.Name}”移至已移除内容，可随时还原。", "移除", "取消", accepted =>
         {
             if (!accepted || _managementWrite is not null || _instance != snapshot.InstanceDirectory) return;
