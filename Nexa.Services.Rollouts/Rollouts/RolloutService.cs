@@ -4,12 +4,14 @@ using System.Text;
 using System.Text.Json;
 
 using Nexa.Xsr.State;
+using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Rollouts;
 
 /// <summary>Local assignment is not an identity, entitlement or authorization boundary.</summary>
 public sealed class RolloutService(HttpClient http, XsrStateStore store, string seedPath, string channel, string rid) : IDisposable, IAsyncDisposable
 {
+    public IWorkScheduler? WorkScheduler { get; init; }
     private readonly CancellationTokenSource _stop = new();
     private readonly object _gate = new();
     private string? _seed;
@@ -39,6 +41,8 @@ public sealed class RolloutService(HttpClient http, XsrStateStore store, string 
     {
         try
         {
+            using IDisposable? admission = WorkScheduler is null ? null
+                : await WorkScheduler.AcquireAsync(WorkPriority.Background, WorkResource.Http, token).ConfigureAwait(false);
             using var response = await http.GetAsync("https://api.pcln.top/v2/launcher/rollouts", HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             using var document = await ReadBoundedAsync(response, token).ConfigureAwait(false);

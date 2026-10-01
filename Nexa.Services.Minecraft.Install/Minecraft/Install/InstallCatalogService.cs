@@ -1,6 +1,7 @@
 
 using Nexa.Xsr;
 using Nexa.Xsr.State;
+using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Minecraft.Install;
 
@@ -52,6 +53,7 @@ public static partial class InstallCompatibility
 /// <summary>Background per-catalog acquisition; immutable aggregate publications never drop sibling results.</summary>
 public sealed partial class InstallCatalogService : IDisposable
 {
+    public IWorkScheduler? WorkScheduler { get; init; }
     private readonly XsrStateStore _store;
     private readonly XsrStateId _state;
     private readonly IInstallCatalogSource _source;
@@ -64,8 +66,9 @@ public sealed partial class InstallCatalogService : IDisposable
     private string _game = "";
     private long _revision;
     private bool _disposed;
-    private sealed class Request(CancellationTokenSource cancellation)
+    private sealed class Request(CancellationTokenSource cancellation, WorkPriority priority)
     {
+        public WorkPriority Priority { get; } = priority;
         public CancellationTokenSource Cancellation { get; } = cancellation;
         public TaskCompletionSource<XsrResult> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
@@ -96,7 +99,7 @@ public sealed partial class InstallCatalogService : IDisposable
                 {
                     InstallLoader baseLoader = loader switch { InstallLoader.FabricApi or InstallLoader.OptiFabric => InstallLoader.Fabric, InstallLoader.Qsl => InstallLoader.Quilt, _ => loader };
                     if (InstallCompatibility.UnavailableReason(baseLoader, command.GameVersion) is null)
-                        tasks.Add(ReadAsync(new(command.GameVersion, loader), token));
+                        tasks.Add(ReadAsync(new(command.GameVersion, loader), WorkPriority.Background, token));
                 }
         }
         return CompleteAll(tasks);
@@ -106,6 +109,8 @@ public sealed partial class InstallCatalogService : IDisposable
         await Task.WhenAll(tasks).ConfigureAwait(false); return XsrResult.Success();
     }
     public Task<XsrResult> ReadAsync(InstallCatalogReadCommand command, CancellationToken token)
+        => ReadAsync(command, WorkPriority.Interactive, token);
+    private Task<XsrResult> ReadAsync(InstallCatalogReadCommand command, WorkPriority priority, CancellationToken token)
     {
         string game = command.Loader is null ? "" : command.GameVersion.Trim();
         var key = (game, command.Loader);
@@ -113,7 +118,8 @@ public sealed partial class InstallCatalogService : IDisposable
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (command.Loader is not null) SelectGame(game);
-            if (!command.Refresh && _pending.TryGetValue(key, out Request? pending)) return pending.Completion.Task;
+            if (!command.Refresh && _pending.TryGetValue(key, out Request? pending)
+                && (int)pending.Priority <= (int)priority) return pending.Completion.Task;
             if (_pending.Remove(key, out Request? old)) old.Cancellation.Cancel();
             if (!command.Refresh && _cache.TryGetValue(key, out IReadOnlyList<InstallCatalogVersion>? cached))
             {
@@ -124,7 +130,7 @@ public sealed partial class InstallCatalogService : IDisposable
                 Publish(new(++_revision, game, loader, [], false, Unsupported: game.Length == 0 ? "请先选择 Minecraft 版本。" : InstallCompatibility.UnavailableReason(loader, game)));
                 return Task.FromResult(XsrResult.Success());
             }
-            Request request = new(CancellationTokenSource.CreateLinkedTokenSource(token)); _pending[key] = request;
+            Request request = new(CancellationTokenSource.CreateLinkedTokenSource(token), priority); _pending[key] = request;
             Publish(new(++_revision, game, command.Loader, [], true));
             // Queue provider invocation too: even a synchronously completing HTTP/cache/parser cannot occupy the UI thread.
             _ = Task.Run(() => FetchAsync(key, request), CancellationToken.None);
@@ -135,23 +141,30 @@ public sealed partial class InstallCatalogService : IDisposable
     {
         CancellationToken token = request.Cancellation.Token;
         bool entered = false;
+        IDisposable? admission = null;
         try
         {
+            admission = WorkScheduler is null ? null
+                : await WorkScheduler.AcquireAsync(request.Priority, WorkResource.Http, token).ConfigureAwait(false);
             await _concurrency.WaitAsync(token).ConfigureAwait(false); entered = true;
             IReadOnlyList<InstallCatalogVersion> versions = key.Loader is { } loader
                 ? await _source.GetLoadersAsync(loader, key.Game, token).ConfigureAwait(false)
                 : await _source.GetGamesAsync(token).ConfigureAwait(false);
+            admission?.Dispose(); admission = null;
+            _concurrency.Release(); entered = false;
+            using IDisposable? normalize = WorkScheduler is null ? null
+                : await WorkScheduler.AcquireAsync(request.Priority, WorkResource.Cpu, token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
             int inputCount = versions.Count;
             long normalizeStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             versions = Array.AsReadOnly(versions.Where(v => !string.IsNullOrWhiteSpace(v.Id)).DistinctBy(v => v.Id, StringComparer.Ordinal).ToArray());
             double normalizeMs = System.Diagnostics.Stopwatch.GetElapsedTime(normalizeStarted).TotalMilliseconds;
             lock (_gate) if (Current())
-            {
-                if (_cache.Count >= 32) _cache.Clear();
-                _cache[key] = versions;
-                Publish(new(++_revision, key.Game, key.Loader, versions, false) { CacheHit = false, InputCount = inputCount, NormalizeMilliseconds = normalizeMs });
-            }
+                {
+                    if (_cache.Count >= 32) _cache.Clear();
+                    _cache[key] = versions;
+                    Publish(new(++_revision, key.Game, key.Loader, versions, false) { CacheHit = false, InputCount = inputCount, NormalizeMilliseconds = normalizeMs });
+                }
         }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         {
@@ -160,6 +173,7 @@ public sealed partial class InstallCatalogService : IDisposable
         }
         finally
         {
+            admission?.Dispose();
             if (entered) _concurrency.Release();
             lock (_gate)
             {

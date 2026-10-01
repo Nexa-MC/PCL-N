@@ -405,6 +405,7 @@
     "Nexa.Contracts",
     "Nexa.Core",
     "Nexa.Domain",
+    "Nexa.Services.Common.Contracts",
     "Nexa.Services.Rollouts.Contracts",
     "Nexa.Xsr.Abstractions",
     "Nexa.Xsr.State"

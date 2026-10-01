@@ -23,7 +23,7 @@ public sealed class LauncherTelemetryRuntime : IDisposable, IAsyncDisposable
             return;
         }
         Session = new(host.Telemetry, host.Settings, new CloudflareTelemetryTransport(_identity.Client,
-            () => rollouts.CompactTelemetryBatches, reason => host.Logging.Warn("Telemetry", reason)), host.Logging, version);
+            () => rollouts.CompactTelemetryBatches, reason => host.Logging.Warn("Telemetry", reason)), host.Logging, version, host.Work);
         host.Logging.AddSink(Session);
         rollouts.Record = Session.Record;
         updates.Record = Session.Record;

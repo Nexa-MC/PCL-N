@@ -249,15 +249,18 @@ internal static partial class Program
             AssertTrue(SpinWait.SpinUntil(
                 () => store.ReadAppliedValue(store.Resolve(MinecraftLaunchProgressState.AcquirePendingKey)) is bool waiting && waiting,
                 TimeSpan.FromSeconds(5)));
+            AssertEqual(1, host.Work.Snapshot.QuietScopes);
             AssertTrue(coordinator.DecideJavaAcquisition(approve: false));
             XsrResult result = await launchTask;
             AssertFalse(result.IsSuccess);
             AssertEqual(MinecraftErrors.JavaUnavailableCode, result.Error!.Code);
             AssertEqual(0, installer.Calls);
+            AssertEqual(0, host.Work.Snapshot.QuietScopes);
             AssertFalse(ReadProgressFlag(store, MinecraftLaunchProgressState.AcquirePendingKey));
         }
         finally
         {
+            host.Dispose();
             Directory.Delete(root, recursive: true);
         }
     }
@@ -287,6 +290,7 @@ internal static partial class Program
             AssertTrue(result.IsSuccess,
                 "approval launch failed: " + result.Error?.Code.Value + " " + result.Error?.Message);
             AssertEqual(1, installer.Calls);
+            AssertEqual(1, host.Work.Snapshot.QuietScopes);
             // The child remains alive through window detection. An immediately exiting fixture
             // races the production exited-before-window check, especially in Linux NativeAOT.
             AssertFalse(ReadProgressFlag(store, MinecraftLaunchProgressState.AcquirePendingKey));
@@ -298,6 +302,8 @@ internal static partial class Program
                 if (!child.HasExited) child.Kill(entireProcessTree: true);
                 await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
             }
+            AssertTrue(SpinWait.SpinUntil(() => host.Work.Snapshot.QuietScopes == 0, TimeSpan.FromSeconds(5)));
+            host.Dispose();
             Directory.Delete(root, recursive: true);
         }
     }
@@ -374,7 +380,8 @@ internal static partial class Program
                 Is64BitArchitecture: true,
                 IsArm64Architecture: false),
             progress: new MinecraftLaunchProgressPublisher(host.StateStore),
-            windowProbe: windowProbe ?? new ImmediateWindowProbe());
+            windowProbe: windowProbe ?? new ImmediateWindowProbe())
+        { WorkScheduler = host.Work };
         return (coordinator, host, installer, root);
     }
 

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using Nexa.Services.Logging;
+using Nexa.Services.Scheduling;
 using Nexa.Xsr;
 using Nexa.Xsr.State;
 
@@ -17,6 +18,8 @@ namespace Nexa.Services.Downloads;
 /// </summary>
 public sealed class DownloadService
 {
+    public IWorkScheduler? WorkScheduler { get; init; }
+
     public const string OwnerName = "Nexa.Services.Downloads";
     public const string LogModuleName = "Download";
 
@@ -88,6 +91,17 @@ public sealed class DownloadService
             (Service: this, Request: request));
         DownloadOperation operation = lazyOperation.Value;
         return operation.WaitAsync(progress, cancellationToken);
+    }
+
+    private IDownloadConnection? CreateConnection(DownloadRequest request, string source, bool probe = false)
+    {
+        IDownloadConnection? connection = request.ConnectionFactory(source);
+        if (connection is null || WorkScheduler is null) return connection;
+        WorkResource resources = probe ? WorkResource.Http : WorkResource.Http | WorkResource.Disk;
+        WorkPriority priority = WorkScheduler.CurrentPriority;
+        return connection is ISegmentedDownloadConnection segmented
+            ? new ScheduledSegmentedDownloadConnection(segmented, WorkScheduler, priority, resources)
+            : new ScheduledDownloadConnection(connection, WorkScheduler, priority, resources);
     }
 
     private async Task ExecuteAndCompleteAsync(string destinationPath, DownloadOperation operation)
@@ -191,7 +205,7 @@ public sealed class DownloadService
                 requestedOffset = request.AllowResume ? Math.Max(0, writer.ExistingLength) : 0;
                 _log?.Debug(LogModuleName, $"Resume check destination={destinationPath} existing_bytes={requestedOffset}");
                 stage = "connect";
-                connection = request.ConnectionFactory(source)
+                connection = CreateConnection(request, source)
                     ?? throw new InvalidOperationException($"No download connection was created for {source}.");
                 DownloadConnectionInfo connectionInfo = await connection
                     .StartAsync(requestedOffset, cancellationToken)
@@ -319,7 +333,7 @@ public sealed class DownloadService
         Action<DownloadProgress> report,
         CancellationToken cancellationToken)
     {
-        IDownloadConnection? probeConnection = request.ConnectionFactory(source);
+        IDownloadConnection? probeConnection = CreateConnection(request, source, probe: true);
         if (probeConnection is not ISegmentedDownloadConnection probe)
         {
             await StopConnectionAsync(probeConnection).ConfigureAwait(false);
@@ -459,7 +473,7 @@ public sealed class DownloadService
         Action<long> setLastReportedBytes,
         CancellationToken cancellationToken)
     {
-        IDownloadConnection? connection = request.ConnectionFactory(source);
+        IDownloadConnection? connection = CreateConnection(request, source);
         if (connection is not ISegmentedDownloadConnection segmented)
         {
             await StopConnectionAsync(connection).ConfigureAwait(false);

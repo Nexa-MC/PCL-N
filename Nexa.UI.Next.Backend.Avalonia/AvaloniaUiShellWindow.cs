@@ -104,7 +104,7 @@ public sealed class AvaloniaUiShellWindow : Window
         _surface = new AvaloniaUiSceneSurface(shell);
         _surface.TitleBarDragRequested += OnTitleBarDragRequested;
         _surface.SceneCommitted += OnSceneCommitted;
-        _windowActions = new AvaloniaNativeWindowActions(_surface, () => _shell.Renderer.ReducedMotion)
+        _windowActions = new AvaloniaNativeWindowActions(_surface, () => _shell.Renderer.EffectiveReducedMotion)
         {
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
@@ -174,9 +174,10 @@ public sealed class AvaloniaUiShellWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+        _shell.PublishWindowActivity(IsActive, WindowState == WindowState.Minimized);
         _ = AvaloniaWindowsFrame.SuppressBorder(this);
         UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
-        if (_shell.Renderer.ReducedMotion)
+        if (_shell.Renderer.EffectiveReducedMotion)
         {
             StartupRevealCompleted?.Invoke(this, EventArgs.Empty);
             return;
@@ -202,7 +203,7 @@ public sealed class AvaloniaUiShellWindow : Window
         base.OnClosing(e);
         if (e.Cancel) return;
         if (!_closeAnimationStarted && CloseGuard?.Invoke() == false) { e.Cancel = true; return; }
-        if (_closeAnimationStarted || _shell.Renderer.ReducedMotion)
+        if (_closeAnimationStarted || _shell.Renderer.EffectiveReducedMotion)
         {
             return;
         }
@@ -222,7 +223,7 @@ public sealed class AvaloniaUiShellWindow : Window
     internal void RequestClose()
     {
         if (!_closeAnimationStarted && CloseGuard?.Invoke() == false) return;
-        if (_closeAnimationStarted || _shell.Renderer.ReducedMotion)
+        if (_closeAnimationStarted || _shell.Renderer.EffectiveReducedMotion)
         {
             Close();
             return;
@@ -308,7 +309,7 @@ public sealed class AvaloniaUiShellWindow : Window
             AvaloniaMotionTokens.StartupRevealMilliseconds,
             AvaloniaUiMotion.EaseOut,
             completed: OnStartupRevealCompleted,
-            reducedMotion: () => _shell.Renderer.ReducedMotion);
+            reducedMotion: () => _shell.Renderer.EffectiveReducedMotion);
     }
 
     private void OnStartupRevealCompleted()
@@ -348,7 +349,7 @@ public sealed class AvaloniaUiShellWindow : Window
                     0,
                     AvaloniaMotionTokens.IconCollapseMilliseconds,
                     AvaloniaUiMotion.EaseIn,
-                    reducedMotion: () => _shell.Renderer.ReducedMotion,
+                    reducedMotion: () => _shell.Renderer.EffectiveReducedMotion,
                     completed: () =>
                     {
                         if (!_disposed)
@@ -430,7 +431,7 @@ public sealed class AvaloniaUiShellWindow : Window
                     // full region here flashes the window for one final compositor frame.
                     Close();
                 },
-                reducedMotion: () => _shell.Renderer.ReducedMotion);
+                reducedMotion: () => _shell.Renderer.EffectiveReducedMotion);
         }
 
         AvaloniaUiMotion.Animate(
@@ -448,7 +449,7 @@ public sealed class AvaloniaUiShellWindow : Window
             AvaloniaMotionTokens.CloseCollapseMilliseconds,
             AvaloniaUiMotion.EaseIn,
             completed: OnCollapsePieceCompleted,
-            reducedMotion: () => _shell.Renderer.ReducedMotion);
+            reducedMotion: () => _shell.Renderer.EffectiveReducedMotion);
 
         if (_closeIcon is not null)
         {
@@ -486,7 +487,7 @@ public sealed class AvaloniaUiShellWindow : Window
                     AvaloniaMotionTokens.CloseCollapseMilliseconds / 2,
                     AvaloniaUiMotion.EaseIn,
                     completed: OnCollapsePieceCompleted,
-                    reducedMotion: () => _shell.Renderer.ReducedMotion));
+                    reducedMotion: () => _shell.Renderer.EffectiveReducedMotion));
         }
     }
 
@@ -540,6 +541,8 @@ public sealed class AvaloniaUiShellWindow : Window
 
     private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
+        if (e.Property == IsActiveProperty || e.Property == WindowStateProperty)
+            _shell.PublishWindowActivity(IsActive, WindowState == WindowState.Minimized);
         // Avalonia 12 has no public Visual.RenderScalingProperty; the scaling fact lives on
         // TopLevel as a plain property, so subscribe to the TypedVisualTreeMutation/Bounds
         // signals that accompany a DPI change instead — Bounds covers the common reflow, and

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Nexa.Desktop.Ui;
 using Nexa.Services.Logging;
 using Nexa.Services.Tasks;
+using Nexa.Services.Scheduling;
 using Nexa.UI.Next;
 
 namespace Nexa.Desktop.Tests;
@@ -91,7 +92,8 @@ internal static partial class Program
             && final.Threads - baseline.Threads <= 16
             && (final.Handles is null || baseline.Handles is null || final.Handles - baseline.Handles <= 16)
             && final.Entities <= baseline.Entities + 128 && peak.Entities <= baseline.Entities + 256
-            && final.States == baseline.States && peak.Logs <= fixture.Foundation.Host.Logging.Capacity && peak.Tasks <= 30;
+            && final.States == baseline.States && peak.Logs <= fixture.Foundation.Host.Logging.Capacity && peak.Tasks <= 30
+            && final.Work.QuietScopes == 0 && final.Work.Resources.All(r => r.Active == 0 && r.Waiting == 0);
         using FileStream report = new(Path.Combine(output, "run.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None);
         using Utf8JsonWriter json = new(report, new JsonWriterOptions { Indented = true });
         json.WriteStartObject();
@@ -119,6 +121,7 @@ internal static partial class Program
         json.WriteNumber("peak_working_set_bytes", Math.Max(peak.WorkingSet, final.WorkingSet));
         json.WriteNumber("peak_private_bytes", Math.Max(peak.PrivateBytes, final.PrivateBytes));
         json.WriteNumber("peak_managed_live_bytes", Math.Max(peak.LiveBytes, final.LiveBytes));
+        json.WriteString("scheduler_scope", "host admission leases and queues; not OS HTTP connections or disk I/O counters");
         json.WriteString("managed_live_bytes_scope", "GC.GetTotalMemory(false) estimate; baseline and final after explicit full GC");
         json.WriteString("allocation_scope", "process total includes fixture, one-second Process/JSON observer and explicit final GC; not product idle allocation");
         json.WriteString("gate_scope", "bounded fixture endpoint retention; not monotonic-trend or runtime KPI certification");
@@ -172,7 +175,8 @@ internal static partial class Program
                 process.PrivateMemorySize64, GC.GetGCMemoryInfo().TotalCommittedBytes, process.TotalProcessorTime.TotalMilliseconds,
                 GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2),
                 fixture.Foundation.Host.Logging.GetSnapshot().Count,
-                fixture.Store.ReadCollection<TaskCenterEntry>(fixture.Store.Resolve(TaskCenterStateContract.EntriesKey)).Items.Count(task => task.IsTerminal));
+                fixture.Store.ReadCollection<TaskCenterEntry>(fixture.Store.Resolve(TaskCenterStateContract.EntriesKey)).Items.Count(task => task.IsTerminal),
+                fixture.Foundation.Host.Work.Snapshot);
         }
     }
 
@@ -182,6 +186,7 @@ internal static partial class Program
         using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]), timeProvider: clock);
         fixture.Controller.WaitUntilIdle().GetAwaiter().GetResult();
         fixture.Shell.Renderer.ReducedMotion = true;
+        Emit(fixture.Intents, "ui.launch.widget.trivia");
         _ = fixture.Shell.Render(new XsrUiSize(1280, 800));
         using SoakFrameRequests requests = new(fixture.Shell);
         AssertFalse(requests.TryTake());
@@ -227,6 +232,14 @@ internal static partial class Program
             json.WriteNumber("state_cells", sample.States);
             json.WriteNumber("log_entries", sample.Logs);
             json.WriteNumber("terminal_tasks", sample.Tasks);
+            json.WriteNumber("quiet_scopes", sample.Work.QuietScopes);
+            json.WriteStartArray("admission_resources");
+            foreach (WorkResourceSnapshot resource in sample.Work.Resources)
+            {
+                json.WriteStartObject(); json.WriteString("resource", resource.Resource.ToString());
+                json.WriteNumber("active", resource.Active); json.WriteNumber("waiting", resource.Waiting); json.WriteEndObject();
+            }
+            json.WriteEndArray();
             json.WriteEndObject();
         }
         stream.WriteByte((byte)'\n');
@@ -278,5 +291,5 @@ internal static partial class Program
 
     private sealed record SoakSample(double Seconds, long WorkingSet, long LiveBytes, long Allocated,
         int? Handles, int Threads, int Entities, int States, long PrivateBytes, long GcCommitted, double CpuMs,
-        int Gen0, int Gen1, int Gen2, int Logs, int Tasks);
+        int Gen0, int Gen1, int Gen2, int Logs, int Tasks, WorkSchedulerSnapshot Work);
 }

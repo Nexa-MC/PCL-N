@@ -477,6 +477,12 @@ public sealed class XsrUiShell
 
     private readonly XsrStateStore _windowStateStore;
     private double _trafficLightPadding, _windowContentInset;
+    public void PublishWindowActivity(bool active, bool minimized)
+    {
+        if (!_windowStateStore.TryResolve(XsrUiShellWindowState.Activity, out var id)) return;
+        XsrUiWindowActivity activity = new(active, minimized);
+        if (_windowStateStore.Read<XsrUiWindowActivity>(id).Value != activity) _windowStateStore.Publish(id, activity);
+    }
     public void PublishWindowMetrics(double trafficLightPadding, bool fullscreen, double contentInset = 0)
     {
         double padding = fullscreen ? 0 : Math.Clamp(trafficLightPadding, 0, 300);
@@ -616,7 +622,7 @@ public sealed class XsrUiShell
         }
 
         IsNavigationExpanded = expanded;
-        if (Renderer.ReducedMotion)
+        if (Renderer.EffectiveReducedMotion)
         {
             // Reduced motion is a presentation contract: skip the geometry interpolation and
             // commit the final rail width immediately.

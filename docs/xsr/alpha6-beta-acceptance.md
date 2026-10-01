@@ -51,3 +51,9 @@ Alpha.6 可明确列出尚待实机验收的候选能力；Beta 的支持列表�
 ## 性能优先级修订
 
 运行期性能契约取代启动时间导向：不设置700ms冷启动或300ms热启动门槛。Time To Splash、真实阶段与可响应的最小Shell需单独实施；已有装饰Splash不代表这些能力已完成。fixture soak改为事件驱动idle并增加资源指标，kernel补充尾部数据；新增测量不等于目标已达到。
+
+## 运行期 admission 收口
+
+共享CPU/disk/HTTP调度与Launch Quiet Mode首批adapter见 [work-scheduling.md](work-scheduling.md)。目录主动读取会提升对应预取请求；图标释放HTTP后再等待CPU，整个encoded/decode流水线最多四项。游戏取消/失败立即释放，确认窗口后15秒grace或提前退出释放，多quiet scope独立计数。提示卡片仅在可见活跃状态计时，用户Reduced Motion不被临时策略改写。schema-1在线模型的生产轮询已移除。
+
+本机managed验证：Release零警告/错误；452项Services、105项Desktop、88项UI.Next、9项Avalonia backend及68项目架构检查通过。60秒默认主页fixture记录0frames、0render requests、所有采样quiet/admission计数为0；285entities、210state cells。采样器在本进程内，CPU/allocation数字包含每秒Process/JSON工作和JIT；这不是idle CPU <0.2%、零分配或8h原生验收。日志publication/file sink仍有空闲定时轮询，图片分层预算及余下adapter继续执行。

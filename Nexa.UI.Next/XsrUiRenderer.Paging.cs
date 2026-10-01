@@ -55,7 +55,7 @@ public sealed partial class XsrUiRenderer
     {
         if (!double.IsFinite(position) || !_tree.IsAlive(entity)
             || _tree.GetComponent<XsrUiPager>(entity) is not { IsDragging: false } pager) return;
-        if (ReducedMotion) position = pager.PageIndex;
+        if (EffectiveReducedMotion) position = pager.PageIndex;
         if (pager.Position == position) return;
         pager.Position = position;
         _tree.MarkDirty(entity, XsrUiDirtyKinds.Layout);
@@ -83,7 +83,7 @@ public sealed partial class XsrUiRenderer
     {
         pager.PageIndex = index;
         pager.Revision++;
-        if (ReducedMotion) pager.Position = index;
+        if (EffectiveReducedMotion) pager.Position = index;
         if (_focused != entity && FindPager(_focused) == entity)
             _ = Focus(entity, showIndicator: false);
         _tree.MarkDirty(entity, XsrUiDirtyKinds.Layout);

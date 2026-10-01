@@ -6,6 +6,7 @@
     <RootNamespace>Nexa.Services</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Nexa.Services.Common.Contracts/Nexa.Services.Common.Contracts.csproj" />
     <ProjectReference Include="../Nexa.Contracts/Nexa.Contracts.csproj" />
     <ProjectReference Include="../Nexa.Core/Nexa.Core.csproj" />
     <ProjectReference Include="../Nexa.Domain/Nexa.Domain.csproj" />

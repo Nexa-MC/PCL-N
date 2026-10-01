@@ -5,6 +5,7 @@ using Nexa.Services.Downloads;
 using Nexa.Services.Logging;
 using Nexa.Services.Minecraft.Process;
 using Nexa.Services.Settings;
+using Nexa.Services.Scheduling;
 using Nexa.Services.Tasks;
 using Nexa.Services.Telemetry;
 using Nexa.Xsr.State;
@@ -28,6 +29,7 @@ public static class FoundationState
     public static XsrStateStoreBuilder CreateBuilder(SettingsSchema? settingsSchema = null)
     {
         XsrStateStoreBuilder builder = new();
+        WorkSchedulingContract.DeclareState(builder);
         if (settingsSchema is not null)
         {
             SettingsService.DeclareState(builder, settingsSchema);
@@ -57,7 +59,7 @@ public static class FoundationState
 /// state bridge is the store observer, so every foundation publication reaches the renderer
 /// drain without extra wiring.
 /// </summary>
-public sealed class FoundationHost
+public sealed class FoundationHost : IDisposable
 {
     private readonly IReadOnlyList<object> _services;
 
@@ -69,9 +71,11 @@ public sealed class FoundationHost
         TelemetryService telemetry,
         SettingsService settings,
         TaskCenterService tasks,
+        WorkScheduler work,
         string? minecraftRootDirectory = null,
         IEnumerable<IRemediationHandler>? remediationHandlers = null)
     {
+        Work = work ?? throw new ArgumentNullException(nameof(work));
         StateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         Logging = logging ?? throw new ArgumentNullException(nameof(logging));
         Downloads = downloads ?? throw new ArgumentNullException(nameof(downloads));
@@ -135,9 +139,12 @@ public sealed class FoundationHost
         ResourceEstimator = new ResourceEstimator(history: ObservationHistory);
         Preflight = new CapabilityPreflightEngine();
         Tasks = tasks ?? throw new ArgumentNullException(nameof(tasks));
-        _services = Array.AsReadOnly<object>([Logging, Downloads, Accounts, Telemetry, Settings, SettingsPolicy, Tasks,
+        _services = Array.AsReadOnly<object>([Logging, Downloads, Accounts, Telemetry, Settings, SettingsPolicy, Tasks, Work,
             InputUsage, ObservationHistory, MachineCapabilities, ResourceEstimator, Preflight, Remediations]);
     }
+
+    public WorkScheduler Work { get; }
+    public void Dispose() => Work.Dispose();
 
     public Minecraft.Java.IJavaRuntimeLocator JavaLocator { get; }
 
@@ -201,13 +208,14 @@ public static class FoundationComposer
         var logging = new LogService(store, logCapacity, clock, TimeSpan.FromMilliseconds(250));
         // Sinks and observers must be attached before constructors read persisted data.
         configureLogging?.Invoke(logging);
-        var downloads = new DownloadService(store, downloadBufferSize, logging, minimumSegmentBytes);
+        var work = new WorkScheduler(store: store, clock: clock);
+        var downloads = new DownloadService(store, downloadBufferSize, logging, minimumSegmentBytes) { WorkScheduler = work };
         var accounts = new AccountService(store, profilePort, logging);
         var telemetry = new TelemetryService(store, telemetryCapacity);
         var settings = new SettingsService(store, settingsSchema, settingsPort, logging);
         var tasks = new TaskCenterService(store);
 
-        return new FoundationHost(store, logging, downloads, accounts, telemetry, settings, tasks,
+        return new FoundationHost(store, logging, downloads, accounts, telemetry, settings, tasks, work,
             minecraftRootDirectory, remediationHandlers);
     }
 }

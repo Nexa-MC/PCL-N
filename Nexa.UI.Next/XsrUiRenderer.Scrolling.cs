@@ -15,7 +15,7 @@ public sealed partial class XsrUiRenderer
     {
         if (!double.IsFinite(offset) || !_tree.IsAlive(entity) || !IsInVisibleTree(entity)
             || _tree.GetComponent<XsrUiScrollGesture>(entity) is not { Dragging: false, Velocity: not 0 }
-            || _tree.GetComponent<XsrUiScroll>(entity) is not { } scroll || ReducedMotion) return;
+            || _tree.GetComponent<XsrUiScroll>(entity) is not { } scroll || EffectiveReducedMotion) return;
         scroll.OffsetY = Math.Clamp(offset, 0, scroll.MaximumOffsetY);
         _tree.MarkDirty(entity, XsrUiDirtyKinds.Layout);
     }
@@ -92,7 +92,7 @@ public sealed partial class XsrUiRenderer
         if (!entity.IsAssigned || !_tree.IsAlive(entity)) return false;
         XsrUiScrollGesture motion = _tree.GetComponent<XsrUiScrollGesture>(entity)!;
         motion.Dragging = false;
-        if (cancelled || !committed || ReducedMotion || _gestureTime.GetElapsedTime(_scrollLastTime).TotalMilliseconds > 120)
+        if (cancelled || !committed || EffectiveReducedMotion || _gestureTime.GetElapsedTime(_scrollLastTime).TotalMilliseconds > 120)
             motion.Velocity = 0;
         motion.Revision++;
         if (committed) ClearPointerPress();

@@ -7,7 +7,7 @@ public sealed partial class XsrUiRenderer
     {
         bool changed = transition.HasPresentedKey && transition.PresentedKey != key
             || transition.MovesSelf && _scene is not null && transition.LastSceneVersion != _scene.Version;
-        if (changed && !ReducedMotion)
+        if (changed && !EffectiveReducedMotion)
         {
             transition.Outgoing = CaptureOutgoing(entity, transition);
             if (Math.Abs(transition.PresentedOffsetX) < .01) transition.PresentedOffsetX = transition.OffsetX;
@@ -18,7 +18,7 @@ public sealed partial class XsrUiRenderer
         transition.HasPresentedKey = true;
         transition.PresentedKey = key;
         transition.LastSceneVersion = _sceneVersion + 1;
-        if (ReducedMotion) { transition.PresentedOffsetX = 0; transition.PresentedOffsetY = 0; }
+        if (EffectiveReducedMotion) { transition.PresentedOffsetX = 0; transition.PresentedOffsetY = 0; }
         double remaining = Math.Clamp(Math.Max(
             transition.StartOffsetX == 0 ? 0 : transition.PresentedOffsetX / transition.StartOffsetX,
             transition.StartOffsetY == 0 ? 0 : transition.PresentedOffsetY / transition.StartOffsetY), 0, 1);

@@ -63,6 +63,20 @@ public sealed partial class XsrUiRenderer
         }
     }
 
+    private bool _optionalMotionSuspended;
+    /// <summary>Temporary host presentation policy, independent of the user's reduced-motion preference.</summary>
+    public bool OptionalMotionSuspended
+    {
+        get => _optionalMotionSuspended;
+        set
+        {
+            if (_optionalMotionSuspended == value) return;
+            _optionalMotionSuspended = value;
+            if (_root.IsAssigned && _tree.IsAlive(_root)) _tree.MarkDirty(_root, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
+        }
+    }
+    public bool EffectiveReducedMotion => ReducedMotion || OptionalMotionSuspended;
+
     /// <summary>
     /// Render-thread composition hook for materializing state-backed PXML templates. Runs before
     /// state dirt is drained and before layout; publishers must never call this hook themselves.
@@ -485,7 +499,7 @@ public sealed partial class XsrUiRenderer
             XsrUiEntityId[] pages = [.. _tree.Children(entity).Where(IsVisible)];
             pager.PageCount = pages.Length;
             pager.PageIndex = Math.Clamp(pager.PageIndex, 0, Math.Max(0, pages.Length - 1));
-            if (ReducedMotion && !pager.IsDragging) pager.Position = pager.PageIndex;
+            if (EffectiveReducedMotion && !pager.IsDragging) pager.Position = pager.PageIndex;
             for (int i = 0; i < pages.Length; i++)
             {
                 double offset = i - pager.Position;
@@ -727,7 +741,7 @@ public sealed partial class XsrUiRenderer
     {
         if (!_tree.IsAlive(entity) || _tree.GetComponent<XsrUiTransition>(entity) is not { } transition) return;
         if (!double.IsFinite(offset)) throw new ArgumentOutOfRangeException(nameof(offset));
-        double value = ReducedMotion ? 0 : offset;
+        double value = EffectiveReducedMotion ? 0 : offset;
         if (transition.PresentedOffsetX == value) return;
         transition.PresentedOffsetX = value;
         _tree.MarkDirty(entity, XsrUiDirtyKinds.Paint);
@@ -740,7 +754,7 @@ public sealed partial class XsrUiRenderer
     {
         if (!_tree.IsAlive(entity) || _tree.GetComponent<XsrUiTransition>(entity) is not { } transition) return;
         if (!double.IsFinite(offset)) throw new ArgumentOutOfRangeException(nameof(offset));
-        double value = ReducedMotion ? 0 : offset;
+        double value = EffectiveReducedMotion ? 0 : offset;
         if (transition.PresentedOffsetY == value) return;
         transition.PresentedOffsetY = value;
         _tree.MarkDirty(entity, XsrUiDirtyKinds.Paint);
@@ -765,7 +779,7 @@ public sealed partial class XsrUiRenderer
         if (element?.Width is not { } expanded || element.Height is not { } collapsed
             || _tree.GetComponent<XsrUiVisualStyle>(entity)?.HoverExpand != true
             || _tree.GetComponent<XsrUiInput>(entity) is not { } input) return element?.Width;
-        if (ReducedMotion) input.CapsuleExpansionProgress = IsEnabled(input) && (input.IsHovered || input.IsFocusVisible) ? 1 : 0;
+        if (EffectiveReducedMotion) input.CapsuleExpansionProgress = IsEnabled(input) && (input.IsHovered || input.IsFocusVisible) ? 1 : 0;
         return Math.Min(collapsed, expanded) + Math.Max(0, expanded - collapsed) * input.CapsuleExpansionProgress;
     }
 

@@ -11,6 +11,7 @@ The user-requested constraints take precedence:
 
 ## Documents
 
+- [work-scheduling.md](work-scheduling.md) — 共享资源 admission、Launch Quiet Mode 与可见提示生命周期
 - [runtime-performance.md](runtime-performance.md) — 运行期性能优先级、资源预算、Splash 与验收边界
 - [alpha6-beta-acceptance.md](alpha6-beta-acceptance.md) — 非商业路线图、真实 launch / soak 证据与 Beta 完成标准
 - [diagnostic-export.md](diagnostic-export.md) — 用户主动诊断包、固定字段和日志隐私边界

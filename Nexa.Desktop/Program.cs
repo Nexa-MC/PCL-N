@@ -180,7 +180,7 @@ internal static partial class Program
         bool consoleAttached = Console.IsOutputRedirected
             || (OperatingSystem.IsWindows() && GetConsoleWindow() != IntPtr.Zero);
         setStage("compose_foundation");
-        FoundationHost host = FoundationComposer.Compose(
+        using FoundationHost host = FoundationComposer.Compose(
             new LauncherSettingsJsonPort(System.IO.Path.Combine(settingsFolder, "settings.json"), settingsSchema),
             settingsSchema,
             new ProtectedLaunchProfilePort(System.IO.Path.Combine(profilesFolder, "profiles.json")),
@@ -360,7 +360,6 @@ internal static partial class Program
         using IDisposable? telemetrySubscription = telemetrySession is null ? null : stateObservation.Subscribe(telemetrySession);
         operationLog.Diagnostics = telemetrySession;
         rollouts.Start();
-        using var onlineResourceModels = new Nexa.Services.Capabilities.OnlineWorkingSetModelSession(updateHttp, host.OnlineResourceModels);
         var recoveryRoots = host.StateStore.Read<MinecraftLibrarySnapshot>(host.StateStore.Resolve(MinecraftLibraryService.StateKey)).Value?.Directories
             .Select(directory => directory.Path).ToArray() ?? [minecraftRootDirectory];
         using var installRecovery = new DesktopInstallRecoverySession(installRun.Commands, recoveryRoots,

@@ -182,7 +182,8 @@ public static class MinecraftRuntimeComposer
             new MinecraftLaunchProgressPublisher(host.StateStore),
             identityResolver,
             launcherVersion,
-            windowProbe, authlib, gameWindowAppeared, fileCompletion, host.SettingsPolicy, preflight);
+            windowProbe, authlib, gameWindowAppeared, fileCompletion, host.SettingsPolicy, preflight)
+        { WorkScheduler = host.Work };
         IXsrDispatchObserver dispatchObserver = observer ?? NullDispatchObserver.Instance;
         XsrCommandRouterBuilder commandBuilder = new();
         if (installer is JavaRuntimeInstaller durableInstaller)

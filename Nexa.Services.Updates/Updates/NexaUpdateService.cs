@@ -1,12 +1,14 @@
 using System.Net;
 using System.Text.Json;
 using Nexa.Xsr;
+using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Updates;
 
 /// <summary>Only discovers Nexa 2 releases; the legacy patch and distribution contracts are separate.</summary>
 public sealed class NexaUpdateService(HttpClient http, Rollouts.RolloutService? rollouts = null)
 {
+    public IWorkScheduler? WorkScheduler { get; init; }
     public Action<string, string>? Record { get; set; }
     private const string Origin = "https://api.pcln.top";
     public async Task<XsrResult<NexaUpdateStatus>> CheckAsync(NexaUpdateQuery query, CancellationToken token = default)
@@ -23,6 +25,8 @@ public sealed class NexaUpdateService(HttpClient http, Rollouts.RolloutService? 
                 || query.RuntimeIdentifier is not ("win-x64" or "win-arm64" or "linux-x64" or "linux-arm64" or "osx-x64" or "osx-arm64")
                 || !UpdateVersion.TryParse(query.CurrentVersion, out var current) || current.Major != 2)
                 throw new InvalidDataException("此构建不支持在线更新检查。");
+            using IDisposable? admission = WorkScheduler is null ? null
+                : await WorkScheduler.AcquireAsync(WorkPriority.Background, WorkResource.Http, token).ConfigureAwait(false);
             using var response = await http.GetAsync($"{Origin}/v2/updates/latest?channel={query.Channel}&rid={query.RuntimeIdentifier}{(rollouts is null ? "" : "&rollout=1")}", HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NoContent) return XsrResult.Success(new NexaUpdateStatus(null));
             response.EnsureSuccessStatusCode();

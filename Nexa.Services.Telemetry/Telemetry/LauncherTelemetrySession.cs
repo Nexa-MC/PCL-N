@@ -4,6 +4,7 @@ using Nexa.Services.Minecraft.Process;
 using Nexa.Services.Settings;
 using Nexa.Services.Tasks;
 using Nexa.Xsr.State;
+using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Telemetry;
 
@@ -15,6 +16,7 @@ public sealed partial class LauncherTelemetrySession : IDisposable, IAsyncDispos
     private readonly ITelemetryTransport _transport;
     private readonly LogService _log;
     private readonly string _version;
+    private readonly IWorkScheduler? _work;
     private readonly CancellationTokenSource _stop = new();
     private readonly object _gate = new();
     private bool _disposed;
@@ -26,7 +28,12 @@ public sealed partial class LauncherTelemetrySession : IDisposable, IAsyncDispos
 
     public LauncherTelemetrySession(TelemetryService telemetry, SettingsService settings,
         ITelemetryTransport transport, LogService log, string version)
+        : this(telemetry, settings, transport, log, version, null) { }
+
+    public LauncherTelemetrySession(TelemetryService telemetry, SettingsService settings,
+        ITelemetryTransport transport, LogService log, string version, IWorkScheduler? work)
     {
+        _work = work;
         _telemetry = telemetry; _settings = settings; _transport = transport; _log = log; _version = version.Split('+')[0];
         if (LauncherTelemetryPolicy.IsRequired(_version)) telemetry.RequireDiagnostics();
         settings.Changed += OnSettingsChanged;
@@ -144,9 +151,11 @@ public sealed partial class LauncherTelemetrySession : IDisposable, IAsyncDispos
             do
             {
                 lock (_gate) { if (_disposed) return; }
-                SampleResources();
                 try
                 {
+                    using IDisposable? admission = _work is null ? null
+                        : await _work.AcquireAsync(WorkPriority.Background, WorkResource.Http, _stop.Token).ConfigureAwait(false);
+                    SampleResources();
                     for (int batch = 0; batch < 10; batch++)
                     {
                         if (await _telemetry.FlushAsync(_transport, _stop.Token).ConfigureAwait(false) == 0) break;

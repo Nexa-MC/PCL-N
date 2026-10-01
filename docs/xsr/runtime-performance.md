@@ -32,10 +32,13 @@ Time To Splash从用户启动进程到首次实际呈现测量，争取100–200
 - `Nexa.Desktop.Tests --soak idle|navigation --seconds 1..28800 --output NEW-DIR` 是composition fixture。idle按tree/state invalidation合并触发render，不再主动60Hz轮询；navigation主动产生负载。每秒采样记录CPU、private bytes、GC committed、collection counts等；CPU同时给单核占用和按Environment.ProcessorCount归一化的数字，后者受quota/affinity/DOTNET_PROCESSOR_COUNT影响，不能直接等同于整机任务管理器百分比；采样、JSON与Process查询的allocation属于harness，不能把进程总allocation称为产品静止路径allocation。定期hint等真实composition事件仍会计入帧。
 - 8h可在本地运行；现有手动workflow设置150分钟timeout并保持2h fixture选项，不能直接承担8h任务。不把fixture导航或8h本地composition等同于原生Desktop/Minecraft运行验收。
 - OS commit、native/GPU、Sidecar/HTTP/cache/IO等未测指标明确列出；不存在指标时不得填0。
-- 当前只交付指标/证据修正。全局IO scheduler、Launch Quiet Mode、图片分层预算、真实8h与OS/GPU帧测量仍是后续实现/验收，不能以本文件关闭这些任务。保持现有签名、初始化、事务恢复与取消契约。
+- Foundation host新增共享CPU/disk/HTTP admission与Launch Quiet Mode；首批接入下载连接/分段、目录预取、图标获取与验证、更新/rollout查询和遥测上传，详见 [work-scheduling.md](work-scheduling.md)。失败/取消释放，确认窗口后15秒 grace 或提前终止释放；不支持窗口检测的fallback不称作稳定确认。后台索引、Recovery GC、Sidecar非关键工作尚待adapter，图片分层预算、真实8h与OS/GPU测量仍待验收。签名、初始化、事务恢复与取消契约保持。
+- 主页提示改为仅当前提示卡片、活跃且未最小化窗口、非启动/quiet时唤醒；其他页面和卡片不再三秒更新。temporary motion suspension独立于用户Reduced Motion。生产组合不再启动已禁用schema-1在线模型的每小时HTTP refresh session。
 
 ## 本轮验证
 
 Release构建零警告/错误，104项Desktop测试及68项目架构检查通过；managed与Linux NativeAOT benchmark的确定性门禁、schema-2尾部字段检查通过。idle/navigation各运行60s，仅证明fixture入口及有界保留检查；1s无事件窗口记录0frames与null帧percentile，60s主页仍记录40frames（包括提示定时器触发）。这不是产品已实现静止idle的证明。
 
 当前非受控、并行开发环境的1600节点kernel paint/layout P95分别约3.6/4.5ms（managed）、3.7/4.9ms（NativeAOT），部分场景高于新目标；未启用受控时间门禁，不能将确定性PASS解释为性能达标。OS/GPU完整帧、真实8h、静止进程外采样、Quiet Mode与缓存/IO预算均未验收。
+
+后续admission批次：452 Services /105 Desktop通过；默认主页60秒fixture记录0frames与0render requests，所有采样admission/quiet计数为0（285entities、210cells）。这关闭提示定时唤醒回归，仍不证明原生idle CPU/RAM SLA；日志空闲timer及图片预算继续推进。

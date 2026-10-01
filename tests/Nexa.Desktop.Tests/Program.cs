@@ -130,6 +130,7 @@ internal static partial class Program
         ("navigation retains outgoing layers and live hit geometry", NavigationMotionHasOutgoingLayersAndLiveHitGeometry),
         ("skin route publishes media through host state into the rendered profile", SkinRoutePublishesIntoRenderedProfile),
         ("delete actions persist only the requested profile and reject stale rows", DeleteActionsPersistAndRejectStaleRows),
+        ("trivia yields to visibility activity and launch quiet without changing preferences", TriviaYieldsToVisibilityWindowActivityAndLaunchQuiet),
         ("trivia rotates every three seconds without foreign tree writes and stops on disposal", TriviaTimerPublishesOnlyStateAndStops),
         ("install failure leaves the idle tree clean", InstallFailureLeavesTheIdleTreeClean),
         ("staged task page renders clean between changes", StagedTaskPageRendersCleanBetweenChanges),
@@ -945,6 +946,7 @@ internal static partial class Program
                 Minecraft.Dispose();
             }
 
+            Foundation.Host.Dispose();
             Directory.Delete(_temporaryDirectory, recursive: true);
         }
     }

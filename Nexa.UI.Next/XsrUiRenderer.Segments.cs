@@ -9,7 +9,7 @@ public sealed partial class XsrUiRenderer
         if (reveal.Expanded == expanded && !immediate) return;
         reveal.Expanded = expanded;
         if (_tree.GetComponent<XsrUiInput>(entity) is { } input) input.Enabled = expanded;
-        if (ReducedMotion || immediate) SetSegmentRevealProgress(entity, expanded ? 1 : 0);
+        if (EffectiveReducedMotion || immediate) SetSegmentRevealProgress(entity, expanded ? 1 : 0);
         else
         {
             _tree.GetComponent<XsrUiElement>(entity)!.IsVisible = true;
@@ -22,7 +22,7 @@ public sealed partial class XsrUiRenderer
     public void SetSegmentRevealProgress(XsrUiEntityId entity, double progress)
     {
         if (!_tree.IsAlive(entity) || _tree.GetComponent<XsrUiSegmentReveal>(entity) is not { } reveal) return;
-        reveal.Progress = ReducedMotion ? reveal.Expanded ? 1 : 0 : Math.Clamp(progress, 0, 1);
+        reveal.Progress = EffectiveReducedMotion ? reveal.Expanded ? 1 : 0 : Math.Clamp(progress, 0, 1);
         XsrUiElement element = _tree.GetComponent<XsrUiElement>(entity)!;
         element.Width = reveal.Width * reveal.Progress;
         element.IsVisible = reveal.Expanded || reveal.Progress > .001;

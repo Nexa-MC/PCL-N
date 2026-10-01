@@ -8,6 +8,7 @@ using Nexa.Services.Minecraft.Libraries;
 using Nexa.Services.Minecraft.ModLoaders;
 using Nexa.Services.Minecraft.Process;
 using Nexa.Services.Settings;
+using Nexa.Services.Scheduling;
 using Nexa.Xsr;
 
 namespace Nexa.Services.Minecraft.Launch;
@@ -18,6 +19,8 @@ namespace Nexa.Services.Minecraft.Launch;
 /// </summary>
 public sealed class MinecraftLaunchCoordinator
 {
+    public IWorkScheduler? WorkScheduler { get; init; }
+
     private static readonly int[] SelectableJavaMajors = [8, 16, 17, 21, 25];
     private static readonly TimeSpan StageHeartbeatInterval = TimeSpan.FromMilliseconds(120);
     private const double StageHeartbeatStep = 0.05d;
@@ -409,9 +412,15 @@ public sealed class MinecraftLaunchCoordinator
             _activeLaunch = launchCancellation;
         }
 
+        IWorkQuietLease? quiet = null;
+        IDisposable? priority = null;
         try
         {
-            return await StartLockedAsync(instanceId, accountIndex, minecraftRootDirectory, launchCancellation, operation).ConfigureAwait(false);
+            priority = WorkScheduler?.UsePriority(WorkPriority.Critical);
+            quiet = WorkScheduler?.EnterQuiet();
+            XsrResult result = await StartLockedAsync(instanceId, accountIndex, minecraftRootDirectory, launchCancellation, operation, quiet).ConfigureAwait(false);
+            if (result.IsSuccess) quiet = null; // Session termination / confirmed-window grace owns it now.
+            return result;
         }
         finally
         {
@@ -424,7 +433,8 @@ public sealed class MinecraftLaunchCoordinator
                 }
             }
 
-            launchCancellation.Dispose();
+            try { quiet?.Dispose(); }
+            finally { priority?.Dispose(); launchCancellation.Dispose(); }
         }
     }
 
@@ -433,7 +443,8 @@ public sealed class MinecraftLaunchCoordinator
         int accountIndex,
         string minecraftRootDirectory,
         CancellationTokenSource launchCancellation,
-        LogOperation? operation)
+        LogOperation? operation,
+        IWorkQuietLease? quiet)
     {
         CancellationToken launchToken = launchCancellation.Token;
         // Set as soon as the game process exists, so a cancellation before the window
@@ -535,6 +546,7 @@ public sealed class MinecraftLaunchCoordinator
                 }
 
                 session.Changed -= OnSessionChanged;
+                quiet?.Dispose();
                 _progress?.Stop(sessionId);
             }
 
@@ -560,6 +572,8 @@ public sealed class MinecraftLaunchCoordinator
                 return XsrResult.Failure(MinecraftErrors.ExitedBeforeWindow());
             }
 
+            if (wait == GameWindowWaitResult.Visible) quiet?.ReleaseAfter(TimeSpan.FromSeconds(15));
+            else quiet?.Dispose(); // Fallback is not a window/stability confirmation.
             _progress?.Report(new MinecraftLaunchStageReport(
                 MinecraftLaunchStages.End,
                 MinecraftLaunchStages.ProgressAt(MinecraftLaunchStages.Total),

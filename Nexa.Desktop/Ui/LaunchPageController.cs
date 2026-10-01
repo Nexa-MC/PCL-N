@@ -214,6 +214,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     private readonly object _hintGate = new();
     private readonly TimeProvider _timeProvider;
     private ITimer? _hintTimer;
+    private bool _hintTimerRunning;
     private readonly object _refreshGate = new();
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private Task _refreshTask = Task.CompletedTask;
@@ -305,7 +306,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
             _shell.Renderer.RebasePagerPage(_pageEntities["LaunchWidgetPager"], Math.Clamp(savedPage, 0, 2));
         RefreshWidgetPresentation();
         Publish(LaunchPageState.WidgetHintKey, LaunchWidgetHints.BuiltIn[_hintIndex]);
-        _hintTimer = _timeProvider.CreateTimer(_ => AdvanceHint(), null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+        _hintTimer = _timeProvider.CreateTimer(_ => AdvanceHint(automatic: true), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         _ = QueueRefresh();
     }
 
@@ -337,7 +338,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
         if (_foundationCommands.TryResolve(FoundationRouteIds.SettingsSet, out XsrCommandId saveWidget))
             save = _foundationCommands.Dispatch(saveWidget, new SettingsSetCommand("UiLaunchWidgetPage",
                 _shell.Tree.GetComponent<XsrUiPager>(_pageEntities["LaunchWidgetPager"])!.PageIndex.ToString(CultureInfo.InvariantCulture))).Completion;
-        lock (_hintGate) { _disposed = true; _hintTimer?.Dispose(); }
+        lock (_hintGate) { _disposed = true; _hintTimerRunning = false; _hintTimer?.Dispose(); }
         _projections.Dispose();
         if (_attached)
         {
@@ -639,11 +640,11 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     private bool IsDestinationCommand(XsrSemanticId command) =>
         _shell.NavigationItems.Any(item => item.Command == command);
 
-    private void AdvanceHint()
+    private void AdvanceHint(bool automatic = false)
     {
         lock (_hintGate)
         {
-            if (_disposed) return;
+            if (_disposed || automatic && !_hintTimerRunning) return;
             _hintIndex = (_hintIndex + Random.Shared.Next(1, LaunchWidgetHints.BuiltIn.Count)) % LaunchWidgetHints.BuiltIn.Count;
             Publish(LaunchPageState.WidgetHintKey, LaunchWidgetHints.BuiltIn[_hintIndex]);
         }
@@ -764,6 +765,23 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     internal int ProjectionPasses { get; private set; }
     private void OnFramePreparing(object? sender, EventArgs e)
     {
+        bool quiet = _store.TryResolve(Nexa.Services.Scheduling.WorkSchedulingContract.QuietKey, out var quietId)
+            && _store.ReadAppliedValue(quietId) is Nexa.Services.Scheduling.WorkQuietSnapshot { IsQuiet: true };
+        bool active = !_store.TryResolve(XsrUiShellWindowState.Activity, out var activityId)
+            || _store.ReadAppliedValue(activityId) is not XsrUiWindowActivity activity
+            || activity is { IsActive: true, IsMinimized: false };
+        _shell.Renderer.OptionalMotionSuspended = quiet || !active;
+        bool hints = active && !quiet && !LaunchBusy && _shell.Stage.Navigation.Current == _launchPage
+            && _shell.Tree.GetComponent<XsrUiPager>(_pageEntities["LaunchWidgetPager"])!.PageIndex == 1;
+        lock (_hintGate)
+        {
+            if (!_disposed && _hintTimerRunning != hints)
+            {
+                _hintTimerRunning = hints;
+                _ = _hintTimer?.Change(hints ? TimeSpan.FromSeconds(3) : Timeout.InfiniteTimeSpan,
+                    hints ? TimeSpan.FromSeconds(3) : Timeout.InfiniteTimeSpan);
+            }
+        }
         bool busyChanged = _presentedLaunchBusy != LaunchBusy;
         if (busyChanged) { _presentedLaunchBusy = LaunchBusy; UpdateLaunchButton(); }
         var currentPage = _shell.Stage.Navigation.Current;

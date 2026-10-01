@@ -21,7 +21,7 @@ public static class ResourceCatalogRuntimeComposer
         var transport = http is null ? null : new ResourceProviderHttp(http);
         source ??= new MergedResourceCatalog(new ResourceCatalogService(http!, transport), new CurseForgeResourceCatalog(transport!));
         var translations = transport is null ? null : new ResourceTranslationService(transport);
-        ResourceIconService? icons = http is null ? null : new(http);
+        ResourceIconService? icons = http is null ? null : new(http) { WorkScheduler = host?.Work };
         XsrQueryRouterBuilder queries = new();
         queries.Register<ResourceSearchQuery, ResourceSearchResult>(ResourceCatalogContract.Search,
             async (query, token) => XsrResult.Success(await source.SearchAsync(query, token).ConfigureAwait(false)));

@@ -19,8 +19,8 @@ public sealed class LauncherNetworkRuntime : IDisposable, IAsyncDisposable
         Http.Timeout = TimeSpan.FromSeconds(20);
         RuntimeId = (OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux") + "-"
             + System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
-        Rollouts = new(Http, host.StateStore, Path.Combine(settingsFolder, "rollout-seed"), build.Channel, RuntimeId);
-        Updates = new(Http, Rollouts);
+        Rollouts = new(Http, host.StateStore, Path.Combine(settingsFolder, "rollout-seed"), build.Channel, RuntimeId) { WorkScheduler = host.Work };
+        Updates = new(Http, Rollouts) { WorkScheduler = host.Work };
         Queries = NexaUpdateRuntimeComposer.Compose(Updates);
     }
     public void Dispose() { Rollouts.Dispose(); Http.Dispose(); }

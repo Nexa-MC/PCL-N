@@ -54,6 +54,7 @@ internal static partial class Program
     {
         using WidgetClock clock = new();
         using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]), timeProvider: clock);
+        Emit(fixture.Intents, "ui.launch.widget.trivia");
         _ = fixture.Shell.Render(AccountTestSize);
         string first = ReadCell(fixture.Store, LaunchPageState.WidgetHintKey);
         XsrUiEntityId[] dirty = [.. fixture.Shell.Tree.DirtyEntities()];
@@ -77,6 +78,39 @@ internal static partial class Program
         AssertEqual(third, ReadCell(fixture.Store, LaunchPageState.WidgetHintKey));
     }
 
+    private static void TriviaYieldsToVisibilityWindowActivityAndLaunchQuiet()
+    {
+        using WidgetClock clock = new();
+        using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]), timeProvider: clock);
+        fixture.Shell.Render(AccountTestSize);
+        string hint = ReadCell(fixture.Store, LaunchPageState.WidgetHintKey);
+        clock.Advance(TimeSpan.FromHours(8));
+        AssertEqual(hint, ReadCell(fixture.Store, LaunchPageState.WidgetHintKey));
+        Emit(fixture.Intents, "ui.launch.widget.trivia"); fixture.Shell.Render(AccountTestSize);
+        clock.Advance(TimeSpan.FromSeconds(3));
+        hint = ReadCell(fixture.Store, LaunchPageState.WidgetHintKey);
+        fixture.Shell.PublishWindowActivity(false, false); fixture.Shell.Render(AccountTestSize);
+        AssertTrue(fixture.Shell.Renderer.EffectiveReducedMotion); AssertFalse(fixture.Shell.Renderer.ReducedMotion);
+        clock.Advance(TimeSpan.FromHours(8)); AssertEqual(hint, ReadCell(fixture.Store, LaunchPageState.WidgetHintKey));
+        fixture.Shell.PublishWindowActivity(true, true); fixture.Shell.Render(AccountTestSize);
+        clock.Advance(TimeSpan.FromSeconds(30)); AssertEqual(hint, ReadCell(fixture.Store, LaunchPageState.WidgetHintKey));
+        fixture.Shell.PublishWindowActivity(true, false); fixture.Shell.Render(AccountTestSize);
+        AssertFalse(fixture.Shell.Renderer.EffectiveReducedMotion);
+        using (fixture.Foundation.Host.Work.EnterQuiet())
+        {
+            fixture.Shell.Render(AccountTestSize); AssertTrue(fixture.Shell.Renderer.OptionalMotionSuspended);
+            clock.Advance(TimeSpan.FromMinutes(1)); AssertEqual(hint, ReadCell(fixture.Store, LaunchPageState.WidgetHintKey));
+            fixture.Shell.Renderer.ReducedMotion = true;
+        }
+        fixture.Shell.Render(AccountTestSize);
+        AssertFalse(fixture.Shell.Renderer.OptionalMotionSuspended); AssertTrue(fixture.Shell.Renderer.ReducedMotion);
+        clock.Advance(TimeSpan.FromSeconds(3));
+        AssertTrue(hint != ReadCell(fixture.Store, LaunchPageState.WidgetHintKey));
+        hint = ReadCell(fixture.Store, LaunchPageState.WidgetHintKey);
+        Emit(fixture.Intents, "ui.navigation.settings"); fixture.Shell.Render(AccountTestSize);
+        clock.Advance(TimeSpan.FromHours(8)); AssertEqual(hint, ReadCell(fixture.Store, LaunchPageState.WidgetHintKey));
+    }
+
     private sealed class WidgetClock : TimeProvider, IDisposable
     {
         private WidgetTimer? _timer;
@@ -91,8 +125,14 @@ internal static partial class Program
             private bool _disposed;
             public void Advance(TimeSpan elapsed)
             {
+                if (_disposed || _remaining == Timeout.InfiniteTimeSpan) return;
                 _remaining -= elapsed;
-                while (!_disposed && _remaining <= TimeSpan.Zero) { _remaining += _period; callback(state); }
+                while (!_disposed && _remaining <= TimeSpan.Zero)
+                {
+                    _remaining = _period == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : _remaining + _period;
+                    callback(state);
+                    if (_remaining == Timeout.InfiniteTimeSpan) break;
+                }
             }
             public bool Change(TimeSpan dueTime, TimeSpan newPeriod) { _remaining = dueTime; _period = newPeriod; return !_disposed; }
             public void Dispose() => _disposed = true;

@@ -4,6 +4,15 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("scheduler telemetry preserves facts while quiet and joins shutdown", TelemetryQuietPreservesQueuedFactsAndJoinsShutdown),
+        ("scheduler cancellation races release every lease", WorkCancellationRacesNeverRetainResourceLeases),
+        ("scheduler downloads inherit critical and release failure cancellation", ScheduledDownloadsInheritCriticalAndReleaseAfterFailure),
+        ("scheduler icons release HTTP before paused CPU decode", ResourceIconsReleaseHttpBeforePausedDecode),
+        ("scheduler resource admission is atomic bounded cancellable", WorkAdmissionIsAtomicBoundedAndCancellable),
+        ("scheduler weights prevent starvation and shutdown drains waiters", WorkAdmissionWeightsPreventStarvationAndDisposeWaiters),
+        ("scheduler quiet scopes grace and trusted priority context", WorkQuietScopesRespectGraceAndPriorityContext),
+        ("scheduler install prefetch yields and explicit read promotes", InstallPrefetchYieldsAndExplicitReadPromotes),
+        ("scheduler update discovery yields and cancels before network", UpdateDiscoveryYieldsAndCancelsWithoutNetwork),
         ("diagnostic bundle excludes private text bounds input and never overwrites", DiagnosticBundleExcludesPersonalTextAndPublishesAtomically),
         ("performance file workers are bounded and join cancellation", FileWorkersAreBoundedAndJoinCancellation),
         ("performance receipts invalidate and explicit verify hashes", FileReceiptsInvalidateAndExplicitVerificationHashes),

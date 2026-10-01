@@ -9,6 +9,28 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
+    private static async ValueTask TelemetryQuietPreservesQueuedFactsAndJoinsShutdown()
+    {
+        var schema = LauncherDefaults.CreateSchema();
+        XsrStateStoreBuilder builder = new();
+        SettingsService.DeclareState(builder, schema); TelemetryService.DeclareState(builder);
+        XsrStateStore store = builder.Build();
+        SettingsService settings = new(store, schema, new InMemorySettingsPort());
+        using TelemetryService telemetry = new(store);
+        using Nexa.Services.Scheduling.WorkScheduler work = new();
+        using Nexa.Services.Scheduling.IWorkQuietLease quiet = work.EnterQuiet();
+        RecordingTransport transport = new();
+        await using LauncherTelemetrySession session = new(telemetry, settings, transport,
+            CreateLogService(), "2.0.0.alpha.6", work);
+        AssertEqual(0, transport.Batches.Count); AssertTrue(telemetry.PendingCount > 0);
+        session.Record("app.failure", "failed");
+        int retained = telemetry.PendingCount;
+        AssertEqual(1, work.Snapshot.Resources.Single(r => r.Resource == Nexa.Services.Scheduling.WorkResource.Http).Waiting);
+        await session.DisposeAsync();
+        AssertEqual(0, transport.Batches.Count); AssertEqual(retained, telemetry.PendingCount);
+        AssertTrue(work.Snapshot.Resources.All(r => r.Active == 0 && r.Waiting == 0));
+    }
+
     private sealed class ConsentBlockedTransport : ITelemetryTransport
     {
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
