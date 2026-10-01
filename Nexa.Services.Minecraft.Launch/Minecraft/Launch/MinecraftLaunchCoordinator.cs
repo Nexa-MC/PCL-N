@@ -1,5 +1,4 @@
 using System.Globalization;
-
 using System.Text.Json.Nodes;
 using Nexa.Services.Accounts;
 using Nexa.Services.Logging;
@@ -7,8 +6,8 @@ using Nexa.Services.Minecraft.Java;
 using Nexa.Services.Minecraft.Libraries;
 using Nexa.Services.Minecraft.ModLoaders;
 using Nexa.Services.Minecraft.Process;
-using Nexa.Services.Settings;
 using Nexa.Services.Scheduling;
+using Nexa.Services.Settings;
 using Nexa.Xsr;
 
 namespace Nexa.Services.Minecraft.Launch;

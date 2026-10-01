@@ -3,8 +3,8 @@ using System.Globalization;
 using System.Text.Json;
 using Nexa.Desktop.Ui;
 using Nexa.Services.Logging;
-using Nexa.Services.Tasks;
 using Nexa.Services.Scheduling;
+using Nexa.Services.Tasks;
 using Nexa.UI.Next;
 
 namespace Nexa.Desktop.Tests;

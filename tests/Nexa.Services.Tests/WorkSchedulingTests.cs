@@ -1,10 +1,10 @@
 using System.Net;
+using Nexa.Services.Downloads;
 using Nexa.Services.Minecraft.Install;
+using Nexa.Services.Resources;
 using Nexa.Services.Scheduling;
 using Nexa.Services.Updates;
 using Nexa.Xsr.State;
-using Nexa.Services.Downloads;
-using Nexa.Services.Resources;
 
 namespace Nexa.Services.Tests;
 

@@ -2,9 +2,8 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-
-using Nexa.Xsr.State;
 using Nexa.Services.Scheduling;
+using Nexa.Xsr.State;
 
 namespace Nexa.Services.Rollouts;
 

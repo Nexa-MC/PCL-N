@@ -1,11 +1,10 @@
 using Nexa.Services.Accounts;
 using Nexa.Services.Capabilities;
 using Nexa.Services.Downloads;
-
 using Nexa.Services.Logging;
 using Nexa.Services.Minecraft.Process;
-using Nexa.Services.Settings;
 using Nexa.Services.Scheduling;
+using Nexa.Services.Settings;
 using Nexa.Services.Tasks;
 using Nexa.Services.Telemetry;
 using Nexa.Xsr.State;

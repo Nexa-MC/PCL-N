@@ -1,7 +1,6 @@
-
+using Nexa.Services.Scheduling;
 using Nexa.Xsr;
 using Nexa.Xsr.State;
-using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Minecraft.Install;
 
@@ -159,12 +158,15 @@ public sealed partial class InstallCatalogService : IDisposable
             long normalizeStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             versions = Array.AsReadOnly(versions.Where(v => !string.IsNullOrWhiteSpace(v.Id)).DistinctBy(v => v.Id, StringComparer.Ordinal).ToArray());
             double normalizeMs = System.Diagnostics.Stopwatch.GetElapsedTime(normalizeStarted).TotalMilliseconds;
-            lock (_gate) if (Current())
+            lock (_gate)
+            {
+                if (Current())
                 {
                     if (_cache.Count >= 32) _cache.Clear();
                     _cache[key] = versions;
                     Publish(new(++_revision, key.Game, key.Loader, versions, false) { CacheHit = false, InputCount = inputCount, NormalizeMilliseconds = normalizeMs });
                 }
+            }
         }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         {

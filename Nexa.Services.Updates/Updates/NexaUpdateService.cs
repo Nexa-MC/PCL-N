@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
-using Nexa.Xsr;
 using Nexa.Services.Scheduling;
+using Nexa.Xsr;
 
 namespace Nexa.Services.Updates;
 

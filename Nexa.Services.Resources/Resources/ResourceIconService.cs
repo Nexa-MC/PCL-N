@@ -47,11 +47,14 @@ public sealed class ResourceIconService(HttpClient http) : IDisposable
             using IDisposable? decode = WorkScheduler is null ? null
                 : await WorkScheduler.AcquireAsync(WorkPriority.Background, WorkResource.Cpu, token).ConfigureAwait(false);
             var image = PngImage.TryCreateResourceIcon(output.GetBuffer().AsSpan(0, (int)output.Length));
-            if (image is not null) lock (_gate)
+            if (image is not null)
+            {
+                lock (_gate)
                 {
                     if (_cache.Count >= 32) _cache.Remove(_cache.Keys.First());
                     _cache[query.Url] = image;
                 }
+            }
             return new(image);
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { return new(null); }
