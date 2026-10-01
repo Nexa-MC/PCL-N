@@ -32,6 +32,9 @@ Evidence comes from a successful Microsoft login or a fresh, generation-checked 
 it lasts only for the current Host session and is removed when that owner profile is deleted.
 CN receives a purchase reminder after creation/import through the existing notification UI.
 
+About body copy wraps without a line cap or ellipsis, including explicit line breaks in the
+source/license statement; the page scrolls to keep the complete acknowledgements available.
+
 Settings now has an About tab with copyright derived from the repository LICENSE, Apache
 2.0 statement, trademark attribution, acknowledgements and source/license/contributor links.
 The new copy is translated for English and Traditional Chinese.

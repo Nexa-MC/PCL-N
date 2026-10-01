@@ -31,6 +31,9 @@ internal sealed partial class SettingsPageController
         var group = Stack(_sections, key, XsrUiOrientation.Vertical, 8);
         Text(group, title, 18, Ink, height: 28, weight: 600);
         var copy = Text(group, content, 13, Muted, height: key == "AboutOpenSource" ? 120 : 84);
+        var text = _shell.Tree.GetComponent<XsrUiText>(copy)!;
+        text.MaxLines = 0;
+        text.TrimOverflow = false;
         _shell.Tree.GetComponent<XsrUiVisualStyle>(copy)!.WrapText = true;
     }
 }
