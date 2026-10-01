@@ -29,6 +29,7 @@ public sealed partial class MinecraftInstallService : IDisposable
 
     private readonly TaskCenterService _tasks;
     private readonly DownloadService _downloads;
+    private readonly MinecraftFileVerificationCache _verification = new();
     private readonly IInstallCatalogSource? _catalog;
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
@@ -54,8 +55,8 @@ public sealed partial class MinecraftInstallService : IDisposable
         _tasks = tasks ?? throw new ArgumentNullException(nameof(tasks));
         _downloads = downloads ?? throw new ArgumentNullException(nameof(downloads));
         _catalog = catalog;
-        _ownsHttp = http is null && metadata is null;
-        _http = http ?? new HttpClient();
+        _ownsHttp = http is null;
+        _http = http ?? PooledHttpClient.Create();
         _metadata = metadata ?? new HttpMinecraftInstallMetadataSource(_http);
         _connectionFactory = connectionFactory;
         _loaderInstaller = loaderInstaller ?? new ForgeInstallService(_downloads, _http, connectionFactory);
@@ -277,7 +278,8 @@ public sealed partial class MinecraftInstallService : IDisposable
         Dictionary<string, MinecraftAssetFileState> assetStates = [];
         foreach (MinecraftAssetToken asset in assets)
         {
-            assetStates[asset.LocalPath] = new MinecraftAssetFileState(File.Exists(asset.LocalPath), 0);
+            var info = new FileInfo(asset.LocalPath);
+            assetStates[asset.LocalPath] = new MinecraftAssetFileState(info.Exists, info.Exists ? info.Length : 0);
         }
 
         MinecraftAssetDownloadPlan assetPlan = MinecraftAssetDownloadPlanner.CreatePlan(
@@ -328,25 +330,21 @@ public sealed partial class MinecraftInstallService : IDisposable
         // transfer list is deduplicated by destination — the same library can appear in both
         // the vanilla and loader sections, and counting both would desync CompletedFiles from
         // TotalFiles (a destination downloaded once skips its duplicates without counting).
-        List<(string Stage, PlannedFile File)> planned = [];
+        Dictionary<string, (string Stage, PlannedFile File)> planned = new(Nexa.Core.PathIdentity.Comparer);
         foreach (List<PlannedFile> files in (List<PlannedFile>[])[gameFiles, loaderFiles, addonFiles])
         {
             string stage = files == gameFiles ? StagePlan[1] : files == loaderFiles ? StagePlan[2] : StagePlan[3];
             foreach (PlannedFile file in files)
             {
-                planned.Add((stage, file));
+                planned.TryAdd(Path.GetFullPath(file.Destination), (stage, file));
             }
         }
 
         // A file is reusable only when it PASSES verification — existence-with-content used
         // to certify truncated or corrupted artifacts as complete installs.
         List<(string Stage, PlannedFile File)> allFiles = [];
-        foreach (string destination in planned
-            .Select(static pair => pair.File.Destination)
-            .Distinct(Nexa.Core.PathIdentity.Comparer))
+        foreach (var candidate in planned.Values)
         {
-            (string Stage, PlannedFile File) candidate = planned.First(
-                pair => Nexa.Core.PathIdentity.Comparer.Equals(pair.File.Destination, destination));
             if (metadata is PersistentInstallMetadataSource && string.IsNullOrEmpty(candidate.File.Expected.Sha1))
             {
                 // A prior process may have preallocated or partially filled a size-only file.
@@ -357,76 +355,63 @@ public sealed partial class MinecraftInstallService : IDisposable
             if (command.ReuseRoot is { } reuseRoot && !File.Exists(candidate.File.Destination))
             {
                 string original = Nexa.Core.PathIdentity.Contained(reuseRoot, Path.GetRelativePath(root, candidate.File.Destination));
-                if (await MinecraftFileVerifier.VerifyAsync(candidate.File.Expected with { Path = original }, token).ConfigureAwait(false))
+                if (await _verification.VerifyAsync(candidate.File.Expected with { Path = original }, token).ConfigureAwait(false))
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(candidate.File.Destination)!);
                     File.Copy(original, candidate.File.Destination);
                 }
             }
-            if (!await MinecraftFileVerifier.VerifyAsync(candidate.File.Expected, token).ConfigureAwait(false))
+            if (!await _verification.VerifyAsync(candidate.File.Expected, token).ConfigureAwait(false))
             {
                 allFiles.Add(candidate);
             }
         }
         int totalFiles = allFiles.Count;
-        int doneFiles = 0;
-        foreach ((string Stage, PlannedFile File) pair in allFiles)
+        var batch = new FileBatchProgress(totalFiles, (fraction, done, speed) =>
+            task.Report(StagePlan[1], "正在下载游戏文件", .02 + .96 * fraction, done, totalFiles, speed));
+        await FileBatchProgress.RunAsync(totalFiles, async (index, token) =>
         {
-            string stage = pair.Stage;
-            PlannedFile file = pair.File;
+            PlannedFile file = allFiles[index].File;
+            Directory.CreateDirectory(Path.GetDirectoryName(file.Destination)!);
+            DownloadRequest request = new()
             {
-                token.ThrowIfCancellationRequested();
-                if ((metadata is not PersistentInstallMetadataSource || !string.IsNullOrEmpty(file.Expected.Sha1))
-                    && await MinecraftFileVerifier.VerifyAsync(file.Expected, token).ConfigureAwait(false))
-                {
-                    doneFiles++;
-                    continue;
-                }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(file.Destination)!);
-                string stageLabel = allFiles.Count == 0 ? stage : $"{stage} · {Path.GetFileName(file.Destination)}";
-                DownloadRequest request = new()
-                {
-                    AllowResume = !string.IsNullOrEmpty(file.Expected.Sha1),
-                    Sources = file.Sources,
-                    DestinationPath = file.Destination,
-                    ConnectionFactory = _connectionFactory is { } factory
-                        ? source => factory(source)
-                        : source => new HttpConnection(_http, source),
-                };
-                DownloadTransferResult transfer = await DownloadPlannedFileAsync(
-                    request, task, stage, stageLabel, doneFiles, totalFiles, token).ConfigureAwait(false);
-                bool verified = transfer.Success
-                    && await MinecraftFileVerifier.VerifyAsync(file.Expected, token).ConfigureAwait(false);
-                if (!verified)
-                {
-                    // Mirror rate limits are bursty, and some mirrors commit truncated
-                    // bodies: one delayed retry — deleting the bad artifact first — has
-                    // saved whole installs that died at 99% on a single 403.
-                    if (transfer.Success)
-                    {
-                        TryDelete(file.Destination);
-                    }
-
-                    await Task.Delay(FileRetryDelay, token).ConfigureAwait(false);
-                    transfer = await DownloadPlannedFileAsync(
-                        request, task, stage, stageLabel, doneFiles, totalFiles, token).ConfigureAwait(false);
-                    verified = transfer.Success
-                        && await MinecraftFileVerifier.VerifyAsync(file.Expected, token).ConfigureAwait(false);
-                }
-
-                if (!verified)
+                AllowResume = !string.IsNullOrEmpty(file.Expected.Sha1),
+                Sources = file.Sources,
+                DestinationPath = file.Destination,
+                ConnectionFactory = _connectionFactory is { } factory
+                    ? source => factory(source)
+                    : source => new HttpConnection(_http, source),
+            };
+            DownloadTransferResult transfer = await _downloads.DownloadAsync(request, bytes => batch.Update(index, bytes), token).ConfigureAwait(false);
+            bool verified = transfer.Success
+                && await _verification.VerifyAsync(file.Expected, token, forceHash: true).ConfigureAwait(false);
+            if (!verified)
+            {
+                // Mirror rate limits are bursty, and some mirrors commit truncated
+                // bodies: one delayed retry — deleting the bad artifact first — has
+                // saved whole installs that died at 99% on a single 403.
+                if (transfer.Success)
                 {
                     TryDelete(file.Destination);
-                    throw new InvalidOperationException(
-                        $"下载 {Path.GetFileName(file.Destination)} 失败：{(transfer.Errors.Count > 0 ? transfer.Errors[0].Message : (transfer.Success ? "校验未通过" : "未知错误"))}");
                 }
 
-                if (metadata is PersistentInstallMetadataSource)
-                    await RecoveryRecordAuthority.AuthorizeFileAsync(file.Destination, token).ConfigureAwait(false);
-                doneFiles++;
+                await Task.Delay(FileRetryDelay, token).ConfigureAwait(false);
+                transfer = await _downloads.DownloadAsync(request, bytes => batch.Update(index, bytes), token).ConfigureAwait(false);
+                verified = transfer.Success
+                    && await _verification.VerifyAsync(file.Expected, token, forceHash: true).ConfigureAwait(false);
             }
-        }
+
+            if (!verified)
+            {
+                TryDelete(file.Destination);
+                throw new InvalidOperationException(
+                    $"下载 {Path.GetFileName(file.Destination)} 失败：{(transfer.Errors.Count > 0 ? transfer.Errors[0].Message : (transfer.Success ? "校验未通过" : "未知错误"))}");
+            }
+
+            if (metadata is PersistentInstallMetadataSource)
+                await RecoveryRecordAuthority.AuthorizeFileAsync(file.Destination, token).ConfigureAwait(false);
+            batch.Complete(index);
+        }, token).ConfigureAwait(false);
 
         // The last transfer's report lags one file (it fires mid-download); close the file
         // count before completion so the card never reads 3/4 at 100%.
@@ -521,46 +506,6 @@ public sealed partial class MinecraftInstallService : IDisposable
     }
 
     private static readonly TimeSpan FileRetryDelay = TimeSpan.FromSeconds(3);
-    // Per-chunk callbacks arrive at line speed; one publish per chunk floods the render
-    // thread on fast links. Reports step by at least this fraction of the whole install.
-    private const double ReportStep = 0.002d;
-
-    private Task<DownloadTransferResult> DownloadPlannedFileAsync(
-        DownloadRequest request,
-        ITaskCenterTask task,
-        string stage,
-        string stageLabel,
-        int doneFiles,
-        int totalFiles,
-        CancellationToken token)
-    {
-        double lastReported = -1d;
-        return _downloads.DownloadAsync(
-            request,
-            progress =>
-            {
-                double overall = totalFiles == 0
-                    ? 0.5
-                    : (doneFiles + (progress.TotalBytes > 0
-                          ? Math.Clamp(progress.DownloadedBytes / (double)progress.TotalBytes, 0d, 1d)
-                          : 0d)) / totalFiles;
-                if (overall - lastReported < ReportStep && overall < 0.999d)
-                {
-                    return;
-                }
-
-                lastReported = overall;
-                task.Report(
-                    stage,
-                    stageLabel,
-                    Math.Clamp(overall, 0d, 0.999d),
-                    doneFiles,
-                    totalFiles,
-                    progress.BytesPerSecond);
-            },
-            token);
-    }
-
     private static IEnumerable<PlannedFile> LibraryFiles(IReadOnlyList<MinecraftLibraryToken> libraries, string root)
     {
         foreach (MinecraftLibraryToken library in libraries)

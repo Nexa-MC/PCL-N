@@ -19,7 +19,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
     public JavaRuntimeInstaller(IJavaRuntimeMetadataProvider metadataProvider, LogService? log = null, Nexa.Services.Tasks.TaskCenterService? tasks = null)
         : this(
             new JavaRuntimeDownloadPlanService(metadataProvider),
-            new HttpClient(log is null ? new HttpClientHandler() : new DiagnosticHttpHandler(log, new HttpClientHandler())) { Timeout = TimeSpan.FromMinutes(10) },
+            CreateDefaultClient(log),
             ownsHttpClient: true, log, tasks)
     {
     }
@@ -31,6 +31,13 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
         _ownsHttpClient = ownsHttpClient;
         _log = log;
         _tasks = tasks;
+    }
+
+    private static HttpClient CreateDefaultClient(LogService? log)
+    {
+        var client = Nexa.Services.Downloads.PooledHttpClient.Create(log: log);
+        client.Timeout = TimeSpan.FromMinutes(10);
+        return client;
     }
 
     private async Task<string> InstallCoreAsync(

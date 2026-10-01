@@ -103,6 +103,20 @@ internal static partial class Program
         }
     }
 
+    private static async ValueTask SidecarShutdownIsSafeAfterTransportClosure()
+    {
+        var (session, plugin, _, loop) = await ActivatedSession();
+        using (session)
+        {
+            plugin.Dispose();
+            await loop.WaitAsync(TimeSpan.FromSeconds(3));
+            await session.ShutdownAsync();
+            await session.ShutdownAsync();
+            AssertEqual(0, session.PendingCount);
+            AssertEqual(SidecarSessionState.Closed, session.State);
+        }
+    }
+
     private static async ValueTask SidecarConcurrentAdmissionRespectsCapacity()
     {
         var (session, plugin, _, loop) = await ActivatedSession(maxPending: 2);

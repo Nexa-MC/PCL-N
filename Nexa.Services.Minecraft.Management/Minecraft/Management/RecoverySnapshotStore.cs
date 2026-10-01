@@ -5,7 +5,8 @@ using System.Text.Json.Nodes;
 namespace Nexa.Services.Minecraft.Management;
 
 internal sealed record RecoverySource(string Area, string RelativePath);
-internal sealed record RecoverySnapshotFile(RecoverySource Source, RecoveryBlob Blob);
+internal sealed record RecoverySnapshotFile(RecoverySource Source, RecoveryBlob Blob,
+    long? ModifiedTicks = null, long? BlobSize = null, long? BlobModifiedTicks = null);
 internal sealed record RecoverySnapshot(Guid Revision, string InstanceDirectory, string GameDirectory,
     DateTimeOffset CapturedAt, IReadOnlyList<RecoverySnapshotFile> Files, string SettingsDocument);
 
@@ -44,20 +45,48 @@ internal sealed partial class RecoverySnapshotStore
         if (paths.Distinct(Nexa.Core.PathIdentity.Comparer).Count() != paths.Length)
             throw new InvalidDataException("快照计划包含重复文件。");
         await using var lease = await _blobs.AcquireManifestLeaseAsync(token).ConfigureAwait(false);
-        List<RecoverySnapshotFile> files = [];
-        List<(string Path, long Length, long Modified)> observed = [];
+        RecoverySnapshot? previous;
+        try { previous = await ReadUnderManifestLeaseAsync(token).ConfigureAwait(false); }
+        catch (InvalidDataException) { previous = null; }
+        var receipts = previous?.Files.ToDictionary(file => ResolveSource(file.Source), Nexa.Core.PathIdentity.Comparer)
+            ?? new Dictionary<string, RecoverySnapshotFile>(Nexa.Core.PathIdentity.Comparer);
+        var captured = new RecoverySnapshotFile[paths.Length];
+        var observed = new (string Path, long Length, long Modified)[paths.Length];
         var budget = new RecoveryByteBudget(RecoveryBlobStore.MaxTransactionBytes);
-        for (int index = 0; index < paths.Length; index++)
+        await Parallel.ForEachAsync(Enumerable.Range(0, paths.Length), new ParallelOptions
+        { MaxDegreeOfParallelism = 4, CancellationToken = token }, async (index, token) =>
         {
-            token.ThrowIfCancellationRequested();
             string path = paths[index];
             RecoveryBlobStore.CheckLinks(path);
             var info = new FileInfo(path);
             long length = info.Length, modified = info.LastWriteTimeUtc.Ticks;
-            await using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-            var blob = await _blobs.StoreAsync(source, length, budget, token).ConfigureAwait(false);
-            files.Add(new(sources[index], blob)); observed.Add((path, length, modified));
+            RecoveryBlob blob;
+            if (receipts.TryGetValue(path, out var receipt) && receipt.ModifiedTicks == modified
+                && receipt.Blob.Length == length && _blobs.TryGetStamp(receipt.Blob, out var size, out var blobModified)
+                && receipt.BlobSize == size && receipt.BlobModifiedTicks == blobModified)
+            {
+                budget.Consume(checked((int)length));
+                blob = receipt.Blob;
+            }
+            else
+            {
+                await using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+                blob = await _blobs.StoreAsync(source, length, budget, token).ConfigureAwait(false);
+            }
+            if (!_blobs.TryGetStamp(blob, out var storedSize, out var storedModified))
+                throw new IOException("快照对象发布后缺失。");
+            captured[index] = new(sources[index], blob, modified, storedSize, storedModified);
+            observed[index] = (path, length, modified);
+        }).ConfigureAwait(false);
+        // Equal source contents may publish the same object concurrently. Record its final
+        // stamp after every producer has joined, so all references share one reuse receipt.
+        for (int index = 0; index < captured.Length; index++)
+        {
+            if (!_blobs.TryGetStamp(captured[index].Blob, out var size, out var modified))
+                throw new IOException("快照对象发布后缺失。");
+            captured[index] = captured[index] with { BlobSize = size, BlobModifiedTicks = modified };
         }
+        var files = Array.AsReadOnly(captured);
         if (validatePlan is not null) await validatePlan(token).ConfigureAwait(false);
         foreach (var item in observed)
         {
@@ -67,7 +96,7 @@ internal sealed partial class RecoverySnapshotStore
             if (!info.Exists || info.Length != item.Length || info.LastWriteTimeUtc.Ticks != item.Modified)
                 throw new IOException("采集期间文件发生变化，已保留上一个快照。");
         }
-        var snapshot = new RecoverySnapshot(Guid.NewGuid(), _instance, _game, DateTimeOffset.UtcNow, files.AsReadOnly(), settings.ToJsonString());
+        var snapshot = new RecoverySnapshot(Guid.NewGuid(), _instance, _game, DateTimeOffset.UtcNow, files, settings.ToJsonString());
         var manifest = EncodeManifest(snapshot);
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(manifest, RecoveryJsonContext.Default.JsonObject);
         if (bytes.Length > MaxManifestBytes) throw new InvalidDataException("快照清单超过大小限制。");
@@ -159,7 +188,12 @@ internal sealed partial class RecoverySnapshotStore
                 throw new InvalidDataException("快照对象记录无效。");
             totalLength += size;
             if (totalLength > RecoveryBlobStore.MaxTransactionBytes) throw new InvalidDataException("快照总大小超过限制。");
-            files.Add(new(source, new(hash, size)));
+            long? modified = item?["modifiedTicks"]?.GetValue<long>();
+            long? blobSize = item?["blobSize"]?.GetValue<long>();
+            long? blobModified = item?["blobModifiedTicks"]?.GetValue<long>();
+            if (modified is < 0 || blobModified is < 0 || blobSize is < 0 || blobSize > size + 65536)
+                throw new InvalidDataException("快照复用记录无效。");
+            files.Add(new(source, new(hash, size), modified, blobSize, blobModified));
         }
         if (!Guid.TryParse(document["revision"]?.GetValue<string>(), out var revision)
             || !DateTimeOffset.TryParseExact(document["capturedAt"]?.GetValue<string>(), "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out var capturedAt))

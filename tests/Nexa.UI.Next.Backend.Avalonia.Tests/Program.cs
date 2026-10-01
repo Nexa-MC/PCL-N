@@ -22,6 +22,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("unchanged nodes skip apply and retain clip geometry", UnchangedNodesSkipApplyAndRetainClipGeometry),
         ("automation invoke and focus route through the renderer", AutomationInvokeAndFocusRouteThroughRenderer),
         ("navigation peers expose selection and route selection through invoke", NavigationPeersExposeSelectionAndRouteSelection),
         ("selection and hover facts present under reduced motion", SelectionAndHoverFactsPresentUnderReducedMotion),

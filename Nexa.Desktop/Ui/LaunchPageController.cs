@@ -4,6 +4,7 @@ using Nexa.Services.Accounts;
 using Nexa.Services.Composition;
 using Nexa.Services.Foundation;
 using Nexa.Services.Minecraft;
+using Nexa.Services.Minecraft.Install;
 
 using Nexa.Services.Minecraft.Launch;
 
@@ -152,7 +153,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
 
     private Task _launchRequest = Task.CompletedTask;
     private MinecraftLaunchProgressSnapshot LaunchSnapshot =>
-        _store.ReadAppliedValue(_store.Resolve(MinecraftLaunchProgressState.SnapshotKey)) as MinecraftLaunchProgressSnapshot
+        _store.ReadAppliedValue(_launchProgressId) as MinecraftLaunchProgressSnapshot
         ?? MinecraftLaunchProgressSnapshot.Empty;
     private bool LaunchBusy => !_launchRequest.IsCompleted || LaunchSnapshot is { Active: true, IsLaunched: false };
     private int _pendingCloseLaunching;
@@ -251,6 +252,13 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
         _installRunCommands = installRunCommands;
         _recoveryQueries = recoveryQueries;
         _store = store;
+        _launchProgressId = _store.Resolve(MinecraftLaunchProgressState.SnapshotKey);
+        _accountProfilesId = _store.Resolve(AccountStateContract.ProfilesKey);
+        _accountSelectedId = _store.Resolve(AccountStateContract.SelectedKey);
+        _libraryId = _store.Resolve(MinecraftLibraryContract.StateKey);
+        _installCatalogId = _store.Resolve(InstallCatalogStateContract.StateKey);
+        _projections = new UiProjectionSignal(_store, _intents);
+
         _feedback = feedback;
         StateObserver = new LaunchingStateObserver(this);
         _libraryCommands = library.Commands;
@@ -330,6 +338,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
             save = _foundationCommands.Dispatch(saveWidget, new SettingsSetCommand("UiLaunchWidgetPage",
                 _shell.Tree.GetComponent<XsrUiPager>(_pageEntities["LaunchWidgetPager"])!.PageIndex.ToString(CultureInfo.InvariantCulture))).Completion;
         lock (_hintGate) { _disposed = true; _hintTimer?.Dispose(); }
+        _projections.Dispose();
         if (_attached)
         {
             _intents.IntentEmitted -= OnIntentEmitted;
@@ -380,7 +389,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
 
     private void ProjectLibrary()
     {
-        if (_disposed || _store.ReadAppliedValue(_store.Resolve(MinecraftLibraryContract.StateKey)) is not MinecraftLibrarySnapshot snapshot) return;
+        if (_disposed || _store.ReadAppliedValue(_libraryId) is not MinecraftLibrarySnapshot snapshot) return;
         Publish(LaunchPageState.SelectedInstanceKey, snapshot.SelectedInstance?.Id ?? "");
         Publish(LaunchPageState.InstanceSummaryKey, snapshot.SelectedInstance?.Id ?? (snapshot.IsLoading ? ScanningInstances : NoInstances));
         Publish(LaunchPageState.InstanceDirectoryKey, snapshot.RootDirectory);
@@ -739,18 +748,49 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
         string? Loader = null,
         string? RequiresLoader = null);
 
+    private readonly UiProjectionSignal _projections;
+    private readonly XsrStateId _launchProgressId;
+    private readonly XsrStateId _accountProfilesId;
+    private readonly XsrStateId _accountSelectedId;
+    private readonly XsrStateId _libraryId;
+    private readonly XsrStateId _installCatalogId;
     private XsrUiEntityId _observedPage;
+    private Task? _observedEditRead;
+    private bool _editReadCompleted;
+    private string? _observedInstallDraft;
+    private double _observedInstallOffset;
+    private XsrUiSize _observedViewport;
     private bool _presentedLaunchBusy;
+    internal int ProjectionPasses { get; private set; }
     private void OnFramePreparing(object? sender, EventArgs e)
     {
-        if (_presentedLaunchBusy != LaunchBusy) { _presentedLaunchBusy = LaunchBusy; UpdateLaunchButton(); }
+        bool busyChanged = _presentedLaunchBusy != LaunchBusy;
+        if (busyChanged) { _presentedLaunchBusy = LaunchBusy; UpdateLaunchButton(); }
         var currentPage = _shell.Stage.Navigation.Current;
-        if (_observedPage != currentPage)
+        bool pageChanged = _observedPage != currentPage;
+        if (pageChanged)
         {
             if (_observedPage == _javaInstallPage) ResetInstallSelection();
             _observedPage = currentPage;
             UpdateTitleBar();
         }
+        RefreshWidgetPresentation();
+        bool completed = _installEditRead?.IsCompleted ?? false;
+        bool queryChanged = _observedEditRead != _installEditRead || _editReadCompleted != completed;
+        _observedEditRead = _installEditRead; _editReadCompleted = completed;
+        bool draftChanged = false;
+        if (currentPage == _javaInstallPage)
+        {
+            string draft = _shell.Tree.GetComponent<XsrUiTextInput>(_javaInstallEntities["JavaInstallVersionInput"])!.ReadDraft();
+            double offset = _shell.Tree.GetComponent<XsrUiScroll>(_javaInstallEntities[_activeJavaInstallPage])!.OffsetY;
+            draftChanged = draft != _observedInstallDraft || offset != _observedInstallOffset
+                || _shell.Renderer.Viewport != _observedViewport;
+            _observedInstallDraft = draft; _observedInstallOffset = offset; _observedViewport = _shell.Renderer.Viewport;
+        }
+        bool wake = _projections.Consume() || queryChanged || pageChanged || busyChanged || draftChanged;
+        if (Interlocked.Exchange(ref _pendingCloseLaunching, 0) == 1) { CloseLaunchingPage(); wake = true; }
+        if (!wake) return;
+        ProjectionPasses++;
         ProjectInstallEditor();
         ProjectProcessFeedback();
         Publish(LaunchPageState.LaunchingVisibleKey, LaunchBusy && currentPage != _launchingPage);
@@ -758,13 +798,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
         RefreshJavaInstallPresentation();
         ProjectInstallCatalog();
         ProjectInstallEditPlan();
-        if (Interlocked.Exchange(ref _pendingCloseLaunching, 0) == 1)
-        {
-            CloseLaunchingPage();
-        }
-
         RefreshAccountPresentation();
-        RefreshWidgetPresentation();
     }
 
     private void RefreshWidgetPresentation()
@@ -806,7 +840,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     internal XsrUiEntityId ResourcesPage { get; set; }
 
 
-    private int SelectedAccountIndex => _store.ReadAppliedValue(_store.Resolve(AccountStateContract.SelectedKey)) is int index ? index : -1;
+    private int SelectedAccountIndex => _store.ReadAppliedValue(_accountSelectedId) is int index ? index : -1;
 
     private void Publish<T>(XsrSemanticId key, T value)
     {

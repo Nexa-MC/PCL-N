@@ -21,7 +21,8 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
 
     private readonly DownloadService _downloads;
     private readonly LogService? _log;
-    private readonly HttpClient _http = new();
+    private readonly HttpClient _http = PooledHttpClient.Create();
+    private readonly MinecraftFileVerificationCache _verification = new();
     private readonly Func<string, IDownloadConnection>? _connectionFactory;
 
     public MinecraftLaunchFileCompletion(
@@ -52,7 +53,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
         JsonObject baseManifest = manifests.Inherited.Count > 0 ? manifests.Inherited[^1] : manifests.Current;
         string baseId = baseManifest["id"]?.ToString() ?? instance.VersionId;
 
-        List<PendingFile> missing = [];
+        Dictionary<string, PendingFile> candidates = new(Nexa.Core.PathIdentity.Comparer);
 
         MinecraftClientJarDownloadPlan clientPlan = MinecraftClientDownloadPlanner.CreateClientJarPlan(
             new MinecraftClientJarDownloadPlanRequest
@@ -63,7 +64,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
             });
         if (clientPlan.File is { } client && !await HasVerifiedCorePatchAsync(instance, client.LocalPath, cancellationToken).ConfigureAwait(false))
         {
-            AddIfMissing(missing,
+            AddIfMissing(candidates,
                 MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true),
                 client.LocalPath, client.ActualSize, client.Sha1);
         }
@@ -77,7 +78,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
             });
         if (indexPlan.HasDownload && indexPlan.LocalPath is { } indexPath)
         {
-            AddIfMissing(missing,
+            AddIfMissing(candidates,
                 MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(indexPlan.Url!, true),
                 indexPath, null, null);
         }
@@ -114,7 +115,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                 sources = [.. sources, url];
             }
 
-            AddIfMissing(missing, sources, localPath, size > 0 ? size : null, sha1);
+            AddIfMissing(candidates, sources, localPath, size > 0 ? size : null, sha1);
         }
 
         // Assets are planned from the index document, so fetch the index first when missing,
@@ -140,44 +141,41 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                         InstanceDirectory = instance.DirectoryPath,
                     });
 
-                // Every object is a candidate; the shared verifier decides reuse by hash.
+                // Content-addressed objects reuse by expected size; downloads still require hashing.
                 foreach (MinecraftAssetToken asset in assets)
                 {
-                    AddIfMissing(missing,
+                    AddIfMissing(candidates,
                         MinecraftDownloadSourcePlanner.GetAssetSources(
                             MinecraftAssetListResolver.GetObjectUrl(asset.Hash), true),
                         asset.LocalPath,
                         asset.Size > 0 ? asset.Size : null,
-                        asset.Hash);
+                        asset.Hash, contentAddressed: true);
                 }
             }
         }
 
+        List<PendingFile> missing = [];
+        foreach (PendingFile file in candidates.Values)
+            if (!await _verification.VerifyAsync(file.Expected, cancellationToken, file.ContentAddressed).ConfigureAwait(false))
+                missing.Add(file);
         if (missing.Count == 0)
         {
             _log?.Debug("Launch", "File completion found nothing missing; continuing.");
             return;
         }
-
         _log?.Info("Launch", $"File completion repairing {missing.Count} missing file(s).");
-        int done = 0;
-        foreach (PendingFile file in missing)
+        var batch = new FileBatchProgress(missing.Count, (fraction, _, speed) =>
+            ReportProgress(progress, method, fraction, speed));
+        await FileBatchProgress.RunAsync(missing.Count, async (index, cancellationToken) =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (await MinecraftFileVerifier.VerifyAsync(file.Expected, cancellationToken).ConfigureAwait(false))
-            {
-                done++;
-                continue;
-            }
-
+            PendingFile file = missing[index];
             Directory.CreateDirectory(Path.GetDirectoryName(file.Destination)!);
-            int filesBefore = done;
             DownloadTransferResult transfer = await TransferAsync(
                 file.Sources, file.Destination, cancellationToken,
-                progress: bytes => ReportProgress(progress, method, filesBefore, missing.Count, bytes))
+                progress: bytes => batch.Update(index, bytes))
                 .ConfigureAwait(false);
             bool verified = transfer.Success
-                && await MinecraftFileVerifier.VerifyAsync(file.Expected, cancellationToken).ConfigureAwait(false);
+                && await _verification.VerifyAsync(file.Expected, cancellationToken, forceHash: true).ConfigureAwait(false);
             if (!verified)
             {
                 // Bursty mirror rate limits and truncated commits: delete the bad artifact
@@ -191,7 +189,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                 transfer = await TransferAsync(file.Sources, file.Destination, cancellationToken)
                     .ConfigureAwait(false);
                 verified = transfer.Success
-                    && await MinecraftFileVerifier.VerifyAsync(file.Expected, cancellationToken).ConfigureAwait(false);
+                    && await _verification.VerifyAsync(file.Expected, cancellationToken, forceHash: true).ConfigureAwait(false);
             }
 
             if (!verified)
@@ -201,11 +199,8 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                     $"补全文件失败：{Path.GetFileName(file.Destination)}（{(transfer.Errors.Count > 0 ? transfer.Errors[0].Message : (transfer.Success ? "校验未通过" : "未知错误"))}");
             }
 
-            done++;
-            ReportProgress(progress, method, done, missing.Count, null);
-        }
-
-        ReportProgress(progress, method, missing.Count, missing.Count, null);
+            batch.Complete(index);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     internal static async Task<bool> HasVerifiedCorePatchAsync(MinecraftInstanceDescriptor instance, string clientPath, CancellationToken token)
@@ -219,50 +214,14 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
         return actual.Equals(expected, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>
-    /// One coherent progress line for the whole repair: (files done + this file's byte
-    /// fraction) over all missing files, mapped through ProgressAt into the complete_files
-    /// band. ProgressAt divides by Total — publishing raw weights would clamp past 1.0 and
-    /// flash 100% mid-repair.
-    /// </summary>
-    // Per-chunk callbacks arrive at line speed; one publish per chunk floods the render
-    // thread on fast links. Reports step by at least this fraction of the repair.
-    private const double ReportStep = 0.002d;
-    private double _lastReportedFraction = -1d;
-
-    private void ReportProgress(
-        MinecraftLaunchProgressPublisher? progress,
-        string method,
-        int filesDone,
-        int totalFiles,
-        DownloadProgress? bytes)
+    private static void ReportProgress(MinecraftLaunchProgressPublisher? progress, string method,
+        double fraction, long speed)
     {
-        if (progress is null)
-        {
-            return;
-        }
-
-        double intra = bytes is { } progress1 && progress1.TotalBytes > 0
-            ? Math.Clamp(progress1.DownloadedBytes / (double)progress1.TotalBytes, 0d, 1d)
-            : 0d;
-        double fraction = totalFiles == 0
-            ? 1d
-            : Math.Clamp((filesDone + intra) / totalFiles, 0d, 1d);
-        if (fraction - _lastReportedFraction < ReportStep && fraction < 1d)
-        {
-            return;
-        }
-
-        _lastReportedFraction = fraction;
-        progress.Report(new MinecraftLaunchStageReport(
+        progress?.Report(new MinecraftLaunchStageReport(
             MinecraftLaunchStages.CompleteFiles,
-            MinecraftLaunchStages.ProgressAt(
-                MinecraftLaunchStages.LoginWeight
-                    + (MinecraftLaunchStages.CompleteFilesWeight * fraction)),
-            Method: method,
-            DownloadSpeed: bytes is { } transfer && transfer.BytesPerSecond > 0
-                ? FormatSpeed(transfer.BytesPerSecond)
-                : null));
+            MinecraftLaunchStages.ProgressAt(MinecraftLaunchStages.LoginWeight
+                + MinecraftLaunchStages.CompleteFilesWeight * fraction),
+            Method: method, DownloadSpeed: speed > 0 ? FormatSpeed(speed) : null));
     }
 
     private static string FormatSpeed(long bytesPerSecond)
@@ -328,7 +287,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
             progress,
             cancellationToken);
 
-    private sealed record PendingFile(string[] Sources, string Destination, long? Size, string? Sha1)
+    private sealed record PendingFile(string[] Sources, string Destination, long? Size, string? Sha1, bool ContentAddressed = false)
     {
         public MinecraftExpectedFile Expected => new(Destination, Size, Sha1);
     }
@@ -346,20 +305,9 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
         }
     }
 
-    private static void AddIfMissing(
-        List<PendingFile> missing, string[] sources, string destination, long? size, string? sha1)
-    {
-        for (int index = 0; index < missing.Count; index++)
-        {
-            if (Nexa.Core.PathIdentity.Comparer.Equals(missing[index].Destination, destination))
-            {
-                missing[index] = new(sources, destination, size, sha1);
-                return;
-            }
-        }
-
-        missing.Add(new(sources, destination, size, sha1));
-    }
+    private static void AddIfMissing(Dictionary<string, PendingFile> candidates, string[] sources,
+        string destination, long? size, string? sha1, bool contentAddressed = false) =>
+        candidates[Path.GetFullPath(destination)] = new(sources, destination, size, sha1, contentAddressed);
 
     public void Dispose() => _http.Dispose();
 

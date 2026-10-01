@@ -56,19 +56,8 @@ internal sealed class RecoveryBlobStore
             await using var lease = await AcquireAsync(".objects.lock", token).ConfigureAwait(false);
             string destination = BlobPath(blob);
             CheckLinks(destination);
-            if (File.Exists(destination))
-            {
-                try
-                {
-                    await CopyVerifiedAsync(blob, Stream.Null, new(expectedLength), token).ConfigureAwait(false);
-                    return blob;
-                }
-                catch (InvalidDataException)
-                {
-                    // The new object has already been hashed from the caller's source. Replacing
-                    // a corrupt object with these identical bytes repairs existing references.
-                }
-            }
+            // The staged object was just hashed from the source. Replacing an existing object
+            // repairs corrupt dedupe hits without decompressing and hashing them a second time.
             token.ThrowIfCancellationRequested();
             File.Move(temporary, destination, overwrite: true);
             return blob;
@@ -77,6 +66,16 @@ internal sealed class RecoveryBlobStore
         {
             if (File.Exists(temporary)) File.Delete(temporary);
         }
+    }
+
+    internal bool TryGetStamp(RecoveryBlob blob, out long size, out long modified)
+    {
+        string path = BlobPath(blob);
+        CheckLinks(path);
+        var info = new FileInfo(path);
+        size = info.Exists ? info.Length : -1;
+        modified = info.Exists ? info.LastWriteTimeUtc.Ticks : 0;
+        return info.Exists && size <= blob.Length + 65536;
     }
 
     internal async Task CopyVerifiedAsync(RecoveryBlob blob, Stream stagingDestination, RecoveryByteBudget budget, CancellationToken token = default)

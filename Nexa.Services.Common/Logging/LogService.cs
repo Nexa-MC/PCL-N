@@ -10,7 +10,7 @@ namespace Nexa.Services.Logging;
 /// reaching into a mutable shared list. There is no static global sink — services receive this
 /// service through the composition root. Publication never breaks the operation being logged.
 /// </summary>
-public sealed class LogService : ILogWriter
+public sealed class LogService : ILogWriter, IDisposable
 {
     void ILogWriter.Write(LogLevel level, string subsystem, string message, string? exceptionText) => Write(level, subsystem, message, exceptionText);
 
@@ -42,6 +42,9 @@ public sealed class LogService : ILogWriter
     private readonly XsrStateId _entriesId;
     private int _maximumLevel = (int)LogLevel.Info;
     private long _sequence;
+    private readonly Queue<LogEntry> _ring = new();
+    private readonly ITimer? _publicationTimer;
+    private bool _pending, _disposed;
     private readonly List<ILogSink> _sinks = [];
 
     /// <summary>
@@ -58,6 +61,9 @@ public sealed class LogService : ILogWriter
     }
 
     public LogService(XsrStateStore store, int capacity = 2_000, TimeProvider? clock = null)
+        : this(store, capacity, clock, null) { }
+
+    public LogService(XsrStateStore store, int capacity, TimeProvider? clock, TimeSpan? publicationInterval)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
         _store = store ?? throw new ArgumentNullException(nameof(store));
@@ -65,6 +71,12 @@ public sealed class LogService : ILogWriter
         _capacity = capacity;
         _clock = clock ?? TimeProvider.System;
         _entriesId = _store.Resolve(EntriesKey);
+        if (publicationInterval is { } interval && interval > TimeSpan.Zero)
+        {
+            var tick = new PublicationTick(this);
+            _publicationTimer = tick.Timer = _clock.CreateTimer(static state => ((PublicationTick)state!).Run(),
+                tick, interval, interval);
+        }
     }
 
     /// <summary>
@@ -138,16 +150,19 @@ public sealed class LogService : ILogWriter
             return;
         }
 
-        LogEntry entry = new(
-            Sequence: Interlocked.Increment(ref _sequence),
-            Timestamp: _clock.GetUtcNow(),
-            Level: level,
-            Module: string.IsNullOrWhiteSpace(module) ? "General" : module.Trim(),
-            Message: LogRedactor.Redact(message),
-            ExceptionText: string.IsNullOrWhiteSpace(exceptionText) ? null : LogRedactor.Redact(exceptionText));
-
-        Append(entry);
-        MirrorToSinks(entry);
+        string redacted = LogRedactor.Redact(message);
+        string? error = string.IsNullOrWhiteSpace(exceptionText) ? null : LogRedactor.Redact(exceptionText);
+        lock (_gate)
+        {
+            if (_disposed) return;
+            LogEntry entry = new(++_sequence, _clock.GetUtcNow(), level,
+                string.IsNullOrWhiteSpace(module) ? "General" : module.Trim(), redacted, error);
+            _ring.Enqueue(entry);
+            if (_ring.Count > _capacity) _ring.Dequeue();
+            _pending = true;
+            if (_publicationTimer is null) FlushPending();
+            MirrorToSinks(entry);
+        }
     }
 
     private void MirrorToSinks(LogEntry entry)
@@ -177,52 +192,54 @@ public sealed class LogService : ILogWriter
     /// <summary>
     /// One coherent read of the current ring, oldest first.
     /// </summary>
-    public IReadOnlyList<LogEntry> GetSnapshot() => _store.ReadCollection<LogEntry>(_entriesId).Items;
+    public IReadOnlyList<LogEntry> GetSnapshot()
+    {
+        lock (_gate) { FlushPending(); return Array.AsReadOnly(_ring.ToArray()); }
+    }
 
     /// <summary>
     /// Empties the ring and its state collection.
     /// </summary>
     public void Clear()
     {
+        lock (_gate) { _ring.Clear(); _pending = true; FlushPending(); }
+    }
+
+    /// <summary>Publishes one bounded batch; diagnostic callers may request an immediate flush.</summary>
+    public void FlushPending()
+    {
         lock (_gate)
         {
+            if (!_pending) return;
+            long sequence = _sequence;
+            LogEntry[] items = _ring.ToArray();
+            long oldest = items.Length == 0 ? long.MaxValue : items[0].Sequence;
             for (int attempt = 0; attempt < MaxAppendConflicts; attempt++)
             {
-                XsrCollectionSnapshot<LogEntry> snapshot = _store.ReadCollection<LogEntry>(_entriesId);
-                long[] removals = [.. snapshot.Items.Select(static entry => entry.Sequence)];
-                XsrCollectionApplyResult result = _store.PublishDelta(
-                    _entriesId,
-                    new XsrCollectionDelta<LogEntry, long>(snapshot.Revision, [], removals));
-                if (result.IsApplied)
-                {
-                    return;
-                }
+                var snapshot = _store.ReadCollection<LogEntry>(_entriesId);
+                long newestPublished = snapshot.Count == 0 ? 0 : snapshot.Items[^1].Sequence;
+                var result = _store.PublishDelta(_entriesId, new XsrCollectionDelta<LogEntry, long>(
+                    snapshot.Revision, items.Where(entry => entry.Sequence > newestPublished).ToArray(),
+                    snapshot.Items.Where(entry => entry.Sequence < oldest).Select(entry => entry.Sequence).ToArray()));
+                if (result.IsApplied) { _pending = _sequence != sequence; return; }
             }
         }
     }
 
-    private void Append(LogEntry entry)
+    public void Dispose()
     {
-        lock (_gate)
-        {
-            for (int attempt = 0; attempt < MaxAppendConflicts; attempt++)
-            {
-                XsrCollectionSnapshot<LogEntry> snapshot = _store.ReadCollection<LogEntry>(_entriesId);
-                int overflow = snapshot.Count + 1 - _capacity;
-                List<long> removals = [];
-                for (int index = 0; index < overflow; index++)
-                {
-                    removals.Add(snapshot.Items[index].Sequence);
-                }
+        _publicationTimer?.Dispose();
+        lock (_gate) { if (_disposed) return; FlushPending(); _disposed = true; }
+    }
 
-                XsrCollectionApplyResult result = _store.PublishDelta(
-                    _entriesId,
-                    new XsrCollectionDelta<LogEntry, long>(snapshot.Revision, [entry], removals));
-                if (result.IsApplied)
-                {
-                    return;
-                }
-            }
+    private sealed class PublicationTick(LogService owner)
+    {
+        private readonly WeakReference<LogService> _owner = new(owner);
+        internal ITimer? Timer;
+        internal void Run()
+        {
+            if (_owner.TryGetTarget(out var target)) target.FlushPending();
+            else Timer?.Dispose();
         }
     }
 }

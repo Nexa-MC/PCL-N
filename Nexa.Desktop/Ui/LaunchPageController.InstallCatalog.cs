@@ -139,7 +139,7 @@ internal sealed partial class LaunchPageController
         _catalogRevision = -1;
         _catalogFirst = -1;
         if (!force && _catalogCache.ContainsKey(key)) return;
-        if (!force && (_store.ReadAppliedValue(_store.Resolve(InstallCatalogStateContract.StateKey)) as InstallCatalogState)?.Catalogs
+        if (!force && (_store.ReadAppliedValue(_installCatalogId) as InstallCatalogState)?.Catalogs
             .Any(item => item.Revision > 0 && item.Loader == loader && (loader is null || item.GameVersion == _selectedInstallVersion)) == true) return;
         _catalogCache.Remove(key);
         if (_installCatalogCommands.TryResolve(InstallCatalogRoutes.Read, out XsrCommandId id))
@@ -210,7 +210,7 @@ internal sealed partial class LaunchPageController
         input.Placeholder = _installGameChosen ? "版本名称" : "搜索版本";
         _shell.Tree.GetComponent<XsrUiSemantic>(inputEntity)!.Label = input.Placeholder;
         RequestInstallCatalog();
-        var catalogState = _store.ReadAppliedValue(_store.Resolve(InstallCatalogStateContract.StateKey)) as InstallCatalogState;
+        var catalogState = _store.ReadAppliedValue(_installCatalogId) as InstallCatalogState;
         if (catalogState is not null && catalogState.Revision != _catalogStateRevision)
         {
             _catalogStateRevision = catalogState.Revision;
@@ -229,7 +229,7 @@ internal sealed partial class LaunchPageController
             : _catalogCache.GetValueOrDefault(cacheKey);
         if (snapshot is null)
         {
-            snapshot = (_store.ReadAppliedValue(_store.Resolve(InstallCatalogStateContract.StateKey)) as InstallCatalogState)?.Catalogs
+            snapshot = (_store.ReadAppliedValue(_installCatalogId) as InstallCatalogState)?.Catalogs
                 .FirstOrDefault(item => item.Loader == ActiveCatalogLoader && (item.Loader is null || item.GameVersion == _selectedInstallVersion));
             if (snapshot is null || snapshot.Loader != ActiveCatalogLoader
                 || snapshot.Loader is not null && snapshot.GameVersion != _selectedInstallVersion) return;

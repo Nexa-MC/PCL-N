@@ -25,6 +25,8 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     private readonly XsrUiShell _shell;
     private readonly object _commitGate = new();
     private readonly Dictionary<XsrUiEntityId, AvaloniaUiSceneNodeControl> _controls = [];
+    private readonly Dictionary<XsrUiEntityId, XsrUiSceneNode> _sceneNodes = [];
+    private readonly Dictionary<Control, int> _childIndexes = [];
     private readonly List<AvaloniaUiSceneNodeControl> _outgoingControls = [];
     private readonly HashSet<XsrUiEntityId> _currentEntities = [];
     private readonly List<XsrUiEntityId> _retiredEntities = [];
@@ -357,7 +359,9 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     {
         foreach (AvaloniaUiSceneNodeControl control in _outgoingControls) Children.Remove(control);
         _currentEntities.Clear();
-        foreach (var node in scene.Nodes) _currentEntities.Add(node.Entity);
+        _sceneNodes.Clear();
+        foreach (var node in scene.Nodes) { _currentEntities.Add(node.Entity); _sceneNodes.Add(node.Entity, node); }
+        bool geometryChanged = false;
         _retiredEntities.Clear();
         foreach (var entity in _controls.Keys)
             if (!_currentEntities.Contains(entity)) _retiredEntities.Add(entity);
@@ -365,6 +369,7 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
         {
             var control = _controls[entity];
             Children.Remove(control);
+            geometryChanged = true;
             control.ReleasePresentation();
             _controls.Remove(entity);
             _capsuleTargets.Remove(entity);
@@ -382,6 +387,8 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
             AvaloniaUiMotion.Cancel(this, ("slide-y", entity));
         }
 
+        _childIndexes.Clear();
+        for (int index = 0; index < Children.Count; index++) _childIndexes[Children[index]] = index;
         for (int index = 0; index < scene.Count; index++)
         {
             XsrUiSceneNode node = scene[index];
@@ -396,20 +403,25 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
                         (entity, start, end) => { _shell.Renderer.SetTextSelection(entity, start, end); CommitScene(); },
                         (entity, value) => { _shell.Renderer.SetTextPreedit(entity, value); CommitScene(); }));
                 _controls.Add(node.Entity, control);
+                _childIndexes[control] = Children.Count;
                 Children.Add(control);
+                geometryChanged = true;
             }
 
+            geometryChanged |= control.Node.Rect != node.Rect;
             control.Apply(node);
             DriveSegmentReveal(node);
             DriveScrollInertia(node);
             DriveCapsuleGeometry(node);
             DrivePagerGeometry(node);
             DriveProgressGeometry(node);
-            int currentIndex = Children.IndexOf(control);
+            int currentIndex = _childIndexes[control];
             if (currentIndex != index)
             {
                 // Reordering must not detach live text inputs or cancel overlay springs.
                 Children.Move(currentIndex, index);
+                for (int moved = Math.Min(index, currentIndex); moved <= Math.Max(index, currentIndex); moved++)
+                    _childIndexes[Children[moved]] = moved;
             }
         }
 
@@ -418,8 +430,7 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
         ApplyOutgoingLayers(scene);
         if (_pointerInside) UpdatePointerCursor(_lastPointerPoint);
 
-        InvalidateMeasure();
-        InvalidateArrange();
+        if (geometryChanged) { InvalidateMeasure(); InvalidateArrange(); }
         InvalidateVisual();
     }
 
@@ -691,20 +702,8 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     private bool IsTitleBarPoint(XsrUiPoint point) => _scene is not null
         && _scene.Nodes.Any(node => node.Role == XsrUiSemanticRole.TitleBar && node.Rect.Contains(point));
 
-    private static bool TryGetNode(XsrUiScene scene, XsrUiEntityId entity, out XsrUiSceneNode result)
-    {
-        for (int index = 0; index < scene.Count; index++)
-        {
-            if (scene[index].Entity.Equals(entity))
-            {
-                result = scene[index];
-                return true;
-            }
-        }
-
-        result = default;
-        return false;
-    }
+    private bool TryGetNode(XsrUiScene scene, XsrUiEntityId entity, out XsrUiSceneNode result) =>
+        _sceneNodes.TryGetValue(entity, out result);
 
     private void OnTreeRenderInvalidated(object? sender, EventArgs e) => RequestCommit();
 
@@ -774,6 +773,8 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
     private XsrUiSceneNode _node;
     private AvaloniaUiSceneNodeControl? _selectionContainer;
     private bool _applied;
+    private Rect? _localClip;
+    internal int AppliedChanges { get; private set; }
 
     internal AvaloniaUiSceneNodeControl(
         Action<XsrUiEntityId> focusFromAutomation,
@@ -840,6 +841,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
 
     public void Apply(XsrUiSceneNode node)
     {
+        if (_applied && _node == node) return;
         XsrUiSceneNode previous = _node;
         _node = node;
         Opacity = node.PresentationOpacity;
@@ -848,31 +850,41 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         if (previous.IsFocused != node.IsFocused) ResetCaret();
         IsEnabled = node.IsEnabled;
         Focusable = node.IsFocusable;
-        Clip = node.ClipRect is { } clip
-            ? new RectangleGeometry(new Rect(clip.X - node.Rect.X, clip.Y - node.Rect.Y, clip.Width, clip.Height))
-            : null;
+        Rect? localClip = node.ClipRect is { } clip
+            ? new Rect(clip.X - node.Rect.X, clip.Y - node.Rect.Y, clip.Width, clip.Height) : null;
+        if (!_applied || localClip != _localClip)
+        {
+            _localClip = localClip;
+            Clip = localClip is { } rectangle ? new RectangleGeometry(rectangle) : null;
+        }
         string name = node.Label ?? node.Text ?? node.Role.ToString();
         string previousName = previous.Label ?? previous.Text ?? previous.Role.ToString();
-        AutomationProperties.SetName(this, name);
-        AutomationProperties.SetAutomationId(this, string.Create(
-            CultureInfo.InvariantCulture,
-            $"xsr-{node.Entity.Index}-{node.Entity.Generation}"));
-        AutomationProperties.SetControlTypeOverride(this, ControlTypeFor(node.Role, node.IsClickable));
-        AutomationProperties.SetHelpText(this, node.IsSelected ? "selected" : node.Role.ToString());
-        AutomationProperties.SetItemStatus(this, node.Role == XsrUiSemanticRole.Status
-            ? node.Label ?? node.Text ?? "Status"
-            : string.Empty);
-        AutomationProperties.SetLiveSetting(this, node.LiveSetting switch
+        if (!_applied || name != previousName || node.Entity != previous.Entity || node.Role != previous.Role
+            || node.IsClickable != previous.IsClickable || node.IsSelected != previous.IsSelected
+            || node.LiveSetting != previous.LiveSetting || node.IsAccessible != previous.IsAccessible
+            || node.IsFocusable != previous.IsFocusable)
         {
-            XsrUiLiveSetting.Polite => AutomationLiveSetting.Polite,
-            XsrUiLiveSetting.Assertive => AutomationLiveSetting.Assertive,
-            _ => AutomationLiveSetting.Off,
-        });
-        AutomationProperties.SetIsControlElementOverride(this,
-            node.IsAccessible && (node.HasRole || node.IsFocusable || node.IsClickable));
-        AutomationProperties.SetAccessibilityView(this,
-            node.IsAccessible && (node.HasRole || node.IsFocusable || node.IsClickable)
-                ? AccessibilityView.Content : AccessibilityView.Raw);
+            AutomationProperties.SetName(this, name);
+            AutomationProperties.SetAutomationId(this, string.Create(
+                CultureInfo.InvariantCulture,
+                $"xsr-{node.Entity.Index}-{node.Entity.Generation}"));
+            AutomationProperties.SetControlTypeOverride(this, ControlTypeFor(node.Role, node.IsClickable));
+            AutomationProperties.SetHelpText(this, node.IsSelected ? "selected" : node.Role.ToString());
+            AutomationProperties.SetItemStatus(this, node.Role == XsrUiSemanticRole.Status
+                ? node.Label ?? node.Text ?? "Status"
+                : string.Empty);
+            AutomationProperties.SetLiveSetting(this, node.LiveSetting switch
+            {
+                XsrUiLiveSetting.Polite => AutomationLiveSetting.Polite,
+                XsrUiLiveSetting.Assertive => AutomationLiveSetting.Assertive,
+                _ => AutomationLiveSetting.Off,
+            });
+            AutomationProperties.SetIsControlElementOverride(this,
+                node.IsAccessible && (node.HasRole || node.IsFocusable || node.IsClickable));
+            AutomationProperties.SetAccessibilityView(this,
+                node.IsAccessible && (node.HasRole || node.IsFocusable || node.IsClickable)
+                    ? AccessibilityView.Content : AccessibilityView.Raw);
+        }
         if (_applied && name != previousName && ControlAutomationPeer.FromElement(this) is { } namePeer)
             namePeer.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, previousName, name);
 
@@ -933,8 +945,11 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
 
         ApplyOverlayPresentation(previous, node);
 
+        bool visualChanged = !_applied || (previous with
+        { Label = node.Label, Depth = node.Depth, LiveSetting = node.LiveSetting, IsAccessible = node.IsAccessible }) != node;
         _applied = true;
-        InvalidateVisual();
+        AppliedChanges++;
+        if (visualChanged) InvalidateVisual();
     }
 
     internal void ResetSelectionRelationships()
@@ -1290,7 +1305,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
                     ? 0
                     : Math.Max(0, (Bounds.Width - iconSize) / 2);
             double iconY = Math.Max(0, (Bounds.Height - iconSize) / 2);
-            IBrush iconBrush = Brush(style.Foreground) ?? new SolidColorBrush(Colors.White);
+            IBrush iconBrush = Brush(style.Foreground) ?? Brushes.White;
             Pen iconPen = new(iconBrush, AvaloniaUiIcons.StrokeWidth)
             {
                 LineCap = PenLineCap.Round,
@@ -1372,35 +1387,38 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
             return;
         }
 
-        IBrush foreground = Brush(style.Foreground) ?? new SolidColorBrush(Colors.White);
+        IBrush foreground = Brush(style.Foreground) ?? Brushes.White;
         // Explicit visual-style typography wins; otherwise the semantic role decides, mirroring
         // the legacy sizes (17 px title, 12 px rail items, 14 px body text).
         double fontSize = style.FontSize > 0 ? style.FontSize : FontSizeFor(_node);
         FontWeight weight = style.FontWeight >= 600 ? FontWeight.SemiBold : FontWeight.Normal;
-        FormattedText formatted = new(
-            text,
-            CultureInfo.CurrentUICulture,
-            FlowDirection.LeftToRight,
-            new Typeface(FontFamily.Default, FontStyle.Normal, weight),
-            fontSize,
-            foreground);
-        foreach (var run in _node.TextRuns ?? [])
+        double maxWidth = (style.WrapText || _node.TextTrimsOverflow) && Bounds.Width > x ? Bounds.Width - x : 0;
+        var key = new TextCacheKey(text, fontSize, weight, style.Foreground, maxWidth,
+            _node.TextMaxLines, _node.TextTrimsOverflow, _node.TextRuns, CultureInfo.CurrentUICulture.Name);
+        if (_textKey != key || _formattedText is null)
         {
-            if (run.Start < 0 || run.Length <= 0 || run.Start > text.Length - run.Length) continue;
-            formatted.SetForegroundBrush(Brush(run.Foreground), run.Start, run.Length);
-            formatted.SetFontWeight(run.Bold ? FontWeight.Bold : weight, run.Start, run.Length);
-            formatted.SetFontStyle(run.Italic ? FontStyle.Italic : FontStyle.Normal, run.Start, run.Length);
-            TextDecorationCollection decorations = [];
-            if (run.Underline) decorations.Add(TextDecorations.Underline[0]);
-            if (run.Strikethrough) decorations.Add(TextDecorations.Strikethrough[0]);
-            if (decorations.Count > 0) formatted.SetTextDecorations(decorations, run.Start, run.Length);
+            _textKey = key;
+            _formattedText = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
+                CachedTypeface(weight), fontSize, foreground);
+            FormattedText fresh = _formattedText;
+            foreach (var run in _node.TextRuns ?? [])
+            {
+                if (run.Start < 0 || run.Length <= 0 || run.Start > text.Length - run.Length) continue;
+                fresh.SetForegroundBrush(Brush(run.Foreground), run.Start, run.Length);
+                fresh.SetFontWeight(run.Bold ? FontWeight.Bold : weight, run.Start, run.Length);
+                fresh.SetFontStyle(run.Italic ? FontStyle.Italic : FontStyle.Normal, run.Start, run.Length);
+                TextDecorationCollection decorations = [];
+                if (run.Underline) decorations.Add(TextDecorations.Underline[0]);
+                if (run.Strikethrough) decorations.Add(TextDecorations.Strikethrough[0]);
+                if (decorations.Count > 0) fresh.SetTextDecorations(decorations, run.Start, run.Length);
+            }
+            if (maxWidth > 0) fresh.MaxTextWidth = maxWidth;
+            if (_node.TextMaxLines > 0)
+                fresh.MaxLineCount = _node.TextMaxLines;
+            if (_node.TextTrimsOverflow)
+                fresh.Trimming = TextTrimming.WordEllipsis;
         }
-        if ((style.WrapText || _node.TextTrimsOverflow) && Bounds.Width > x)
-            formatted.MaxTextWidth = Bounds.Width - x;
-        if (_node.TextMaxLines > 0)
-            formatted.MaxLineCount = _node.TextMaxLines;
-        if (_node.TextTrimsOverflow)
-            formatted.Trimming = TextTrimming.WordEllipsis;
+        FormattedText formatted = _formattedText;
         double alignedX = style.TextAlignment switch
         {
             XsrUiTextAlignment.Center => Math.Max(x, (Bounds.Width - formatted.Width) / 2),
@@ -1492,7 +1510,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
             && AvaloniaUiIcons.TryGetGeometry(iconSource, out IReadOnlyList<Geometry> iconPaths))
         {
             double scale = NavigationIconSize / AvaloniaUiIcons.ViewBoxSize;
-            IBrush iconBrush = Brush(style.Foreground) ?? new SolidColorBrush(Colors.White);
+            IBrush iconBrush = Brush(style.Foreground) ?? Brushes.White;
             Pen iconPen = new(iconBrush, AvaloniaUiIcons.StrokeWidth)
             {
                 LineCap = PenLineCap.Round,
@@ -1509,12 +1527,12 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         }
         else if (_node.Text is { Length: > 0 } glyph)
         {
-            IBrush glyphBrush = Brush(style.Foreground) ?? new SolidColorBrush(Colors.White);
+            IBrush glyphBrush = Brush(style.Foreground) ?? Brushes.White;
             FormattedText glyphText = new(
                 glyph,
                 CultureInfo.CurrentUICulture,
                 FlowDirection.LeftToRight,
-                new Typeface(FontFamily.Default, FontStyle.Normal, FontWeightFor(style)),
+                CachedTypeface(FontWeightFor(style)),
                 Math.Max(12, style.FontSize > 0 ? style.FontSize : 14),
                 glyphBrush);
             double glyphX = rect.Right - ((pillHeight + glyphText.Width) / 2);
@@ -1534,7 +1552,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
                 label,
                 CultureInfo.CurrentUICulture,
                 FlowDirection.LeftToRight,
-                new Typeface(FontFamily.Default, FontStyle.Normal, FontWeightFor(style)),
+                CachedTypeface(FontWeightFor(style)),
                 fontSize,
                 labelBrush);
             double labelX = iconX - CapsuleCaptionIconGap - labelText.Width;
@@ -1580,9 +1598,28 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         _ => AutomationControlType.Custom,
     };
 
-    private static SolidColorBrush? Brush(XsrUiColor color) => color.Alpha == 0
-        ? null
-        : new SolidColorBrush(Color.FromArgb(color.Alpha, color.Red, color.Green, color.Blue));
+    private TextCacheKey? _textKey;
+    private FormattedText? _formattedText;
+    private readonly record struct TextCacheKey(string Text, double Size, FontWeight Weight, XsrUiColor Color,
+        double Width, int Lines, bool Trim, IReadOnlyList<XsrUiTextRun>? Runs, string Culture);
+    private static readonly Dictionary<FontWeight, Typeface> Typefaces = [];
+    private static readonly Dictionary<XsrUiColor, IBrush> BrushesByColor = [];
+    private static Typeface CachedTypeface(FontWeight weight)
+    {
+        if (!Typefaces.TryGetValue(weight, out var typeface))
+            Typefaces.Add(weight, typeface = new Typeface(FontFamily.Default, FontStyle.Normal, weight));
+        return typeface;
+    }
+    private static IBrush? Brush(XsrUiColor color)
+    {
+        if (color.Alpha == 0) return null;
+        if (BrushesByColor.TryGetValue(color, out var brush)) return brush;
+        if (BrushesByColor.Count >= 1024) BrushesByColor.Clear();
+        brush = new global::Avalonia.Media.Immutable.ImmutableSolidColorBrush(Color.FromArgb(color.Alpha, color.Red, color.Green, color.Blue));
+        BrushesByColor.Add(color, brush);
+        return brush;
+    }
+
 }
 
 

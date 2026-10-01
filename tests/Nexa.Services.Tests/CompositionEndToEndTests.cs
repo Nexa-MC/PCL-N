@@ -253,6 +253,7 @@ internal static partial class Program
         XsrUiEntityId loaded = PxmlUiLoader.Load(new PxmlHostIr(page), tree, store, root);
 
         // Clear the seeding publications so the drain observes exactly one command.
+        logging.FlushPending(); // Production publishes log state in batches.
         bridge.DrainAndMark(store);
         tree.DirtyEntities().ToList().ForEach(entity => tree.ClearDirty(entity));
 
@@ -263,6 +264,7 @@ internal static partial class Program
         AssertTrue((await runtime.Commands.Dispatch(
             commandId, new SettingsSetCommand("settings.theme", "dark")).Completion).IsSuccess);
 
+        logging.FlushPending(); // Production publishes log state in batches.
         bridge.DrainAndMark(store);
         IReadOnlyList<XsrUiEntityId> dirty = tree.DirtyEntities();
 

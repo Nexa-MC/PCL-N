@@ -35,6 +35,7 @@ internal sealed class AccountFormController : IDisposable
     private readonly DesktopFeedbackService _feedback;
     private readonly IAccountUiEffects? _effects;
     private readonly ILogWriter? _log;
+    private readonly UiProjectionSignal _projections;
     private readonly Dictionary<string, XsrUiEntityId> _entities = [];
     private readonly Dictionary<XsrUiEntityId, string> _importRows = [];
     private readonly Dictionary<XsrUiEntityId, string> _characterRows = [];
@@ -67,6 +68,7 @@ internal sealed class AccountFormController : IDisposable
         _fallbackFocus = fallback;
         XsrUiEntityId form = PxmlUiLoader.Load(Load("AccountForm.pxml"), shell.Tree, store, accountBody);
         shell.Tree.Walk(form, entity => { _entities[shell.Tree.Name(entity)] = entity; Style(entity); return true; });
+        _projections = new UiProjectionSignal(_store, _intents);
         _intents.IntentEmitted += OnIntent;
         _shell.Renderer.FramePreparing += OnFrame;
         _ = Dispatch(AccountOnboardingRoutes.DiscoverImports, new AccountDiscoverImportsCommand());
@@ -78,6 +80,7 @@ internal sealed class AccountFormController : IDisposable
         _disposed = true;
         _intents.IntentEmitted -= OnIntent;
         _shell.Renderer.FramePreparing -= OnFrame;
+        _projections.Dispose();
         _lifetime.Cancel();
         _lifetime.Dispose();
         ClearDrafts();
@@ -172,6 +175,7 @@ internal sealed class AccountFormController : IDisposable
 
     private void OnFrame(object? sender, EventArgs e)
     {
+        if (!_projections.Consume() && _pendingFocus is null) return;
         AccountLoginSnapshot snapshot = Snapshot;
         bool open = ReadBool("open");
         if (open && snapshot.Generation > _seenCompletion && snapshot.Phase == AccountLoginPhase.Completed)

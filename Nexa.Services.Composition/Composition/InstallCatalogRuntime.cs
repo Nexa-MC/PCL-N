@@ -14,7 +14,7 @@ public static class InstallCatalogRuntimeComposer
 {
     public static InstallCatalogRuntime Compose(FoundationHost host, IInstallCatalogSource? source = null, IXsrDispatchObserver? observer = null)
     {
-        HttpClient? http = source is null ? new HttpClient() : null;
+        HttpClient? http = source is null ? Nexa.Services.Downloads.PooledHttpClient.Create() : null;
         InstallCatalogService service = new(host.StateStore, source ?? new HttpInstallCatalogSource(http!));
         XsrCommandRouterBuilder commands = new();
         MinecraftInstallDraftService draft = new(host.StateStore);

@@ -15,6 +15,9 @@ internal sealed class RecoveryCapturePlan
     private readonly HashSet<string> _visited = new(Nexa.Core.PathIdentity.Comparer);
     private int _entryCount;
     private long _manifestBytes;
+    private long _cosmeticBytes;
+    internal const long MaxCosmeticFileBytes = 64L * 1024 * 1024;
+    internal const long MaxCosmeticTotalBytes = 256L * 1024 * 1024;
 
     private RecoveryCapturePlan(string root, string instance, string game, CancellationToken token)
     {
@@ -78,8 +81,10 @@ internal sealed class RecoveryCapturePlan
         string metadata = Path.Combine(_instance, "Nexa", "InstanceMetadata.json");
         RecoveryBlobStore.CheckLinks(metadata);
         if (File.Exists(metadata)) Add(metadata);
-        foreach (string name in new[] { "mods", "config", "defaultconfigs", "scripts", "kubejs", "resourcepacks", "shaderpacks" })
+        foreach (string name in new[] { "mods", "config", "defaultconfigs", "scripts", "kubejs" })
             Tree(Path.Combine(_game, name), 0);
+        foreach (string name in new[] { "resourcepacks", "shaderpacks" })
+            Tree(Path.Combine(_game, name), 0, cosmetic: true);
         foreach (string file in Entries(_game).Where(File.Exists))
             if (Path.GetFileName(file).StartsWith("options", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(file).Equals(".txt", StringComparison.OrdinalIgnoreCase)) Add(file);
     }
@@ -100,13 +105,20 @@ internal sealed class RecoveryCapturePlan
         return _entries[directory] = paths.Order(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
-    private void Tree(string directory, int depth)
+    private void Tree(string directory, int depth, bool cosmetic = false)
     {
         if (depth > 64) throw new InvalidDataException("恢复范围目录层级过深。");
         foreach (string path in Entries(directory))
         {
             RecoveryBlobStore.CheckLinks(path);
-            if (Directory.Exists(path)) Tree(path, depth + 1); else Add(path);
+            if (Directory.Exists(path)) Tree(path, depth + 1, cosmetic);
+            else
+            {
+                long size = new FileInfo(path).Length;
+                if (cosmetic && (size > MaxCosmeticFileBytes || size > MaxCosmeticTotalBytes - _cosmeticBytes)) continue;
+                if (cosmetic) _cosmeticBytes += size;
+                Add(path);
+            }
         }
     }
 

@@ -35,65 +35,83 @@ public sealed class ConsoleLogSink : ILogSink
 /// Appends log entries to one UTF-8 file, opening lazily and disabling itself when the file
 /// cannot be written (locked disk, missing folder); logging must never break the app.
 /// </summary>
-public sealed class FileLogSink(string filePath) : ILogSink, IDisposable
+public sealed class FileLogSink : ILogSink, IDisposable, IAsyncDisposable
 {
-    private readonly object _gate = new();
-    private StreamWriter? _writer;
-    private bool _disabled;
+    private readonly string _filePath;
+    private readonly System.Threading.Channels.Channel<string> _lines =
+        System.Threading.Channels.Channel.CreateBounded<string>(new System.Threading.Channels.BoundedChannelOptions(8192)
+        { SingleReader = true, FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait });
+    private readonly Task _drain;
+    private long _dropped;
+    private int _disposed;
+
+    public FileLogSink(string filePath)
+    {
+        _filePath = filePath;
+        _drain = Task.Run(DrainAsync);
+    }
 
     public void Write(LogEntry entry, string formattedLine)
     {
-        lock (_gate)
+        if (Volatile.Read(ref _disposed) == 0 && !_lines.Writer.TryWrite(formattedLine))
+            Interlocked.Increment(ref _dropped);
+    }
+
+    private async Task DrainAsync()
+    {
+        StreamWriter? writer = null;
+        try
         {
-            if (_disabled)
+            Task tick = Task.Delay(200);
+            Task<bool> available = _lines.Reader.WaitToReadAsync().AsTask();
+            while (true)
             {
-                return;
-            }
-
-            try
-            {
-                StreamWriter? writer = _writer;
-                if (writer is null)
+                await Task.WhenAny(available, tick).ConfigureAwait(false);
+                int drained = 0;
+                while (drained++ < 256 && _lines.Reader.TryRead(out var line))
                 {
-                    string? directory = Path.GetDirectoryName(filePath);
-                    if (!string.IsNullOrEmpty(directory))
+                    if (writer is null)
                     {
-                        Directory.CreateDirectory(directory);
+                        string? directory = Path.GetDirectoryName(_filePath);
+                        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+                        writer = new StreamWriter(new FileStream(_filePath, FileMode.Append, FileAccess.Write,
+                            FileShare.Read, 65536, useAsync: true), new UTF8Encoding(false), 65536);
                     }
-
-                    FileStream stream = new FileStream(
-                        filePath,
-                        FileMode.Append,
-                        FileAccess.Write,
-                        FileShare.Read);
-                    writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-                    _writer = writer;
+                    await writer.WriteLineAsync(line).ConfigureAwait(false);
                 }
-
-                writer.WriteLine(formattedLine);
-                writer.Flush();
+                if (tick.IsCompleted)
+                {
+                    if (writer is not null) await writer.FlushAsync().ConfigureAwait(false);
+                    tick = Task.Delay(200);
+                }
+                if (available.IsCompletedSuccessfully)
+                {
+                    if (!available.Result) break;
+                    available = _lines.Reader.WaitToReadAsync().AsTask();
+                }
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                _disabled = true;
-                try { _writer?.Dispose(); } catch { }
-                _writer = null;
-            }
+            long dropped = Interlocked.Read(ref _dropped);
+            if (writer is not null && dropped > 0)
+                await writer.WriteLineAsync($"[Logging] File sink omitted {dropped} lines because its bounded queue was full.").ConfigureAwait(false);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { _lines.Writer.TryComplete(); }
+        finally
+        {
+            if (writer is not null)
+                try { await writer.DisposeAsync().ConfigureAwait(false); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         }
     }
 
-    /// <summary>Flushes and closes the file; safe to call more than once.</summary>
+    /// <summary>Closes admission without blocking; DisposeAsync also drains and flushes.</summary>
     public void Dispose()
     {
-        lock (_gate)
-        {
-            if (_writer is not null)
-            {
-                try { _writer.Dispose(); } catch { }
-                _writer = null;
-            }
-
-            _disabled = true;
-        }
+        if (Interlocked.Exchange(ref _disposed, 1) == 0) _lines.Writer.TryComplete();
+    }
+    public async ValueTask DisposeAsync()
+    {
+        Dispose();
+        await _drain.ConfigureAwait(false);
     }
 }

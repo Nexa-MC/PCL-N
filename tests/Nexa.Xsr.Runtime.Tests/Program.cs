@@ -4,6 +4,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("sidecar shutdown tolerates an already closed transport", SidecarShutdownIsSafeAfterTransportClosure),
         ("extension registration commits atomically and retires with session", ExtensionsCommitAtomicallyAndRetireWithSession),
         ("renamed executable connects and registers extensions", RenamedExecutableConnectsAndRegistersExtensions),
         ("sidecar disposal cannot be undone by buffered snapshot", SidecarDisposalCannotBeUndoneByBufferedSnapshot),

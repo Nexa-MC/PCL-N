@@ -389,6 +389,15 @@ public sealed partial class SidecarHostSession : IDisposable
                 Array.Empty<byte>()),
                 deadline.Token).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Shutdown is bounded and best effort; cleanup below remains authoritative.
+        }
+        catch (Exception error) when (error is IOException or InvalidOperationException)
+        {
+            // Ending pending work may close the receive transport before this final send.
+            // An already closed peer must not turn normal host teardown into a failure.
+        }
         finally
         {
             Transition(SidecarSessionState.Closed);

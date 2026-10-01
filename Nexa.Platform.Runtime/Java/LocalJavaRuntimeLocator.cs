@@ -489,6 +489,11 @@ public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
             _log?.Warn("Java", $"Java probe returned unrecognized version properties executable={executable} exit_code={process.ExitCode}");
             return null;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            TryKill(process);
+            throw;
+        }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             TryKill(process);

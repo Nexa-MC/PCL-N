@@ -133,7 +133,8 @@ internal static class Program
             AppDomain.CurrentDomain.UnhandledException -= OnUnhandled;
             TaskScheduler.UnobservedTaskException -= OnUnobserved;
             log?.Info("Launcher", $"Session ended pid={Environment.ProcessId} exit_code={exitCode} last_stage={stage}");
-            fileSink?.Dispose();
+            log?.Dispose();
+            if (fileSink is not null) await fileSink.DisposeAsync().ConfigureAwait(false);
         }
     }
 

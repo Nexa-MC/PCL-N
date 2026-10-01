@@ -109,7 +109,7 @@ internal sealed partial class LaunchPageController
                 loader => loader.Loader == build.Key && loader.IsAddon) == true;
             if (isAddon)
             {
-                var catalog = _store.ReadAppliedValue(_store.Resolve(InstallCatalogStateContract.StateKey)) as InstallCatalogState;
+                var catalog = _store.ReadAppliedValue(_installCatalogId) as InstallCatalogState;
                 var downloads = catalog?.Catalogs.FirstOrDefault(item => item.Loader == build.Key && item.GameVersion == _selectedInstallVersion)
                     ?.Versions.FirstOrDefault(item => item.Id == build.Value)?.Downloads;
                 addons.Add(new MinecraftInstallAddon(build.Key, build.Value, downloads));

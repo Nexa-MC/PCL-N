@@ -9,6 +9,13 @@ namespace Nexa.Services.Minecraft.Management;
 /// <summary>Untrusted presentation metadata only. Never executes content or resolves remote icons.</summary>
 internal static class InstanceContentMetadata
 {
+    private static readonly object CacheGate = new();
+    private static readonly Dictionary<string, CachedMetadata> Cache = new(Nexa.Core.PathIdentity.Comparer);
+    private static readonly Queue<string> CacheOrder = new();
+    private static long _cacheBytes;
+    private sealed record CachedMetadata(string Page, long Length, long Modified, long ReadCost,
+        long MemoryCost, InstanceContentEntry Entry);
+
     internal static async Task<InstanceContentSnapshot> EnrichAsync(InstanceContentSnapshot snapshot, string directory,
         ArchiveReadBudget budget, CancellationToken token)
     {
@@ -19,7 +26,52 @@ internal static class InstanceContentMetadata
             var result = entry with { DisplayName = entry.Name };
             if (budget.Remaining > 0 && (snapshot.PageId != "mods" || entry.Enabled is not null))
             {
-                try { result = await ReadAsync(result, snapshot.PageId, Path.Combine(directory, entry.Name), budget, token).ConfigureAwait(false); }
+                try
+                {
+                    string path = Path.GetFullPath(Path.Combine(directory, entry.Name));
+                    CheckPath(path);
+                    var info = new FileInfo(path);
+                    bool cacheable = !entry.IsDirectory && snapshot.PageId is "mods" or "resourcepacks" or "shaderpacks";
+                    long length = cacheable ? info.Length : 0, modified = cacheable ? info.LastWriteTimeUtc.Ticks : 0;
+                    CachedMetadata? cached;
+                    lock (CacheGate) Cache.TryGetValue(path, out cached);
+                    if (cacheable && cached is not null && cached.Page == snapshot.PageId
+                        && cached.Length == length && cached.Modified == modified && cached.ReadCost <= budget.Remaining)
+                    {
+                        budget.Consume(cached.ReadCost);
+                        result = result with
+                        {
+                            DisplayName = cached.Entry.DisplayName,
+                            Version = cached.Entry.Version,
+                            Description = cached.Entry.Description,
+                            Icon = cached.Entry.Icon,
+                            PackageReadable = cached.Entry.PackageReadable,
+                            PackageProblem = cached.Entry.PackageProblem
+                        };
+                    }
+                    else
+                    {
+                        long before = budget.Remaining;
+                        result = await ReadAsync(result, snapshot.PageId, path, budget, token).ConfigureAwait(false);
+                        info.Refresh();
+                        // Do not cache partial results caused by the shared read budget.
+                        if (cacheable && before >= 4 * 1024 * 1024 && info.Exists
+                            && info.Length == length && info.LastWriteTimeUtc.Ticks == modified)
+                        {
+                            long cost = 1024 + (result.Icon?.Bytes.Length ?? 0)
+                                + 2L * ((result.DisplayName?.Length ?? 0) + (result.Description?.Length ?? 0));
+                            lock (CacheGate)
+                            {
+                                if (Cache.Remove(path, out var old)) _cacheBytes -= old.MemoryCost;
+                                else CacheOrder.Enqueue(path);
+                                Cache[path] = new(snapshot.PageId, length, modified, before - budget.Remaining, cost, result);
+                                _cacheBytes += cost;
+                                while ((Cache.Count > 1024 || _cacheBytes > 64L * 1024 * 1024) && CacheOrder.TryDequeue(out var key))
+                                    if (Cache.Remove(key, out var removed)) _cacheBytes -= removed.MemoryCost;
+                            }
+                        }
+                    }
+                }
                 catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException or ArgumentException)
                 {
                     if (snapshot.PageId == "mods" && entry.Enabled is not null)
@@ -48,6 +100,7 @@ internal static class InstanceContentMetadata
         if (page is not ("mods" or "resourcepacks" or "shaderpacks")) return item;
         ZipArchive? archive = null;
         FileStream? stream = null;
+        Dictionary<string, ZipArchiveEntry?>? archiveIndex = null;
         try
         {
             if (!item.IsDirectory)
@@ -59,6 +112,9 @@ internal static class InstanceContentMetadata
                 {
                     archive = new ZipArchive(stream, ZipArchiveMode.Read);
                     if (archive.Entries.Count > 16384) return item;
+                    archiveIndex = new(StringComparer.Ordinal);
+                    foreach (var entry in archive.Entries)
+                        if (!archiveIndex.TryAdd(entry.FullName, entry)) archiveIndex[entry.FullName] = null;
                 }
                 catch (InvalidDataException) when (page == "mods")
                 { return item with { PackageReadable = false, PackageProblem = "模组包损坏或不是有效的 JAR 归档。" }; }
@@ -75,12 +131,11 @@ internal static class InstanceContentMetadata
                     if (new FileInfo(file).Length > Math.Min(limit, budget.Remaining)) { skippedMetadata = true; return null; }
                     return await ReadFile(file, limit, budget, token).ConfigureAwait(false);
                 }
-                var matches = archive.Entries.Where(entry => entry.FullName == name).Take(2).ToArray();
-                if (matches.Length > 1) throw new InvalidDataException("归档中存在重复的元数据条目。");
-                if (matches.Length == 0) return null;
-                if (matches[0].Length > Math.Min(limit, budget.Remaining)) { skippedMetadata = true; return null; }
-                using var input = matches[0].Open(); using var output = new MemoryStream();
-                await ArchiveReadBudget.CopyAsync(input, output, matches[0].Length, limit, budget, token).ConfigureAwait(false);
+                if (!archiveIndex!.TryGetValue(name, out var match)) return null;
+                if (match is null) throw new InvalidDataException("归档中存在重复的元数据条目。");
+                if (match.Length > Math.Min(limit, budget.Remaining)) { skippedMetadata = true; return null; }
+                using var input = match.Open(); using var output = new MemoryStream();
+                await ArchiveReadBudget.CopyAsync(input, output, match.Length, limit, budget, token).ConfigureAwait(false);
                 return output.ToArray();
             }
             string iconName = "pack.png", name = "", version = "", description = "";

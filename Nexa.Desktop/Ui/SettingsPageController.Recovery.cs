@@ -21,6 +21,7 @@ internal sealed partial class SettingsPageController
         ManagementFact("版本文件", RecoverySize(storage.VersionBytes) + (storage.Complete ? "" : "（已统计）"));
         ManagementFact("快照存储", RecoverySize(storage.SnapshotBytes) + (storage.Complete ? "" : "（已统计）"));
         Text(_sections, "按文件大小统计；版本文件不含快照及版本目录外的共享文件。快照含压缩对象、清单和暂存。", 12, Muted, 42);
+        Text(_sections, "资源包和光影包仅自动备份单个不超过 64 MiB、合计不超过 256 MiB 的文件。大型包请另外备份。", 12, Muted, 42);
         Text(_sections, "成功快照", 18, Ink, 30, 600);
         const int pageSize = 8;
         int pages = Math.Max(1, (storage.Snapshots.Count + pageSize - 1) / pageSize);

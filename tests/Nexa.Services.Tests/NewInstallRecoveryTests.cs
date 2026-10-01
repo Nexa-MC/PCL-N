@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Nexa.Services.Minecraft.Install;
+using Nexa.Services.Downloads;
+using Nexa.Services.Minecraft.Management;
 
 namespace Nexa.Services.Tests;
 
@@ -8,15 +10,16 @@ internal static partial class Program
     private static async Task<int> RunInterruptedNewInstallChild(string root)
     {
         string firstSource = "";
+        int reported = 0;
         using var fixture = new InstallFixture(new() { VanillaJson = VanillaJson(), AssetIndexJson = AssetIndexJson() }, connectionFactory: source =>
         {
-            if (firstSource.Length != 0)
+            if (source.Contains("/client/", StringComparison.Ordinal))
+            { Volatile.Write(ref firstSource, source); return new ServingConnection(PayloadFor(source)); }
+            return new AwaitClientReceiptConnection(root, () =>
             {
-                Console.WriteLine(firstSource); Console.Out.Flush();
-                using var wait = new ManualResetEventSlim(); wait.Wait();
-            }
-            if (source.Contains("/client/", StringComparison.Ordinal)) firstSource = source;
-            return new ServingConnection(PayloadFor(source));
+                if (Interlocked.Exchange(ref reported, 1) == 0)
+                { Console.WriteLine(Volatile.Read(ref firstSource)); Console.Out.Flush(); }
+            });
         });
         await fixture.Install.InstallAsync(new(root, "1.20.1", InstanceName: "resumable"));
         return 0;
@@ -48,7 +51,7 @@ internal static partial class Program
             var plan = await InstallTaskJournal.ReadAsync(root, stage, default);
             AssertTrue(plan.Command.EditFingerprint is null);
             List<string> downloaded = []; var metadata = new FakeMetadata();
-            using var recovery = new InstallFixture(metadata, connectionFactory: source => { downloaded.Add(source); return new ServingConnection(PayloadFor(source)); });
+            using var recovery = new InstallFixture(metadata, connectionFactory: source => { lock (downloaded) downloaded.Add(source); return new ServingConnection(PayloadFor(source)); });
             AssertTrue((await recovery.Install.RecoverPendingAsync(new([root]))).IsSuccess);
             AssertTrue(File.Exists(manifest)); AssertEqual(0, metadata.VanillaReads);
             AssertFalse(File.Exists(Path.Combine(root, "libraries", "attacker.jar")));
@@ -62,5 +65,27 @@ internal static partial class Program
             AssertEqual(original, File.ReadAllText(manifest));
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    // Concurrent transfers can start before the client finishes. Signal interruption only
+    // after its durable completed-artifact receipt exists, rather than relying on file order.
+    private sealed class AwaitClientReceiptConnection(string root, Action ready) : IDownloadConnection
+    {
+        public async ValueTask<DownloadConnectionInfo> StartAsync(long offset, CancellationToken cancellationToken = default)
+        {
+            while (true)
+            {
+                var paths = Directory.GetFiles(Path.Combine(root, ".nexa-install-jobs"), "1.20.1.jar", SearchOption.AllDirectories);
+                foreach (string path in paths)
+                    if (await RecoveryRecordAuthority.IsAuthorizedFileAsync(path, cancellationToken))
+                    {
+                        ready();
+                        await Task.Delay(Timeout.Infinite, cancellationToken);
+                    }
+                await Task.Delay(10, cancellationToken);
+            }
+        }
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => throw new InvalidOperationException();
+        public ValueTask StopAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
     }
 }

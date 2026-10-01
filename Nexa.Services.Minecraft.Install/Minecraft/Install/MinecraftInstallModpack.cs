@@ -87,7 +87,8 @@ public sealed partial class MinecraftInstallService
             var installed = await RunAsync(new(buildRoot, pack.Game, pack.Loader, pack.Build, InstanceName: pack.InstanceId)
             { PreparingEdit = true, ReuseRoot = root, ModsRelativeDirectory = "versions/" + pack.InstanceId + "/mods" }, task, token,
                 new PersistentInstallMetadataSource(buildRoot, _metadata, journal), deferCompletion: true).ConfigureAwait(false);
-            using var packHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromMinutes(5) };
+            using var packHttp = Nexa.Services.Downloads.PooledHttpClient.Create(allowAutoRedirect: false);
+            packHttp.Timeout = TimeSpan.FromMinutes(5);
             int completed = 0;
             var expandedBudget = new ArchiveReadBudget(MinecraftModpackArchive.MaxExpanded);
             foreach (var file in files)

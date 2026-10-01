@@ -1296,17 +1296,18 @@ public sealed partial class XsrUiRenderer
             return;
         }
 
-        XsrUiSemantic? semantic = _tree.GetComponent<XsrUiSemantic>(entity);
-        XsrUiText? text = _tree.GetComponent<XsrUiText>(entity);
+        var components = _tree.ReadComponents(entity);
+        XsrUiSemantic? semantic = components.Get<XsrUiSemantic>();
+        XsrUiText? text = components.Get<XsrUiText>();
         string? content = text is null ? null : ResolveText(text);
         string? semanticLabel = ResolveSemanticLabel(semantic);
 
         XsrUiRect rect = _paintRects.TryGetValue(entity.Index, out XsrUiRect paintRect)
             ? paintRect
             : default;
-        XsrUiAnimation? animation = _tree.GetComponent<XsrUiAnimation>(entity);
-        XsrUiImage? image = _tree.GetComponent<XsrUiImage>(entity);
-        XsrUiTransition? transition = _tree.GetComponent<XsrUiTransition>(entity);
+        XsrUiAnimation? animation = components.Get<XsrUiAnimation>();
+        XsrUiImage? image = components.Get<XsrUiImage>();
+        XsrUiTransition? transition = components.Get<XsrUiTransition>();
         string? transitionKey = transition?.BoundKey.IsAssigned == true
             ? _state.ReadAppliedValue(transition.BoundKey) as string ?? string.Empty : transition?.Key;
         rect = rect with { X = rect.X + offsetX, Y = rect.Y + offsetY };
@@ -1322,16 +1323,16 @@ public sealed partial class XsrUiRenderer
                 clip = clip is { } outer ? Intersect(bounds, outer) : bounds;
             }
         }
-        if (_tree.GetComponent<XsrUiOverlayMotion>(entity) is { } localOverlayMotion)
+        if (components.Get<XsrUiOverlayMotion>() is { } localOverlayMotion)
         {
             overlayMotion = localOverlayMotion.Kind;
             overlayClosing = localOverlayMotion.IsClosing;
             overlayAnchor = rect;
         }
-        XsrUiVisualStyle? visualStyle = _tree.GetComponent<XsrUiVisualStyle>(entity);
-        XsrUiSelection? selection = _tree.GetComponent<XsrUiSelection>(entity);
-        XsrUiInput? input = _tree.GetComponent<XsrUiInput>(entity);
-        bool enabled = accessible && IsEnabled(input) && (_tree.GetComponent<XsrUiSegmentReveal>(entity)?.Expanded ?? true);
+        XsrUiVisualStyle? visualStyle = components.Get<XsrUiVisualStyle>();
+        XsrUiSelection? selection = components.Get<XsrUiSelection>();
+        XsrUiInput? input = components.Get<XsrUiInput>();
+        bool enabled = accessible && IsEnabled(input) && (components.Get<XsrUiSegmentReveal>()?.Expanded ?? true);
         if (!enabled && input is not null)
         {
             input.IsHovered = false;
@@ -1343,12 +1344,12 @@ public sealed partial class XsrUiRenderer
             if (_focused == entity) _focused = default;
         }
         // A zero-width initial fill still needs to reach the backend to start its animation.
-        XsrUiRect clipBounds = _tree.GetComponent<XsrUiProgress>(entity) is not null
+        XsrUiRect clipBounds = components.Get<XsrUiProgress>() is not null
             && _arrangedSlots.TryGetValue(entity.Index, out XsrUiRect progressSlot)
                 ? progressSlot with { X = progressSlot.X + offsetX, Y = progressSlot.Y + offsetY }
                 : rect;
         XsrUiRect? visibleClip = clip is { } parentClip ? Intersect(clipBounds, parentClip) : null;
-        if (_tree.GetComponent<XsrUiSegmentReveal>(entity) is not null) visibleClip = Intersect(rect, visibleClip ?? rect);
+        if (components.Get<XsrUiSegmentReveal>() is not null) visibleClip = Intersect(rect, visibleClip ?? rect);
         if (visibleClip is { Width: <= 0 } or { Height: <= 0 }) return;
         int entryOrder = -1;
         if (transition is { StaggerEntry: true } && transitionKey is not null && accessible)
@@ -1360,7 +1361,7 @@ public sealed partial class XsrUiRenderer
                 transition.StartOffsetY == 0 ? 0 : transition.PresentedOffsetY / transition.StartOffsetY), 0, 1);
             opacity *= 1 - remaining;
         }
-        XsrUiScroll? scrollState = _tree.GetComponent<XsrUiScroll>(entity);
+        XsrUiScroll? scrollState = components.Get<XsrUiScroll>();
         XsrUiScrollSnapshot? scrollSnapshot = null;
         if (scrollState is not null)
         {
@@ -1397,25 +1398,25 @@ public sealed partial class XsrUiRenderer
             visibleClip,
             enabled && (input?.IsFocusVisible ?? false),
             input?.CapsuleExpansionProgress ?? 0,
-            _tree.GetComponent<XsrUiPager>(entity)?.Snapshot(),
+            components.Get<XsrUiPager>()?.Snapshot(),
             accessible,
-            LocalizeInput(_tree.GetComponent<XsrUiTextInput>(entity)),
+            LocalizeInput(components.Get<XsrUiTextInput>()),
             image?.Raster,
             transitionKey, transition?.OffsetX ?? 0, transition?.PresentedOffsetX ?? 0,
             transition?.OffsetY ?? 0, opacity, transition?.PresentedOffsetY ?? 0, entryOrder,
-            _tree.GetComponent<XsrUiProgress>(entity)?.Presented,
-            _tree.GetComponent<XsrUiLiveRegion>(entity)?.Setting ?? XsrUiLiveSetting.Off,
+            components.Get<XsrUiProgress>()?.Presented,
+            components.Get<XsrUiLiveRegion>()?.Setting ?? XsrUiLiveSetting.Off,
             overlayMotion,
             overlayClosing,
             overlayAnchor,
             text?.MaxLines ?? 0,
             text?.TrimOverflow ?? false,
             scrollSnapshot,
-            _tree.GetComponent<XsrUiSegmentReveal>(entity) is { } reveal ? new(reveal.Expanded, reveal.Progress) : null,
-            _tree.GetComponent<XsrUiScrollGesture>(entity) is { } motion ? new(motion.Revision, motion.Dragging, motion.Velocity) : null,
+            components.Get<XsrUiSegmentReveal>() is { } reveal ? new(reveal.Expanded, reveal.Progress) : null,
+            components.Get<XsrUiScrollGesture>() is { } motion ? new(motion.Revision, motion.Dragging, motion.Velocity) : null,
             IsStableContent(entity), text?.Runs));
 
-        if (_tree.GetComponent<XsrUiSegmentedTrack>(entity) is { } track
+        if (components.Get<XsrUiSegmentedTrack>() is { } track
             && _tree.IsAlive(track.Thumb) && _paintRects.TryGetValue(track.Selected.Index, out XsrUiRect segment))
         {
             XsrUiRect target = segment with { X = segment.X + offsetX, Y = segment.Y + offsetY };
@@ -1440,9 +1441,9 @@ public sealed partial class XsrUiRenderer
                 TransitionPresentedOffsetX: thumbTransition.PresentedOffsetX));
         }
 
-        XsrUiPager? pageContainer = _tree.GetComponent<XsrUiPager>(entity);
+        XsrUiPager? pageContainer = components.Get<XsrUiPager>();
         XsrUiRect? childClip = transition is { MovesSelf: false, OffsetX: not 0 } or { MovesSelf: false, OffsetY: not 0 }
-            || pageContainer is not null || _tree.GetComponent<XsrUiScroll>(entity) is not null || _tree.GetComponent<XsrUiSegmentReveal>(entity) is not null
+            || pageContainer is not null || components.Get<XsrUiScroll>() is not null || components.Get<XsrUiSegmentReveal>() is not null
             ? visibleClip ?? rect
             : clip;
         if (transition is { MovesSelf: false })

@@ -7,7 +7,7 @@ namespace Nexa.Services.Tests;
 // sink may break the log operation.
 internal static partial class Program
 {
-    private static void FileSinkAppendsAndSurvivesIoErrors()
+    private static async ValueTask FileSinkAppendsAndSurvivesIoErrors()
     {
         string directory = Path.Combine(Path.GetTempPath(), "nexa-log-sink-test", Guid.NewGuid().ToString("N"));
         FileLogSink sink = new(Path.Combine(directory, "launcher.log"));
@@ -20,7 +20,7 @@ internal static partial class Program
             ExceptionText: null);
         sink.Write(entry, entry.ToDisplayText());
         sink.Write(entry, entry.ToDisplayText());
-        sink.Dispose();
+        await sink.DisposeAsync();
 
         string text = File.ReadAllText(Path.Combine(directory, "launcher.log"));
         AssertEqual(2, text.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);

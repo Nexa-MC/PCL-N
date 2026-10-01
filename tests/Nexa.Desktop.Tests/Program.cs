@@ -37,6 +37,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("launch state projections skip idle frames and wake on change", LaunchProjectionsDoNotRepeatOnIdleFrames),
         ("language catalog covers locales templates and fallbacks", LanguageCatalogCoversLocalesTemplatesAndFallbacks),
         ("language settings switch live without rebuilding controls", LanguageSettingSwitchesLiveAndPreservesControls),
         ("first run uses system language without settings state", FirstRunUsesSystemLanguageWithoutSettingsState),

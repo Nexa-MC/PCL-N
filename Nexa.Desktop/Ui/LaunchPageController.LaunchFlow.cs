@@ -82,7 +82,7 @@ internal sealed partial class LaunchPageController
 
         // Once the game is running there is no pipeline left to cancel — the button has become
         // "back" — so just leave the page without touching the process.
-        bool launched = _store.ReadAppliedValue(_store.Resolve(MinecraftLaunchProgressState.SnapshotKey))
+        bool launched = _store.ReadAppliedValue(_launchProgressId)
             is MinecraftLaunchProgressSnapshot snapshot && snapshot.IsLaunched;
         if (launched)
         {
@@ -318,7 +318,7 @@ internal sealed partial class LaunchPageController
 
     /// <summary>The session this narration launched, from the coherent snapshot truth.</summary>
     private Guid? LaunchedSessionId() =>
-        _store.ReadAppliedValue(_store.Resolve(MinecraftLaunchProgressState.SnapshotKey)) is MinecraftLaunchProgressSnapshot snapshot
+        _store.ReadAppliedValue(_launchProgressId) is MinecraftLaunchProgressSnapshot snapshot
             ? snapshot.SessionId
             : null;
 
@@ -332,6 +332,6 @@ internal sealed partial class LaunchPageController
 
 
     private IReadOnlyList<LaunchProfileView> ReadProfiles() =>
-        _store.ReadCollection<LaunchProfileView>(_store.Resolve(AccountStateContract.ProfilesKey)).Items;
+        _store.ReadCollection<LaunchProfileView>(_accountProfilesId).Items;
 
 }

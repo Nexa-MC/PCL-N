@@ -26,9 +26,8 @@ public static class AccountOnboardingRuntimeComposer
         IMicrosoftMinecraftAuthService? microsoft = null, ILittleSkinOAuthService? littleSkin = null,
         IXsrDispatchObserver? observer = null)
     {
-        HttpClient http = client ?? new HttpClient(new DiagnosticHttpHandler(host.Logging,
-            new HttpClientHandler { AllowAutoRedirect = false }))
-        { Timeout = TimeSpan.FromSeconds(30) };
+        HttpClient http = client ?? Nexa.Services.Downloads.PooledHttpClient.Create(allowAutoRedirect: false, log: host.Logging);
+        if (client is null) http.Timeout = TimeSpan.FromSeconds(30);
         // One instance, two consumers: the onboarding service and the launch resolver MUST
         // share this capability, or production silently loses Microsoft refresh.
         IMicrosoftMinecraftAuthService microsoftService =

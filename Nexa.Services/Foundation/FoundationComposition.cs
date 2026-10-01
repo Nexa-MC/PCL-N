@@ -198,7 +198,7 @@ public static class FoundationComposer
         declareHostState?.Invoke(builder);
         XsrStateStore store = builder.Build(observer);
 
-        var logging = new LogService(store, logCapacity, clock);
+        var logging = new LogService(store, logCapacity, clock, TimeSpan.FromMilliseconds(250));
         // Sinks and observers must be attached before constructors read persisted data.
         configureLogging?.Invoke(logging);
         var downloads = new DownloadService(store, downloadBufferSize, logging, minimumSegmentBytes);

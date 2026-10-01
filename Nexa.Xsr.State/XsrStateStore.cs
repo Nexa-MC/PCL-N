@@ -12,6 +12,9 @@ public sealed class XsrStateStore
     private readonly IXsrStateObserver? _observer;
     private long _changeStamp;
 
+    /// <summary>Applied changes only. Subscribers queue work; callbacks may run on any publisher thread.</summary>
+    public event Action<XsrStateChange>? Changed;
+
     private readonly Dictionary<XsrStateId, List<XsrStateId>> _derivedDependents;
 
     internal XsrStateStore(
@@ -351,18 +354,22 @@ public sealed class XsrStateStore
 
     private void Notify(XsrStateChange? change)
     {
-        if (change is not { } observed || _observer is null)
+        if (change is not { } observed)
         {
             return;
         }
 
         try
         {
-            _observer.OnChanged(observed);
+            _observer?.OnChanged(observed);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException)
         {
             // State publication must not be changed by a diagnostics observer failure.
         }
+        if (Changed is { } subscribers)
+            foreach (Action<XsrStateChange> subscriber in subscribers.GetInvocationList())
+                try { subscriber(observed); }
+                catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException) { }
     }
 }

@@ -20,7 +20,7 @@ internal sealed partial class LaunchPageController
     private void RefreshAccountPresentation()
     {
         XsrCollectionSnapshot<LaunchProfileView> roster = _store.ReadCollection<LaunchProfileView>(
-            _store.Resolve(AccountStateContract.ProfilesKey));
+            _accountProfilesId);
         int selected = SelectedAccountIndex;
         bool refreshSkins = roster.Revision != _accountRosterRevision || selected != _presentedAccountIndex;
         if (roster.Revision != _accountRosterRevision)

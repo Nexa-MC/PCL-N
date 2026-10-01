@@ -7909,5 +7909,10 @@
     "source": "请先登录并验证拥有 Minecraft Java 版的 Microsoft 账户，再添加其他类型的档案。",
     "en": "Sign in with a Microsoft account and verify Minecraft Java Edition ownership before adding other profile types.",
     "zh-Hant": "請先登入並驗證擁有 Minecraft Java 版的 Microsoft 帳戶，再新增其他類型的檔案。"
+  },
+  {
+    "source": "资源包和光影包仅自动备份单个不超过 64 MiB、合计不超过 256 MiB 的文件。大型包请另外备份。",
+    "en": "Automatic recovery includes resource and shader pack files up to 64 MiB each and 256 MiB in total. Back up larger packs separately.",
+    "zh-Hant": "資源包和光影包僅自動備份單個不超過 64 MiB、合計不超過 256 MiB 的檔案。大型包請另外備份。"
   }
 ]

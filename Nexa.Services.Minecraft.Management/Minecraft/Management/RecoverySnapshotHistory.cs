@@ -88,7 +88,7 @@ internal sealed partial class RecoverySnapshotStore
     {
         JsonArray entries = [];
         foreach (var file in snapshot.Files)
-            entries.Add((JsonNode)new JsonObject { ["area"] = file.Source.Area, ["path"] = file.Source.RelativePath, ["sha256"] = file.Blob.Sha256, ["length"] = file.Blob.Length });
+            entries.Add((JsonNode)new JsonObject { ["area"] = file.Source.Area, ["path"] = file.Source.RelativePath, ["sha256"] = file.Blob.Sha256, ["length"] = file.Blob.Length, ["modifiedTicks"] = file.ModifiedTicks, ["blobSize"] = file.BlobSize, ["blobModifiedTicks"] = file.BlobModifiedTicks });
         return new JsonObject
         {
             ["version"] = 1,

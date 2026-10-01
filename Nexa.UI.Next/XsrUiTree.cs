@@ -168,7 +168,15 @@ public sealed class XsrUiTree
         where T : class
     {
         XsrUiEntity value = Require(entity);
-        return value.Components.TryGetValue(typeof(T), out object? component) ? (T)component : null;
+        int slot = ComponentSlot<T>.Index;
+        return slot < value.ComponentSlots.Length ? (T?)value.ComponentSlots[slot] : null;
+    }
+
+    internal ComponentView ReadComponents(XsrUiEntityId entity) => new(Require(entity).ComponentSlots);
+    internal readonly struct ComponentView(object?[] slots)
+    {
+        internal T? Get<T>() where T : class => ComponentSlot<T>.Index < slots.Length
+            ? (T?)slots[ComponentSlot<T>.Index] : null;
     }
 
     /// <summary>
@@ -180,11 +188,13 @@ public sealed class XsrUiTree
     {
         XsrUiEntity value = Require(entity);
 
+        int slot = ComponentSlot<T>.Index;
         if (component is null)
         {
-            if (value.Components.Remove(typeof(T)))
+            if (slot < value.ComponentSlots.Length && value.ComponentSlots[slot] is not null)
             {
                 UnbindComponent<T>(entity, value);
+                value.ComponentSlots[slot] = null;
                 MarkDirty(entity, XsrUiDirtyKinds.Structure);
             }
 
@@ -192,7 +202,8 @@ public sealed class XsrUiTree
         }
 
         UnbindComponent<T>(entity, value);
-        value.Components[typeof(T)] = component;
+        if (slot >= value.ComponentSlots.Length) Array.Resize(ref value.ComponentSlots, Math.Max(slot + 1, value.ComponentSlots.Length * 2));
+        value.ComponentSlots[slot] = component;
         if (component is XsrUiStateBinding binding)
         {
             BindState(entity, binding.Dependency);
@@ -456,35 +467,13 @@ public sealed class XsrUiTree
     private void UnbindComponent<T>(XsrUiEntityId entity, XsrUiEntity value)
         where T : class
     {
-        if (typeof(T) == typeof(XsrUiStateBinding)
-            && value.Components.TryGetValue(typeof(T), out object? previousBinding))
-        {
-            UnbindState(entity, ((XsrUiStateBinding)previousBinding).Dependency);
-        }
-        else if (typeof(T) == typeof(XsrUiText)
-            && value.Components.TryGetValue(typeof(T), out object? previousText)
-            && previousText is XsrUiText text)
-        {
-            UnbindState(entity, TextDependency(text.BoundState));
-        }
-        else if (typeof(T) == typeof(XsrUiElement)
-            && value.Components.TryGetValue(typeof(T), out object? previousElement)
-            && previousElement is XsrUiElement element)
-        {
-            UnbindState(entity, VisibilityDependency(element.BoundVisibility));
-        }
-        else if (typeof(T) == typeof(XsrUiSemantic)
-            && value.Components.TryGetValue(typeof(T), out object? previousSemantic)
-            && previousSemantic is XsrUiSemantic semantic)
-        {
-            UnbindState(entity, SemanticLabelDependency(semantic.BoundLabel));
-        }
-        else if (typeof(T) == typeof(XsrUiInput)
-            && value.Components.TryGetValue(typeof(T), out object? previousInput)
-            && previousInput is XsrUiInput input)
-        {
-            UnbindState(entity, EnabledDependency(input.BoundEnabled));
-        }
+        int slot = ComponentSlot<T>.Index;
+        object? previous = slot < value.ComponentSlots.Length ? value.ComponentSlots[slot] : null;
+        if (previous is XsrUiStateBinding binding) UnbindState(entity, binding.Dependency);
+        else if (previous is XsrUiText text) UnbindState(entity, TextDependency(text.BoundState));
+        else if (previous is XsrUiElement element) UnbindState(entity, VisibilityDependency(element.BoundVisibility));
+        else if (previous is XsrUiSemantic semantic) UnbindState(entity, SemanticLabelDependency(semantic.BoundLabel));
+        else if (previous is XsrUiInput input) UnbindState(entity, EnabledDependency(input.BoundEnabled));
     }
 
     private static XsrUiStateDependency TextDependency(XsrStateId state) =>
@@ -564,6 +553,10 @@ public sealed class XsrUiTree
         return _entities[entity.Index];
     }
 
+    private static int _nextComponentSlot;
+    private static class ComponentSlot<T> where T : class
+    { internal static readonly int Index = Interlocked.Increment(ref _nextComponentSlot) - 1; }
+
     private sealed class XsrUiEntity(string? name)
     {
         public string Name { get; } = name ?? string.Empty;
@@ -572,7 +565,7 @@ public sealed class XsrUiTree
 
         public List<int> Children { get; } = [];
 
-        public Dictionary<Type, object> Components { get; } = [];
+        public object?[] ComponentSlots = [];
 
         public XsrUiDirtyKinds OwnDirty { get; set; }
 

@@ -4,6 +4,11 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("performance file workers are bounded and join cancellation", FileWorkersAreBoundedAndJoinCancellation),
+        ("performance receipts invalidate and explicit verify hashes", FileReceiptsInvalidateAndExplicitVerificationHashes),
+        ("performance snapshot reuses stamps and repairs changed objects", SnapshotReusesStampsAndRepairsChangedObjects),
+        ("performance metadata cache retains budget and invalidates stamps", MetadataCacheKeepsBudgetAndInvalidatesFileStamp),
+        ("performance logging batches retain ordered bounded state", Sync(BatchedLoggingKeepsBoundedRingAndFlushesState)),
         ("Java cache is scoped and rejects invalidated scans", JavaCacheIsScopedAndInvalidationRejectsOldScan),
         ("profile initialization is asynchronous and preserves pending store", ProfileInitializationIsAsyncAndPreservesPendingStore),
         ("profile initialization cancels at shutdown", ProfileInitializationCanBeCancelledAtShutdown),
@@ -317,7 +322,7 @@ internal static partial class Program
         // XSR-519: Wave 5 acceptance integration.
         ("foundation composition end to end", FoundationCompositionEndToEnd),
         ("foundation downloads use composed logging", FoundationDownloadsUseComposedLogging),
-        ("file sink appends and survives io errors", Sync(FileSinkAppendsAndSurvivesIoErrors)),
+        ("file sink appends and survives io errors", FileSinkAppendsAndSurvivesIoErrors),
         ("console sink disables instead of throwing", Sync(ConsoleSinkDisablesInsteadOfThrowing)),
         ("level gate policy holds across tiers", Sync(LevelGatePolicyHoldsAcrossTiers)),
         // XSR-712: launch progress narration.
