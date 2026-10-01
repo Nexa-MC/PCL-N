@@ -44,7 +44,8 @@ public sealed class LogService : ILogWriter, IDisposable
     private long _sequence;
     private readonly Queue<LogEntry> _ring = new();
     private readonly ITimer? _publicationTimer;
-    private bool _pending, _disposed;
+    private readonly TimeSpan _publicationInterval;
+    private bool _pending, _publicationScheduled, _disposed;
     private readonly List<ILogSink> _sinks = [];
 
     /// <summary>
@@ -73,9 +74,10 @@ public sealed class LogService : ILogWriter, IDisposable
         _entriesId = _store.Resolve(EntriesKey);
         if (publicationInterval is { } interval && interval > TimeSpan.Zero)
         {
+            _publicationInterval = interval;
             var tick = new PublicationTick(this);
             _publicationTimer = tick.Timer = _clock.CreateTimer(static state => ((PublicationTick)state!).Run(),
-                tick, interval, interval);
+                tick, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -168,6 +170,7 @@ public sealed class LogService : ILogWriter, IDisposable
             if (_ring.Count > _capacity) _ring.Dequeue();
             _pending = true;
             if (_publicationTimer is null) FlushPending();
+            else SchedulePublication();
             MirrorToSinks(entry);
         }
     }
@@ -217,6 +220,11 @@ public sealed class LogService : ILogWriter, IDisposable
     {
         lock (_gate)
         {
+            if (_publicationScheduled)
+            {
+                _publicationTimer!.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                _publicationScheduled = false;
+            }
             if (!_pending) return;
             long sequence = _sequence;
             LogEntry[] items = _ring.ToArray();
@@ -228,15 +236,34 @@ public sealed class LogService : ILogWriter, IDisposable
                 var result = _store.PublishDelta(_entriesId, new XsrCollectionDelta<LogEntry, long>(
                     snapshot.Revision, items.Where(entry => entry.Sequence > newestPublished).ToArray(),
                     snapshot.Items.Where(entry => entry.Sequence < oldest).Select(entry => entry.Sequence).ToArray()));
-                if (result.IsApplied) { _pending = _sequence != sequence; return; }
+                if (result.IsApplied)
+                {
+                    _pending = _sequence != sequence;
+                    if (_pending) SchedulePublication();
+                    return;
+                }
             }
+            SchedulePublication();
         }
+    }
+
+    // Caller holds _gate. A reentrant state observer may append during publication.
+    private void SchedulePublication()
+    {
+        if (_disposed || _publicationTimer is null || _publicationScheduled) return;
+        _publicationScheduled = true;
+        _publicationTimer.Change(_publicationInterval, Timeout.InfiniteTimeSpan);
     }
 
     public void Dispose()
     {
-        _publicationTimer?.Dispose();
-        lock (_gate) { if (_disposed) return; FlushPending(); _disposed = true; }
+        lock (_gate)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            FlushPending();
+            _publicationTimer?.Dispose();
+        }
     }
 
     private sealed class PublicationTick(LogService owner)

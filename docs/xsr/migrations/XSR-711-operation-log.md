@@ -37,8 +37,10 @@ users and bug reports can actually read, with verbose tiers available while chas
   select, settings load failures and writes, launch coordinator milestones, download
   submit/failover/cancel/complete, segment start/complete, temp-file rename retries, and
   per-instance discovery scan lines.
-- Sinks: file sink lazily opens one append-mode UTF-8 stream, flushes per entry and
-  self-disables after IO errors or disposal; console sink disables when no console exists.
+- Sinks: file sink lazily opens one append-mode UTF-8 stream and drains a bounded channel,
+  flushing batches and the final drain. It self-disables after IO errors or disposal;
+  console sink disables when no console exists. Idle/publication contract is maintained
+  in [XSR-727](XSR-727-idle-logging-and-download-progress.md).
 - Channel policy parsed from the informational version (`2.0.0.alpha.N`/`beta`/`ci`),
   mirroring `docs/xsr/versioning.md`.
 

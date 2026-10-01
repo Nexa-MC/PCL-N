@@ -109,6 +109,7 @@ PXML vertical slices continue over the shared shell.
 | XSR-724 | follow-up | real installation and commit-last version publication; [migration](migrations/XSR-724-install-execution.md); current authority and recovery policy in [download-trust.md](download-trust.md) |
 | XSR-725 | follow-up | scoped capability, provenance, estimator and preflight contracts; [migration](migrations/XSR-725-capability-planning.md); estimates remain warnings |
 | XSR-726 | follow-up | JVM host boundary and bounded observation; [migration](migrations/XSR-726-jvm-host-observations.md); smoke tests do not establish real Minecraft compatibility |
+| XSR-727 | follow-up | event-driven idle logging and bounded single-stream progress; [migration](migrations/XSR-727-idle-logging-and-download-progress.md) |
 
 ## Closed migration unit
 

@@ -19,6 +19,7 @@ namespace Nexa.Services.Downloads;
 public sealed class DownloadService
 {
     public IWorkScheduler? WorkScheduler { get; init; }
+    internal TimeProvider ProgressClock { get; init; } = TimeProvider.System;
 
     public const string OwnerName = "Nexa.Services.Downloads";
     public const string LogModuleName = "Download";
@@ -32,6 +33,7 @@ public sealed class DownloadService
     private const int DefaultBufferSize = 128 * 1024;
     private const long DefaultMinimumSegmentBytes = 8 * 1024 * 1024;
     private const int MinBytesBetweenSegmentProgress = 1024 * 1024;
+    private static readonly TimeSpan MinimumSingleStreamProgressInterval = TimeSpan.FromMilliseconds(100);
     private const int MaxStateConflicts = 8;
 
     private readonly ConcurrentDictionary<string, Lazy<DownloadOperation>> _active = new(GetPathComparer());
@@ -232,6 +234,8 @@ public sealed class DownloadService
                     long readStartedAt = Stopwatch.GetTimestamp();
                     long sessionRead = 0;
                     long totalRead = startOffset;
+                    long lastProgressAt = 0, lastProgressBytes = startOffset;
+                    bool reportedDownload = false;
                     while (true)
                     {
                         int read = await connection
@@ -250,6 +254,23 @@ public sealed class DownloadService
                             .ConfigureAwait(false);
                         totalRead += read;
                         sessionRead += read;
+                        long now = ProgressClock.GetTimestamp();
+                        if (!reportedDownload || ProgressClock.GetElapsedTime(lastProgressAt, now) >= MinimumSingleStreamProgressInterval)
+                        {
+                            report(new DownloadProgress(
+                                DownloadStage.Downloading,
+                                source,
+                                totalRead,
+                                Math.Max(connectionInfo.Length, totalRead),
+                                CalculateSpeed(sessionRead, readStartedAt)));
+                            reportedDownload = true;
+                            lastProgressAt = now;
+                            lastProgressBytes = totalRead;
+                        }
+                    }
+
+                    if (lastProgressBytes != totalRead)
+                    {
                         report(new DownloadProgress(
                             DownloadStage.Downloading,
                             source,

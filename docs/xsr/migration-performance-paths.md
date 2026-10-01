@@ -53,3 +53,8 @@ Validation:
   receipts, snapshot/blob reuse and corruption repair, metadata budget accounting, batched
   logs, idle projection suppression, unchanged native nodes and closed-peer shutdown.
   These are correctness/work-avoidance checks, not end-user timing benchmarks.
+
+后续 [XSR-727](migrations/XSR-727-idle-logging-and-download-progress.md) 将日志空闲
+定时轮询改为新消息触发的单次publication和channel等待；单流进度每100ms合并，
+首条、EOF真实字节和所有阶段切换仍立即反馈。managed/Linux NativeAOT Services460项及68项目架构
+通过；不把合成时间和正确性回归当成原生资源SLA。

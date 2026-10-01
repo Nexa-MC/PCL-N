@@ -56,4 +56,11 @@ Alpha.6 可明确列出尚待实机验收的候选能力；Beta 的支持列表�
 
 共享CPU/disk/HTTP调度与Launch Quiet Mode首批adapter见 [work-scheduling.md](work-scheduling.md)。目录主动读取会提升对应预取请求；图标释放HTTP后再等待CPU，整个encoded/decode流水线最多四项。游戏取消/失败立即释放，确认窗口后15秒grace或提前退出释放，多quiet scope独立计数。提示卡片仅在可见活跃状态计时，用户Reduced Motion不被临时策略改写。schema-1在线模型的生产轮询已移除。
 
-本机managed验证：Release零警告/错误；452项Services、105项Desktop、88项UI.Next、9项Avalonia backend及68项目架构检查通过。60秒默认主页fixture记录0frames、0render requests、所有采样quiet/admission计数为0；285entities、210state cells。采样器在本进程内，CPU/allocation数字包含每秒Process/JSON工作和JIT；这不是idle CPU <0.2%、零分配或8h原生验收。日志publication/file sink仍有空闲定时轮询，图片分层预算及余下adapter继续执行。
+本机managed验证：Release零警告/错误；452项Services、105项Desktop、88项UI.Next、9项Avalonia backend及68项目架构检查通过。60秒默认主页fixture记录0frames、0render requests、所有采样quiet/admission计数为0；285entities、210state cells。采样器在本进程内，CPU/allocation数字包含每秒Process/JSON工作和JIT；这不是idle CPU <0.2%、零分配或8h原生验收。
+
+新增静态审查按 [review-505b9f9f.md](review-505b9f9f.md) 与
+[static-review-follow-up.md](static-review-follow-up.md) 追踪。下载权威来源/index/旧任务
+及归档mode单元通过457项managed与Linux NativeAOT Services、105项Desktop、68项目
+架构和trim shell52nodes；`b20dec9e`的XSR CI通过，三平台native模式测试通过。
+其后日志空闲唤醒与单流进度单元通过460项managed/Linux NativeAOT Services及68项目架构；图片分层
+预算、collection delta、GPG策略、受保护更新、余下adapter和真实长期证据仍开放。

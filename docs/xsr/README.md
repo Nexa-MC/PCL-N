@@ -15,6 +15,7 @@ The user-requested constraints take precedence:
 - [download-trust.md](download-trust.md) — Minecraft 权威元数据、摘要绑定、旧任务与更新权限约束
 - [review-505b9f9f.md](review-505b9f9f.md) — 新审查的事实核对、修复范围和剩余证据
 - [static-review-follow-up.md](static-review-follow-up.md) — 补充性能与架构审查的当前代码核对
+- [migrations/XSR-727-idle-logging-and-download-progress.md](migrations/XSR-727-idle-logging-and-download-progress.md) — 空闲日志与有界下载进度
 - [runtime-performance.md](runtime-performance.md) — 运行期性能优先级、资源预算、Splash 与验收边界
 - [alpha6-beta-acceptance.md](alpha6-beta-acceptance.md) — 非商业路线图、真实 launch / soak 证据与 Beta 完成标准
 - [diagnostic-export.md](diagnostic-export.md) — 用户主动诊断包、固定字段和日志隐私边界

@@ -24,6 +24,9 @@ callbacks.
   order — Connecting, Reading, Downloading, Committing, Completed — with Retrying between
   failed sources and Failed after the last source. Speed is bytes over wall time, zero
   before the first 100 ms.
+- Single-stream intermediate feedback is bounded to 100ms intervals, with immediate
+  first feedback and an EOF byte flush; stage changes remain immediate. See
+  [XSR-727](XSR-727-idle-logging-and-download-progress.md). This does not throttle IO.
 - Destination coalescing: concurrent `DownloadAsync` calls for the same destination share
   one transfer (path comparer is case-insensitive on Windows, ordinal elsewhere). Every
   caller keeps an independent progress callback and cancellation token; when the last waiter

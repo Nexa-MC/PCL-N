@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 
 namespace Nexa.Services.Logging;
@@ -62,11 +63,9 @@ public sealed class FileLogSink : ILogSink, IDisposable, IAsyncDisposable
         StreamWriter? writer = null;
         try
         {
-            Task tick = Task.Delay(200);
-            Task<bool> available = _lines.Reader.WaitToReadAsync().AsTask();
-            while (true)
+            long flushedAt = Stopwatch.GetTimestamp();
+            while (await _lines.Reader.WaitToReadAsync().ConfigureAwait(false))
             {
-                await Task.WhenAny(available, tick).ConfigureAwait(false);
                 int drained = 0;
                 while (drained++ < 256 && _lines.Reader.TryRead(out var line))
                 {
@@ -79,15 +78,11 @@ public sealed class FileLogSink : ILogSink, IDisposable, IAsyncDisposable
                     }
                     await writer.WriteLineAsync(line).ConfigureAwait(false);
                 }
-                if (tick.IsCompleted)
+                if (writer is not null && (!_lines.Reader.TryPeek(out _)
+                    || Stopwatch.GetElapsedTime(flushedAt) >= TimeSpan.FromMilliseconds(200)))
                 {
-                    if (writer is not null) await writer.FlushAsync().ConfigureAwait(false);
-                    tick = Task.Delay(200);
-                }
-                if (available.IsCompletedSuccessfully)
-                {
-                    if (!available.Result) break;
-                    available = _lines.Reader.WaitToReadAsync().AsTask();
+                    await writer.FlushAsync().ConfigureAwait(false);
+                    flushedAt = Stopwatch.GetTimestamp();
                 }
             }
             long dropped = Interlocked.Read(ref _dropped);
@@ -98,6 +93,8 @@ public sealed class FileLogSink : ILogSink, IDisposable, IAsyncDisposable
         { _lines.Writer.TryComplete(); }
         finally
         {
+            // A disabled sink must not retain a failed IO burst in its bounded channel.
+            while (_lines.Reader.TryRead(out _)) { }
             if (writer is not null)
                 try { await writer.DisposeAsync().ConfigureAwait(false); }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }

@@ -26,6 +26,20 @@ Time To Splash从用户启动进程到首次实际呈现测量，争取100–200
 
 当前 `AvaloniaSplashWindow` 是装饰图标，`AvaloniaUiShellLifetime.Compose` 接收已构造的shell且先构造主窗口再Show splash；不等同于上述早期可用Shell。现有2秒fallback是装饰关闭兜底，不是启动SLA。早期Splash、阶段/错误状态与首次呈现instrumentation待交付，不能因已有Splash类而宣称Time To Splash已达标。
 
+## 日志与下载发布契约
+
+日志 batch publication 采用一次性唤醒：无待发布条目时 timer 必须停用，第一条
+新消息才启动一个 publication interval。连续写入合并为同一 batch；显式 flush、
+clear 和 dispose 保留立即可见/最终排空语义，observer 重入写入不得丢失下一 batch。
+文件 sink 在 channel 空闲时等待新数据，禁止空队列的周期 flush；队列排空或连续
+写入跨过 flush 窗口才 flush，异步 shutdown 必须排空并保留顺序与 dropped summary。
+
+单流下载在每个来源尝试中立即发布首个 Downloading 反馈，中间进度最多每100ms
+一次，EOF 时补齐最后真实字节数。Connecting、Reading、Retrying、Committing、
+Completed、Failed 不能被节流合并；不得丢弃终态、改变实际 IO/取消、取消 hash 或
+改写 failover 的来源/offset 语义。节流只减少 callback 和 XSR state publication。
+静止日志的 fake-clock 回归和下载 fake-clock/实际字节回归不替代进程 idle SLA。
+
 ## 当前工具及证据局限
 
 - `Nexa.UI.Next.Benchmarks --output FILE [--timing-gate 120hz|60hz]` 只测renderer kernel。常规1600节点场景使用上述门槛，10k materialized场景只报压力数据。JSON包含tail sample counts；1000样本的最慢0.1%只有1个，不能当作稳健的正式认证。受控最终验收应使用长窗口与独立重复运行。
@@ -41,4 +55,8 @@ Release构建零警告/错误，104项Desktop测试及68项目架构检查通过
 
 当前非受控、并行开发环境的1600节点kernel paint/layout P95分别约3.6/4.5ms（managed）、3.7/4.9ms（NativeAOT），部分场景高于新目标；未启用受控时间门禁，不能将确定性PASS解释为性能达标。OS/GPU完整帧、真实8h、静止进程外采样、Quiet Mode与缓存/IO预算均未验收。
 
-后续admission批次：452 Services /105 Desktop通过；默认主页60秒fixture记录0frames与0render requests，所有采样admission/quiet计数为0（285entities、210cells）。这关闭提示定时唤醒回归，仍不证明原生idle CPU/RAM SLA；日志空闲timer及图片预算继续推进。
+后续admission批次：452 Services /105 Desktop通过；默认主页60秒fixture记录0frames与0render requests，所有采样admission/quiet计数为0（285entities、210cells）。这关闭提示定时唤醒回归，仍不证明原生idle CPU/RAM SLA。
+
+日志/进度批次：managed与Linux NativeAOT Services460项及68项目架构检查通过。一次性日志publication、
+空channel等待和100ms单流进度回归已通过；图片预算、collection delta和真实原生idle
+CPU/RAM及8h趋势继续验收。fake clock跨8h只验证调度逻辑，不是8h运行数据。
