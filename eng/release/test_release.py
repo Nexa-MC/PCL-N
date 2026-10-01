@@ -43,6 +43,8 @@ class ReleaseTests(unittest.TestCase):
             def git(*args):
                 return subprocess.check_output(["git", *args], cwd=root, encoding="utf-8").strip()
             git("init", "-q")
+            git("config", "gc.auto", "0")
+            git("config", "maintenance.auto", "false")
             git("config", "user.name", "Release Test")
             git("config", "user.email", "test@example.invalid")
             git("commit", "--allow-empty", "-m", "old entry")
@@ -66,6 +68,8 @@ class ReleaseTests(unittest.TestCase):
             def run(*args, **kwargs):
                 return subprocess.check_output(["git", "-C", work, *args], encoding="utf-8").strip()
             run("init", "-q")
+            run("config", "gc.auto", "0")
+            run("config", "maintenance.auto", "false")
             run("config", "user.email", "test@example.com")
             run("config", "user.name", "Test")
             seed = "seed"
@@ -108,6 +112,8 @@ class ReleaseTests(unittest.TestCase):
             def run(*args, **kwargs):
                 return subprocess.check_output(["git", "-C", work, *args], encoding="utf-8").strip()
             run("init", "-q")
+            run("config", "gc.auto", "0")
+            run("config", "maintenance.auto", "false")
             run("config", "user.email", "test@example.com")
             run("config", "user.name", "Test")
             (Path(work) / "base.txt").write_text("base", encoding="utf-8")
