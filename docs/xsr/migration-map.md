@@ -116,6 +116,7 @@ PXML vertical slices continue over the shared shell.
 | XSR-731 | follow-up | encoded icon byte LRU and visible-size/DPI raster decoding; [migration](migrations/XSR-731-image-residency-budgets.md) |
 | XSR-732 | follow-up | stable sparse collection merge and unchanged snapshot reuse; [migration](migrations/XSR-732-ordered-collection-deltas.md) |
 | XSR-733 | follow-up | Background recovery source admission and nonblocking Idle blob maintenance; [migration](migrations/XSR-733-recovery-work-admission.md) |
+| XSR-734 | follow-up | bounded measured state attribution and distinct tree/state render requests; [migration](migrations/XSR-734-soak-wake-attribution.md) |
 
 ## Closed migration unit
 

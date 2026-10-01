@@ -6,6 +6,8 @@ using Nexa.Services.Logging;
 using Nexa.Services.Scheduling;
 using Nexa.Services.Tasks;
 using Nexa.UI.Next;
+using Nexa.Xsr;
+using Nexa.Xsr.State;
 
 namespace Nexa.Desktop.Tests;
 
@@ -30,7 +32,8 @@ internal static partial class Program
             return 2;
         }
         Directory.CreateDirectory(output);
-        using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]));
+        SoakStateAttribution attribution = new();
+        using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]), stateObserver: attribution);
         using SettingsPageController settings = new(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
             fixture.Foundation.Commands, fixture.Store, fixture.Feedback);
         fixture.Controller.SettingsPage = settings.Page;
@@ -50,6 +53,7 @@ internal static partial class Program
         using FileStream samples = new(Path.Combine(output, "samples.jsonl"), FileMode.CreateNew, FileAccess.Write, FileShare.Read);
         long allocated = GC.GetTotalAllocatedBytes();
         long start = Stopwatch.GetTimestamp();
+        attribution.Start(start);
         SoakSample baseline = Capture(0);
         TimeSpan baselineCpu = process.TotalProcessorTime;
         WriteSample(samples, baseline);
@@ -79,6 +83,9 @@ internal static partial class Program
             if (mode == "navigation") Thread.Sleep(16);
             else requests.Wait(TimeSpan.FromSeconds(Math.Clamp(Math.Min(nextSample, seconds) - elapsed, 0, 1)));
         }
+        // Freeze event counts at the interval boundary, before final GC and reporting.
+        requests.Dispose();
+        attribution.Stop();
         // Compare collected live bytes, not the current size of the allocation nursery.
         GC.Collect();
         GC.WaitForPendingFinalizers();
@@ -97,7 +104,7 @@ internal static partial class Program
         using FileStream report = new(Path.Combine(output, "run.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None);
         using Utf8JsonWriter json = new(report, new JsonWriterOptions { Indented = true });
         json.WriteStartObject();
-        json.WriteNumber("schema", 2);
+        json.WriteNumber("schema", 3);
         json.WriteString("scope", "desktop-composition-fixture");
         json.WriteString("mode", mode);
         json.WriteNumber("requested_seconds", seconds);
@@ -111,6 +118,22 @@ internal static partial class Program
         WriteNullableNumber(json, "composition_frame_max_ms", frame == 0 ? null : frameMax);
         json.WriteNumber("frame_histogram_overflow_count", frameHistogram[1000]);
         json.WriteNumber("render_requests", requests.Count);
+        json.WriteNumber("render_requests_state", requests.StateCount);
+        json.WriteNumber("render_requests_tree", requests.TreeCount);
+        json.WriteNumber("state_attribution_overflow_changes", attribution.Overflow);
+        json.WriteString("state_attribution_scope", "measured-interval semantic ID/reason counts only; correlated publications, not a one-to-one frame cause; at most 64 pairs; no values");
+        json.WriteStartArray("state_publications");
+        foreach (SoakStateChange state in attribution.Snapshot())
+        {
+            json.WriteStartObject();
+            json.WriteString("semantic_id", state.SemanticId.Value);
+            json.WriteString("reason", state.Reason.ToString());
+            json.WriteNumber("changes", state.Count);
+            json.WriteNumber("first_seconds", state.FirstSeconds);
+            json.WriteNumber("last_seconds", state.LastSeconds);
+            json.WriteEndObject();
+        }
+        json.WriteEndArray();
         json.WriteString("frame_driver", mode == "idle" ? "tree-state-invalidation-coalesced" : "navigation-workload");
         json.WriteNumber("runtime_processor_count", Environment.ProcessorCount);
         json.WriteString("processor_count_scope", "Environment.ProcessorCount respects affinity, quota and DOTNET_PROCESSOR_COUNT; not necessarily whole-machine CPU capacity");
@@ -191,24 +214,58 @@ internal static partial class Program
         using SoakFrameRequests requests = new(fixture.Shell);
         AssertFalse(requests.TryTake());
         AssertFalse(requests.TryTake());
+        long trees = requests.TreeCount;
         fixture.Shell.Tree.MarkDirty(fixture.Controller.AccountBody, XsrUiDirtyKinds.Paint);
         fixture.Shell.Tree.MarkDirty(fixture.Controller.AccountBody, XsrUiDirtyKinds.Paint);
         AssertEqual(2L, requests.Count);
+        AssertEqual(trees + 2, requests.TreeCount);
         AssertTrue(requests.TryTake());
         AssertFalse(requests.TryTake());
         _ = fixture.Shell.Render(new XsrUiSize(1280, 800));
         for (int drain = 0; drain < 32 && requests.TryTake(); drain++) _ = fixture.Shell.Render(new XsrUiSize(1280, 800));
         AssertFalse(requests.TryTake());
         long before = requests.Count;
+        long states = requests.StateCount;
         // State publications wake the driver even before the tree is updated by a frame.
         Task.Run(() => clock.Advance(TimeSpan.FromSeconds(3))).GetAwaiter().GetResult();
         AssertTrue(requests.Count > before);
+        AssertTrue(requests.StateCount > states);
+        AssertEqual(requests.Count, requests.StateCount + requests.TreeCount);
         AssertTrue(requests.TryTake());
         requests.Dispose();
         long retired = requests.Count;
         fixture.Shell.Tree.MarkDirty(fixture.Controller.AccountBody, XsrUiDirtyKinds.Paint);
         clock.Advance(TimeSpan.FromSeconds(3));
         AssertEqual(retired, requests.Count);
+    }
+
+    private static void SoakStateAttributionExcludesWarmupBoundsEntriesAndRetires()
+    {
+        SoakStateAttribution attribution = new();
+        XsrStateChange Change(string id, XsrStateChangeReason reason = XsrStateChangeReason.ValuePublished) =>
+            new(default, XsrSemanticId.Parse(id), XsrStateKind.Cell, 1, XsrStateAvailability.Available, reason);
+        attribution.OnChanged(Change("fixture.warmup"));
+        AssertEqual(0, attribution.Snapshot().Length);
+        attribution.Start(Stopwatch.GetTimestamp());
+        attribution.OnChanged(Change("fixture.one"));
+        attribution.OnChanged(Change("fixture.one"));
+        attribution.OnChanged(Change("fixture.one", XsrStateChangeReason.AvailabilityChanged));
+        AssertEqual(2, attribution.Snapshot().Length);
+        AssertEqual(2L, attribution.Snapshot().Single(e => e.Reason == XsrStateChangeReason.ValuePublished).Count);
+        for (int i = 0; i < 70; i++) attribution.OnChanged(Change("fixture.extra" + i));
+        AssertEqual(64, attribution.Snapshot().Length);
+        AssertEqual(8L, attribution.Overflow);
+        attribution.OnChanged(Change("fixture.one"));
+        AssertEqual(3L, attribution.Snapshot().Single(e => e.SemanticId.Value == "fixture.one"
+            && e.Reason == XsrStateChangeReason.ValuePublished).Count);
+        AssertTrue(attribution.Snapshot().All(e => e.FirstSeconds >= 0 && e.LastSeconds >= e.FirstSeconds));
+        attribution.Stop();
+        attribution.OnChanged(Change("fixture.one"));
+        AssertEqual(3L, attribution.Snapshot().Single(e => e.SemanticId.Value == "fixture.one"
+            && e.Reason == XsrStateChangeReason.ValuePublished).Count);
+        attribution.Start(Stopwatch.GetTimestamp());
+        AssertEqual(0, attribution.Snapshot().Length);
+        AssertEqual(0L, attribution.Overflow);
     }
 
     private static void WriteSample(Stream stream, SoakSample sample)
@@ -258,34 +315,75 @@ internal static partial class Program
         private bool _disposed;
         private int _pending;
         private long _count;
+        private long _stateCount, _treeCount;
         public SoakFrameRequests(XsrUiShell shell)
         {
             _shell = shell;
-            shell.Tree.RenderInvalidated += Request;
-            if (shell.StateBridge is { } bridge) bridge.RenderRequested += Request;
+            shell.Tree.RenderInvalidated += RequestTree;
+            if (shell.StateBridge is { } bridge) bridge.RenderRequested += RequestState;
         }
         public long Count => Interlocked.Read(ref _count);
+        public long StateCount => Interlocked.Read(ref _stateCount);
+        public long TreeCount => Interlocked.Read(ref _treeCount);
         public bool TryTake() => Interlocked.Exchange(ref _pending, 0) != 0;
         public void Wait(TimeSpan timeout) => _wake.WaitOne(timeout);
-        private void Request(object? sender, EventArgs args)
+        private void RequestTree(object? sender, EventArgs args) => Request(false);
+        private void RequestState(object? sender, EventArgs args) => Request(true);
+        private void Request(bool state)
         {
             lock (_gate)
             {
                 if (_disposed) return;
                 Interlocked.Increment(ref _count);
+                if (state) Interlocked.Increment(ref _stateCount); else Interlocked.Increment(ref _treeCount);
                 if (Interlocked.Exchange(ref _pending, 1) == 0) _wake.Set();
             }
         }
         public void Dispose()
         {
-            _shell.Tree.RenderInvalidated -= Request;
-            if (_shell.StateBridge is { } bridge) bridge.RenderRequested -= Request;
+            _shell.Tree.RenderInvalidated -= RequestTree;
+            if (_shell.StateBridge is { } bridge) bridge.RenderRequested -= RequestState;
             lock (_gate)
             {
                 if (_disposed) return;
                 _disposed = true;
                 _wake.Dispose();
             }
+        }
+    }
+
+    private readonly record struct SoakStateChange(XsrSemanticId SemanticId, XsrStateChangeReason Reason,
+        long Count, double FirstSeconds, double LastSeconds);
+
+    private sealed class SoakStateAttribution : IXsrStateObserver
+    {
+        private readonly object _gate = new();
+        private readonly Dictionary<(XsrSemanticId, XsrStateChangeReason), SoakStateChange> _changes = new(64);
+        private long? _started;
+        private long _overflow;
+        public long Overflow { get { lock (_gate) return _overflow; } }
+        public void Start(long started)
+        {
+            lock (_gate) { _changes.Clear(); _overflow = 0; _started = started; }
+        }
+        public void Stop() { lock (_gate) _started = null; }
+        public void OnChanged(XsrStateChange change)
+        {
+            lock (_gate)
+            {
+                if (_started is not { } started) return;
+                var key = (change.SemanticId, change.Reason);
+                double elapsed = Stopwatch.GetElapsedTime(started).TotalSeconds;
+                if (_changes.TryGetValue(key, out var prior))
+                    _changes[key] = prior with { Count = prior.Count + 1, LastSeconds = elapsed };
+                else if (_changes.Count < 64)
+                    _changes.Add(key, new(change.SemanticId, change.Reason, 1, elapsed, elapsed));
+                else _overflow++;
+            }
+        }
+        public SoakStateChange[] Snapshot()
+        {
+            lock (_gate) return [.. _changes.Values.OrderBy(e => e.SemanticId.Value, StringComparer.Ordinal).ThenBy(e => e.Reason)];
         }
     }
 

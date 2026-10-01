@@ -1,8 +1,8 @@
 using Nexa.Services.Logging;
 using Nexa.Services.Minecraft.Launch;
 using Nexa.Services.Minecraft.Process;
-using Nexa.Services.Settings;
 using Nexa.Services.Scheduling;
+using Nexa.Services.Settings;
 using Nexa.Xsr.State;
 
 namespace Nexa.Services.Minecraft.Management;

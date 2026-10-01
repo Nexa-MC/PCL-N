@@ -43,6 +43,7 @@ internal static partial class Program
     private static readonly (string Name, Action Body)[] TestCases =
     [
         ("soak idle driver coalesces invalidations and retires", SoakIdleDriverCoalescesInvalidationsAndRetires),
+        ("soak state attribution excludes warmup bounds entries and retires", SoakStateAttributionExcludesWarmupBoundsEntriesAndRetires),
         ("diagnostic export requires explicit click coalesces and cancels", DiagnosticExportRequiresClickCoalescesRequestsAndCancelsOnDispose),
         ("launch state projections skip idle frames and wake on change", LaunchProjectionsDoNotRepeatOnIdleFrames),
         ("language catalog covers locales templates and fallbacks", LanguageCatalogCoversLocalesTemplatesAndFallbacks),
@@ -861,7 +862,8 @@ internal static partial class Program
             bool enableSkins = false,
             TimeProvider? timeProvider = null,
             IVersionDirectoryEffects? directoryEffects = null,
-            IInstallCatalogSource? installSource = null)
+            IInstallCatalogSource? installSource = null,
+            IXsrStateObserver? stateObserver = null)
         {
             _temporaryDirectory = Path.Combine(
                 Path.GetTempPath(),
@@ -869,7 +871,7 @@ internal static partial class Program
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_temporaryDirectory);
             XsrUiRuntimeContext uiRuntime = new();
-            XsrCompositeStateObserver storeObservation = new(uiRuntime.StateBridge, null);
+            XsrCompositeStateObserver storeObservation = new(uiRuntime.StateBridge, stateObserver);
             SettingsSchema schema = LauncherDefaults.CreateSchema();
             string minecraftRoot = Path.Combine(_temporaryDirectory, "minecraft");
             Directory.CreateDirectory(minecraftRoot);

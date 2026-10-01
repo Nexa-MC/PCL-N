@@ -111,3 +111,16 @@ quiet时无第二次读取且Critical能取得额度；这不是Minecraft实机�
 `4b1c3811` 的Launcher Build 36875918243通过；XSR CI 36875918277在collection热路径分配
 测试失败（仅预热2次后测到24,624字节），不是格式或恢复adapter失败。测试补齐既有numeric
 lookup同样的200,000次预热，仍严格要求10,000次读的线程分配为0；具体CI分配调用栈尚未采集。
+
+`60fa833c` 的Launcher Build 36878964347六平台通过；XSR CI 36878964126的managed/native
+runtime（含OS IPC）、Services、Desktop、UI/backend和架构门禁通过，最后在
+`InstanceRecoveryService`的imports排序失败。本批修正排序；不能把末尾跳过的shell/trim
+步骤计为通过。
+
+soak唤醒归因见 [XSR-734](migrations/XSR-734-soak-wake-attribution.md)：仅保留测量区间内
+最多64项semantic ID/reason计数和时间，分开state/tree请求；不采集payload、不强制flush
+或等待。managed/Linux NativeAOT Desktop各106项、68项目架构通过。实跑60秒managed idle
+为0frames/0publications，navigation为3,631frames、1,210state/110,117tree请求；另一次
+60秒NativeAOT idle为1frame/1state请求，关联测量开始0.0003304秒的`logging.entries`
+delta，随后未记录其他publication。历史XSR-732单帧仍未归因；此工具不关闭原生窗口/GPU、
+真实Minecraft或8h性能验收。
