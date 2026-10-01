@@ -119,6 +119,7 @@ PXML vertical slices continue over the shared shell.
 | XSR-734 | follow-up | bounded measured state attribution and distinct tree/state render requests; [migration](migrations/XSR-734-soak-wake-attribution.md) |
 | XSR-735 | follow-up | bounded local Function Patch ABI, explicit target grants and activation retirement; [migration](migrations/XSR-735-bounded-function-patch-execution.md) |
 | XSR-736 | follow-up | compile-before-CoreCompile rewriting and actual Desktop resource caption point; [migration](migrations/XSR-736-compile-time-function-patches.md) |
+| XSR-737 | follow-up | process-wide dynamic raster pixel budget, shared leases and visibility/retirement cleanup; [migration](migrations/XSR-737-shared-raster-budget.md) |
 
 ## Closed migration unit
 

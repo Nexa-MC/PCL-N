@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -9,15 +8,22 @@ namespace Nexa.UI.Next.Backend.Avalonia;
 
 internal sealed partial class AvaloniaUiSceneNodeControl
 {
-    private Bitmap? _rasterBitmap;
+    private readonly AvaloniaUiRasterPool _rasterPool;
+    private AvaloniaUiRasterPool.Lease? _rasterLease;
     private string? _rasterKey;
     private bool _rasterFit;
     private int _rasterWidth;
-    internal bool HasDecodedRaster => _rasterBitmap is not null;
-    internal Bitmap? DecodedRaster => _rasterBitmap;
+    private bool _rasterCapacityBlocked;
+    private long _rasterAttemptRevision;
+    private bool _presentationReleased;
+    private bool _rasterPresentationEnabled = true;
+    private XsrUiSize? _rasterViewport;
+    internal bool HasDecodedRaster => _rasterLease is not null;
+    internal Bitmap? DecodedRaster => _rasterLease?.Bitmap;
 
     private void UpdateRaster(XsrUiRasterImage? raster, double width, double height)
     {
+        if (_presentationReleased || !_rasterPresentationEnabled || !RasterVisible(_node, _rasterViewport)) raster = null;
         string? key = raster?.Image.Key;
         bool fit = raster?.FitToBounds == true;
         int decodeWidth = raster is null ? 0 : raster.Image.Width;
@@ -26,22 +32,32 @@ internal sealed partial class AvaloniaUiSceneNodeControl
             double density = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
             decodeWidth = PreviewWidth(raster.Image.Width, raster.Image.Height, width, height, density);
         }
-        if (_rasterKey == key && _rasterFit == fit && _rasterWidth == decodeWidth) return;
-        _rasterBitmap?.Dispose(); _rasterBitmap = null;
+        if (_rasterKey == key && _rasterFit == fit && _rasterWidth == decodeWidth
+            && (!_rasterCapacityBlocked || _rasterAttemptRevision == _rasterPool.Revision)) return;
+        _rasterLease?.Dispose(); _rasterLease = null;
         _rasterKey = key; _rasterFit = fit; _rasterWidth = decodeWidth;
+        _rasterCapacityBlocked = false;
         if (raster is null) return;
-        try
+        _rasterLease = _rasterPool.Acquire(raster.Image, fit, decodeWidth, out _rasterCapacityBlocked, out _rasterAttemptRevision);
+    }
+
+    private static bool RasterVisible(XsrUiSceneNode node, XsrUiSize? viewport)
+    {
+        XsrUiRect rect = node.Rect;
+        if (!(node.PresentationOpacity > 0) || !double.IsFinite(rect.X) || !double.IsFinite(rect.Y)
+            || !double.IsFinite(rect.Width) || !double.IsFinite(rect.Height) || rect.Width <= 0 || rect.Height <= 0) return false;
+        double left = rect.X, top = rect.Y, right = rect.X + rect.Width, bottom = rect.Y + rect.Height;
+        if (node.ClipRect is { } clip)
         {
-            // PngImage owns an array. Keep the stream read-only and avoid another encoded copy.
-            if (!MemoryMarshal.TryGetArray(raster.Image.Bytes, out ArraySegment<byte> bytes)) return;
-            using MemoryStream stream = new(bytes.Array!, bytes.Offset, bytes.Count, writable: false);
-            Bitmap bitmap = fit ? Bitmap.DecodeToWidth(stream, decodeWidth, BitmapInterpolationMode.MediumQuality) : new(stream);
-            if (raster.FitToBounds ? bitmap.PixelSize.Width > 1024 || bitmap.PixelSize.Height > 1024
-                : bitmap.PixelSize.Width != raster.Image.Width || bitmap.PixelSize.Height != raster.Image.Height) bitmap.Dispose();
-            else _rasterBitmap = bitmap;
+            left = Math.Max(left, clip.X); top = Math.Max(top, clip.Y);
+            right = Math.Min(right, clip.X + clip.Width); bottom = Math.Min(bottom, clip.Y + clip.Height);
         }
-        catch (Exception failure) when (failure is ArgumentException or InvalidOperationException or IOException or NotSupportedException)
-        { /* Malformed pixels keep the embedded source; image decode never breaks scene commit. */ }
+        if (viewport is { } size)
+        {
+            left = Math.Max(left, 0); top = Math.Max(top, 0);
+            right = Math.Min(right, size.Width); bottom = Math.Min(bottom, size.Height);
+        }
+        return right > left && bottom > top;
     }
 
     internal static int PreviewWidth(int sourceWidth, int sourceHeight, double width, double height, double density)
@@ -58,14 +74,24 @@ internal sealed partial class AvaloniaUiSceneNodeControl
     {
         StopCaret();
         AvaloniaUiMotion.CancelAll(this);
-        _rasterBitmap?.Dispose(); _rasterBitmap = null; _rasterKey = null; _rasterWidth = 0;
+        _presentationReleased = true;
+        _rasterLease?.Dispose(); _rasterLease = null; _rasterKey = null; _rasterWidth = 0;
+    }
+
+    internal void SetRasterPresentationEnabled(bool enabled)
+    {
+        if (_rasterPresentationEnabled == enabled) return;
+        _rasterPresentationEnabled = enabled;
+        _rasterLease?.Dispose(); _rasterLease = null; _rasterKey = null; _rasterWidth = 0;
+        _rasterCapacityBlocked = false;
+        if (enabled && !_presentationReleased) InvalidateVisual();
     }
 
     private bool DrawRaster(DrawingContext context, Rect bounds)
     {
         // DPI can change without changing the immutable scene node.
         UpdateRaster(_node.RasterImage, bounds.Width, bounds.Height);
-        if (_rasterBitmap is not { } bitmap || _node.RasterImage is not { } raster) return false;
+        if (DecodedRaster is not { } bitmap || _node.RasterImage is not { } raster) return false;
         if (raster.FitToBounds)
         {
             double scale = Math.Min(bounds.Width / raster.Image.Width, bounds.Height / raster.Image.Height);

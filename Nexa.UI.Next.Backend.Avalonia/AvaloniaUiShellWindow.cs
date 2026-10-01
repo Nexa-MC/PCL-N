@@ -174,6 +174,7 @@ public sealed class AvaloniaUiShellWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+        _surface.SetRasterPresentationEnabled(WindowState != WindowState.Minimized);
         _shell.PublishWindowActivity(IsActive, WindowState == WindowState.Minimized);
         _ = AvaloniaWindowsFrame.SuppressBorder(this);
         UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
@@ -541,6 +542,8 @@ public sealed class AvaloniaUiShellWindow : Window
 
     private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
+        if (e.Property == WindowStateProperty)
+            _surface.SetRasterPresentationEnabled(WindowState != WindowState.Minimized);
         if (e.Property == IsActiveProperty || e.Property == WindowStateProperty)
             _shell.PublishWindowActivity(IsActive, WindowState == WindowState.Minimized);
         // Avalonia 12 has no public Visual.RenderScalingProperty; the scaling fact lives on

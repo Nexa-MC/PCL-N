@@ -365,6 +365,8 @@ internal static partial class Program
         LifetimeProbeApp.MarkTerminated();
         if (LifetimeProbeApp.Failure is { } failure) throw new InvalidOperationException("Native bridge scenario failed.", failure);
         AssertTrue(LifetimeProbeApp.ReachedEndOfLifetime);
+        AssertEqual(0, AvaloniaUiRasterPool.Shared.Retained.Leases);
+        AssertEqual(0, AvaloniaUiRasterPool.Shared.Retained.Entries);
         AssertEqual(ShutdownMode.OnMainWindowClose, LifetimeProbeApp.ObservedShutdownMode);
         AssertTrue(LifetimeProbeApp.ObservedMainWindow is AvaloniaUiShellWindow);
         var main = (AvaloniaUiShellWindow)LifetimeProbeApp.ObservedMainWindow!;
@@ -406,6 +408,7 @@ internal static partial class Program
             VerifyNativeTextEditing(window, shell, surface);
             VerifyReentrantRemovalCommit(shell, surface);
             await VerifyTransitionGroupsAndMedia(shell, surface);
+            VerifySharedRasterBudget();
             VerifyWindowActionFeedback(window, surface);
             await VerifySpringIgnoresStaleSceneReads().ConfigureAwait(true);
             await VerifyCapsuleGeometryClock(shell, surface).ConfigureAwait(true);

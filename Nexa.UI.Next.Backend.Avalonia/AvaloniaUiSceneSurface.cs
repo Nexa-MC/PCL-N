@@ -46,6 +46,7 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     private bool _commitQueued;
     private bool _applyingScene;
     private bool _disposed;
+    private bool _rasterPresentationEnabled = true;
     private bool _initialFocusAssigned;
     private bool _pointerInside;
     private XsrUiPoint _lastPointerPoint;
@@ -76,6 +77,15 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     public XsrUiScene? Scene => _scene;
 
     internal XsrUiPointerCursor PresentedPointerCursor => _presentedPointerCursor;
+
+    internal void SetRasterPresentationEnabled(bool enabled)
+    {
+        if (_disposed || _rasterPresentationEnabled == enabled) return;
+        _rasterPresentationEnabled = enabled;
+        foreach (AvaloniaUiSceneNodeControl control in _controls.Values) control.SetRasterPresentationEnabled(enabled);
+        foreach (AvaloniaUiSceneNodeControl control in _outgoingControls) control.SetRasterPresentationEnabled(enabled);
+        if (!enabled) AvaloniaUiRasterPool.Shared.TrimIdle();
+    }
 
     internal bool TryGetPresentedEnterProgress(XsrUiEntityId entity, out double value)
     {
@@ -198,6 +208,7 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
         foreach (AvaloniaUiSceneNodeControl control in _outgoingControls) control.ReleasePresentation();
         _outgoingControls.Clear();
         _controls.Clear();
+        AvaloniaUiRasterPool.Shared.TrimIdle();
         Children.Clear();
         Cursor = null;
         _handCursor.Dispose();
@@ -409,7 +420,8 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
             }
 
             geometryChanged |= control.Node.Rect != node.Rect;
-            control.Apply(node);
+            control.SetRasterPresentationEnabled(_rasterPresentationEnabled);
+            control.Apply(node, new XsrUiSize(Bounds.Width, Bounds.Height));
             DriveSegmentReveal(node);
             DriveScrollInertia(node);
             DriveCapsuleGeometry(node);
@@ -780,11 +792,13 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         Action<XsrUiEntityId> focusFromAutomation,
         Action<XsrUiEntityId> invokeFromAutomation,
         Func<bool> reducedMotion,
-        AvaloniaUiTextInputActions? textInputActions = null)
+        AvaloniaUiTextInputActions? textInputActions = null,
+        AvaloniaUiRasterPool? rasterPool = null)
     {
         _focusFromAutomation = focusFromAutomation ?? throw new ArgumentNullException(nameof(focusFromAutomation));
         _invokeFromAutomation = invokeFromAutomation ?? throw new ArgumentNullException(nameof(invokeFromAutomation));
         _reducedMotion = reducedMotion ?? throw new ArgumentNullException(nameof(reducedMotion));
+        _rasterPool = rasterPool ?? AvaloniaUiRasterPool.Shared;
         IsHitTestVisible = false;
         UseLayoutRounding = false;
         FocusAdorner = null;
@@ -839,9 +853,15 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
 
     internal IReadOnlyList<AvaloniaUiSceneNodeControl> SelectionItems => _selectionItems;
 
-    public void Apply(XsrUiSceneNode node)
+    public void Apply(XsrUiSceneNode node, XsrUiSize? viewport = null)
     {
-        if (_applied && _node == node) return;
+        if (_applied && _node == node && _rasterViewport == viewport && !_presentationReleased)
+        {
+            if (_rasterCapacityBlocked) UpdateRaster(node.RasterImage, node.Rect.Width, node.Rect.Height);
+            return;
+        }
+        _presentationReleased = false;
+        _rasterViewport = viewport;
         XsrUiSceneNode previous = _node;
         _node = node;
         Opacity = node.PresentationOpacity;

@@ -36,8 +36,22 @@ Time To Splash从用户启动进程到首次实际呈现测量，争取100–200
 FitToBounds图片按可见DIP尺寸和当前RenderScaling选择向上取整的二次幂解码宽度，
 最多1024像素、不得超过原图；同一bucket复用bitmap，DPI改变在绘制时重新核对。
 皮肤layer保持原始像素坐标和nearest-neighbor语义。backend读取已有encoded数组，
-不复制整张图片；更换/退休control必须dispose旧bitmap。此约束减少小图的decoded占用，
-不是全局64 MiB CPU或64–128 MiB GPU预算，memory-pressure adapter与实机测量仍待验收。
+不复制整张图片；更换/退休control必须释放其bitmap lease。
+
+backend的动态raster由进程共享pool持有，按encoded身份、fit模式和解码宽度去重。
+所有活跃lease与闲置条目共用64 MiB的pixel charge预算、512条目上限；charge为
+每像素8字节，在decode前按目标尺寸保守预留，decode后按实际尺寸核对并计账。
+该charge是明确的预算单位，不是allocator/native/GPU测量。闲置条目按LRU淘汰并
+dispose；活跃lease不可被淘汰，额度全部被占用时新图片使用原有占位而不突破预算。
+完全在clip/viewport之外、零尺寸或opacity为0的节点不持有lease；活跃与outgoing
+control共享同一pool，更换、退休及surface关闭释放lease，关闭还清理所有闲置项。
+原生窗口最小化时暂停该surface的raster驻留、释放lease并trim闲置条目；其他可见
+窗口的lease仍受保护。最小化期间的scene更新或迟到draw不得重新decode，恢复显示
+后由正常绘制重新获取当前图片，不暂停必要的state/launch/recovery观察。
+预算拒绝不产生timer/frame；后续正常绘制或场景提交在容量变化后可重试。畸形图片
+不会逐帧重试。固定内嵌avatar/version bitmap、临时decoder内存、compositor持有的
+引用与GPU texture不在该动态pool计账内；OS memory-pressure adapter和实机曲线
+仍须单独验收，不能把64 MiB pixel charge宣布为实际CPU/GPU或进程RAM上限。
 
 日志 batch publication 采用一次性唤醒：无待发布条目时 timer 必须停用，第一条
 新消息才启动一个 publication interval。连续写入合并为同一 batch；显式 flush、
@@ -83,3 +97,10 @@ Release构建零警告/错误，104项Desktop测试及68项目架构检查通过
 空channel等待和100ms单流进度回归已通过；后续图片/collection单元缩小了保留与排序成本，
 全局图片CPU/GPU预算、collection发布剩余成本及真实原生idle CPU/RAM与8h趋势继续验收。
 fake clock跨8h只验证调度逻辑，不是8h运行数据。
+
+共享动态raster见 [XSR-737](migrations/XSR-737-shared-raster-budget.md)：512项与64 MiB
+pixel charge共用预算，按每像素8字节计账；相同内容/尺寸共享lease，只淘汰闲置LRU。
+完全不可见和最小化窗口释放驻留，恢复正常显示后获取当前图片；其他窗口的lease不受影响。
+managed/Linux NativeAOT backend各9项、69项目架构与whitespace通过；独立NativeAOT
+产品的shell52nodes及first-run验证通过，编译器/Roslyn未进入安装输出。实际CPU/native、
+GPU、decoder临时分配、OS pressure与真实进程RAM/8h曲线继续保留为验收项。

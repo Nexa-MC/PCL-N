@@ -9,7 +9,7 @@
 | P0 | Minecraft 兼容性 | JNI / Host / preflight / observation | `eng/acceptance/minecraft-matrix.json` 中候选组合逐项留存真实客户端进入世界、持续运行、正常退出的证据；候选不代表支持。不适用组合附理由，不计算笛卡尔积。JVM smoke 和 unverified-client pilot 不算通过。 |
 | P0 | 长期稳定性 | 有界缓存、日志、任务保留、会话生命周期 | 真 Desktop 8h idle、8h Minecraft running；另测2h导航；500 搜索、100 切换、50 启动/取消、20 安装/取消/恢复、整合包连续安装/删除。记录 working set、managed live bytes、allocation、handles、threads、entities 及各子系统计数。合成/fixture 测试单列，不替代真实使用。 |
 | P0 | 更新事务 / 原生签名 | metadata / GPG / hash / inventory / 安装包 | 预安装受保护 helper、内部独立验签、对象绑定 staging/replace/rollback/restart，三平台替换竞争与断电测试。`UpdateStaging.ApplyPlan` 继续拒绝；不得提权用户可写的 helper。Authenticode、Developer ID、notarization 需发布者证书及 SmartScreen/Gatekeeper 实机证据。 |
-| P0 | 拆分后的稳定性 | 68 个程序集，异步账户初始化已收口 | 契约、架构、NativeAOT、trim、三平台原生生命周期通过；新增依赖边界先修改架构锁。 |
+| P0 | 拆分后的稳定性 | 69 个项目的架构门禁，异步账户初始化已收口 | 契约、架构、NativeAOT、trim、三平台原生生命周期通过；新增依赖边界先修改架构锁。 |
 | P1 | Sidecar 执行 / Patch compiler | 验签 EXE、认证 IPC、注册、snapshot、监督 | UI Patch / Event / Intent / Function 全部执行 adapter；显式 patch point、强类型 ABI、有界指令、capability 与 host validation；HEAD/ARGS/TAIL/RETURN/REPLACE 的错误/取消/退役会话测试。注册声明不能算执行完成。 |
 | P1 | 内容图 / 更新 | 本地 inventory、版本查询、删除的间接影响预览；只读内容依赖页含双向关系、别名、停用、缺失/未知/歧义及循环 | 选择/批量更新、changelog、同一事务 rollback 尚未交付。更新检查复用连接池并在站点响应后复验本地 hash；实际替换仍须独立事务。metadata 图不等于实际 loaded set 或版本范围验证。 |
 | P1 | 实例工作区 | 概览、内容、文件、恢复、回收、设置，有界截图缩略图/详情预览 | 世界 datapack/版本/大小/最近游玩/备份/锁；servers.dat 编辑/favicon/延迟/Quick Join；截图元数据/裁剪；整合包导出。不能将文件列表算成管理完成。 |
@@ -144,3 +144,14 @@ Compile替换和相对debug映射均已核对。managed/Linux NativeAOT Desktop�
 这是首个受限string point；其他ABI、UI/Event/Intent执行adapter和真实插件burn-in仍开放。
 本机已启动带binary/source哈希receipt的两小时NativeAOT idle composition fixture，仍在运行；
 构建身份为基础提交加XSR-736工作树，不作为clean-commit版本、OS窗口或Minecraft证据。
+
+`739e8cbb` 的XSR CI 36888656773通过，但Launcher Build 36888656750的Windows两项
+因源码路径匹配而失败；独立修复 `af13bc26` 的XSR CI 36890630821与Launcher Build
+36890631142均全绿，包含六平台打包与distribution。没有放宽或跳过Windows门禁。
+
+共享动态raster见 [XSR-737](migrations/XSR-737-shared-raster-budget.md)：512项与64 MiB
+pixel charge共用预算，按每像素8字节计账；相同内容/尺寸共享lease，只淘汰闲置LRU。
+完全不可见和最小化窗口释放驻留，恢复正常显示后获取当前图片；其他窗口的lease不受影响。
+managed/Linux NativeAOT backend各9项、69项目架构与whitespace通过；独立NativeAOT
+产品的shell52nodes及first-run验证通过，编译器/Roslyn未进入安装输出。实际CPU/native、
+GPU、decoder临时分配、OS pressure与真实进程RAM/8h曲线继续保留为验收项。

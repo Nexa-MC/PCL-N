@@ -85,6 +85,32 @@ internal static partial class Program
         shell.Tree.SetComponent(image, media); shell.Tree.Attach(image, page); surface.CommitScene();
         AvaloniaUiSceneNodeControl control = surface.GetVisualDescendants().OfType<AvaloniaUiSceneNodeControl>().Single(item => item.Node.Entity == image);
         AssertTrue(control.HasDecodedRaster);
+        using (AvaloniaUiSceneSurface otherSurface = new(shell))
+        {
+            otherSurface.Measure(surface.Bounds.Size);
+            otherSurface.Arrange(new(0, 0, surface.Bounds.Width, surface.Bounds.Height));
+            otherSurface.CommitScene();
+            var otherImage = otherSurface.GetVisualDescendants().OfType<AvaloniaUiSceneNodeControl>().Single(item => item.Node.Entity == image);
+            AssertTrue(ReferenceEquals(control.DecodedRaster, otherImage.DecodedRaster));
+        }
+        AssertTrue(control.HasDecodedRaster); // Closing one surface preserves the other's lease.
+        var imageWindow = (global::Avalonia.Controls.Window)global::Avalonia.Controls.TopLevel.GetTopLevel(surface)!;
+        var priorWindowState = imageWindow.WindowState;
+        // CommitScene creates the image before the native layout pass. Arrange it so these
+        // direct RenderTargetBitmap draws exercise pixels rather than a zero-size visual.
+        control.Measure(new(72, 72)); control.Arrange(new(0, 0, 72, 72));
+        imageWindow.WindowState = global::Avalonia.Controls.WindowState.Minimized;
+        AssertFalse(control.HasDecodedRaster);
+        surface.CommitScene();
+        using (var minimizedTarget = new global::Avalonia.Media.Imaging.RenderTargetBitmap(new(128, 128)))
+        {
+            minimizedTarget.Render(control);
+            AssertFalse(control.HasDecodedRaster);
+            imageWindow.WindowState = priorWindowState;
+            control.Measure(new(72, 72)); control.Arrange(new(0, 0, 72, 72));
+            minimizedTarget.Render(control);
+            AssertTrue(control.HasDecodedRaster);
+        }
         media.Raster = media.Raster! with { FitToBounds = true };
         shell.Tree.MarkDirty(image, XsrUiDirtyKinds.Paint); surface.CommitScene();
         AssertTrue(control.HasDecodedRaster);
