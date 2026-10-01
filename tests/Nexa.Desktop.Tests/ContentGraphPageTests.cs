@@ -54,7 +54,8 @@ internal static partial class Program
         OpenGraph(); PumpUntil(() => pending.Count == 2);
         var nodes = Enumerable.Range(0, 2000).Select(index => new InstanceContentNode(index, "mod" + index.ToString("D4", System.Globalization.CultureInfo.InvariantCulture), "1",
             true, false, true, index == 0, index == 0
-                ? [new("mod0012", "*", InstanceDependencyState.Present, [12])]
+                ? [new("mod0012", "*", InstanceDependencyState.Present, [12]),
+                    new("ambiguous-alias", "*", InstanceDependencyState.Ambiguous, Enumerable.Range(20, 16).ToArray())]
                 : [])).ToArray();
         nodes[12] = nodes[12] with { Consumers = [new(0, 0)] };
         pending[1].Completion.SetResult(Snapshot("instance-B", new(Array.AsReadOnly(nodes), 0, true, null)));
@@ -82,6 +83,15 @@ internal static partial class Program
         AssertTrue(scene.Nodes.Any(node => node.Text == "mod0012 · 1"));
         AssertTrue(scene.Nodes.Any(node => node.Text == "mod0000 → mod0012"));
         Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphConsumer.0"));
+        scene = fixture.Shell.Render(new(1000, 900));
+        AssertTrue(scene.Nodes.Any(node => node.Text == "mod0000 · 1"));
+        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphProviders.ambiguous-alias"));
+        scene = fixture.Shell.Render(new(1000, 900));
+        AssertEqual(12, CountCards()); Find("ContentGraphNode.20");
+        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphNext.Nodes"));
+        scene = fixture.Shell.Render(new(1000, 900));
+        AssertEqual(4, CountCards()); Find("ContentGraphNode.35");
+        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphProvidersBack"));
         scene = fixture.Shell.Render(new(1000, 900));
         AssertTrue(scene.Nodes.Any(node => node.Text == "mod0000 · 1"));
         Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphBack"));

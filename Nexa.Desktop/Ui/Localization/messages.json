@@ -8648,5 +8648,15 @@
     "source": "部分模组或依赖尚未识别，未知关系不能当作缺失。",
     "en": "Some Mods or dependencies are unrecognized. Unknown relationships must not be treated as missing.",
     "zh-Hant": "部分模組或依賴尚未識別，未知關係不能當作缺失。"
+  },
+  {
+    "source": "查看全部候选",
+    "en": "View all candidates",
+    "zh-Hant": "檢視全部候選"
+  },
+  {
+    "source": "返回依赖关系",
+    "en": "Back to relationships",
+    "zh-Hant": "返回依賴關係"
   }
 ]

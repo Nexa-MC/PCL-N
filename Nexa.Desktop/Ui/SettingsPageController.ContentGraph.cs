@@ -10,6 +10,10 @@ internal sealed partial class SettingsPageController
     private string _graphFilter = "";
     private int _graphPage, _graphDependencyPage, _graphConsumerPage;
     private int? _graphSelected;
+    private IReadOnlyList<int>? _graphProviders;
+    private int _graphProviderOwner;
+    private int _graphPreviousPage;
+    private string _graphPreviousFilter = "";
     private InstanceContentGraph? _graphIdentity;
     private readonly HashSet<XsrUiEntityId> _graphActions = [];
 
@@ -17,6 +21,8 @@ internal sealed partial class SettingsPageController
     {
         _graphFilter = ""; _graphPage = _graphDependencyPage = _graphConsumerPage = 0;
         _graphSelected = null; _graphIdentity = null;
+        _graphProviders = null;
+        _graphPreviousPage = 0; _graphPreviousFilter = "";
         _graphSearch = _graphBody = default;
     }
 
@@ -39,6 +45,7 @@ internal sealed partial class SettingsPageController
         if (!ReferenceEquals(_graphIdentity, graph))
         {
             _graphIdentity = graph; _graphSelected = null;
+            _graphProviders = null;
             _graphPage = _graphDependencyPage = _graphConsumerPage = 0;
         }
         if (graph.Notice is { } notice) ContentName(_sections, notice, 13, null, 0, Muted, literal: false);
@@ -74,7 +81,7 @@ internal sealed partial class SettingsPageController
         if (_graphSelected is { } key && key >= 0 && key < graph.Nodes.Count)
         {
             GraphButton(_graphBody, "ContentGraphBack", "返回依赖列表", () =>
-            { _graphSelected = null; RenderContentGraph(); }, 120);
+            { _graphSelected = null; _graphProviders = null; RenderContentGraph(); }, 120);
             var node = graph.Nodes[key];
             GraphIdentity(_graphBody, node);
             if (!node.DependenciesComplete) Text(_graphBody, "此模组的依赖声明尚未完整识别。", 13, Muted, 28);
@@ -93,7 +100,16 @@ internal sealed partial class SettingsPageController
                     GraphButton(row, "ContentGraphProvider." + target, "查看提供者", () => SelectGraphNode(target), 100);
                     GraphLiteral(row, provided.Id + " · " + provided.Version, 12);
                 }
-                if (edge.Providers.Count > 2) Text(row, "更多候选可通过模组 ID 搜索查看。", 12, Muted, 24);
+                if (edge.Providers.Count > 2)
+                    GraphButton(row, "ContentGraphProviders." + edge.Id, "查看全部候选", () =>
+                    {
+                        _graphPreviousPage = _graphPage; _graphPreviousFilter = _graphFilter;
+                        _graphProviders = edge.Providers; _graphProviderOwner = node.Key;
+                        _graphSelected = null; _graphPage = 0; _graphFilter = "";
+                        _shell.Renderer.SetTextInputValue(_graphSearch, "");
+                        RenderContentGraph();
+                        _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY = 0;
+                    }, 110);
             }
             GraphPagination("Dependencies", node.Dependencies.Count, _graphDependencyPage, page =>
             { _graphDependencyPage = page; RenderContentGraph(); });
@@ -118,7 +134,11 @@ internal sealed partial class SettingsPageController
         else
         {
             string filter = _graphFilter.Trim();
-            var matches = graph.Nodes.Where(node => filter.Length == 0
+            IEnumerable<InstanceContentNode> source = _graphProviders is { } providers
+                ? providers.Select(providerKey => graph.Nodes[providerKey]) : graph.Nodes;
+            if (_graphProviders is not null)
+                GraphButton(_graphBody, "ContentGraphProvidersBack", "返回依赖关系", () => SelectGraphNode(_graphProviderOwner), 120);
+            var matches = source.Where(node => filter.Length == 0
                 || node.Id.Contains(filter, StringComparison.OrdinalIgnoreCase)
                 || node.Version.Contains(filter, StringComparison.OrdinalIgnoreCase)
                 || node.Dependencies.Any(edge => edge.Id.Contains(filter, StringComparison.OrdinalIgnoreCase))).ToArray();
@@ -151,7 +171,12 @@ internal sealed partial class SettingsPageController
 
     private void SelectGraphNode(int key)
     {
-        _graphSelected = key; _graphDependencyPage = _graphConsumerPage = 0;
+        if (_graphProviders is not null)
+        {
+            _graphPage = _graphPreviousPage; _graphFilter = _graphPreviousFilter;
+            _shell.Renderer.SetTextInputValue(_graphSearch, _graphFilter);
+        }
+        _graphSelected = key; _graphProviders = null; _graphDependencyPage = _graphConsumerPage = 0;
         RenderContentGraph();
         _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY = 0;
     }
