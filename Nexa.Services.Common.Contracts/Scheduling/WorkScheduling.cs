@@ -18,6 +18,14 @@ public interface IWorkScheduler
     WorkPriority CurrentPriority { get; }
     IDisposable UsePriority(WorkPriority priority);
     ValueTask<IDisposable> AcquireAsync(WorkPriority priority, WorkResource resource, CancellationToken token = default);
+    /// <summary>Optional work only: null defers it without creating a waiter.</summary>
+    IDisposable? TryAcquire(WorkPriority priority, WorkResource resource, CancellationToken token = default)
+    {
+        if ((uint)priority > (uint)WorkPriority.Idle) throw new ArgumentOutOfRangeException(nameof(priority));
+        if ((uint)resource is 0 or > 7) throw new ArgumentOutOfRangeException(nameof(resource));
+        token.ThrowIfCancellationRequested();
+        return null;
+    }
     IWorkQuietLease EnterQuiet();
 }
 

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Minecraft.Management;
 
@@ -21,12 +22,15 @@ internal sealed partial class RecoverySnapshotStore
     private readonly string _instance, _game, _directory, _manifest;
     private readonly RecoveryBlobStore _blobs;
 
-    internal RecoverySnapshotStore(string instanceDirectory, string gameDirectory)
+    private readonly IWorkScheduler? _work;
+
+    internal RecoverySnapshotStore(string instanceDirectory, string gameDirectory, IWorkScheduler? work = null)
     {
         _instance = Normalize(instanceDirectory); _game = Normalize(gameDirectory);
         _directory = Path.Combine(_instance, "Nexa", "Recovery");
         _manifest = Path.Combine(_directory, "baseline.json");
         _blobs = new(_directory);
+        _work = work;
     }
 
     internal Task<RecoverySnapshot> CaptureAsync(IReadOnlyList<RecoverySource> sources, string settingsDocument, CancellationToken token = default) =>
@@ -57,26 +61,39 @@ internal sealed partial class RecoverySnapshotStore
         { MaxDegreeOfParallelism = 4, CancellationToken = token }, async (index, token) =>
         {
             string path = paths[index];
-            RecoveryBlobStore.CheckLinks(path);
-            var info = new FileInfo(path);
-            long length = info.Length, modified = info.LastWriteTimeUtc.Ticks;
-            RecoveryBlob blob;
-            if (receipts.TryGetValue(path, out var receipt) && receipt.ModifiedTicks == modified
-                && receipt.Blob.Length == length && _blobs.TryGetStamp(receipt.Blob, out var size, out var blobModified)
-                && receipt.BlobSize == size && receipt.BlobModifiedTicks == blobModified)
+            FileStream? source = null;
+            try
             {
-                budget.Consume(checked((int)length));
-                blob = receipt.Blob;
+                long length, modified;
+                RecoveryBlob? blob = null;
+                using (IDisposable? admission = _work is null ? null : await _work.AcquireAsync(
+                    WorkPriority.Background, WorkResource.Cpu | WorkResource.Disk, token).ConfigureAwait(false))
+                {
+                    RecoveryBlobStore.CheckLinks(path);
+                    var info = new FileInfo(path);
+                    length = info.Length; modified = info.LastWriteTimeUtc.Ticks;
+                    if (receipts.TryGetValue(path, out var receipt) && receipt.ModifiedTicks == modified
+                        && receipt.Blob.Length == length && _blobs.TryGetStamp(receipt.Blob, out var size, out var blobModified)
+                        && receipt.BlobSize == size && receipt.BlobModifiedTicks == blobModified)
+                    {
+                        budget.Consume(checked((int)length));
+                        blob = receipt.Blob;
+                    }
+                    else source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+                }
+                if (source is not null)
+                    blob = await _blobs.StoreAsync(source, length, budget, _work, token).ConfigureAwait(false);
+                if (blob is null) throw new IOException("快照文件未生成对象。");
+                using (IDisposable? admission = _work is null ? null : await _work.AcquireAsync(
+                    WorkPriority.Background, WorkResource.Cpu | WorkResource.Disk, token).ConfigureAwait(false))
+                {
+                    if (!_blobs.TryGetStamp(blob, out var storedSize, out var storedModified))
+                        throw new IOException("快照对象发布后缺失。");
+                    captured[index] = new(sources[index], blob, modified, storedSize, storedModified);
+                    observed[index] = (path, length, modified);
+                }
             }
-            else
-            {
-                await using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-                blob = await _blobs.StoreAsync(source, length, budget, token).ConfigureAwait(false);
-            }
-            if (!_blobs.TryGetStamp(blob, out var storedSize, out var storedModified))
-                throw new IOException("快照对象发布后缺失。");
-            captured[index] = new(sources[index], blob, modified, storedSize, storedModified);
-            observed[index] = (path, length, modified);
+            finally { if (source is not null) await source.DisposeAsync().ConfigureAwait(false); }
         }).ConfigureAwait(false);
         // Equal source contents may publish the same object concurrently. Record its final
         // stamp after every producer has joined, so all references share one reuse receipt.
@@ -122,7 +139,7 @@ internal sealed partial class RecoverySnapshotStore
                 var retained = files.Select(file => file.Blob.Sha256).ToHashSet(StringComparer.Ordinal);
                 if (retainHistory)
                     foreach (var old in history) retained.UnionWith(old.Files.Select(file => file.Blob.Sha256));
-                await _blobs.CollectUnreferencedAsync(retained, token).ConfigureAwait(false);
+                await _blobs.CollectUnreferencedAsync(retained, token, _work).ConfigureAwait(false);
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or OperationCanceledException) { }
             return snapshot;

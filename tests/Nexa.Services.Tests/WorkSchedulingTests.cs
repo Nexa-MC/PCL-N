@@ -10,6 +10,43 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
+    private static async ValueTask OptionalWorkAdmissionNeverQueuesOrPartiallyReserves()
+    {
+        using WorkScheduler work = new(new(1, 1, 1));
+        using (IWorkQuietLease quiet = work.EnterQuiet())
+        {
+            AssertTrue(work.TryAcquire(WorkPriority.Background, WorkResource.Cpu | WorkResource.Disk) is null);
+            AssertTrue(work.TryAcquire(WorkPriority.Idle, WorkResource.Disk) is null);
+            using IDisposable foreground = work.TryAcquire(WorkPriority.Critical, WorkResource.Cpu | WorkResource.Disk)!;
+            AssertTrue(foreground is not null);
+            AssertTrue(work.Snapshot.Resources.All(r => r.Waiting == 0));
+        }
+        IDisposable disk = await work.AcquireAsync(WorkPriority.Interactive, WorkResource.Disk);
+        AssertTrue(work.TryAcquire(WorkPriority.Idle, WorkResource.Cpu | WorkResource.Disk) is null);
+        AssertEqual(0, work.Snapshot.Resources.Single(r => r.Resource == WorkResource.Cpu).Active);
+        Task<IDisposable> queued = work.AcquireAsync(WorkPriority.Critical, WorkResource.Disk | WorkResource.Http).AsTask();
+        using (IDisposable independent = work.TryAcquire(WorkPriority.Interactive, WorkResource.Http)!)
+        {
+            AssertTrue(independent is not null);
+            AssertFalse(queued.IsCompleted);
+        }
+        disk.Dispose();
+        using (IDisposable queuedLease = await queued)
+            AssertTrue(work.TryAcquire(WorkPriority.Idle, WorkResource.Disk | WorkResource.Http) is null);
+        AssertTrue(work.Snapshot.Resources.All(r => r.Active == 0 && r.Waiting == 0));
+        IWorkScheduler legacy = new LegacyMaintenanceScheduler(work);
+        AssertTrue(legacy.TryAcquire(WorkPriority.Idle, WorkResource.Cpu) is null);
+        using var stop = new CancellationTokenSource(); stop.Cancel();
+        AssertThrows<OperationCanceledException>(() => work.TryAcquire(WorkPriority.Idle, WorkResource.Cpu, stop.Token));
+        AssertThrows<OperationCanceledException>(() => legacy.TryAcquire(WorkPriority.Idle, WorkResource.Cpu, stop.Token));
+        AssertThrows<ArgumentOutOfRangeException>(() => work.TryAcquire((WorkPriority)99, WorkResource.Cpu));
+        AssertThrows<ArgumentOutOfRangeException>(() => work.TryAcquire(WorkPriority.Idle, (WorkResource)0));
+        AssertThrows<ArgumentOutOfRangeException>(() => legacy.TryAcquire(WorkPriority.Idle, (WorkResource)8));
+        work.Dispose();
+        AssertThrows<ObjectDisposedException>(() => work.TryAcquire(WorkPriority.Idle, WorkResource.Cpu));
+        AssertTrue(work.Snapshot.Resources.All(r => r.Active == 0 && r.Waiting == 0));
+    }
+
     private static async ValueTask WorkAdmissionIsAtomicBoundedAndCancellable()
     {
         using WorkScheduler work = new(new(1, 1, 1, 8));

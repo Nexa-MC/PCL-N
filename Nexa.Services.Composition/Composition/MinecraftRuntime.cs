@@ -148,7 +148,8 @@ public static class MinecraftRuntimeComposer
         owned.Add(authlibHttp);
         owned.Add(authlib);
         MinecraftLaunchExecutor executor = new(new JvmHostService(processService, host.ObservationHistory,
-            new Nexa.Services.Minecraft.Management.InstanceRecoveryService(host.SettingsPolicy, host.StateStore, host.Logging)), host.Logging);
+            new Nexa.Services.Minecraft.Management.InstanceRecoveryService(host.SettingsPolicy, host.StateStore, host.Logging)
+            { WorkScheduler = host.Work }), host.Logging);
         // The legacy 补全文件 step: the launch pipeline repairs missing files before the JVM
         // starts, sharing the foundation download engine with installs.
         MinecraftLaunchFileCompletion fileCompletion = new(host.Downloads, host.Logging);

@@ -62,8 +62,8 @@ Alpha.6 可明确列出尚待实机验收的候选能力；Beta 的支持列表�
 [static-review-follow-up.md](static-review-follow-up.md) 追踪。下载权威来源/index/旧任务
 及归档mode单元通过457项managed与Linux NativeAOT Services、105项Desktop、68项目
 架构和trim shell52nodes；`b20dec9e`的XSR CI通过，三平台native模式测试通过。
-其后日志空闲唤醒与单流进度单元通过460项managed/Linux NativeAOT Services及68项目架构；图片分层
-预算、collection delta、受保护更新、余下adapter和真实长期证据仍开放。
+其后日志空闲唤醒与单流进度单元通过460项managed/Linux NativeAOT Services及68项目架构；全局图片
+CPU/GPU预算、collection发布/renderer剩余成本、受保护更新、余下adapter和真实长期证据仍开放。
 
 GPG 策略收口见 [XSR-728](migrations/XSR-728-detached-signature-admission.md)：
 固定指纹、二进制文档和强摘要、可信内置 keyring 的吊销/过期、认证签名过期、
@@ -98,3 +98,12 @@ collection单元见 [XSR-732](migrations/XSR-732-ordered-collection-deltas.md)�
 本机Unix socket EPERM导致1项OS IPC显式跳过，CI保留该项；Services各469项、Desktop105项、
 UI.Next88项、backend9项、架构68项通过。60秒composition idle记录1次frame/render request，
 285entities/210states稳定；唤醒尚未归因，不宣称零帧或真实原生CPU/RAM/8h验收完成。
+
+`3f671bbd` 的XSR CI 36872175103及Launcher Build 36872175105均已通过，CI保留的OS IPC
+及NativeAOT/trim门禁也已通过。本机Unix socket限制没有转化为CI跳过或契约放宽。
+
+恢复调度见 [XSR-733](migrations/XSR-733-recovery-work-admission.md)：初始枚举与来源处理
+明确使用Background CPU/disk额度，80 KiB读/hash/压缩之间释放再申请；可选blob回收按32项
+Idle try-admission，quiet/争用时留待重试，提交后取消不回退基线。474项managed/Linux
+NativeAOT Services、105项Desktop及68项目架构通过。256 KiB实际字节/Brotli回归证实文件中途
+quiet时无第二次读取且Critical能取得额度；这不是Minecraft实机争用或长期性能认证。

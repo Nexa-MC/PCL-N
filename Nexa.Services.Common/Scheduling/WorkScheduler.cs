@@ -75,6 +75,21 @@ public sealed class WorkScheduler : IWorkScheduler, IDisposable
         }
     }
 
+    public IDisposable? TryAcquire(WorkPriority priority, WorkResource resource, CancellationToken token = default)
+    {
+        Validate(priority);
+        if ((uint)resource is 0 or > 7) throw new ArgumentOutOfRangeException(nameof(resource));
+        token.ThrowIfCancellationRequested();
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if ((int)priority >= (int)WorkPriority.Background && _quiet.Count != 0
+                || !CanAdmit(resource) || HasRunnableWaiting()) return null;
+            CountActive(resource, 1);
+            return new ResourceLease(this, resource);
+        }
+    }
+
     public IWorkQuietLease EnterQuiet()
     {
         QuietLease lease;

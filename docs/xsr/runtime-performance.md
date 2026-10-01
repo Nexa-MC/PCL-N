@@ -68,7 +68,7 @@ receipt 不持久化，不是同账户攻击隔离，也不能替代发布验签
 - `Nexa.Desktop.Tests --soak idle|navigation --seconds 1..28800 --output NEW-DIR` 是composition fixture。idle按tree/state invalidation合并触发render，不再主动60Hz轮询；navigation主动产生负载。每秒采样记录CPU、private bytes、GC committed、collection counts等；CPU同时给单核占用和按Environment.ProcessorCount归一化的数字，后者受quota/affinity/DOTNET_PROCESSOR_COUNT影响，不能直接等同于整机任务管理器百分比；采样、JSON与Process查询的allocation属于harness，不能把进程总allocation称为产品静止路径allocation。定期hint等真实composition事件仍会计入帧。
 - 8h可在本地运行；现有手动workflow设置150分钟timeout并保持2h fixture选项，不能直接承担8h任务。不把fixture导航或8h本地composition等同于原生Desktop/Minecraft运行验收。
 - OS commit、native/GPU、Sidecar/HTTP/cache/IO等未测指标明确列出；不存在指标时不得填0。
-- Foundation host新增共享CPU/disk/HTTP admission与Launch Quiet Mode；首批接入下载连接/分段、目录预取、图标获取与验证、更新/rollout查询和遥测上传，详见 [work-scheduling.md](work-scheduling.md)。失败/取消释放，确认窗口后15秒 grace 或提前终止释放；不支持窗口检测的fallback不称作稳定确认。后台索引、Recovery GC、Sidecar非关键工作尚待adapter，图片分层预算、真实8h与OS/GPU测量仍待验收。签名、初始化、事务恢复与取消契约保持。
+- Foundation host新增共享CPU/disk/HTTP admission与Launch Quiet Mode；首批接入下载连接/分段、目录预取、图标获取与验证、更新/rollout查询和遥测上传，详见 [work-scheduling.md](work-scheduling.md)。失败/取消释放，确认窗口后15秒 grace 或提前终止释放；不支持窗口检测的fallback不称作稳定确认。XSR-733接入自动快照初始枚举、80 KiB来源处理与32项Idle blob回收；后台索引、Sidecar非关键工作及其余恢复IO尚待adapter，全局图片CPU/GPU预算、真实8h与OS/GPU测量仍待验收。签名、初始化、事务恢复与取消契约保持。
 - 主页提示改为仅当前提示卡片、活跃且未最小化窗口、非启动/quiet时唤醒；其他页面和卡片不再三秒更新。temporary motion suspension独立于用户Reduced Motion。生产组合不再启动已禁用schema-1在线模型的每小时HTTP refresh session。
 
 ## 本轮验证
@@ -80,5 +80,6 @@ Release构建零警告/错误，104项Desktop测试及68项目架构检查通过
 后续admission批次：452 Services /105 Desktop通过；默认主页60秒fixture记录0frames与0render requests，所有采样admission/quiet计数为0（285entities、210cells）。这关闭提示定时唤醒回归，仍不证明原生idle CPU/RAM SLA。
 
 日志/进度批次：managed与Linux NativeAOT Services460项及68项目架构检查通过。一次性日志publication、
-空channel等待和100ms单流进度回归已通过；图片预算、collection delta和真实原生idle
-CPU/RAM及8h趋势继续验收。fake clock跨8h只验证调度逻辑，不是8h运行数据。
+空channel等待和100ms单流进度回归已通过；后续图片/collection单元缩小了保留与排序成本，
+全局图片CPU/GPU预算、collection发布剩余成本及真实原生idle CPU/RAM与8h趋势继续验收。
+fake clock跨8h只验证调度逻辑，不是8h运行数据。

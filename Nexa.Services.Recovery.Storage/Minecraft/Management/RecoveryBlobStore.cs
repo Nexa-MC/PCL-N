@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Minecraft.Management;
 
@@ -35,24 +36,35 @@ internal sealed class RecoveryBlobStore
         _objects = Path.Combine(_root, "objects");
     }
 
-    internal async Task<RecoveryBlob> StoreAsync(Stream source, long expectedLength, RecoveryByteBudget budget, CancellationToken token = default)
+    internal Task<RecoveryBlob> StoreAsync(Stream source, long expectedLength, RecoveryByteBudget budget,
+        CancellationToken token = default) => StoreAsync(source, expectedLength, budget, null, token);
+
+    internal async Task<RecoveryBlob> StoreAsync(Stream source, long expectedLength, RecoveryByteBudget budget,
+        IWorkScheduler? work, CancellationToken token = default)
     {
         ValidateLength(expectedLength);
-        EnsureDirectory(_objects);
         string temporary = Path.Combine(_objects, Guid.NewGuid().ToString("N") + ".part");
         try
         {
             string hash;
-            await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
+            FileStream output;
+            using (IDisposable? admission = await AdmitSourceAsync(work, token).ConfigureAwait(false))
+            {
+                EnsureDirectory(_objects);
+                output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true);
+            }
+            await using (output)
             {
                 await using (var compressed = new BrotliStream(output, CompressionLevel.Fastest, leaveOpen: true))
-                    hash = await CopyAndHashAsync(source, compressed, expectedLength, budget, token).ConfigureAwait(false);
+                    hash = await CopyAndHashAsync(source, compressed, expectedLength, budget, token, work).ConfigureAwait(false);
+                using IDisposable? admission = await AdmitSourceAsync(work, token).ConfigureAwait(false);
                 await output.FlushAsync(token).ConfigureAwait(false);
                 output.Flush(flushToDisk: true);
             }
             var blob = new RecoveryBlob(hash, expectedLength);
             // Multiple producers may stage concurrently. Publication and reuse verification are
             // protected across processes; the permanent lock file must never be deleted on release.
+            using IDisposable? publication = await AdmitSourceAsync(work, token).ConfigureAwait(false);
             await using var lease = await AcquireAsync(".objects.lock", token).ConfigureAwait(false);
             string destination = BlobPath(blob);
             CheckLinks(destination);
@@ -93,7 +105,12 @@ internal sealed class RecoveryBlobStore
             throw new InvalidDataException("快照对象校验失败，未允许提交恢复文件。");
     }
 
-    internal static async Task<string> CopyAndHashAsync(Stream source, Stream destination, long expectedLength, RecoveryByteBudget budget, CancellationToken token)
+    private static async ValueTask<IDisposable?> AdmitSourceAsync(IWorkScheduler? work, CancellationToken token) =>
+        work is null ? null : await work.AcquireAsync(WorkPriority.Background,
+            WorkResource.Cpu | WorkResource.Disk, token).ConfigureAwait(false);
+
+    internal static async Task<string> CopyAndHashAsync(Stream source, Stream destination, long expectedLength,
+        RecoveryByteBudget budget, CancellationToken token, IWorkScheduler? work = null)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         byte[] buffer = new byte[81920];
@@ -102,6 +119,7 @@ internal sealed class RecoveryBlobStore
         {
             while (true)
             {
+                using IDisposable? admission = await AdmitSourceAsync(work, token).ConfigureAwait(false);
                 // At the boundary read only one extra byte to distinguish EOF from a false size.
                 int read = await source.ReadAsync(buffer.AsMemory(0, (int)Math.Min(budget.ReadSize(buffer.Length), expectedLength - total + 1)), token).ConfigureAwait(false);
                 if (read == 0) break;
@@ -131,22 +149,52 @@ internal sealed class RecoveryBlobStore
     }
 
     // Caller must hold the manifest lease. Pending recovery journals pin their objects.
-    internal async Task CollectUnreferencedAsync(IReadOnlySet<string> retained, CancellationToken token)
+    internal async Task CollectUnreferencedAsync(IReadOnlySet<string> retained, CancellationToken token,
+        IWorkScheduler? work = null)
     {
-        string transactions = Path.Combine(_root, "transactions");
-        CheckLinks(transactions);
-        if (Directory.Exists(transactions) || !Directory.Exists(_objects)) return;
-        await using var lease = await AcquireAsync(".objects.lock", token).ConfigureAwait(false);
-        CheckLinks(_objects);
-        int visited = 0;
-        foreach (string path in Directory.EnumerateFiles(_objects, "*.br"))
+        IDisposable? TryAdmission()
         {
             token.ThrowIfCancellationRequested();
-            if (++visited > 100000) break;
-            string hash = Path.GetFileNameWithoutExtension(path);
-            if (hash.Length != 64 || hash.Any(c => c is not (>= '0' and <= '9' or >= 'A' and <= 'F')) || retained.Contains(hash)) continue;
-            CheckLinks(path);
-            File.Delete(path);
+            try { return work?.TryAcquire(WorkPriority.Idle, WorkResource.Cpu | WorkResource.Disk, token); }
+            catch (ObjectDisposedException) { return null; }
+        }
+
+        FileStream objectLease;
+        using (IDisposable? probe = TryAdmission())
+        {
+            if (work is not null && probe is null) return;
+            string transactions = Path.Combine(_root, "transactions");
+            CheckLinks(transactions);
+            if (Directory.Exists(transactions) || !Directory.Exists(_objects)) return;
+            objectLease = await AcquireAsync(".objects.lock", token).ConfigureAwait(false);
+        }
+        await using (objectLease)
+        {
+            IEnumerator<string>? paths = null;
+            try
+            {
+                int visited = 0;
+                while (visited < 100000)
+                {
+                    // Never queue shared admission while holding the object lock. Even directory
+                    // iteration runs inside a bounded lease; quiet/contention defers the remainder.
+                    using IDisposable? chunk = TryAdmission();
+                    if (work is not null && chunk is null) return;
+                    CheckLinks(_objects);
+                    paths ??= Directory.EnumerateFiles(_objects, "*.br").GetEnumerator();
+                    for (int count = 0; count < 32 && visited < 100000; count++, visited++)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        if (!paths.MoveNext()) return;
+                        string path = paths.Current;
+                        string hash = Path.GetFileNameWithoutExtension(path);
+                        if (hash.Length != 64 || hash.Any(c => c is not (>= '0' and <= '9' or >= 'A' and <= 'F')) || retained.Contains(hash)) continue;
+                        CheckLinks(path);
+                        File.Delete(path);
+                    }
+                }
+            }
+            finally { paths?.Dispose(); }
         }
     }
 

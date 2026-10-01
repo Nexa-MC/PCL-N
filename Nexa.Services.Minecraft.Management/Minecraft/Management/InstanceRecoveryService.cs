@@ -2,6 +2,7 @@ using Nexa.Services.Logging;
 using Nexa.Services.Minecraft.Launch;
 using Nexa.Services.Minecraft.Process;
 using Nexa.Services.Settings;
+using Nexa.Services.Scheduling;
 using Nexa.Xsr.State;
 
 namespace Nexa.Services.Minecraft.Management;
@@ -9,6 +10,7 @@ namespace Nexa.Services.Minecraft.Management;
 /// <summary>Owns best-effort background capture after a confirmed successful game session.</summary>
 public sealed partial class InstanceRecoveryService(SettingsPolicyService settings, XsrStateStore store, LogService? log = null)
 {
+    public IWorkScheduler? WorkScheduler { get; init; }
     internal Task<bool> RecordSuccessfulExitAsync(MinecraftLaunchPlan plan, MinecraftProcessSnapshot session,
         bool hasCrashEvidence, CancellationToken token = default) => Task.Run(async () =>
     {
@@ -50,14 +52,19 @@ public sealed partial class InstanceRecoveryService(SettingsPolicyService settin
                     || settings.CaptureRecoverySettings(instance) != baselineSettings || KeepHistory() != keepHistory)
                     throw new IOException("采集期间版本设置发生变化。");
             }
-            await Validate(stop).ConfigureAwait(false);
-            // Verify that the artifact actually used by this launch is included, not just a guessed filename.
-            var sources = await RecoveryCapturePlan.BuildAsync(root, instance, game, manifest, stop).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(plan.ClientJarPath) || !sources.Any(source =>
-                Nexa.Core.PathIdentity.Comparer.Equals(Path.GetFullPath(Path.Combine(
-                    source.Area switch { "instance" => instance, "game" => game, _ => root }, source.RelativePath)), Path.GetFullPath(plan.ClientJarPath))))
-                throw new InvalidDataException("恢复范围缺少本次启动使用的核心文件。");
-            await new RecoverySnapshotStore(instance, game).CaptureAsync(sources, baselineSettings, async ct =>
+            IReadOnlyList<RecoverySource> sources;
+            using (IDisposable? admission = WorkScheduler is null ? null : await WorkScheduler.AcquireAsync(
+                WorkPriority.Background, WorkResource.Cpu | WorkResource.Disk, stop).ConfigureAwait(false))
+            {
+                await Validate(stop).ConfigureAwait(false);
+                // Verify the artifact actually used by this launch, not just a guessed filename.
+                sources = await RecoveryCapturePlan.BuildAsync(root, instance, game, manifest, stop).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(plan.ClientJarPath) || !sources.Any(source =>
+                    Nexa.Core.PathIdentity.Comparer.Equals(Path.GetFullPath(Path.Combine(
+                        source.Area switch { "instance" => instance, "game" => game, _ => root }, source.RelativePath)), Path.GetFullPath(plan.ClientJarPath))))
+                    throw new InvalidDataException("恢复范围缺少本次启动使用的核心文件。");
+            }
+            await new RecoverySnapshotStore(instance, game, WorkScheduler).CaptureAsync(sources, baselineSettings, async ct =>
             {
                 var current = await RecoveryCapturePlan.BuildAsync(root, instance, game, manifest, ct).ConfigureAwait(false);
                 if (!sources.SequenceEqual(current)) throw new IOException("采集期间恢复范围发生变化。");
