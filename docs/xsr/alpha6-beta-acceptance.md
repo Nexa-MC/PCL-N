@@ -63,4 +63,10 @@ Alpha.6 可明确列出尚待实机验收的候选能力；Beta 的支持列表�
 及归档mode单元通过457项managed与Linux NativeAOT Services、105项Desktop、68项目
 架构和trim shell52nodes；`b20dec9e`的XSR CI通过，三平台native模式测试通过。
 其后日志空闲唤醒与单流进度单元通过460项managed/Linux NativeAOT Services及68项目架构；图片分层
-预算、collection delta、GPG策略、受保护更新、余下adapter和真实长期证据仍开放。
+预算、collection delta、受保护更新、余下adapter和真实长期证据仍开放。
+
+GPG 策略收口见 [XSR-728](migrations/XSR-728-detached-signature-admission.md)：
+固定指纹、二进制文档和强摘要、可信内置 keyring 的吊销/过期、认证签名过期、
+实际输入/解压预算及取消契约。managed 与 Linux NativeAOT Services 463 项、68项目
+架构检查通过；该结果不关闭签名
+发布身份、replay/downgrade 或受保护 updater。`b20dec9e` 的 Launcher Build 也已通过。

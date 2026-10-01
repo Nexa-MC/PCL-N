@@ -1,6 +1,8 @@
 using System.Text;
 
+using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Bcpg.OpenPgp;
+using Org.BouncyCastle.Crypto;
 
 namespace Nexa.Services.Updates;
 
@@ -13,6 +15,7 @@ namespace Nexa.Services.Updates;
 public sealed class UpdateGpgVerifier : IUpdateSignatureVerifier
 {
     public const string ReleaseKeyFingerprint = "5701218D69B531E1A7ED35BB6E31F5974A273AEE";
+    private const int MaximumSignatureEnvelopeBytes = 1024 * 1024;
 
     private readonly string _armoredPublicKey;
     private readonly string _expectedFingerprint;
@@ -32,39 +35,79 @@ public sealed class UpdateGpgVerifier : IUpdateSignatureVerifier
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(detachedSignature);
 
-        // Armored OpenPGP decoding probes and rewinds its input, so buffer the (small)
-        // signature instead of passing a forward-only network stream through directly.
-        using MemoryStream signatureBuffer = new();
-        await detachedSignature.CopyToAsync(signatureBuffer, cancellationToken).ConfigureAwait(false);
-        signatureBuffer.Position = 0;
-        PgpSignature signature = ReadSignature(signatureBuffer);
-        PgpPublicKey publicKey = LoadPublicKey(signature.KeyId);
-        string fingerprint = Convert.ToHexString(publicKey.GetFingerprint());
-        if (!string.Equals(fingerprint, _expectedFingerprint, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            throw new InvalidDataException($"GPG 公钥指纹不匹配：{fingerprint}。");
-        }
+            // Armored decoding probes/rewinds. Bound actual input and decompressed bytes.
+            using MemoryStream signatureBuffer = await ReadEnvelopeAsync(detachedSignature, cancellationToken).ConfigureAwait(false);
+            PgpSignature signature = await ReadSignatureAsync(signatureBuffer, cancellationToken).ConfigureAwait(false);
+            if (signature.SignatureType != PgpSignature.BinaryDocument
+                || signature.HashAlgorithm is not (HashAlgorithmTag.Sha256 or HashAlgorithmTag.Sha384 or HashAlgorithmTag.Sha512))
+                throw new InvalidDataException("GPG 签名必须使用二进制文档类型和 SHA-256/384/512 摘要。");
+            PgpPublicKey publicKey = LoadPublicKey(signature.KeyId);
+            string fingerprint = Convert.ToHexString(publicKey.GetFingerprint());
+            if (!string.Equals(fingerprint, _expectedFingerprint, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"GPG 公钥指纹不匹配：{fingerprint}。");
 
-        signature.InitVerify(publicKey);
-        byte[] buffer = new byte[128 * 1024];
-        while (true)
-        {
-            int read = await content.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (read == 0)
+            // Policy packets come from the composition root's trusted keyring, not a
+            // caller-supplied keyring authorized merely by a matching fingerprint.
+            if (publicKey.IsRevoked()) throw new InvalidDataException("GPG 签名密钥已被吊销。");
+            long validSeconds = publicKey.GetValidSeconds();
+            if (validSeconds > 0 && DateTime.UtcNow - publicKey.CreationTime.ToUniversalTime() >= TimeSpan.FromSeconds(validSeconds))
+                throw new InvalidDataException("GPG 签名密钥已过期。");
+
+            signature.InitVerify(publicKey);
+            byte[] buffer = new byte[128 * 1024];
+            while (true)
             {
-                break;
+                int read = await content.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                if (read == 0) break;
+                signature.Update(buffer, 0, read);
             }
 
-            signature.Update(buffer, 0, read);
-        }
+            if (!signature.Verify())
+                throw new InvalidDataException("GPG 签名校验失败，更新文件可能已被修改。");
 
-        if (!signature.Verify())
+            PgpSignatureSubpacketVector? hashed = signature.GetHashedSubPackets();
+            long expires = hashed?.GetSignatureExpirationTime() ?? 0;
+            if (expires > 0)
+            {
+                if (!hashed!.HasSignatureCreationTime())
+                    throw new InvalidDataException("GPG 签名过期策略缺少已认证的创建时间。");
+                if (DateTime.UtcNow - hashed.GetSignatureCreationTime().ToUniversalTime() >= TimeSpan.FromSeconds(expires))
+                    throw new InvalidDataException("GPG 签名已过期。");
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        catch (Exception failure) when (failure is PgpException or CryptoException or FormatException
+            or ArgumentException or InvalidOperationException or IOException)
         {
-            throw new InvalidDataException("GPG 签名校验失败，更新文件可能已被修改。");
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new InvalidDataException("GPG 签名或公钥数据无效。", failure);
         }
     }
 
-    private static PgpSignature ReadSignature(Stream detachedSignature)
+    private static async Task<MemoryStream> ReadEnvelopeAsync(Stream source, CancellationToken token)
+    {
+        MemoryStream buffer = new();
+        try
+        {
+            byte[] chunk = new byte[8192];
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                int read = await source.ReadAsync(chunk, token).ConfigureAwait(false);
+                if (read == 0) break;
+                if (read > MaximumSignatureEnvelopeBytes - buffer.Length)
+                    throw new InvalidDataException("GPG 签名封套超过大小限制。");
+                buffer.Write(chunk, 0, read);
+            }
+            buffer.Position = 0;
+            return buffer;
+        }
+        catch { buffer.Dispose(); throw; }
+    }
+
+    private static async Task<PgpSignature> ReadSignatureAsync(Stream detachedSignature, CancellationToken token)
     {
         using Stream decoded = PgpUtilities.GetDecoderStream(detachedSignature);
         PgpObjectFactory factory = new(decoded);
@@ -72,7 +115,8 @@ public sealed class UpdateGpgVerifier : IUpdateSignatureVerifier
         if (value is PgpCompressedData compressed)
         {
             using Stream compressedData = compressed.GetDataStream();
-            value = new PgpObjectFactory(compressedData).NextPgpObject();
+            using MemoryStream plain = await ReadEnvelopeAsync(compressedData, token).ConfigureAwait(false);
+            value = new PgpObjectFactory(plain).NextPgpObject();
         }
 
         if (value is not PgpSignatureList signatures || signatures.Count == 0)

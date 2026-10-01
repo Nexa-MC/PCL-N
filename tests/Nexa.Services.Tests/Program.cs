@@ -327,6 +327,9 @@ internal static partial class Program
         ("vcdiff decodes add copy and run instructions", Sync(VcdiffDecodesAddCopyAndRunInstructions)),
         ("vcdiff rejects unsupported and corrupt deltas", Sync(VcdiffRejectsUnsupportedAndCorruptDeltas)),
         ("gpg verifier accepts a genuine detached signature", GpgVerifierAcceptsGenuineDetachedSignature),
+        ("gpg policy rejects weak hashes and text signatures", GpgPolicyRejectsWeakHashesAndTextSignatures),
+        ("gpg policy uses trusted key and authenticated expiry", GpgPolicyUsesTrustedKeyAndAuthenticatedExpiry),
+        ("gpg policy bounds envelopes and keeps cancellation", GpgPolicyBoundsEnvelopesAndKeepsCancellation),
         ("gpg verifier rejects tampered foreign and unpinned keys", GpgVerifierRejectsTamperedForeignAndUnpinnedKeys),
         // XSR-512: staged install core.
         ("staged tree verification rejects mismatches", Sync(StagedTreeVerificationRejectsMismatches)),

@@ -4,8 +4,9 @@
 
 The update family gains its two trust/integrity codecs: detached GPG signature verification
 over the pinned release key, and the managed VCDIFF (RFC 3284) decoder for protocol v2 block
-deltas. Both are strict decoders with hard failure semantics — the update flow treats any
-failure as "untrusted" and falls back to the full signed package.
+deltas. These are verifier/decoder primitives with hard failure semantics. The automatic
+updater's protected replacement transaction remains unimplemented and fail-closed;
+delivery of these codecs does not mean the package/blockmap/patch chain is wired.
 
 ## Locked contract
 
@@ -26,9 +27,11 @@ failure as "untrusted" and falls back to the full signed package.
   target bytes), and the near/same address cache (s_near=4, s_same=3). `TryDecode` converts
   every decode failure into a plain false. The algorithm identifier stays
   `vcdiff-rfc3284` — the value blockmap deltas declare.
-- Signing chain placement: the verifier authenticates full packages, block maps, and patch
-  bundles before any of them is applied; a failed verification can only route the updater to
-  the next source or the full package, never to "install anyway".
+- Required signing chain placement: packages, block maps and patch bundles must be
+  authenticated before application. This requirement is not yet an implemented automatic
+  update flow; `UpdateStaging.ApplyPlan` rejects replacement. A failed verification never
+  authorizes installation. Current verifier admission is defined in
+  [update-signature-policy.md](../update-signature-policy.md).
 
 ## Deliberate scope
 

@@ -18,3 +18,9 @@ current Cloudflare/browser download flow does not yet verify package signatures;
 GitHub exposes the signatures for independent verification. An automatic updater
 must verify signatures before applying files and cannot treat TLS or SHA256SUMS
 alone as publisher authorization.
+
+Runtime admission follows [update-signature-policy.md](update-signature-policy.md):
+binary-document signatures, SHA-256/384/512, known revocation and expiry from the
+trusted embedded keyring, authenticated signature expiry, and bounded input and
+decompressed envelopes. The current SHA-256 publisher command stays compatible.
+This does not complete signed release routing, replay policy or protected replacement.

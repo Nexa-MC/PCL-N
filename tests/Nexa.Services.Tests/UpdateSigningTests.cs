@@ -201,7 +201,12 @@ internal static partial class Program
         return bytes;
     }
 
-    private static (string ArmoredKey, string Fingerprint, Func<byte[], string> Sign) GenerateSigningKey()
+    private static (string ArmoredKey, string Fingerprint, Func<byte[], string> Sign) GenerateSigningKey(
+        HashAlgorithmTag hashAlgorithm = HashAlgorithmTag.Sha256,
+        int signatureType = PgpSignature.BinaryDocument,
+        DateTime? keyCreation = null, long? keyExpirationSeconds = null, bool revoked = false,
+        DateTime? signatureCreation = null, long? signatureExpirationSeconds = null,
+        long? unhashedExpirationSeconds = null, DateTime? unhashedCreation = null)
     {
         RsaKeyPairGenerator generator = new();
         generator.Init(new Org.BouncyCastle.Crypto.Parameters.RsaKeyGenerationParameters(
@@ -212,7 +217,9 @@ internal static partial class Program
         PgpKeyPair keyPair = new(
             PublicKeyAlgorithmTag.RsaGeneral,
             generator.GenerateKeyPair(),
-            DateTime.UtcNow);
+            keyCreation ?? DateTime.UtcNow);
+        var certification = new PgpSignatureSubpacketGenerator();
+        if (keyExpirationSeconds is { } keyExpiry) certification.SetKeyExpirationTime(false, keyExpiry);
         PgpKeyRingGenerator ringGenerator = new(
             PgpSignature.DefaultCertification,
             keyPair,
@@ -220,11 +227,20 @@ internal static partial class Program
             SymmetricKeyAlgorithmTag.Aes256,
             Array.Empty<char>(),
             false,
-            new PgpSignatureSubpacketGenerator().Generate(),
+            certification.Generate(),
             new PgpSignatureSubpacketGenerator().Generate(),
             new SecureRandom());
         PgpSecretKeyRing secretRing = ringGenerator.GenerateSecretKeyRing();
         PgpPublicKeyRing publicRing = ringGenerator.GeneratePublicKeyRing();
+        PgpPrivateKey privateKey = secretRing.GetSecretKey().ExtractPrivateKey([]);
+        if (revoked)
+        {
+            var revocation = new PgpSignatureGenerator(keyPair.PublicKey.Algorithm, HashAlgorithmTag.Sha256);
+            revocation.InitSign(PgpSignature.KeyRevocation, privateKey);
+            PgpPublicKey primary = publicRing.GetPublicKey();
+            publicRing = PgpPublicKeyRing.InsertPublicKey(publicRing,
+                PgpPublicKey.AddCertification(primary, revocation.GenerateCertification(primary)));
+        }
 
         MemoryStream keyBuffer = new();
         using (ArmoredOutputStream armor = new(keyBuffer))
@@ -235,14 +251,21 @@ internal static partial class Program
         string armoredKey = Encoding.ASCII.GetString(keyBuffer.ToArray());
         string fingerprint = Convert.ToHexString(publicRing.GetPublicKey().GetFingerprint());
 
-        PgpPrivateKey privateKey = secretRing.GetSecretKey().ExtractPrivateKey([]);
         string Sign(byte[] payload)
         {
             MemoryStream signatureBuffer = new();
             using (ArmoredOutputStream armor = new(signatureBuffer))
             {
-                PgpSignatureGenerator signatureGenerator = new(secretRing.GetSecretKey().PublicKey.Algorithm, HashAlgorithmTag.Sha256);
-                signatureGenerator.InitSign(PgpSignature.BinaryDocument, privateKey);
+                PgpSignatureGenerator signatureGenerator = new(secretRing.GetSecretKey().PublicKey.Algorithm, hashAlgorithm);
+                signatureGenerator.InitSign(signatureType, privateKey);
+                var hashed = new PgpSignatureSubpacketGenerator();
+                if (signatureCreation is { } created) hashed.SetSignatureCreationTime(false, created);
+                if (signatureExpirationSeconds is { } expiry) hashed.SetSignatureExpirationTime(false, expiry);
+                signatureGenerator.SetHashedSubpackets(hashed.Generate());
+                var unhashed = new PgpSignatureSubpacketGenerator();
+                if (unhashedExpirationSeconds is { } untrustedExpiry) unhashed.SetSignatureExpirationTime(false, untrustedExpiry);
+                if (unhashedCreation is { } untrustedCreated) unhashed.SetSignatureCreationTime(false, untrustedCreated);
+                signatureGenerator.SetUnhashedSubpackets(unhashed.Generate());
                 signatureGenerator.Update(payload, 0, payload.Length);
                 signatureGenerator.Generate().Encode(armor);
             }
