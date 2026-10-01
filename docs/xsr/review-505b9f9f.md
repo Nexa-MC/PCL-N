@@ -16,8 +16,9 @@
 
 ## 性能与结构
 
-单流进度发布、collection delta 全量排序、dirty scene 遍历、rich text/image 复用命中率
-和 verification receipt 淘汰仍为待量化项。持久化 receipt 必须说明跨重启的文件身份
+单流进度发布已经100ms有界；verification receipt 已改为逐项LRU并撤销显式校验失败
+记录，分别见 XSR-727/XSR-729。collection delta 全量排序、dirty scene 遍历、
+rich text/image 复用命中率仍待量化。持久化 receipt 必须说明跨重启的文件身份
 和失效规则；仅保存路径/大小/mtime 不能直接充当重新验签或 hash 的替代品。
 
 程序集拆分、type forwards、IVT、命名空间与大文件是维护风险，应按稳定边界与实际

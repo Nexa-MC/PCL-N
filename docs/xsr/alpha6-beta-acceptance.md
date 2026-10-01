@@ -70,3 +70,7 @@ GPG 策略收口见 [XSR-728](migrations/XSR-728-detached-signature-admission.md
 实际输入/解压预算及取消契约。managed 与 Linux NativeAOT Services 463 项、68项目
 架构检查通过；该结果不关闭签名
 发布身份、replay/downgrade 或受保护 updater。`b20dec9e` 的 Launcher Build 也已通过。
+
+校验 receipt 不再在8192项满额时整表清空；改为逐项LRU，显式hash失败撤销旧记录，
+见 [XSR-729](migrations/XSR-729-verification-receipt-lru.md)。managed/Linux NativeAOT Services 464项及
+68项目架构通过。该服务生命周期缓存不持久化，也不替代实际启动和长期内存测量。

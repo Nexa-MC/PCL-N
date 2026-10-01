@@ -15,6 +15,7 @@ The user-requested constraints take precedence:
 - [download-trust.md](download-trust.md) — Minecraft 权威元数据、摘要绑定、旧任务与更新权限约束
 - [update-signature-policy.md](update-signature-policy.md) — 固定发布密钥、签名算法、认证过期策略与封套预算
 - [migrations/XSR-728-detached-signature-admission.md](migrations/XSR-728-detached-signature-admission.md) — detached GPG 策略收口
+- [migrations/XSR-729-verification-receipt-lru.md](migrations/XSR-729-verification-receipt-lru.md) — 有界文件校验缓存与显式校验失败撤销
 - [review-505b9f9f.md](review-505b9f9f.md) — 新审查的事实核对、修复范围和剩余证据
 - [static-review-follow-up.md](static-review-follow-up.md) — 补充性能与架构审查的当前代码核对
 - [migrations/XSR-727-idle-logging-and-download-progress.md](migrations/XSR-727-idle-logging-and-download-progress.md) — 空闲日志与有界下载进度

@@ -111,6 +111,7 @@ PXML vertical slices continue over the shared shell.
 | XSR-726 | follow-up | JVM host boundary and bounded observation; [migration](migrations/XSR-726-jvm-host-observations.md); smoke tests do not establish real Minecraft compatibility |
 | XSR-727 | follow-up | event-driven idle logging and bounded single-stream progress; [migration](migrations/XSR-727-idle-logging-and-download-progress.md) |
 | XSR-728 | follow-up | detached signature admission, authenticated expiry and bounded envelopes; [migration](migrations/XSR-728-detached-signature-admission.md) |
+| XSR-729 | follow-up | bounded verification receipt LRU and explicit failure revocation; [migration](migrations/XSR-729-verification-receipt-lru.md) |
 
 ## Closed migration unit
 

@@ -73,6 +73,46 @@ internal static partial class Program
         finally { Directory.Delete(root, true); }
     }
 
+    private static async ValueTask FileReceiptsEvictOnlyLeastRecentlyUsedAndRevokeFailures()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var cache = new MinecraftFileVerificationCache(3);
+            var files = new MinecraftExpectedFile[4];
+            for (int index = 0; index < files.Length; index++)
+            {
+                string path = Path.Combine(root, index + ".jar");
+                await File.WriteAllTextAsync(path, "REPAIRED");
+                files[index] = new(path, 8, Sha1Hex("REPAIRED"));
+            }
+            for (int index = 0; index < 3; index++) AssertTrue(await cache.VerifyAsync(files[index], default));
+            AssertTrue(await cache.VerifyAsync(files[0], default)); // A is newer than B and C.
+            AssertTrue(await cache.VerifyAsync(files[3], default)); // Only B is evicted.
+            foreach (int index in new[] { 0, 2, 3 })
+            {
+                using var locked = new FileStream(files[index].Path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                AssertTrue(await cache.VerifyAsync(files[index], default));
+            }
+            DateTime old = File.GetLastWriteTimeUtc(files[1].Path);
+            await File.WriteAllTextAsync(files[1].Path, "CORRUPT!");
+            File.SetLastWriteTimeUtc(files[1].Path, old);
+            AssertFalse(await cache.VerifyAsync(files[1], default)); // Same stamp cannot resurrect an evicted receipt.
+
+            // Re-verifying the same path while full does not discard another recent file.
+            for (int index = 0; index < 4; index++) AssertTrue(await cache.VerifyAsync(files[3], default, forceHash: true));
+            using (var locked = new FileStream(files[2].Path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                AssertTrue(await cache.VerifyAsync(files[2], default));
+
+            old = File.GetLastWriteTimeUtc(files[0].Path);
+            await File.WriteAllTextAsync(files[0].Path, "CORRUPT!");
+            File.SetLastWriteTimeUtc(files[0].Path, old);
+            AssertFalse(await cache.VerifyAsync(files[0], default, forceHash: true));
+            AssertFalse(await cache.VerifyAsync(files[0], default)); // Failed explicit hash revoked the old receipt.
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     private static async ValueTask SnapshotReusesStampsAndRepairsChangedObjects()
     {
         string root = CreateTempDirectory();

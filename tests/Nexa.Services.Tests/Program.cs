@@ -21,6 +21,7 @@ internal static partial class Program
         ("diagnostic bundle excludes private text bounds input and never overwrites", DiagnosticBundleExcludesPersonalTextAndPublishesAtomically),
         ("performance file workers are bounded and join cancellation", FileWorkersAreBoundedAndJoinCancellation),
         ("performance receipts invalidate and explicit verify hashes", FileReceiptsInvalidateAndExplicitVerificationHashes),
+        ("performance receipt budget retains recent files and revokes failed hashes", FileReceiptsEvictOnlyLeastRecentlyUsedAndRevokeFailures),
         ("performance snapshot reuses stamps and repairs changed objects", SnapshotReusesStampsAndRepairsChangedObjects),
         ("performance metadata cache retains budget and invalidates stamps", MetadataCacheKeepsBudgetAndInvalidatesFileStamp),
         ("performance logging batches retain ordered bounded state", Sync(BatchedLoggingKeepsBoundedRingAndFlushesState)),

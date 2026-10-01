@@ -42,6 +42,11 @@ Completed、Failed 不能被节流合并；不得丢弃终态、改变实际 IO/
 
 ## 当前工具及证据局限
 
+文件校验 receipt 只属于单个 service 生命周期，容量8192；成功命中更新最近使用顺序，
+超预算只淘汰最旧条目，不能整表清空造成下一次启动集中重读。路径身份遵循平台规则，
+大小/mtime/期望 hash 任一改变使条目失效；显式 forceHash 始终重读，失败须撤销旧 receipt。
+receipt 不持久化，不是同账户攻击隔离，也不能替代发布验签或显式完整性验证。
+
 - `Nexa.UI.Next.Benchmarks --output FILE [--timing-gate 120hz|60hz]` 只测renderer kernel。常规1600节点场景使用上述门槛，10k materialized场景只报压力数据。JSON包含tail sample counts；1000样本的最慢0.1%只有1个，不能当作稳健的正式认证。受控最终验收应使用长窗口与独立重复运行。
 - `Nexa.Desktop.Tests --soak idle|navigation --seconds 1..28800 --output NEW-DIR` 是composition fixture。idle按tree/state invalidation合并触发render，不再主动60Hz轮询；navigation主动产生负载。每秒采样记录CPU、private bytes、GC committed、collection counts等；CPU同时给单核占用和按Environment.ProcessorCount归一化的数字，后者受quota/affinity/DOTNET_PROCESSOR_COUNT影响，不能直接等同于整机任务管理器百分比；采样、JSON与Process查询的allocation属于harness，不能把进程总allocation称为产品静止路径allocation。定期hint等真实composition事件仍会计入帧。
 - 8h可在本地运行；现有手动workflow设置150分钟timeout并保持2h fixture选项，不能直接承担8h任务。不把fixture导航或8h本地composition等同于原生Desktop/Minecraft运行验收。
