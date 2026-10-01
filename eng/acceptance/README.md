@@ -1,5 +1,26 @@
 # Real Minecraft evidence
 
+## Composition soak observations
+
+After a schema-3 `Nexa.Desktop.Tests --soak` run finishes:
+
+```sh
+python eng/acceptance/analyze_soak.py --run-dir /path/to/completed-fixture --output /path/to/new-observations.json
+python eng/acceptance/analyze_soak.py --run-dir /path/to/completed-fixture --binary /path/to/frozen/Nexa.Desktop.Tests --output /path/to/new-observations.json
+```
+
+The optional binary is checked against `build-receipt.json`. Its recorded source worktree
+identity is preserved, never converted to a clean commit. Analysis binds the exact input
+bytes and reports five-minute memory/handle/thread/object windows, peaks, coverage, gaps
+and CPU/allocation rates. Rates include the fixture and sampler; per-window averages use
+the first/last observation within that window. Baseline and final forced-GC samples are
+separate endpoints. At least three populated full windows are needed for median trends;
+short smoke runs report null trends. Unknown handles remain null. Analysis completion
+does not certify a no-leak result or change the fixture's endpoint gate into a runtime KPI,
+OS/GPU or Minecraft acceptance result. See [XSR-738](../../docs/xsr/migrations/XSR-738-soak-window-analysis.md).
+
+## Reviewed client runs
+
 `minecraft-matrix.json` is a review queue, not a support list. It pins 1.21.1 rather than accepting an ambiguous `1.21.x`. Add other minor versions as independent cases. Java 25 and historical ARM64 candidates require explicit review of actual Loader/JVM availability; unavailable combinations need a reason, not a fabricated pass.
 
 ```sh

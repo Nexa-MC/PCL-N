@@ -225,6 +225,8 @@ jobs:
         run: |
           dotnet tests/Nexa.Desktop.Tests/bin/Release/net10.0/Nexa.Desktop.Tests.dll --soak idle --seconds 10 --output '${{ runner.temp }}/soak-idle'
           dotnet tests/Nexa.Desktop.Tests/bin/Release/net10.0/Nexa.Desktop.Tests.dll --soak navigation --seconds 10 --output '${{ runner.temp }}/soak-navigation'
+          python eng/acceptance/analyze_soak.py --run-dir '${{ runner.temp }}/soak-idle' --output '${{ runner.temp }}/soak-idle-observations.json'
+          python eng/acceptance/analyze_soak.py --run-dir '${{ runner.temp }}/soak-navigation' --output '${{ runner.temp }}/soak-navigation-observations.json'
 
       - name: Publish and run NativeAOT foundation tests
         run: |

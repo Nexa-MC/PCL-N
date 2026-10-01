@@ -104,3 +104,11 @@ pixel charge共用预算，按每像素8字节计账；相同内容/尺寸共享
 managed/Linux NativeAOT backend各9项、69项目架构与whitespace通过；独立NativeAOT
 产品的shell52nodes及first-run验证通过，编译器/Roslyn未进入安装输出。实际CPU/native、
 GPU、decoder临时分配、OS pressure与真实进程RAM/8h曲线继续保留为验收项。
+
+soak观测工具见 [XSR-738](migrations/XSR-738-soak-window-analysis.md)：读取完整schema-3
+fixture后按5分钟报告常规窗口的min/median/max、峰值、采样缺口及CPU/allocation；
+强制GC的baseline/final仅作单独端点，不参与趋势。至少3个充分采样的完整窗口才报告
+median slope，短run为null；未知handles仍为null。原始run/samples哈希及可选冻结binary
+receipt保留构建身份，不能将工作树版本升级为后来clean commit或实机证明。
+16项Python回归及三份既有60秒实际fixture的分析通过；两小时fixture仍待跑满。
+工具输出保留原有endpoint gate，并明确runtime KPI/physical acceptance均未认证。
