@@ -2,7 +2,7 @@
 
 ## Composition soak observations
 
-After a schema-3 `Nexa.Desktop.Tests --soak` run finishes:
+After a schema-3/4 `Nexa.Desktop.Tests --soak` run finishes:
 
 ```sh
 python eng/acceptance/analyze_soak.py --run-dir /path/to/completed-fixture --output /path/to/new-observations.json
@@ -18,6 +18,14 @@ separate endpoints. At least three populated full windows are needed for median 
 short smoke runs report null trends. Unknown handles remain null. Analysis completion
 does not certify a no-leak result or change the fixture's endpoint gate into a runtime KPI,
 OS/GPU or Minecraft acceptance result. See [XSR-738](../../docs/xsr/migrations/XSR-738-soak-window-analysis.md).
+
+Schema 4 separately measures the fixture thread's synchronous counter capture and JSON
+sample writes. Both counters are aligned before each write, whose allocation appears in
+the next sample. Window/interval reports show total, sampler and unattributed rates; the
+remainder includes other fixture work and background activity, and is not product-only.
+CPU sampler cost remains unmeasured. Schema 3 reports null sampler/remainder fields;
+historical data is never retrofitted. Invalid/decreasing aligned counters are rejected.
+See [XSR-739](../../docs/xsr/migrations/XSR-739-soak-sampler-allocation.md).
 
 ## Reviewed client runs
 

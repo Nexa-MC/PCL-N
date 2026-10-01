@@ -163,3 +163,11 @@ median slope，短run为null；未知handles仍为null。原始run/samples哈希
 receipt保留构建身份，不能将工作树版本升级为后来clean commit或实机证明。
 16项Python回归及三份既有60秒实际fixture的分析通过；两小时fixture仍待跑满。
 工具输出保留原有endpoint gate，并明确runtime KPI/physical acceptance均未认证。
+
+`53364121` 的 XSR CI 36894346775 / Launcher Build 36894346708，及
+`896de842` 的 XSR CI 36896613672 / Launcher Build 36896613694 均已通过。
+
+分配归因契约见 [XSR-739](migrations/XSR-739-soak-sampler-allocation.md)：schema-4
+精确进程累计分配与fixture线程的capture/JSON写入计数在写入前对齐，当前写入计入下一次
+sample；按区间报告总量、采样器、未归因余量。余量包含其他fixture和后台工作，不能
+称为产品纯idle分配；CPU采样成本仍未分离。schema-3历史数据保持null归因。

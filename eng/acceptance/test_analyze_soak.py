@@ -60,6 +60,51 @@ class SoakObservationTests(unittest.TestCase):
         self.assertFalse(result["runtime_kpi_certified"])
         self.assertFalse(result["real_desktop_acceptance"])
         self.assertTrue(result["fixture_endpoint_gate_passed"])
+        self.assertEqual(3, result["source_schema"])
+        self.assertIsNone(result["sampler_allocation_bytes_per_second"]["median"])
+        self.assertIsNone(result["unattributed_allocation_bytes_per_second"]["median"])
+        self.assertIsNone(result["windows"][0]["sampler_allocation_bytes_per_second"])
+        self.assertIsNone(result["endpoints"]["baseline"]["sampler_allocated_bytes"])
+
+    def test_schema_four_aligned_sampler_rates_preserve_scope(self):
+        self.run["schema"] = 4
+        for row in self.rows:
+            row["sampler_allocated_bytes"] = int(row["seconds"]) * 768
+        result = self.result()
+        self.assertEqual(4, result["source_schema"])
+        self.assertEqual(768, result["sampler_allocation_bytes_per_second"]["median"])
+        self.assertEqual(256, result["unattributed_allocation_bytes_per_second"]["median"])
+        self.assertEqual(768, result["windows"][0]["sampler_allocation_bytes_per_second"])
+        self.assertEqual(256, result["windows"][0]["unattributed_allocation_bytes_per_second"])
+        self.assertEqual(900 * 256, result["endpoints"]["final_after_gc"]["unattributed_allocated_bytes"])
+        self.assertFalse(result["runtime_kpi_certified"])
+        self.assertFalse(result["real_desktop_acceptance"])
+
+    def test_schema_four_missing_or_inconsistent_sampler_is_rejected(self):
+        self.run["schema"] = 4
+        for row in self.rows:
+            row["sampler_allocated_bytes"] = int(row["seconds"]) * 768
+        original = copy.deepcopy(self.rows)
+        for value in (None, False, -1, 1, 1.5, 9000, 11000):
+            with self.subTest(value=value):
+                self.rows = copy.deepcopy(original)
+                self.rows[10]["sampler_allocated_bytes"] = value
+                self.write()
+                with self.assertRaises(ValueError):
+                    analyze_soak.analyze(self.root)
+        self.rows = copy.deepcopy(original)
+        del self.rows[10]["sampler_allocated_bytes"]
+        self.write()
+        with self.assertRaises(ValueError):
+            analyze_soak.analyze(self.root)
+
+    def test_legacy_sampler_field_cannot_retroactively_supply_attribution(self):
+        for row in self.rows:
+            row["sampler_allocated_bytes"] = int(row["seconds"]) * 768
+        result = self.result()
+        self.assertIsNone(result["sampler_allocation_bytes_per_second"]["median"])
+        self.assertIsNone(result["unattributed_allocation_bytes_per_second"]["maximum"])
+        self.assertIsNone(result["windows"][0]["sampler_allocation_bytes_per_second"])
 
     def test_growth_is_visible_despite_a_final_gc_drop(self):
         for row in self.rows[1:-1]:

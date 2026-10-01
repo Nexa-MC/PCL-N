@@ -36,7 +36,7 @@ def read_json(path):
     return value, hashlib.sha256(data).hexdigest()
 
 
-def read_samples(path):
+def read_samples(path, schema):
     require(path.is_file() and not path.is_symlink(), "samples must be a regular non-linked file")
     digest = hashlib.sha256()
     rows, size = [], 0
@@ -56,10 +56,19 @@ def read_samples(path):
                 if key != "process_cpu_ms" and value is not None:
                     require(type(value) is int and value <= 2**63 - 1, f"integer metric required: {key}")
                 selected[key] = value
+            sampler = row.get("sampler_allocated_bytes") if schema == 4 else None
+            if schema == 4:
+                require(type(sampler) is int and 0 <= sampler <= selected["allocated_bytes"],
+                        "invalid aligned sampler allocation counter")
+            selected["sampler_allocated_bytes"] = sampler
+            selected["unattributed_allocated_bytes"] = selected["allocated_bytes"] - sampler if sampler is not None else None
             if rows:
                 require(selected["seconds"] > rows[-1]["seconds"], "sample clock did not advance")
                 for key in COUNTERS:
                     require(selected[key] >= rows[-1][key], f"counter decreased: {key}")
+                if schema == 4:
+                    for key in ("sampler_allocated_bytes", "unattributed_allocated_bytes"):
+                        require(selected[key] >= rows[-1][key], f"aligned allocation counter decreased: {key}")
             rows.append(selected)
     require(len(rows) >= 2 and rows[0]["seconds"] == 0, "baseline and final samples required")
     return rows, digest.hexdigest()
@@ -69,6 +78,11 @@ def metric_summary(rows, key):
     values = [row[key] for row in rows if row[key] is not None]
     return dict(measured_samples=len(values), minimum=min(values) if values else None,
                 median=statistics.median(values) if values else None, maximum=max(values) if values else None)
+
+
+def allocation_rate(first, last, key):
+    elapsed = last["seconds"] - first["seconds"]
+    return (last[key] - first[key]) / elapsed if elapsed > 0 and first[key] is not None and last[key] is not None else None
 
 
 def observe(rows, requested_seconds):
@@ -90,6 +104,8 @@ def observe(rows, requested_seconds):
                             rate_interval_seconds=rate_interval,
                             cpu_percent_one_core=(samples[-1]["process_cpu_ms"] - samples[0]["process_cpu_ms"]) / (rate_interval * 10) if rate_interval > 0 else None,
                             allocation_bytes_per_second=(samples[-1]["allocated_bytes"] - samples[0]["allocated_bytes"]) / rate_interval if rate_interval > 0 else None,
+                            sampler_allocation_bytes_per_second=allocation_rate(samples[0], samples[-1], "sampler_allocated_bytes"),
+                            unattributed_allocation_bytes_per_second=allocation_rate(samples[0], samples[-1], "unattributed_allocated_bytes"),
                             metrics={key: metric_summary(samples, key) for key in METRICS}))
     eligible = [window for window in windows if window["complete"] and window["coverage_ratio"] >= .8]
     trends = {}
@@ -111,8 +127,13 @@ def observe(rows, requested_seconds):
     for row in ordinary:
         elapsed = row["seconds"] - previous["seconds"]
         rates.append(dict(seconds=row["seconds"], cpu=(row["process_cpu_ms"] - previous["process_cpu_ms"]) / (elapsed * 10),
-                          allocation=(row["allocated_bytes"] - previous["allocated_bytes"]) / elapsed))
+                          allocation=(row["allocated_bytes"] - previous["allocated_bytes"]) / elapsed,
+                          sampler=allocation_rate(previous, row, "sampler_allocated_bytes"),
+                          unattributed=allocation_rate(previous, row, "unattributed_allocated_bytes")))
         previous = row
+    def rate_summary(key):
+        values = [rate[key] for rate in rates if rate[key] is not None]
+        return dict(median=statistics.median(values) if values else None, maximum=max(values) if values else None)
     return dict(
         ordinary_samples=len(ordinary), observed_end_seconds=observed_end,
         samples_after_requested_end=sum(row["seconds"] >= requested_seconds for row in ordinary),
@@ -123,6 +144,8 @@ def observe(rows, requested_seconds):
                                   maximum=max(r["cpu"] for r in rates) if rates else None),
         allocation_bytes_per_second=dict(median=statistics.median(r["allocation"] for r in rates) if rates else None,
                                          maximum=max(r["allocation"] for r in rates) if rates else None),
+        sampler_allocation_bytes_per_second=rate_summary("sampler"),
+        unattributed_allocation_bytes_per_second=rate_summary("unattributed"),
         windows=windows, median_trends=trends,
     )
 
@@ -164,13 +187,13 @@ def bind_receipt(root, binary):
 
 def analyze(root, binary=None):
     run, run_hash = read_json(root / "run.json")
-    require(type(run.get("schema")) is int and run["schema"] == 3
+    require(type(run.get("schema")) is int and run["schema"] in (3, 4)
             and run.get("scope") == "desktop-composition-fixture" and run.get("real_desktop_acceptance") is False,
-            "only completed schema-3 composition fixtures are supported")
+            "only completed schema-3/4 composition fixtures are supported")
     require(run.get("mode") in ("idle", "navigation") and type(run.get("passed")) is bool, "invalid fixture summary")
     seconds = run.get("requested_seconds")
     require(type(seconds) is int and 1 <= seconds <= 28800, "invalid requested duration")
-    rows, samples_hash = read_samples(root / "samples.jsonl")
+    rows, samples_hash = read_samples(root / "samples.jsonl", run["schema"])
     require(type(run.get("samples")) is int and run["samples"] == len(rows), "summary/sample count mismatch")
     elapsed = run.get("elapsed_seconds")
     require(number(elapsed) and elapsed >= seconds and abs(elapsed - rows[-1]["seconds"]) < .001,
@@ -184,7 +207,10 @@ def analyze(root, binary=None):
                 endpoints=dict(baseline=rows[0], final_after_gc=rows[-1]),
                 managed_live_bytes_scope="GC.GetTotalMemory(false) estimate; ordinary windows include the allocation nursery",
                 gc_committed_bytes_scope="runtime GC committed memory; not platform commit or native memory",
-                rate_scope="includes fixture and Process/JSON sampler; observer cost was not separately measured",
+                source_schema=run["schema"],
+                rate_scope="includes fixture and Process/JSON sampler; CPU observer cost was not separately measured",
+                sampler_allocation_scope="schema 4: synchronous fixture-thread capture and sample writes, aligned before each write; schema 3: unmeasured/null",
+                unattributed_allocation_scope="remaining process allocation includes other fixture work and background activity; not product-only",
                 trend_scope="least-squares window medians; at least three populated full windows; diagnostic, not a no-leak gate",
                 **observe(rows, seconds))
 

@@ -51,12 +51,13 @@ internal static partial class Program
         using SoakFrameRequests requests = new(fixture.Shell);
         using Process process = Process.GetCurrentProcess();
         using FileStream samples = new(Path.Combine(output, "samples.jsonl"), FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-        long allocated = GC.GetTotalAllocatedBytes();
+        SoakAllocationMeter sampler = new();
+        long allocated = GC.GetTotalAllocatedBytes(precise: true);
         long start = Stopwatch.GetTimestamp();
         attribution.Start(start);
         SoakSample baseline = Capture(0);
         TimeSpan baselineCpu = process.TotalProcessorTime;
-        WriteSample(samples, baseline);
+        WriteMeasuredSample(baseline);
         int frame = 0, sampleCount = 1;
         double nextSample = 1;
         SoakSample peak = baseline;
@@ -67,7 +68,7 @@ internal static partial class Program
             if (elapsed >= nextSample)
             {
                 SoakSample sample = Capture(elapsed);
-                WriteSample(samples, sample);
+                WriteMeasuredSample(sample);
                 sampleCount++;
                 peak = peak with
                 {
@@ -91,7 +92,7 @@ internal static partial class Program
         GC.WaitForPendingFinalizers();
         GC.Collect();
         SoakSample final = Capture(Stopwatch.GetElapsedTime(start).TotalSeconds);
-        WriteSample(samples, final);
+        WriteMeasuredSample(final);
         samples.Flush(true);
         bool passed = final.LiveBytes - baseline.LiveBytes <= 16 * 1024 * 1024
             && final.WorkingSet - baseline.WorkingSet <= 128 * 1024 * 1024
@@ -104,7 +105,7 @@ internal static partial class Program
         using FileStream report = new(Path.Combine(output, "run.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None);
         using Utf8JsonWriter json = new(report, new JsonWriterOptions { Indented = true });
         json.WriteStartObject();
-        json.WriteNumber("schema", 3);
+        json.WriteNumber("schema", 4);
         json.WriteString("scope", "desktop-composition-fixture");
         json.WriteString("mode", mode);
         json.WriteNumber("requested_seconds", seconds);
@@ -147,6 +148,14 @@ internal static partial class Program
         json.WriteString("scheduler_scope", "host admission leases and queues; not OS HTTP connections or disk I/O counters");
         json.WriteString("managed_live_bytes_scope", "GC.GetTotalMemory(false) estimate; baseline and final after explicit full GC");
         json.WriteString("allocation_scope", "process total includes fixture, one-second Process/JSON observer and explicit final GC; not product idle allocation");
+        long processBytes = final.Allocated - baseline.Allocated;
+        long samplerBytes = final.SamplerAllocated - baseline.SamplerAllocated;
+        json.WriteNumber("process_allocated_bytes", processBytes);
+        json.WriteNumber("sampler_allocated_bytes", samplerBytes);
+        if (samplerBytes <= processBytes) json.WriteNumber("unattributed_allocated_bytes", processBytes - samplerBytes);
+        else json.WriteNull("unattributed_allocated_bytes");
+        json.WriteString("sampler_allocation_scope", "fixture-thread capture and sample JSON writes only; aligned counters before each write, whose cost enters the next sample; final serialization excluded");
+        json.WriteString("unattributed_allocation_scope", "remaining process allocation includes fixture work, frames, background publications, waits and final GC; not product-only; CPU sampler cost unmeasured");
         json.WriteString("gate_scope", "bounded fixture endpoint retention; not monotonic-trend or runtime KPI certification");
         json.WriteString("timing_scope", "intent-plus-render; 0.1ms histogram upper bounds below 100ms; saturated percentile is null, max is exact; no OS backend");
         json.WriteBoolean("two_hour_fixture_soak", final.Seconds >= 7200);
@@ -189,17 +198,56 @@ internal static partial class Program
 
         SoakSample Capture(double elapsed)
         {
+            sampler.Begin();
             process.Refresh();
             int? handles;
             try { handles = process.HandleCount; }
             catch (PlatformNotSupportedException) { handles = null; }
-            return new(elapsed, process.WorkingSet64, GC.GetTotalMemory(false), GC.GetTotalAllocatedBytes() - allocated,
+            SoakSample sample = new(elapsed, process.WorkingSet64, GC.GetTotalMemory(false), 0, 0,
                 handles, process.Threads.Count, fixture.Shell.Tree.Count, fixture.Store.Count,
                 process.PrivateMemorySize64, GC.GetGCMemoryInfo().TotalCommittedBytes, process.TotalProcessorTime.TotalMilliseconds,
                 GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2),
                 fixture.Foundation.Host.Logging.GetSnapshot().Count,
                 fixture.Store.ReadCollection<TaskCenterEntry>(fixture.Store.Resolve(TaskCenterStateContract.EntriesKey)).Items.Count(task => task.IsTerminal),
                 fixture.Foundation.Host.Work.Snapshot);
+            long measured = sampler.End();
+            return sample with { Allocated = GC.GetTotalAllocatedBytes(precise: true) - allocated, SamplerAllocated = measured };
+        }
+
+        void WriteMeasuredSample(SoakSample sample)
+        {
+            sampler.Begin();
+            WriteSample(samples, sample);
+            sampler.End();
+        }
+    }
+
+    private static void SoakAllocationMeterAlignsCountsAndRejectsInvalidUse()
+    {
+        SoakAllocationMeter meter = new();
+        Reject(() => meter.End());
+        meter.Begin();
+        Reject(() => meter.Begin());
+        byte[] known = new byte[1024];
+        GC.KeepAlive(known);
+        AssertTrue(meter.End() >= 1024);
+        meter.Begin();
+        Task.Run(() => Reject(() => meter.End())).GetAwaiter().GetResult();
+        _ = meter.End(); // Cross-thread rejection did not corrupt the owner's active interval.
+        for (int warm = 0; warm < 200000; warm++) { meter.Begin(); meter.End(); }
+        long start = GC.GetAllocatedBytesForCurrentThread();
+        meter.Begin();
+        long before = meter.End();
+        for (int index = 0; index < 10000; index++) { meter.Begin(); meter.End(); }
+        meter.Begin();
+        AssertEqual(before, meter.End());
+        AssertEqual(0L, GC.GetAllocatedBytesForCurrentThread() - start);
+
+        static void Reject(Action action)
+        {
+            try { action(); }
+            catch (InvalidOperationException) { return; }
+            throw new InvalidOperationException("Invalid sampler use was accepted.");
         }
     }
 
@@ -283,6 +331,7 @@ internal static partial class Program
             json.WriteNumber("gc_gen1_count", sample.Gen1);
             json.WriteNumber("gc_gen2_count", sample.Gen2);
             json.WriteNumber("allocated_bytes", sample.Allocated);
+            json.WriteNumber("sampler_allocated_bytes", sample.SamplerAllocated);
             if (sample.Handles is { } handles) json.WriteNumber("handles", handles); else json.WriteNull("handles");
             json.WriteNumber("threads", sample.Threads);
             json.WriteNumber("scene_entities", sample.Entities);
@@ -387,7 +436,29 @@ internal static partial class Program
         }
     }
 
-    private sealed record SoakSample(double Seconds, long WorkingSet, long LiveBytes, long Allocated,
+    private sealed class SoakAllocationMeter
+    {
+        private readonly int _thread = Environment.CurrentManagedThreadId;
+        private bool _active;
+        private long _started, _total;
+        public void Begin()
+        {
+            if (_thread != Environment.CurrentManagedThreadId || _active)
+                throw new InvalidOperationException("Sampler allocation intervals must be non-nested on the fixture thread.");
+            _started = GC.GetAllocatedBytesForCurrentThread();
+            _active = true;
+        }
+        public long End()
+        {
+            if (_thread != Environment.CurrentManagedThreadId || !_active)
+                throw new InvalidOperationException("Sampler allocation completion requires an active interval on the fixture thread.");
+            _total += GC.GetAllocatedBytesForCurrentThread() - _started;
+            _active = false;
+            return _total;
+        }
+    }
+
+    private readonly record struct SoakSample(double Seconds, long WorkingSet, long LiveBytes, long Allocated, long SamplerAllocated,
         int? Handles, int Threads, int Entities, int States, long PrivateBytes, long GcCommitted, double CpuMs,
         int Gen0, int Gen1, int Gen2, int Logs, int Tasks, WorkSchedulerSnapshot Work);
 }
