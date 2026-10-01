@@ -142,7 +142,7 @@ Compile替换和相对debug映射均已核对。managed/Linux NativeAOT Desktop�
 架构、编译器执行与18类拒绝回归通过；独立NativeAOT shell52nodes与first-run验证通过。
 资源列表/详情的literal标题可实际执行会话程序，项目ID/元数据不变，卸载后后续重建恢复原文。
 这是首个受限string point；其他ABI、UI/Event/Intent执行adapter和真实插件burn-in仍开放。
-本机已启动带binary/source哈希receipt的两小时NativeAOT idle composition fixture，仍在运行；
+本机带binary/source哈希receipt的两小时NativeAOT idle composition fixture已完成，证据见XSR-742；
 构建身份为基础提交加XSR-736工作树，不作为clean-commit版本、OS窗口或Minecraft证据。
 
 `739e8cbb` 的XSR CI 36888656773通过，但Launcher Build 36888656750的Windows两项
@@ -161,7 +161,7 @@ fixture后按5分钟报告常规窗口的min/median/max、峰值、采样缺口�
 强制GC的baseline/final仅作单独端点，不参与趋势。至少3个充分采样的完整窗口才报告
 median slope，短run为null；未知handles仍为null。原始run/samples哈希及可选冻结binary
 receipt保留构建身份，不能将工作树版本升级为后来clean commit或实机证明。
-16项Python回归及三份既有60秒实际fixture的分析通过；两小时fixture仍待跑满。
+16项初始Python回归及三份既有60秒实际fixture的分析通过；两小时fixture现已完成并保留原始样本。
 工具输出保留原有endpoint gate，并明确runtime KPI/physical acceptance均未认证。
 
 `53364121` 的 XSR CI 36894346775 / Launcher Build 36894346708，及
@@ -186,3 +186,10 @@ core/production及注入组合；不按token flag名称猜测安全性。Desktop
 候选审查通过；managed/Linux NativeAOT Services各475项、Desktop各109项、69项目
 架构及whitespace通过。独立NativeAOT产品shell52nodes/first-run通过，编译器/Roslyn
 未进入输出。此结果不关闭同账户内存、keychain迁移、安装身份或真实Minecraft验收。
+
+实际经过时间的idle fixture证据见 [XSR-742](migrations/XSR-742-retained-idle-soak-evidence.md)
+及[原始记录](evidence/2026-10-01-native-idle/README.md)：两小时schema-3与30分钟schema-4
+各1帧、常规窗口24/6个，Handle/scene/state/log稳定；初始内存增长、GC nursery和
+最终强制GC分别保留。schema-4采样器分配单列，余量不称作产品纯idle；构建身份仍为
+基础提交加当时工作树，不能升级为clean commit或Alpha.6实机结果。两份压缩样本精确
+重放分析及19项Python回归通过。真实8h原生窗口/Minecraft与未测指标继续开放。

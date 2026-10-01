@@ -1,0 +1,2045 @@
+{
+  "schema": 1,
+  "scope": "desktop-composition-fixture-observations",
+  "real_desktop_acceptance": false,
+  "mode": "idle",
+  "requested_seconds": 7200,
+  "elapsed_seconds": 7200.0198028,
+  "fixture_endpoint_gate_passed": true,
+  "runtime_kpi_certified": false,
+  "input_sha256": {
+    "run": "279226dbebf8fd51a65cb04c18e35a1f6e3158ada553d2aaf2fe00f90b0e1917",
+    "samples": "f521a716582dc8f07c7ea452fc58264730fd56a3142ae3a026954f5cb6e3eb44"
+  },
+  "build": {
+    "receipt_sha256": "f8dc82999e95428f8a679d5252bcb978d11be22318bc7d53fa99e6fbddaff509",
+    "base_commit": "05b303ab06979caf7d4828cbd8d6f40a0624612f",
+    "build_identity": "base commit plus XSR-736 source worktree; not a clean-commit build",
+    "binary_sha256": "3487bea4bc5c53309b4d3f5c3a8cc970ec3febf131d309e609b5c164b197911a",
+    "binary_bytes_verified": true,
+    "recorded_source_input_manifest_sha256": "a730fc2e993466b60b3590b2b13105d991a628df4a33fda9afdea33d13dcd236",
+    "recorded_source_inputs": 831,
+    "source_reproduction_verified": false
+  },
+  "endpoint_scope": "baseline/final after explicit full GC; excluded from ordinary windows",
+  "endpoints": {
+    "baseline": {
+      "seconds": 0,
+      "working_set_bytes": 55717888,
+      "private_bytes": 75280384,
+      "managed_live_bytes": 10593264,
+      "gc_committed_bytes": 17510400,
+      "handles": 5,
+      "threads": 7,
+      "scene_entities": 285,
+      "state_cells": 210,
+      "log_entries": 2,
+      "terminal_tasks": 0,
+      "allocated_bytes": 29736,
+      "process_cpu_ms": 64.408,
+      "gc_gen0_count": 4,
+      "gc_gen1_count": 4,
+      "gc_gen2_count": 4,
+      "sampler_allocated_bytes": null,
+      "unattributed_allocated_bytes": null
+    },
+    "final_after_gc": {
+      "seconds": 7200.0198028,
+      "working_set_bytes": 69345280,
+      "private_bytes": 88346624,
+      "managed_live_bytes": 10572424,
+      "gc_committed_bytes": 30224384,
+      "handles": 5,
+      "threads": 4,
+      "scene_entities": 285,
+      "state_cells": 210,
+      "log_entries": 2,
+      "terminal_tasks": 0,
+      "allocated_bytes": 116365520,
+      "process_cpu_ms": 2963.451,
+      "gc_gen0_count": 12,
+      "gc_gen1_count": 6,
+      "gc_gen2_count": 6,
+      "sampler_allocated_bytes": null,
+      "unattributed_allocated_bytes": null
+    }
+  },
+  "managed_live_bytes_scope": "GC.GetTotalMemory(false) estimate; ordinary windows include the allocation nursery",
+  "gc_committed_bytes_scope": "runtime GC committed memory; not platform commit or native memory",
+  "source_schema": 3,
+  "rate_scope": "includes fixture and Process/JSON sampler; CPU observer cost was not separately measured",
+  "sampler_allocation_scope": "schema 4: synchronous fixture-thread capture and sample writes, aligned before each write; schema 3: unmeasured/null",
+  "unattributed_allocation_scope": "remaining process allocation includes other fixture work and background activity; not product-only",
+  "trend_scope": "least-squares window medians; at least three populated full windows; diagnostic, not a no-leak gate",
+  "ordinary_samples": 7196,
+  "observed_end_seconds": 7199.8398816,
+  "samples_after_requested_end": 0,
+  "maximum_sampling_gap_seconds": 1.0154763999998977,
+  "sampling_gaps_over_five_seconds": 0,
+  "ordinary_peaks": {
+    "working_set_bytes": {
+      "measured_samples": 7196,
+      "minimum": 55971840,
+      "median": 69185536.0,
+      "maximum": 69185536
+    },
+    "private_bytes": {
+      "measured_samples": 7196,
+      "minimum": 75280384,
+      "median": 88317952.0,
+      "maximum": 88317952
+    },
+    "managed_live_bytes": {
+      "measured_samples": 7196,
+      "minimum": 10602880,
+      "median": 18949820.0,
+      "maximum": 27387208
+    },
+    "gc_committed_bytes": {
+      "measured_samples": 7196,
+      "minimum": 17510400,
+      "median": 30162944.0,
+      "maximum": 30162944
+    },
+    "handles": {
+      "measured_samples": 7196,
+      "minimum": 5,
+      "median": 5.0,
+      "maximum": 5
+    },
+    "threads": {
+      "measured_samples": 7196,
+      "minimum": 4,
+      "median": 4.0,
+      "maximum": 7
+    },
+    "scene_entities": {
+      "measured_samples": 7196,
+      "minimum": 285,
+      "median": 285.0,
+      "maximum": 285
+    },
+    "state_cells": {
+      "measured_samples": 7196,
+      "minimum": 210,
+      "median": 210.0,
+      "maximum": 210
+    },
+    "log_entries": {
+      "measured_samples": 7196,
+      "minimum": 2,
+      "median": 2.0,
+      "maximum": 2
+    },
+    "terminal_tasks": {
+      "measured_samples": 7196,
+      "minimum": 0,
+      "median": 0.0,
+      "maximum": 0
+    }
+  },
+  "cpu_percent_one_core": {
+    "median": 0.03478587519544349,
+    "maximum": 1.5208625232453965
+  },
+  "allocation_bytes_per_second": {
+    "median": 16392.753583279424,
+    "maximum": 75928.0
+  },
+  "sampler_allocation_bytes_per_second": {
+    "median": null,
+    "maximum": null
+  },
+  "unattributed_allocation_bytes_per_second": {
+    "median": null,
+    "maximum": null
+  },
+  "windows": [
+    {
+      "start_seconds": 0,
+      "end_seconds": 300,
+      "first_sample_seconds": 1,
+      "last_sample_seconds": 299.1619888,
+      "samples": 299,
+      "complete": true,
+      "coverage_ratio": 0.9966666666666667,
+      "rate_interval_seconds": 298.1619888,
+      "cpu_percent_one_core": 0.04345389582402731,
+      "allocation_bytes_per_second": 16339.332923043608,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 299,
+          "minimum": 55971840,
+          "median": 56061952,
+          "maximum": 56942592
+        },
+        "private_bytes": {
+          "measured_samples": 299,
+          "minimum": 75280384,
+          "median": 75280384,
+          "maximum": 76251136
+        },
+        "managed_live_bytes": {
+          "measured_samples": 299,
+          "minimum": 10669408,
+          "median": 13144832,
+          "maximum": 15555456
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 299,
+          "minimum": 17510400,
+          "median": 17510400,
+          "maximum": 17510400
+        },
+        "handles": {
+          "measured_samples": 299,
+          "minimum": 5,
+          "median": 5,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 299,
+          "minimum": 4,
+          "median": 4,
+          "maximum": 7
+        },
+        "scene_entities": {
+          "measured_samples": 299,
+          "minimum": 285,
+          "median": 285,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 299,
+          "minimum": 210,
+          "median": 210,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 299,
+          "minimum": 2,
+          "median": 2,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 299,
+          "minimum": 0,
+          "median": 0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 300,
+      "end_seconds": 600,
+      "first_sample_seconds": 300.1624336,
+      "last_sample_seconds": 599.3095799,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.14714630000003,
+      "cpu_percent_one_core": 0.04051618125029729,
+      "allocation_bytes_per_second": 16127.447845221179,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 56958976,
+          "median": 59453440.0,
+          "maximum": 61882368
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 76251136,
+          "median": 78815232.0,
+          "maximum": 81170432
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 15571904,
+          "median": 17988512.0,
+          "maximum": 20410568
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 17510400,
+          "median": 17510400.0,
+          "maximum": 17510400
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 600,
+      "end_seconds": 900,
+      "first_sample_seconds": 600.3101743,
+      "last_sample_seconds": 899.4831722,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.17299790000004,
+      "cpu_percent_one_core": 0.04809825786754267,
+      "allocation_bytes_per_second": 16126.000788388661,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 61890560,
+          "median": 64442368.0,
+          "maximum": 66834432
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 81170432,
+          "median": 83832832.0,
+          "maximum": 86118400
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 20427016,
+          "median": 22843624.0,
+          "maximum": 25265664
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 17510400,
+          "median": 17510400.0,
+          "maximum": 17510400
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 900,
+      "end_seconds": 1200,
+      "first_sample_seconds": 900.4836063,
+      "last_sample_seconds": 1199.6568376,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1732313,
+      "cpu_percent_one_core": 0.04119051676666499,
+      "allocation_bytes_per_second": 16141.978943154196,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 66842624,
+          "median": 68923392.0,
+          "maximum": 68923392
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 86118400,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 10625552,
+          "median": 13043408.0,
+          "maximum": 27313728
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 17510400,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 1200,
+      "end_seconds": 1500,
+      "first_sample_seconds": 1200.6573701,
+      "last_sample_seconds": 1499.8047303,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1473602000001,
+      "cpu_percent_one_core": 0.038784564210237675,
+      "allocation_bytes_per_second": 16143.054034544673,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 68923392,
+          "median": 68923392.0,
+          "maximum": 68923392
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 13421712,
+          "median": 15847120.0,
+          "maximum": 18264976
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 1500,
+      "end_seconds": 1800,
+      "first_sample_seconds": 1500.8051651,
+      "last_sample_seconds": 1799.9467135,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1415483999999,
+      "cpu_percent_one_core": 0.03660441038219887,
+      "allocation_bytes_per_second": 16142.565370233944,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 68923392,
+          "median": 68923392.0,
+          "maximum": 68923392
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 18281424,
+          "median": 20698368.0,
+          "maximum": 23124448
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 1800,
+      "end_seconds": 2100,
+      "first_sample_seconds": 1800.9471088,
+      "last_sample_seconds": 2099.1367231,
+      "samples": 299,
+      "complete": true,
+      "coverage_ratio": 0.9966666666666667,
+      "rate_interval_seconds": 298.1896142999999,
+      "cpu_percent_one_core": 0.03655157482793662,
+      "allocation_bytes_per_second": 16118.33467534688,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 299,
+          "minimum": 68923392,
+          "median": 68923392,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 299,
+          "minimum": 88317952,
+          "median": 88317952,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 299,
+          "minimum": 10602880,
+          "median": 24949168,
+          "maximum": 27358800
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 299,
+          "minimum": 30162944,
+          "median": 30162944,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 299,
+          "minimum": 5,
+          "median": 5,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 299,
+          "minimum": 4,
+          "median": 4,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 299,
+          "minimum": 285,
+          "median": 285,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 299,
+          "minimum": 210,
+          "median": 210,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 299,
+          "minimum": 2,
+          "median": 2,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 299,
+          "minimum": 0,
+          "median": 0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 2100,
+      "end_seconds": 2400,
+      "first_sample_seconds": 2100.1371085,
+      "last_sample_seconds": 2399.2746951,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.13758659999985,
+      "cpu_percent_one_core": 0.037500803986228334,
+      "allocation_bytes_per_second": 16132.322436808756,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 11211456,
+          "median": 13629312.0,
+          "maximum": 16051352
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 2400,
+      "end_seconds": 2700,
+      "first_sample_seconds": 2400.2753751,
+      "last_sample_seconds": 2699.4556981,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.18032300000004,
+      "cpu_percent_one_core": 0.04812816516679808,
+      "allocation_bytes_per_second": 16140.633687329762,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 16067800,
+          "median": 18485656.0,
+          "maximum": 20910872
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 2700,
+      "end_seconds": 3000,
+      "first_sample_seconds": 2700.45632,
+      "last_sample_seconds": 2999.6035464,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.14722640000036,
+      "cpu_percent_one_core": 0.04021264092856718,
+      "allocation_bytes_per_second": 16114.526810133895,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 20927320,
+          "median": 23344168.0,
+          "maximum": 25762024
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 3000,
+      "end_seconds": 3300,
+      "first_sample_seconds": 3000.6040404,
+      "last_sample_seconds": 3299.7636283,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.15958790000013,
+      "cpu_percent_one_core": 0.04489008724162634,
+      "allocation_bytes_per_second": 16156.353316062306,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 10617088,
+          "median": 13043168.0,
+          "maximum": 27365704
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 3300,
+      "end_seconds": 3600,
+      "first_sample_seconds": 3300.7640736,
+      "last_sample_seconds": 3599.9088778,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1448042000002,
+      "cpu_percent_one_core": 0.039421376652478,
+      "allocation_bytes_per_second": 16143.88728199745,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 13873792,
+          "median": 16291184.0,
+          "maximum": 18717264
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 3600,
+      "end_seconds": 3900,
+      "first_sample_seconds": 3600.9092846,
+      "last_sample_seconds": 3899.062739,
+      "samples": 299,
+      "complete": true,
+      "coverage_ratio": 0.9966666666666667,
+      "rate_interval_seconds": 298.1534544000001,
+      "cpu_percent_one_core": 0.04093261312219098,
+      "allocation_bytes_per_second": 16137.730182206464,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 299,
+          "minimum": 69185536,
+          "median": 69185536,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 299,
+          "minimum": 88317952,
+          "median": 88317952,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 299,
+          "minimum": 18733712,
+          "median": 21142432,
+          "maximum": 23559272
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 299,
+          "minimum": 30162944,
+          "median": 30162944,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 299,
+          "minimum": 5,
+          "median": 5,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 299,
+          "minimum": 4,
+          "median": 4,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 299,
+          "minimum": 285,
+          "median": 285,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 299,
+          "minimum": 210,
+          "median": 210,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 299,
+          "minimum": 2,
+          "median": 2,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 299,
+          "minimum": 0,
+          "median": 0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 3900,
+      "end_seconds": 4200,
+      "first_sample_seconds": 3900.0633994,
+      "last_sample_seconds": 4199.2302561,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1668566999997,
+      "cpu_percent_one_core": 0.047240192833834106,
+      "allocation_bytes_per_second": 16128.952428840374,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 10623072,
+          "median": 24957352.0,
+          "maximum": 27375208
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 4200,
+      "end_seconds": 4500,
+      "first_sample_seconds": 4200.2307235,
+      "last_sample_seconds": 4499.3692281,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1385046000005,
+      "cpu_percent_one_core": 0.037571224791099554,
+      "allocation_bytes_per_second": 16144.467949580008,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 11659296,
+          "median": 14085376.0,
+          "maximum": 16502840
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 4500,
+      "end_seconds": 4800,
+      "first_sample_seconds": 4500.3697865,
+      "last_sample_seconds": 4799.5160734,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1462868999997,
+      "cpu_percent_one_core": 0.04025087566614219,
+      "allocation_bytes_per_second": 16142.336413536157,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 16519288,
+          "median": 18937144.0,
+          "maximum": 21362320
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 4800,
+      "end_seconds": 5100,
+      "first_sample_seconds": 4800.5165813,
+      "last_sample_seconds": 5099.7032316,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1866503000001,
+      "cpu_percent_one_core": 0.036691142432299914,
+      "allocation_bytes_per_second": 16112.72426482325,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 21378768,
+          "median": 23795712.0,
+          "maximum": 26213568
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 5100,
+      "end_seconds": 5400,
+      "first_sample_seconds": 5100.7035955,
+      "last_sample_seconds": 5399.8704127,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.16681719999997,
+      "cpu_percent_one_core": 0.035018589621843975,
+      "allocation_bytes_per_second": 16156.4174972277,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 10629056,
+          "median": 13055136.0,
+          "maximum": 27381376
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 5400,
+      "end_seconds": 5700,
+      "first_sample_seconds": 5400.8708876,
+      "last_sample_seconds": 5699.0427858,
+      "samples": 299,
+      "complete": true,
+      "coverage_ratio": 0.9966666666666667,
+      "rate_interval_seconds": 298.1718982000002,
+      "cpu_percent_one_core": 0.03682607269929496,
+      "allocation_bytes_per_second": 16138.636903911947,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 299,
+          "minimum": 69185536,
+          "median": 69185536,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 299,
+          "minimum": 88317952,
+          "median": 88317952,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 299,
+          "minimum": 14321632,
+          "median": 16739088,
+          "maximum": 19147760
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 299,
+          "minimum": 30162944,
+          "median": 30162944,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 299,
+          "minimum": 5,
+          "median": 5,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 299,
+          "minimum": 4,
+          "median": 4,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 299,
+          "minimum": 285,
+          "median": 285,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 299,
+          "minimum": 210,
+          "median": 210,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 299,
+          "minimum": 2,
+          "median": 2,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 299,
+          "minimum": 0,
+          "median": 0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 5700,
+      "end_seconds": 6000,
+      "first_sample_seconds": 5700.0431528,
+      "last_sample_seconds": 5999.2370845,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.19393169999967,
+      "cpu_percent_one_core": 0.0369252141486532,
+      "allocation_bytes_per_second": 16139.444983268708,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 19164208,
+          "median": 21582064.0,
+          "maximum": 24007144
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 6000,
+      "end_seconds": 6300,
+      "first_sample_seconds": 6000.2376835,
+      "last_sample_seconds": 6299.3972526,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1595691000002,
+      "cpu_percent_one_core": 0.03442142944308708,
+      "allocation_bytes_per_second": 16156.675230349489,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 10635040,
+          "median": 24969352.0,
+          "maximum": 27387208
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 6300,
+      "end_seconds": 6600,
+      "first_sample_seconds": 6300.3976633,
+      "last_sample_seconds": 6599.5432383,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.14557499999955,
+      "cpu_percent_one_core": 0.03927184950003028,
+      "allocation_bytes_per_second": 16144.139855653915,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 12107136,
+          "median": 14533216.0,
+          "maximum": 16950696
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 6600,
+      "end_seconds": 6900,
+      "first_sample_seconds": 6600.543681,
+      "last_sample_seconds": 6899.6837111,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.14003010000033,
+      "cpu_percent_one_core": 0.038278059931237375,
+      "allocation_bytes_per_second": 16142.51358598093,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 16967144,
+          "median": 19392272.0,
+          "maximum": 21810128
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    },
+    {
+      "start_seconds": 6900,
+      "end_seconds": 7200,
+      "first_sample_seconds": 6900.6841467,
+      "last_sample_seconds": 7199.8398816,
+      "samples": 300,
+      "complete": true,
+      "coverage_ratio": 1.0,
+      "rate_interval_seconds": 299.1557348999995,
+      "cpu_percent_one_core": 0.04052905756278736,
+      "allocation_bytes_per_second": 16141.58592551858,
+      "sampler_allocation_bytes_per_second": null,
+      "unattributed_allocation_bytes_per_second": null,
+      "metrics": {
+        "working_set_bytes": {
+          "measured_samples": 300,
+          "minimum": 69185536,
+          "median": 69185536.0,
+          "maximum": 69185536
+        },
+        "private_bytes": {
+          "measured_samples": 300,
+          "minimum": 88317952,
+          "median": 88317952.0,
+          "maximum": 88317952
+        },
+        "managed_live_bytes": {
+          "measured_samples": 300,
+          "minimum": 21826576,
+          "median": 24243456.0,
+          "maximum": 26669536
+        },
+        "gc_committed_bytes": {
+          "measured_samples": 300,
+          "minimum": 30162944,
+          "median": 30162944.0,
+          "maximum": 30162944
+        },
+        "handles": {
+          "measured_samples": 300,
+          "minimum": 5,
+          "median": 5.0,
+          "maximum": 5
+        },
+        "threads": {
+          "measured_samples": 300,
+          "minimum": 4,
+          "median": 4.0,
+          "maximum": 4
+        },
+        "scene_entities": {
+          "measured_samples": 300,
+          "minimum": 285,
+          "median": 285.0,
+          "maximum": 285
+        },
+        "state_cells": {
+          "measured_samples": 300,
+          "minimum": 210,
+          "median": 210.0,
+          "maximum": 210
+        },
+        "log_entries": {
+          "measured_samples": 300,
+          "minimum": 2,
+          "median": 2.0,
+          "maximum": 2
+        },
+        "terminal_tasks": {
+          "measured_samples": 300,
+          "minimum": 0,
+          "median": 0.0,
+          "maximum": 0
+        }
+      }
+    }
+  ],
+  "median_trends": {
+    "working_set_bytes": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 3187992.203902658,
+      "first_median": 56061952,
+      "last_median": 69185536.0
+    },
+    "private_bytes": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 3050369.626320407,
+      "first_median": 75280384,
+      "last_median": 88317952.0
+    },
+    "managed_live_bytes": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 1681271.8036199308,
+      "first_median": 13144832,
+      "last_median": 24243456.0
+    },
+    "gc_committed_bytes": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 4158983.2673005513,
+      "first_median": 17510400,
+      "last_median": 30162944.0
+    },
+    "handles": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 0.0,
+      "first_median": 5,
+      "last_median": 5.0
+    },
+    "threads": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 0.0,
+      "first_median": 4,
+      "last_median": 4.0
+    },
+    "scene_entities": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 0.0,
+      "first_median": 285,
+      "last_median": 285.0
+    },
+    "state_cells": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 0.0,
+      "first_median": 210,
+      "last_median": 210.0
+    },
+    "log_entries": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 0.0,
+      "first_median": 2,
+      "last_median": 2.0
+    },
+    "terminal_tasks": {
+      "eligible_windows": 24,
+      "slope_units_per_hour": 0.0,
+      "first_median": 0,
+      "last_median": 0.0
+    }
+  }
+}

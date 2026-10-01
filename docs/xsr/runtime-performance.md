@@ -110,7 +110,7 @@ fixture后按5分钟报告常规窗口的min/median/max、峰值、采样缺口�
 强制GC的baseline/final仅作单独端点，不参与趋势。至少3个充分采样的完整窗口才报告
 median slope，短run为null；未知handles仍为null。原始run/samples哈希及可选冻结binary
 receipt保留构建身份，不能将工作树版本升级为后来clean commit或实机证明。
-16项Python回归及三份既有60秒实际fixture的分析通过；两小时fixture仍待跑满。
+16项初始Python回归及三份既有60秒实际fixture的分析通过；两小时fixture现已完成并保留原始样本。
 工具输出保留原有endpoint gate，并明确runtime KPI/physical acceptance均未认证。
 
 `53364121` 的 XSR CI 36894346775 / Launcher Build 36894346708，及
@@ -127,3 +127,10 @@ sample；按区间报告总量、采样器、未归因余量。余量包含其�
 NativeAOT Desktop各109项、69项目架构与whitespace通过；独立产品NativeAOT通过
 52-node shell/first-run验证，安装输出无编译器/Roslyn。此结果不关闭viewport网络需求、
 OS pressure、真实RAM/GPU/8h指标。
+
+实际经过时间的idle fixture记录见 [XSR-742](migrations/XSR-742-retained-idle-soak-evidence.md)
+及[证据包](evidence/2026-10-01-native-idle/README.md)：两小时schema-3及30分钟schema-4
+各1帧，常规窗口24/6个；初始内存增长、allocation nursery、最终GC端点各自保留。
+schema-4将采样器分配单列，余量仍含其他fixture/后台工作，CPU采样成本未分离。
+19项Python回归与两份压缩数据的精确重放通过；工作树构建不能改称clean commit、
+原生OS窗口或Minecraft 8h验收。

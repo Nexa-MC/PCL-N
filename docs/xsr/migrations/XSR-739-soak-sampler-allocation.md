@@ -32,6 +32,8 @@ calls and cross-thread rejection. Analyzer tests cover legacy null attribution, 
 schema-4 rates, invalid/decreasing/oversized sampler counters and scope preservation.
 Run managed/NativeAOT Desktop tests, real idle/navigation fixture smoke, architecture and
 formatting gates; keep the ongoing two-hour schema-3 binary frozen and unchanged.
+That frozen run and a separate 30-minute schema-4 run subsequently completed; their original
+receipts, samples and exact analyses are retained in [XSR-742](XSR-742-retained-idle-soak-evidence.md).
 
 ## Completed local validation
 
@@ -46,5 +48,5 @@ The idle aligned deltas were 2,123,768 total / 2,115,736 sampler / 8,032 unattri
 `logging.entries` publication/frame; ordinary interval medians for unattributed
 allocation were zero. These are process/fixture observations from an uncontrolled
 development environment, not a zero-allocation product claim, OS/GPU measurement or
-long-term SLA. A new 30-minute frozen schema-4 idle fixture is still running, with a
-base-commit-plus-worktree receipt; it is not marked completed here.
+long-term SLA. The 30-minute frozen schema-4 idle fixture subsequently completed with its
+original base-commit-plus-worktree receipt; the retained evidence is linked above.

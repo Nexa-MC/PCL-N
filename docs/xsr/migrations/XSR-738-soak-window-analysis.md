@@ -39,4 +39,6 @@ The acceptance Python suite passed 16 tests (11 analyzer cases plus the existing
 Minecraft admission cases). The analyzer also consumed the three completed 60-second
 managed idle/navigation and NativeAOT idle fixtures from XSR-734: each retained its
 endpoint result, 59 ordinary samples, null long-run trends and false KPI certification.
-Those executions prove short-run integration, not a completed two-hour or physical run.
+Those initial executions prove short-run integration, not a physical run. The separately frozen
+two-hour fixture subsequently completed; its exact records and replay are retained in
+[XSR-742](XSR-742-retained-idle-soak-evidence.md) with the original worktree build identity.
