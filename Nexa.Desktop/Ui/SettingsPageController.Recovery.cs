@@ -49,7 +49,19 @@ internal sealed partial class SettingsPageController
             _recoveryChangesPage = Math.Clamp(_recoveryChangesPage, 0, changePages - 1);
             Text(_sections, comparison.Changes.Count == 0 ? "恢复范围内没有更改。" : $"{comparison.Changes.Count} 项更改", 13, Muted, 26);
             if (comparison.Changes.Count > 0)
+            {
+                var summary = Text(_sections, RecoveryExplanation.Summary(comparison.Changes), 13, Muted, 220);
+                _shell.Tree.GetComponent<XsrUiElement>(summary)!.Height = null;
+                _shell.Tree.GetComponent<XsrUiText>(summary)!.MaxLines = 0;
+                _shell.Tree.GetComponent<XsrUiText>(summary)!.TrimOverflow = false;
+                _shell.Tree.GetComponent<XsrUiVisualStyle>(summary)!.WrapText = true;
                 ManagementButton(_sections, "回滚全部更改", () => RestoreChanges(comparison, comparison.Changes), 140);
+                foreach (var category in comparison.Changes.GroupBy(change => change.Category).Take(12))
+                {
+                    InstanceRecoveryChange[] selected = category.ToArray();
+                    ManagementButton(_sections, "仅恢复" + RecoveryExplanation.Display(category.Key), () => RestoreChanges(comparison, selected), 180);
+                }
+            }
             foreach (var item in comparison.Changes.Skip(_recoveryChangesPage * pageSize).Take(pageSize))
             {
                 string kind = item.Kind switch { InstanceRecoveryChangeKind.Added => "新增", InstanceRecoveryChangeKind.Removed => "删除", InstanceRecoveryChangeKind.Enabled => "启用", InstanceRecoveryChangeKind.Disabled => "停用", _ => "修改" };

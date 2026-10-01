@@ -64,7 +64,24 @@ public static class InstanceModRemovalService
             }
         } while (changed);
         var primaryIds = main.SelectMany(node => node.Mod.ProvidedIds.Keys.Prepend(node.Mod.Id)).ToHashSet(StringComparer.Ordinal);
-        string[] requiredBy = nodes.Where(node => node.Mod.Enabled && !removing.Contains(node.File.Name) && node.Mod.Dependencies.Keys.Any(primaryIds.Contains))
+        var dependents = nodes.Where(node => node.Mod.Enabled)
+            .SelectMany(node => node.Mod.Dependencies.Keys.Select(id => (Id: id, node.File.Name)))
+            .GroupBy(item => item.Id, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Select(item => item.Name).Distinct(StringComparer.Ordinal).ToArray(), StringComparer.Ordinal);
+        var providedByFile = nodes.GroupBy(node => node.File.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.SelectMany(node => node.Mod.ProvidedIds.Keys.Prepend(node.Mod.Id)).Distinct(StringComparer.Ordinal).ToArray(), StringComparer.Ordinal);
+        var affectedFiles = new HashSet<string>(StringComparer.Ordinal) { command.Name };
+        var affectedIds = new HashSet<string>(StringComparer.Ordinal);
+        var impact = new Queue<string>(primaryIds);
+        while (impact.TryDequeue(out string? id))
+        {
+            token.ThrowIfCancellationRequested();
+            if (!affectedIds.Add(id) || !dependents.TryGetValue(id, out var consumers)) continue;
+            foreach (string consumer in consumers)
+                if (affectedFiles.Add(consumer))
+                    foreach (string provided in providedByFile[consumer]) impact.Enqueue(provided);
+        }
+        string[] requiredBy = nodes.Where(node => node.Mod.Enabled && !removing.Contains(node.File.Name) && affectedFiles.Contains(node.File.Name))
             .Select(node => node.File.DisplayName.Length > 0 ? node.File.DisplayName : node.File.Name).Distinct().ToArray();
         var orphans = content.Entries.Where(entry => removing.Contains(entry.Name) && entry.Name != command.Name)
             .Select(entry => new InstanceContentRemoveCommand(snapshot.InstanceDirectory, "mods", entry.Name, false, entry.Size, entry.ModifiedUtcTicks)).ToArray();

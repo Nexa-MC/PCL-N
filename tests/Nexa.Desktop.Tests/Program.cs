@@ -20,6 +20,11 @@ internal static partial class Program
     public static void Main(string[] args)
     {
         if (Environment.GetEnvironmentVariable("NEXA_COUNTRY") is null) Environment.SetEnvironmentVariable("NEXA_COUNTRY", "CN");
+        if (args.Contains("--soak"))
+        {
+            Environment.ExitCode = RunDesktopSoak(args);
+            return;
+        }
         if (args.Contains("--window-integration-smoke"))
         {
             WindowPropertyStoreRoundTripsAppId();
@@ -37,6 +42,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("diagnostic export requires explicit click coalesces and cancels", DiagnosticExportRequiresClickCoalescesRequestsAndCancelsOnDispose),
         ("launch state projections skip idle frames and wake on change", LaunchProjectionsDoNotRepeatOnIdleFrames),
         ("language catalog covers locales templates and fallbacks", LanguageCatalogCoversLocalesTemplatesAndFallbacks),
         ("language settings switch live without rebuilding controls", LanguageSettingSwitchesLiveAndPreservesControls),

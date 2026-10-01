@@ -7914,5 +7914,577 @@
     "source": "资源包和光影包仅自动备份单个不超过 64 MiB、合计不超过 256 MiB 的文件。大型包请另外备份。",
     "en": "Automatic recovery includes resource and shader pack files up to 64 MiB each and 256 MiB in total. Back up larger packs separately.",
     "zh-Hant": "資源包和光影包僅自動備份單個不超過 64 MiB、合計不超過 256 MiB 的檔案。大型包請另外備份。"
+  },
+  {
+    "source": "Minecraft 上一次成功运行以后：",
+    "en": "Since Minecraft last ran successfully:",
+    "zh-Hant": "Minecraft 上一次成功運行以後："
+  },
+  {
+    "source": "建议先检查：",
+    "en": "Check these changes first:",
+    "zh-Hant": "建議先檢查："
+  },
+  {
+    "source": "这些是变化线索，尚未确定为崩溃原因。",
+    "en": "These changes are clues; they have not been confirmed as the cause of the crash.",
+    "zh-Hant": "這些是變化線索，尚未確定為崩潰原因。"
+  },
+  {
+    "source": "Java 选择发生了变化，可检查它是否符合此实例的要求。尚未确定为崩溃原因。",
+    "en": "The Java selection changed. Check whether it meets this instance's requirements; the crash cause is not yet confirmed.",
+    "zh-Hant": "Java 選擇發生了變化，可檢查它是否符合此實例的要求。尚未確定為崩潰原因。"
+  },
+  {
+    "source": "按类别选择",
+    "en": "Choose a category",
+    "zh-Hant": "按類別選擇"
+  },
+  {
+    "source": "下一类",
+    "en": "Next category",
+    "zh-Hant": "下一類"
+  },
+  {
+    "source": "回滚此类",
+    "en": "Restore this category",
+    "zh-Hant": "回滾此類"
+  },
+  {
+    "source": "诊断包",
+    "en": "Diagnostic bundle",
+    "zh-Hant": "診斷包"
+  },
+  {
+    "source": "导出诊断包",
+    "en": "Export diagnostics",
+    "zh-Hant": "匯出診斷包"
+  },
+  {
+    "source": "诊断包已导出到所选目录。",
+    "en": "Diagnostics were exported to the selected folder.",
+    "zh-Hant": "診斷包已匯出到所選目錄。"
+  },
+  {
+    "source": "诊断包未导出，请检查保存目录是否可写。",
+    "en": "Diagnostics could not be exported. Check that the selected folder is writable.",
+    "zh-Hant": "診斷包未匯出，請檢查儲存目錄是否可寫。"
+  },
+  {
+    "source": "导出版本、系统架构、实例与 Mod 标识、问题分类及结构化操作日志。账户、凭据、完整路径和个人文件不包含在内。诊断包保存在你选择的目录。",
+    "en": "Export version, system architecture, instance and Mod identifiers, issue classifications and structured operation logs. Accounts, credentials, full paths and personal files are excluded. The bundle is saved to the folder you choose.",
+    "zh-Hant": "匯出版本、系統架構、實例與 Mod 識別、問題分類及結構化操作日誌。帳戶、憑據、完整路徑和個人檔案不包含在內。診斷包儲存在你選擇的目錄。"
+  },
+  {
+    "source": "仅恢复{0}的 {1} 项更改。",
+    "en": "Restore only the {1} changes in {0}.",
+    "zh-Hant": "僅恢復{0}的 {1} 項更改。",
+    "template": true
+  },
+  {
+    "source": "仅恢复{0}",
+    "en": "Restore only {0}",
+    "zh-Hant": "僅恢復{0}",
+    "template": true
+  },
+  {
+    "source": "\n以下模组依赖它（包括间接依赖）：",
+    "en": "\nThese Mods depend on it (including indirect dependencies):",
+    "zh-Hant": "\n以下模組依賴它（包括間接依賴）："
+  },
+  {
+    "source": "新增 {0} 项模组",
+    "en": "Added {0} Mods",
+    "zh-Hant": "新增 {0} 項模組",
+    "template": true
+  },
+  {
+    "source": "新增 · 模组",
+    "en": "Added · Mods",
+    "zh-Hant": "新增 · 模組"
+  },
+  {
+    "source": "新增 {0} 项配置",
+    "en": "Added {0} configuration files",
+    "zh-Hant": "新增 {0} 項設定",
+    "template": true
+  },
+  {
+    "source": "新增 · 配置",
+    "en": "Added · configuration files",
+    "zh-Hant": "新增 · 設定"
+  },
+  {
+    "source": "新增 {0} 项版本依赖",
+    "en": "Added {0} version dependencies",
+    "zh-Hant": "新增 {0} 項版本依賴",
+    "template": true
+  },
+  {
+    "source": "新增 · 版本依赖",
+    "en": "Added · version dependencies",
+    "zh-Hant": "新增 · 版本依賴"
+  },
+  {
+    "source": "新增 {0} 项启动设置",
+    "en": "Added {0} launch settings",
+    "zh-Hant": "新增 {0} 項啟動設定",
+    "template": true
+  },
+  {
+    "source": "新增 · 启动设置",
+    "en": "Added · launch settings",
+    "zh-Hant": "新增 · 啟動設定"
+  },
+  {
+    "source": "新增 {0} 项版本设置",
+    "en": "Added {0} instance settings",
+    "zh-Hant": "新增 {0} 項版本設定",
+    "template": true
+  },
+  {
+    "source": "新增 · 版本设置",
+    "en": "Added · instance settings",
+    "zh-Hant": "新增 · 版本設定"
+  },
+  {
+    "source": "新增 {0} 项版本文件",
+    "en": "Added {0} version files",
+    "zh-Hant": "新增 {0} 項版本檔案",
+    "template": true
+  },
+  {
+    "source": "新增 · 版本文件",
+    "en": "Added · version files",
+    "zh-Hant": "新增 · 版本檔案"
+  },
+  {
+    "source": "新增 {0} 项资源包",
+    "en": "Added {0} resource packs",
+    "zh-Hant": "新增 {0} 項資源包",
+    "template": true
+  },
+  {
+    "source": "新增 · 资源包",
+    "en": "Added · resource packs",
+    "zh-Hant": "新增 · 資源包"
+  },
+  {
+    "source": "新增 {0} 项光影包",
+    "en": "Added {0} shader packs",
+    "zh-Hant": "新增 {0} 項光影包",
+    "template": true
+  },
+  {
+    "source": "新增 · 光影包",
+    "en": "Added · shader packs",
+    "zh-Hant": "新增 · 光影包"
+  },
+  {
+    "source": "新增 {0} 项游戏选项",
+    "en": "Added {0} game options",
+    "zh-Hant": "新增 {0} 項遊戲選項",
+    "template": true
+  },
+  {
+    "source": "新增 · 游戏选项",
+    "en": "Added · game options",
+    "zh-Hant": "新增 · 遊戲選項"
+  },
+  {
+    "source": "删除 {0} 项模组",
+    "en": "Removed {0} Mods",
+    "zh-Hant": "刪除 {0} 項模組",
+    "template": true
+  },
+  {
+    "source": "删除 · 模组",
+    "en": "Removed · Mods",
+    "zh-Hant": "刪除 · 模組"
+  },
+  {
+    "source": "删除 {0} 项配置",
+    "en": "Removed {0} configuration files",
+    "zh-Hant": "刪除 {0} 項設定",
+    "template": true
+  },
+  {
+    "source": "删除 · 配置",
+    "en": "Removed · configuration files",
+    "zh-Hant": "刪除 · 設定"
+  },
+  {
+    "source": "删除 {0} 项版本依赖",
+    "en": "Removed {0} version dependencies",
+    "zh-Hant": "刪除 {0} 項版本依賴",
+    "template": true
+  },
+  {
+    "source": "删除 · 版本依赖",
+    "en": "Removed · version dependencies",
+    "zh-Hant": "刪除 · 版本依賴"
+  },
+  {
+    "source": "删除 {0} 项启动设置",
+    "en": "Removed {0} launch settings",
+    "zh-Hant": "刪除 {0} 項啟動設定",
+    "template": true
+  },
+  {
+    "source": "删除 · 启动设置",
+    "en": "Removed · launch settings",
+    "zh-Hant": "刪除 · 啟動設定"
+  },
+  {
+    "source": "删除 {0} 项版本设置",
+    "en": "Removed {0} instance settings",
+    "zh-Hant": "刪除 {0} 項版本設定",
+    "template": true
+  },
+  {
+    "source": "删除 · 版本设置",
+    "en": "Removed · instance settings",
+    "zh-Hant": "刪除 · 版本設定"
+  },
+  {
+    "source": "删除 {0} 项版本文件",
+    "en": "Removed {0} version files",
+    "zh-Hant": "刪除 {0} 項版本檔案",
+    "template": true
+  },
+  {
+    "source": "删除 · 版本文件",
+    "en": "Removed · version files",
+    "zh-Hant": "刪除 · 版本檔案"
+  },
+  {
+    "source": "删除 {0} 项资源包",
+    "en": "Removed {0} resource packs",
+    "zh-Hant": "刪除 {0} 項資源包",
+    "template": true
+  },
+  {
+    "source": "删除 · 资源包",
+    "en": "Removed · resource packs",
+    "zh-Hant": "刪除 · 資源包"
+  },
+  {
+    "source": "删除 {0} 项光影包",
+    "en": "Removed {0} shader packs",
+    "zh-Hant": "刪除 {0} 項光影包",
+    "template": true
+  },
+  {
+    "source": "删除 · 光影包",
+    "en": "Removed · shader packs",
+    "zh-Hant": "刪除 · 光影包"
+  },
+  {
+    "source": "删除 {0} 项游戏选项",
+    "en": "Removed {0} game options",
+    "zh-Hant": "刪除 {0} 項遊戲選項",
+    "template": true
+  },
+  {
+    "source": "删除 · 游戏选项",
+    "en": "Removed · game options",
+    "zh-Hant": "刪除 · 遊戲選項"
+  },
+  {
+    "source": "修改 {0} 项模组",
+    "en": "Modified {0} Mods",
+    "zh-Hant": "修改 {0} 項模組",
+    "template": true
+  },
+  {
+    "source": "修改 · 模组",
+    "en": "Modified · Mods",
+    "zh-Hant": "修改 · 模組"
+  },
+  {
+    "source": "修改 {0} 项配置",
+    "en": "Modified {0} configuration files",
+    "zh-Hant": "修改 {0} 項設定",
+    "template": true
+  },
+  {
+    "source": "修改 · 配置",
+    "en": "Modified · configuration files",
+    "zh-Hant": "修改 · 設定"
+  },
+  {
+    "source": "修改 {0} 项版本依赖",
+    "en": "Modified {0} version dependencies",
+    "zh-Hant": "修改 {0} 項版本依賴",
+    "template": true
+  },
+  {
+    "source": "修改 · 版本依赖",
+    "en": "Modified · version dependencies",
+    "zh-Hant": "修改 · 版本依賴"
+  },
+  {
+    "source": "修改 {0} 项启动设置",
+    "en": "Modified {0} launch settings",
+    "zh-Hant": "修改 {0} 項啟動設定",
+    "template": true
+  },
+  {
+    "source": "修改 · 启动设置",
+    "en": "Modified · launch settings",
+    "zh-Hant": "修改 · 啟動設定"
+  },
+  {
+    "source": "修改 {0} 项版本设置",
+    "en": "Modified {0} instance settings",
+    "zh-Hant": "修改 {0} 項版本設定",
+    "template": true
+  },
+  {
+    "source": "修改 · 版本设置",
+    "en": "Modified · instance settings",
+    "zh-Hant": "修改 · 版本設定"
+  },
+  {
+    "source": "修改 {0} 项版本文件",
+    "en": "Modified {0} version files",
+    "zh-Hant": "修改 {0} 項版本檔案",
+    "template": true
+  },
+  {
+    "source": "修改 · 版本文件",
+    "en": "Modified · version files",
+    "zh-Hant": "修改 · 版本檔案"
+  },
+  {
+    "source": "修改 {0} 项资源包",
+    "en": "Modified {0} resource packs",
+    "zh-Hant": "修改 {0} 項資源包",
+    "template": true
+  },
+  {
+    "source": "修改 · 资源包",
+    "en": "Modified · resource packs",
+    "zh-Hant": "修改 · 資源包"
+  },
+  {
+    "source": "修改 {0} 项光影包",
+    "en": "Modified {0} shader packs",
+    "zh-Hant": "修改 {0} 項光影包",
+    "template": true
+  },
+  {
+    "source": "修改 · 光影包",
+    "en": "Modified · shader packs",
+    "zh-Hant": "修改 · 光影包"
+  },
+  {
+    "source": "修改 {0} 项游戏选项",
+    "en": "Modified {0} game options",
+    "zh-Hant": "修改 {0} 項遊戲選項",
+    "template": true
+  },
+  {
+    "source": "修改 · 游戏选项",
+    "en": "Modified · game options",
+    "zh-Hant": "修改 · 遊戲選項"
+  },
+  {
+    "source": "启用 {0} 项模组",
+    "en": "Enabled {0} Mods",
+    "zh-Hant": "啟用 {0} 項模組",
+    "template": true
+  },
+  {
+    "source": "启用 · 模组",
+    "en": "Enabled · Mods",
+    "zh-Hant": "啟用 · 模組"
+  },
+  {
+    "source": "启用 {0} 项配置",
+    "en": "Enabled {0} configuration files",
+    "zh-Hant": "啟用 {0} 項設定",
+    "template": true
+  },
+  {
+    "source": "启用 · 配置",
+    "en": "Enabled · configuration files",
+    "zh-Hant": "啟用 · 設定"
+  },
+  {
+    "source": "启用 {0} 项版本依赖",
+    "en": "Enabled {0} version dependencies",
+    "zh-Hant": "啟用 {0} 項版本依賴",
+    "template": true
+  },
+  {
+    "source": "启用 · 版本依赖",
+    "en": "Enabled · version dependencies",
+    "zh-Hant": "啟用 · 版本依賴"
+  },
+  {
+    "source": "启用 {0} 项启动设置",
+    "en": "Enabled {0} launch settings",
+    "zh-Hant": "啟用 {0} 項啟動設定",
+    "template": true
+  },
+  {
+    "source": "启用 · 启动设置",
+    "en": "Enabled · launch settings",
+    "zh-Hant": "啟用 · 啟動設定"
+  },
+  {
+    "source": "启用 {0} 项版本设置",
+    "en": "Enabled {0} instance settings",
+    "zh-Hant": "啟用 {0} 項版本設定",
+    "template": true
+  },
+  {
+    "source": "启用 · 版本设置",
+    "en": "Enabled · instance settings",
+    "zh-Hant": "啟用 · 版本設定"
+  },
+  {
+    "source": "启用 {0} 项版本文件",
+    "en": "Enabled {0} version files",
+    "zh-Hant": "啟用 {0} 項版本檔案",
+    "template": true
+  },
+  {
+    "source": "启用 · 版本文件",
+    "en": "Enabled · version files",
+    "zh-Hant": "啟用 · 版本檔案"
+  },
+  {
+    "source": "启用 {0} 项资源包",
+    "en": "Enabled {0} resource packs",
+    "zh-Hant": "啟用 {0} 項資源包",
+    "template": true
+  },
+  {
+    "source": "启用 · 资源包",
+    "en": "Enabled · resource packs",
+    "zh-Hant": "啟用 · 資源包"
+  },
+  {
+    "source": "启用 {0} 项光影包",
+    "en": "Enabled {0} shader packs",
+    "zh-Hant": "啟用 {0} 項光影包",
+    "template": true
+  },
+  {
+    "source": "启用 · 光影包",
+    "en": "Enabled · shader packs",
+    "zh-Hant": "啟用 · 光影包"
+  },
+  {
+    "source": "启用 {0} 项游戏选项",
+    "en": "Enabled {0} game options",
+    "zh-Hant": "啟用 {0} 項遊戲選項",
+    "template": true
+  },
+  {
+    "source": "启用 · 游戏选项",
+    "en": "Enabled · game options",
+    "zh-Hant": "啟用 · 遊戲選項"
+  },
+  {
+    "source": "停用 {0} 项模组",
+    "en": "Disabled {0} Mods",
+    "zh-Hant": "停用 {0} 項模組",
+    "template": true
+  },
+  {
+    "source": "停用 · 模组",
+    "en": "Disabled · Mods",
+    "zh-Hant": "停用 · 模組"
+  },
+  {
+    "source": "停用 {0} 项配置",
+    "en": "Disabled {0} configuration files",
+    "zh-Hant": "停用 {0} 項設定",
+    "template": true
+  },
+  {
+    "source": "停用 · 配置",
+    "en": "Disabled · configuration files",
+    "zh-Hant": "停用 · 設定"
+  },
+  {
+    "source": "停用 {0} 项版本依赖",
+    "en": "Disabled {0} version dependencies",
+    "zh-Hant": "停用 {0} 項版本依賴",
+    "template": true
+  },
+  {
+    "source": "停用 · 版本依赖",
+    "en": "Disabled · version dependencies",
+    "zh-Hant": "停用 · 版本依賴"
+  },
+  {
+    "source": "停用 {0} 项启动设置",
+    "en": "Disabled {0} launch settings",
+    "zh-Hant": "停用 {0} 項啟動設定",
+    "template": true
+  },
+  {
+    "source": "停用 · 启动设置",
+    "en": "Disabled · launch settings",
+    "zh-Hant": "停用 · 啟動設定"
+  },
+  {
+    "source": "停用 {0} 项版本设置",
+    "en": "Disabled {0} instance settings",
+    "zh-Hant": "停用 {0} 項版本設定",
+    "template": true
+  },
+  {
+    "source": "停用 · 版本设置",
+    "en": "Disabled · instance settings",
+    "zh-Hant": "停用 · 版本設定"
+  },
+  {
+    "source": "停用 {0} 项版本文件",
+    "en": "Disabled {0} version files",
+    "zh-Hant": "停用 {0} 項版本檔案",
+    "template": true
+  },
+  {
+    "source": "停用 · 版本文件",
+    "en": "Disabled · version files",
+    "zh-Hant": "停用 · 版本檔案"
+  },
+  {
+    "source": "停用 {0} 项资源包",
+    "en": "Disabled {0} resource packs",
+    "zh-Hant": "停用 {0} 項資源包",
+    "template": true
+  },
+  {
+    "source": "停用 · 资源包",
+    "en": "Disabled · resource packs",
+    "zh-Hant": "停用 · 資源包"
+  },
+  {
+    "source": "停用 {0} 项光影包",
+    "en": "Disabled {0} shader packs",
+    "zh-Hant": "停用 {0} 項光影包",
+    "template": true
+  },
+  {
+    "source": "停用 · 光影包",
+    "en": "Disabled · shader packs",
+    "zh-Hant": "停用 · 光影包"
+  },
+  {
+    "source": "停用 {0} 项游戏选项",
+    "en": "Disabled {0} game options",
+    "zh-Hant": "停用 {0} 項遊戲選項",
+    "template": true
+  },
+  {
+    "source": "停用 · 游戏选项",
+    "en": "Disabled · game options",
+    "zh-Hant": "停用 · 遊戲選項"
   }
 ]

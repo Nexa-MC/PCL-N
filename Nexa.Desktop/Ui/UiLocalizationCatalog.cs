@@ -71,6 +71,8 @@ internal sealed class UiLocalizationCatalog
                 string translation = Language == "en" ? arguments[0] == "1" ? template.EnglishOne ?? template.English : template.English : template.Traditional;
                 result = ApplyTemplate(translation, arguments); break;
             }
+            if (result == source && source.Contains('\n'))
+                result = string.Join('\n', source.Split('\n').Select(Translate));
         }
         if (source.Length <= 2048)
         {

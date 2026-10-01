@@ -15,12 +15,14 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
-    private static byte[] ResourceJar(string id, string? dependency = null, string version = "1.0.0", string? providedId = null)
+    private static byte[] ResourceJar(string id, string? dependency = null, string version = "1.0.0", string? providedId = null, string? additionalDependency = null)
     {
+        var dependencies = dependency is null ? new JsonObject() : new JsonObject { [dependency] = ">=1.0.0" };
+        if (additionalDependency is not null) dependencies[additionalDependency] = ">=1.0.0";
         using var buffer = new MemoryStream();
         using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, true))
         using (var writer = new StreamWriter(archive.CreateEntry("fabric.mod.json").Open()))
-            writer.Write(new JsonObject { ["id"] = id, ["version"] = version, ["depends"] = dependency is null ? new JsonObject() : new JsonObject { [dependency] = ">=1.0.0" }, ["provides"] = providedId is null ? null : new JsonArray(JsonValue.Create(providedId)) }.ToJsonString());
+            writer.Write(new JsonObject { ["id"] = id, ["version"] = version, ["depends"] = dependencies, ["provides"] = providedId is null ? null : new JsonArray(JsonValue.Create(providedId)) }.ToJsonString());
         return buffer.ToArray();
     }
     private static string ResourceInstanceFixture(string root) => CreateVersionDirectory(root, "fixture", new JsonObject
@@ -155,6 +157,34 @@ internal static partial class Program
                 snapshot = await InstanceManagementService.ReadAsync(new(instance) { IncludeTrash = true });
                 AssertEqual(1, snapshot.Trash.Count);
             }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    private static async ValueTask ModRemovalImpactIncludesIndirectAliasesAndSkipsDisabledConsumers()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            string instance = ResourceInstanceFixture(root), directory = Path.Combine(instance, "mods");
+            Directory.CreateDirectory(directory);
+            await File.WriteAllBytesAsync(Path.Combine(directory, "base.jar"), ResourceJar("base", providedId: "base-alias"));
+            await File.WriteAllBytesAsync(Path.Combine(directory, "direct.jar"), ResourceJar("direct", "base-alias"));
+            await File.WriteAllBytesAsync(Path.Combine(directory, "indirect.jar"), ResourceJar("indirect", "direct"));
+            await File.WriteAllBytesAsync(Path.Combine(directory, "disabled.jar.disabled"), ResourceJar("disabled", "base-alias"));
+            var file = new FileInfo(Path.Combine(directory, "base.jar"));
+            var command = new InstanceContentRemoveCommand(instance, "mods", file.Name, false, file.Length, file.LastWriteTimeUtc.Ticks);
+            var preview = await InstanceModRemovalService.PreviewAsync(new(command));
+            AssertEqual(2, preview.RequiredBy.Count);
+            AssertTrue(preview.RequiredBy.Any(name => name.Contains("direct", StringComparison.Ordinal)));
+            AssertTrue(preview.RequiredBy.Any(name => name.Contains("indirect", StringComparison.Ordinal)));
+            AssertFalse(preview.RequiredBy.Any(name => name.Contains("disabled", StringComparison.Ordinal)));
+            AssertEqual(0, preview.Orphans.Count);
+            // The reverse traversal must terminate when a downstream cycle is present.
+            await File.WriteAllBytesAsync(Path.Combine(directory, "direct.jar"), ResourceJar("direct", "base-alias", additionalDependency: "indirect"));
+            preview = await InstanceModRemovalService.PreviewAsync(new(command));
+            AssertEqual(2, preview.RequiredBy.Count);
+            AssertTrue(File.Exists(file.FullName));
         }
         finally { Directory.Delete(root, true); }
     }

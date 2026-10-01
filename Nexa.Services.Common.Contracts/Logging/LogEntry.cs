@@ -32,6 +32,9 @@ public readonly record struct LogEntry(
     string Message,
     string? ExceptionText)
 {
+    /// <summary>Explicit operation facts; arbitrary message/exception text is never diagnostic export input.</summary>
+    public DiagnosticOperationFacts? Operation { get; init; }
+
     public string ToDisplayText()
     {
         string line = string.Create(

@@ -1,0 +1,1014 @@
+{
+  "schema": 1,
+  "minimum_world_seconds": 600,
+  "cases": [
+    {
+      "id": "1-7-10-vanilla-java8-win-x64",
+      "minecraft": "1.7.10",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-vanilla-java8-win-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-vanilla-java8-linux-x64",
+      "minecraft": "1.7.10",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-vanilla-java8-linux-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-vanilla-java8-osx-x64",
+      "minecraft": "1.7.10",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-vanilla-java8-osx-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-vanilla-java8-win-x64",
+      "minecraft": "1.8.9",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-vanilla-java8-win-arm64",
+      "minecraft": "1.8.9",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-vanilla-java8-linux-x64",
+      "minecraft": "1.8.9",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-vanilla-java8-linux-arm64",
+      "minecraft": "1.8.9",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-vanilla-java8-osx-x64",
+      "minecraft": "1.8.9",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-vanilla-java8-osx-arm64",
+      "minecraft": "1.8.9",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-vanilla-java8-win-x64",
+      "minecraft": "1.12.2",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-vanilla-java8-win-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-vanilla-java8-linux-x64",
+      "minecraft": "1.12.2",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-vanilla-java8-linux-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-vanilla-java8-osx-x64",
+      "minecraft": "1.12.2",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-vanilla-java8-osx-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-vanilla-java8-win-x64",
+      "minecraft": "1.16.5",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-vanilla-java8-win-arm64",
+      "minecraft": "1.16.5",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-vanilla-java8-linux-x64",
+      "minecraft": "1.16.5",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-vanilla-java8-linux-arm64",
+      "minecraft": "1.16.5",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-vanilla-java8-osx-x64",
+      "minecraft": "1.16.5",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-vanilla-java8-osx-arm64",
+      "minecraft": "1.16.5",
+      "loader": "Vanilla",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-18-2-vanilla-java17-win-x64",
+      "minecraft": "1.18.2",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-18-2-vanilla-java17-win-arm64",
+      "minecraft": "1.18.2",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-18-2-vanilla-java17-linux-x64",
+      "minecraft": "1.18.2",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-18-2-vanilla-java17-linux-arm64",
+      "minecraft": "1.18.2",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-18-2-vanilla-java17-osx-x64",
+      "minecraft": "1.18.2",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-18-2-vanilla-java17-osx-arm64",
+      "minecraft": "1.18.2",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-vanilla-java17-win-x64",
+      "minecraft": "1.20.1",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-vanilla-java17-win-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-vanilla-java17-linux-x64",
+      "minecraft": "1.20.1",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-vanilla-java17-linux-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-vanilla-java17-osx-x64",
+      "minecraft": "1.20.1",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-vanilla-java17-osx-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Vanilla",
+      "java": 17,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java21-win-x64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 21,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java21-win-arm64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 21,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java21-linux-x64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 21,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java21-linux-arm64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 21,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java21-osx-x64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 21,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java21-osx-arm64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 21,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java25-win-x64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 25,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java25-win-arm64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 25,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java25-linux-x64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 25,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java25-linux-arm64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 25,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java25-osx-x64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 25,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-vanilla-java25-osx-arm64",
+      "minecraft": "1.21.1",
+      "loader": "Vanilla",
+      "java": 25,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-forge-java8-win-x64",
+      "minecraft": "1.7.10",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-forge-java8-win-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-forge-java8-linux-x64",
+      "minecraft": "1.7.10",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-forge-java8-linux-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-forge-java8-osx-x64",
+      "minecraft": "1.7.10",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-forge-java8-osx-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-forge-java8-win-x64",
+      "minecraft": "1.8.9",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-forge-java8-win-arm64",
+      "minecraft": "1.8.9",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-forge-java8-linux-x64",
+      "minecraft": "1.8.9",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-forge-java8-linux-arm64",
+      "minecraft": "1.8.9",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-forge-java8-osx-x64",
+      "minecraft": "1.8.9",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-forge-java8-osx-arm64",
+      "minecraft": "1.8.9",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-forge-java8-win-x64",
+      "minecraft": "1.12.2",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-forge-java8-win-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-forge-java8-linux-x64",
+      "minecraft": "1.12.2",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-forge-java8-linux-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-forge-java8-osx-x64",
+      "minecraft": "1.12.2",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-forge-java8-osx-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-forge-java8-win-x64",
+      "minecraft": "1.16.5",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-forge-java8-win-arm64",
+      "minecraft": "1.16.5",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-forge-java8-linux-x64",
+      "minecraft": "1.16.5",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-forge-java8-linux-arm64",
+      "minecraft": "1.16.5",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-forge-java8-osx-x64",
+      "minecraft": "1.16.5",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-16-5-forge-java8-osx-arm64",
+      "minecraft": "1.16.5",
+      "loader": "Forge",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-forge-java17-win-x64",
+      "minecraft": "1.20.1",
+      "loader": "Forge",
+      "java": 17,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-forge-java17-win-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Forge",
+      "java": 17,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-forge-java17-linux-x64",
+      "minecraft": "1.20.1",
+      "loader": "Forge",
+      "java": 17,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-forge-java17-linux-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Forge",
+      "java": 17,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-forge-java17-osx-x64",
+      "minecraft": "1.20.1",
+      "loader": "Forge",
+      "java": 17,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-forge-java17-osx-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Forge",
+      "java": 17,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-neoforge-java21-win-x64",
+      "minecraft": "1.21.1",
+      "loader": "NeoForge",
+      "java": 21,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-neoforge-java21-win-arm64",
+      "minecraft": "1.21.1",
+      "loader": "NeoForge",
+      "java": 21,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-neoforge-java21-linux-x64",
+      "minecraft": "1.21.1",
+      "loader": "NeoForge",
+      "java": 21,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-neoforge-java21-linux-arm64",
+      "minecraft": "1.21.1",
+      "loader": "NeoForge",
+      "java": 21,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-neoforge-java21-osx-x64",
+      "minecraft": "1.21.1",
+      "loader": "NeoForge",
+      "java": 21,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-21-1-neoforge-java21-osx-arm64",
+      "minecraft": "1.21.1",
+      "loader": "NeoForge",
+      "java": 21,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-cleanroom-java21-win-x64",
+      "minecraft": "1.12.2",
+      "loader": "Cleanroom",
+      "java": 21,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-cleanroom-java21-win-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Cleanroom",
+      "java": 21,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-cleanroom-java21-linux-x64",
+      "minecraft": "1.12.2",
+      "loader": "Cleanroom",
+      "java": 21,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-cleanroom-java21-linux-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Cleanroom",
+      "java": 21,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-cleanroom-java21-osx-x64",
+      "minecraft": "1.12.2",
+      "loader": "Cleanroom",
+      "java": 21,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-cleanroom-java21-osx-arm64",
+      "minecraft": "1.12.2",
+      "loader": "Cleanroom",
+      "java": 21,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-fabric-java17-win-x64",
+      "minecraft": "1.20.1",
+      "loader": "Fabric",
+      "java": 17,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-fabric-java17-win-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Fabric",
+      "java": 17,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-fabric-java17-linux-x64",
+      "minecraft": "1.20.1",
+      "loader": "Fabric",
+      "java": 17,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-fabric-java17-linux-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Fabric",
+      "java": 17,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-fabric-java17-osx-x64",
+      "minecraft": "1.20.1",
+      "loader": "Fabric",
+      "java": 17,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-fabric-java17-osx-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Fabric",
+      "java": 17,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-legacy-fabric-java8-win-x64",
+      "minecraft": "1.7.10",
+      "loader": "Legacy Fabric",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-legacy-fabric-java8-win-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Legacy Fabric",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-legacy-fabric-java8-linux-x64",
+      "minecraft": "1.7.10",
+      "loader": "Legacy Fabric",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-legacy-fabric-java8-linux-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Legacy Fabric",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-legacy-fabric-java8-osx-x64",
+      "minecraft": "1.7.10",
+      "loader": "Legacy Fabric",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-7-10-legacy-fabric-java8-osx-arm64",
+      "minecraft": "1.7.10",
+      "loader": "Legacy Fabric",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-quilt-java17-win-x64",
+      "minecraft": "1.20.1",
+      "loader": "Quilt",
+      "java": 17,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-quilt-java17-win-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Quilt",
+      "java": 17,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-quilt-java17-linux-x64",
+      "minecraft": "1.20.1",
+      "loader": "Quilt",
+      "java": 17,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-quilt-java17-linux-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Quilt",
+      "java": 17,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-quilt-java17-osx-x64",
+      "minecraft": "1.20.1",
+      "loader": "Quilt",
+      "java": 17,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-20-1-quilt-java17-osx-arm64",
+      "minecraft": "1.20.1",
+      "loader": "Quilt",
+      "java": 17,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-liteloader-java8-win-x64",
+      "minecraft": "1.12.2",
+      "loader": "LiteLoader",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-liteloader-java8-win-arm64",
+      "minecraft": "1.12.2",
+      "loader": "LiteLoader",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-liteloader-java8-linux-x64",
+      "minecraft": "1.12.2",
+      "loader": "LiteLoader",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-liteloader-java8-linux-arm64",
+      "minecraft": "1.12.2",
+      "loader": "LiteLoader",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-liteloader-java8-osx-x64",
+      "minecraft": "1.12.2",
+      "loader": "LiteLoader",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-liteloader-java8-osx-arm64",
+      "minecraft": "1.12.2",
+      "loader": "LiteLoader",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-optifine-java8-win-x64",
+      "minecraft": "1.12.2",
+      "loader": "OptiFine",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-optifine-java8-win-arm64",
+      "minecraft": "1.12.2",
+      "loader": "OptiFine",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-optifine-java8-linux-x64",
+      "minecraft": "1.12.2",
+      "loader": "OptiFine",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-optifine-java8-linux-arm64",
+      "minecraft": "1.12.2",
+      "loader": "OptiFine",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-optifine-java8-osx-x64",
+      "minecraft": "1.12.2",
+      "loader": "OptiFine",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-12-2-optifine-java8-osx-arm64",
+      "minecraft": "1.12.2",
+      "loader": "OptiFine",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-labymod-java8-win-x64",
+      "minecraft": "1.8.9",
+      "loader": "LabyMod",
+      "java": 8,
+      "platform": "win-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-labymod-java8-win-arm64",
+      "minecraft": "1.8.9",
+      "loader": "LabyMod",
+      "java": 8,
+      "platform": "win-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-labymod-java8-linux-x64",
+      "minecraft": "1.8.9",
+      "loader": "LabyMod",
+      "java": 8,
+      "platform": "linux-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-labymod-java8-linux-arm64",
+      "minecraft": "1.8.9",
+      "loader": "LabyMod",
+      "java": 8,
+      "platform": "linux-arm64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-labymod-java8-osx-x64",
+      "minecraft": "1.8.9",
+      "loader": "LabyMod",
+      "java": 8,
+      "platform": "osx-x64",
+      "status": "candidate"
+    },
+    {
+      "id": "1-8-9-labymod-java8-osx-arm64",
+      "minecraft": "1.8.9",
+      "loader": "LabyMod",
+      "java": 8,
+      "platform": "osx-arm64",
+      "status": "candidate"
+    }
+  ]
+}

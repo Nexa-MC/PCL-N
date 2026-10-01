@@ -29,9 +29,10 @@ internal sealed partial class SettingsPageController
         if (!PendingQuery.Succeeded(read) || !_commands.TryResolve(InstanceManagementContract.RemoveMod, out var route))
         { _feedback.Error("无法检查依赖关系，请刷新后重试。"); return; }
         var preview = read.Result.Value!;
-        string message = $"将“{primary.Name}”移至已移除内容，可随时还原。";
-        if (preview.RequiredBy.Count > 0) message += "\n以下模组仍需要它：" + string.Join("、", preview.RequiredBy.Take(12)) + "。";
-        if (preview.Orphans.Count > 0) message += "\n以下前置已无其他模组需要，可选择一并移除：\n" + string.Join("\n", preview.Orphans.Take(12).Select(item => item.Name))
+        string message = $"将“{RecoveryExplanation.Display(primary.Name)}”移至已移除内容，可随时还原。";
+        if (preview.RequiredBy.Count > 0) message += "\n以下模组依赖它（包括间接依赖）：" + string.Join("、", preview.RequiredBy.Take(12).Select(RecoveryExplanation.Display))
+            + (preview.RequiredBy.Count > 12 ? $"；还有 {preview.RequiredBy.Count - 12} 个。" : "。");
+        if (preview.Orphans.Count > 0) message += "\n以下前置已无其他模组需要，可选择一并移除：\n" + string.Join("\n", preview.Orphans.Take(12).Select(item => RecoveryExplanation.Display(item.Name)))
             + (preview.Orphans.Count > 12 ? $"\n还有 {preview.Orphans.Count - 12} 个。" : "");
         if (preview.Notice is not null) message += "\n" + preview.Notice;
         void Remove(bool withOrphans)

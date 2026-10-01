@@ -71,6 +71,11 @@ public sealed class LogOperation : IDisposable
     }
 
     private void Write(LogLevel level, string detail, string? exceptionText = null) =>
-        _log.Write(level, _module, string.Create(CultureInfo.InvariantCulture,
-            $"{_name} op={Id} stage={_stage} {detail} {_context} {_stageContext} source={_source} elapsed_ms={Stopwatch.GetElapsedTime(_startedAt).TotalMilliseconds:F1}"), exceptionText);
+        _log.WriteOperation(level, _module, string.Create(CultureInfo.InvariantCulture,
+            $"{_name} op={Id} stage={_stage} {detail} {_context} {_stageContext} source={_source} elapsed_ms={Stopwatch.GetElapsedTime(_startedAt).TotalMilliseconds:F1}"), exceptionText,
+            new(_name, _stage, detail.StartsWith("completed", StringComparison.Ordinal) ? DiagnosticOperationOutcome.Completed
+                : detail.StartsWith("rejected", StringComparison.Ordinal) ? DiagnosticOperationOutcome.Rejected
+                : detail == "started" ? DiagnosticOperationOutcome.Started : detail == "entered" ? DiagnosticOperationOutcome.Entered
+                : detail == "cancelled" ? DiagnosticOperationOutcome.Cancelled : detail == "failed" ? DiagnosticOperationOutcome.Failed
+                : DiagnosticOperationOutcome.Unfinished));
 }

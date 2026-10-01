@@ -1,5 +1,10 @@
 # Performance path repair
 
+Alpha.6 measurement exposed redundant dirty acknowledgements: clearing every already-clean
+entity repeatedly scans its siblings and ancestors. Acknowledgement now visits dirty paths
+only; clearing an entity without own dirt is a no-op. Descendant dirt remains pending until
+that descendant is acknowledged, including hidden subtrees. Scene snapshots remain immutable.
+
 This migration addresses the supplemental static performance review. Its timing estimates
 are not measured benchmarks. Existing integrity, cancellation and state ownership contracts
 remain authoritative.

@@ -4,6 +4,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("diagnostic bundle excludes private text bounds input and never overwrites", DiagnosticBundleExcludesPersonalTextAndPublishesAtomically),
         ("performance file workers are bounded and join cancellation", FileWorkersAreBoundedAndJoinCancellation),
         ("performance receipts invalidate and explicit verify hashes", FileReceiptsInvalidateAndExplicitVerificationHashes),
         ("performance snapshot reuses stamps and repairs changed objects", SnapshotReusesStampsAndRepairsChangedObjects),
@@ -22,6 +23,7 @@ internal static partial class Program
         ("resource installed content identifies hashes and rejects stale identity", ResourceInstalledContentUsesHashesAndRejectsStaleIdentity),
         ("resource mod install verifies actual dependency tables before importing", ResourceModInstallationVerifiesActualDependenciesBeforeImport),
         ("resource mod removal preserves shared dependencies and revalidates", ResourceModRemovalPreservesSharedDependenciesAndRevalidates),
+        ("mod removal impact traverses aliases cycles and indirect consumers", ModRemovalImpactIncludesIndirectAliasesAndSkipsDisabledConsumers),
         ("resource favorites persist by provider identity", ResourceFavoritesPersistByProviderIdentity),
         ("resource dependencies are compatible ordered and bounded", ResourceDependenciesAreCompatibleOrderedAndBounded),
         ("resource search cache avoids duplicate provider work", ResourceSearchCacheAvoidsDuplicateProviderWork),

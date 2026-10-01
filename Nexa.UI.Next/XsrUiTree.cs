@@ -277,6 +277,7 @@ public sealed class XsrUiTree
     public void ClearDirty(XsrUiEntityId entity)
     {
         XsrUiEntity value = Require(entity);
+        if (value.OwnDirty == XsrUiDirtyKinds.None) return;
         value.OwnDirty = XsrUiDirtyKinds.None;
         _ = _dirtyEntities.Remove(entity.Index);
         RecomputeSubtreeUpwards(entity.Index);

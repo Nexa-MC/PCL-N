@@ -11,6 +11,10 @@ internal static partial class Program
     private static void LanguageCatalogCoversLocalesTemplatesAndFallbacks()
     {
         UiLocalizationCatalog catalog = new();
+        catalog.SetLanguage("en");
+        AssertEqual("Since Minecraft last ran successfully:\nAdded 12 Mods\nmods/custom.jar",
+            catalog.Translate("Minecraft 上一次成功运行以后：\n新增 12 项模组\nmods/custom.jar"));
+        catalog.SetLanguage("zh-Hans");
         foreach (string locale in new[] { "zh-TW", "zh_HK", "zh-MO", "zh-Hant" }) AssertEqual("zh-Hant", UiLocalizationCatalog.ResolveLanguage("auto", locale));
         foreach (string locale in new[] { "zh-CN", "zh_SG", "zh-Hans" }) AssertEqual("zh-Hans", UiLocalizationCatalog.ResolveLanguage("auto", locale));
         AssertEqual("en", UiLocalizationCatalog.ResolveLanguage("auto", "fr-FR"));

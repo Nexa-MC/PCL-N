@@ -16,7 +16,7 @@ using Nexa.Xsr.State;
 
 namespace Nexa.Desktop;
 
-internal static class Program
+internal static partial class Program
 {
     /// <summary>
     /// A WinExe process has a console handle only when launched from a terminal (or with
@@ -293,6 +293,7 @@ internal static class Program
         launchPage.Attach();
         using SettingsPageController settingsPage = new(shell, uiIntents, runtime.Queries, runtime.Commands, host.StateStore, feedback);
         settingsPage.OpenAboutLink = platformActions.OpenHttpsUri;
+        settingsPage.ExportDiagnostics = token => ExportDiagnosticsAsync(runtime.Host, platformActions, buildInfo.ProductVersion, token);
         settingsPage.TelemetryRequired = buildInfo.DiagnosticsRequired;
         using var networking = new LauncherNetworkRuntime(host, settingsFolder, buildInfo);
         HttpClient updateHttp = networking.Http;

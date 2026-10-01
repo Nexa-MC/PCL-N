@@ -11,6 +11,8 @@ The user-requested constraints take precedence:
 
 ## Documents
 
+- [alpha6-beta-acceptance.md](alpha6-beta-acceptance.md) — 非商业路线图、真实 launch / soak 证据与 Beta 完成标准
+- [diagnostic-export.md](diagnostic-export.md) — 用户主动诊断包、固定字段和日志隐私边界
 - [architecture.md](architecture.md) — system direction and project boundaries
 - [dependency-rules.md](dependency-rules.md) — allowed dependency graph and CI enforcement
 - [state-model.md](state-model.md) — state ownership, snapshots, deltas, and derived state

@@ -502,6 +502,6 @@ internal sealed partial class SettingsPageController : IDisposable
     };
     public void Dispose()
     {
-        _disposed = true; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
+        _disposed = true; _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }
 }

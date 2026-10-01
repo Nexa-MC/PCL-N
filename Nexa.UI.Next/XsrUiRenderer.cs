@@ -190,7 +190,7 @@ public sealed partial class XsrUiRenderer
         {
             _tree.ClearDirty(entity);
             return true;
-        });
+        }, entity => _tree.HasDirtySubtree(entity));
 
         return _scene;
     }

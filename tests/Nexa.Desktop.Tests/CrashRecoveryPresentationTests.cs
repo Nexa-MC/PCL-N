@@ -11,6 +11,15 @@ internal static partial class Program
 {
     private static void CrashChangesPagesRemainBoundedAndLateUpdatesCannotReopenDialog()
     {
+        string summary = RecoveryExplanation.Summary([
+            new(InstanceRecoveryChangeKind.Removed, "模组", "mods/Fabric API.jar"),
+            new(InstanceRecoveryChangeKind.Added, "模组", "mods/new.jar"),
+            new(InstanceRecoveryChangeKind.Modified, "配置", "config/test\nforged.txt")]);
+        AssertTrue(summary.Contains("删除 1 项模组"));
+        AssertTrue(summary.Contains("修改 1 项配置"));
+        AssertTrue(summary.Contains("尚未确定为崩溃原因"));
+        AssertFalse(RecoveryExplanation.Display("file\nforged\r\t").Contains('\n'));
+        AssertEqual(300, RecoveryExplanation.Display(new string('x', 1000)).Length);
         using var fixture = ComposeLaunchOverlayFixture(new RecordingStartRoute());
         fixture.Shell.Renderer.ReducedMotion = true;
         var feedback = fixture.Feedback;

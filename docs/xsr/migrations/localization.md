@@ -1,5 +1,9 @@
 # Interface localization
 
+Alpha.6 recovery paragraphs preserve source text for live locale switching. When no whole
+paragraph entry/template matches, bounded multi-line copy translates each line individually;
+literal file/user content continues to bypass localization at the renderer boundary.
+
 Desktop owns embedded presentation catalogs for Simplified Chinese (`zh-Hans`),
 Traditional Chinese (`zh-Hant`) and English (`en`). The existing `general.language`
 global setting stores `auto|zh-Hans|zh-Hant|en`; writes reuse sealed settings routes,

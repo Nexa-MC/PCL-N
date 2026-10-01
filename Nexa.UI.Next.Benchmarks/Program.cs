@@ -11,16 +11,18 @@ namespace Nexa.UI.Next.Benchmarks;
 /// must hold on every machine: clean re-renders allocate nothing, dirty relayout stays bounded,
 /// and the produced scene is exactly the entity tree.
 /// </summary>
-internal static class Program
+internal static partial class Program
 {
     private static int _failures;
 
-    public static int Main()
+    public static int Main(string[] args)
     {
+        if (!TryReadOptions(args, out string? output, out string? timingGate)) return 2;
         RunCleanRenderAllocatesNothing();
         RunDirtyLeafRelayoutStaysBounded();
         RunSceneMatchesEntityTree();
         RunRenderThroughputReport();
+        RunPercentileReport(output, timingGate);
 
         if (_failures > 0)
         {

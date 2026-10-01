@@ -208,6 +208,11 @@ jobs:
       - name: Test desktop composition
         run: dotnet run --project tests/Nexa.Desktop.Tests/Nexa.Desktop.Tests.csproj --configuration Release --no-build
 
+      - name: Smoke composition soak harness (not two-hour acceptance)
+        run: |
+          dotnet tests/Nexa.Desktop.Tests/bin/Release/net10.0/Nexa.Desktop.Tests.dll --soak idle --seconds 10 --output '${{ runner.temp }}/soak-idle'
+          dotnet tests/Nexa.Desktop.Tests/bin/Release/net10.0/Nexa.Desktop.Tests.dll --soak navigation --seconds 10 --output '${{ runner.temp }}/soak-navigation'
+
       - name: Publish and run NativeAOT foundation tests
         run: |
           dotnet publish tests/Nexa.Services.Tests/Nexa.Services.Tests.csproj             --configuration Release             -p:XsrVersionChannel=ci             -p:PublishAot=true             -p:StripSymbols=true             --output "${{ runner.temp }}/foundation-aot"
@@ -215,6 +220,11 @@ jobs:
 
       - name: Enforce UI.Next benchmark gates
         run: dotnet run --project Nexa.UI.Next.Benchmarks/Nexa.UI.Next.Benchmarks.csproj --configuration Release --no-build
+
+      - name: Validate real Minecraft evidence admission
+        run: |
+          python -m unittest discover -s eng/acceptance -p 'test_*.py'
+          python eng/acceptance/verify.py --policy-only
 
       - name: Publish NativeAOT Minecraft benchmark harness
         run: dotnet publish tools/Nexa.Minecraft.Benchmarks -c Release -p:PublishAot=true -o "${{ runner.temp }}/minecraft-benchmark-aot"

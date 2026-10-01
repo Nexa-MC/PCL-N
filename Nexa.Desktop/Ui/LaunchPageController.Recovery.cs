@@ -62,22 +62,32 @@ internal sealed partial class LaunchPageController
         }
     }
 
-    private void ShowCrashRecoveryChoices(MinecraftProcessFailure failure, string reason, InstanceRecoveryReport report, int index = -1)
+    private void ShowCrashRecoveryChoices(MinecraftProcessFailure failure, string reason, InstanceRecoveryReport report, int index = -1, int categoryIndex = -1)
     {
         if (_disposed || report.BaselineRevision is not { } revision || report.Changes.Count == 0
             || !_foundationCommands.TryResolve(InstanceRecoveryContract.Restore, out var route)) return;
-        IReadOnlyList<InstanceRecoveryChange> changes = index < 0 ? report.Changes : [report.Changes[index]];
-        string description = index < 0 ? $"恢复全部 {changes.Count} 项更改。" :
-            $"第 {index + 1}/{report.Changes.Count} 项：{changes[0].Category} · {changes[0].Path}";
+        var categories = report.Changes.GroupBy(change => change.Category).OrderBy(group => group.Key, StringComparer.Ordinal).ToArray();
+        IReadOnlyList<InstanceRecoveryChange> changes = categoryIndex >= 0 ? categories[categoryIndex].ToArray()
+            : index < 0 ? report.Changes : [report.Changes[index]];
+        string description = categoryIndex >= 0 ? $"仅恢复{RecoveryExplanation.Display(categories[categoryIndex].Key)}的 {changes.Count} 项更改。"
+            : index < 0 ? $"恢复全部 {changes.Count} 项更改。" :
+            $"第 {index + 1}/{report.Changes.Count} 项：{RecoveryExplanation.Display(changes[0].Category)} · {RecoveryExplanation.Display(changes[0].Path)}";
         _feedback.ShowDialog("recovery.crash.choose", "恢复上次成功运行的状态", reason + "\n\n" + description + "\n存档、截图和日志不受影响。",
-            index < 0 ? "回滚全部" : "回滚此项", "取消", accepted =>
+            categoryIndex >= 0 ? "回滚此类" : index < 0 ? "回滚全部" : "回滚此项", "取消", accepted =>
             {
                 if (accepted) _ = RestoreCrashChangesAsync(failure, report, revision, changes, route);
-            }, index < 0 ? "逐项选择" : "下一项", () =>
+            }, categoryIndex >= 0 ? (categoryIndex + 1 < categories.Length ? "下一类" : "逐项选择")
+                : index < 0 ? "按类别选择" : "下一项", () =>
             {
                 // A new dialog lifetime is needed: same-key updates intentionally retain callbacks.
                 if (_feedback.Snapshot().Dialog is { } dialog) _feedback.DismissDialog(dialog.Id);
-                ShowCrashRecoveryChoices(failure, reason, report, (index + 1) % report.Changes.Count);
+                if (categoryIndex >= 0)
+                {
+                    if (categoryIndex + 1 < categories.Length) ShowCrashRecoveryChoices(failure, reason, report, categoryIndex: categoryIndex + 1);
+                    else ShowCrashRecoveryChoices(failure, reason, report, 0);
+                }
+                else if (index < 0) ShowCrashRecoveryChoices(failure, reason, report, categoryIndex: 0);
+                else ShowCrashRecoveryChoices(failure, reason, report, (index + 1) % report.Changes.Count);
             });
     }
 
@@ -117,22 +127,11 @@ internal sealed class CrashChangesPresentation(DesktopFeedbackService feedback, 
         string heading = count == 0 ? "与上次成功运行相比，恢复范围内没有更改。"
             : $"上次成功运行后的更改 · {count} 项（{_page + 1}/{pages}）";
         var rows = report.Changes.Skip(_page * PageSize).Take(PageSize).Select(change =>
-            $"{Kind(change.Kind)} · {change.Category}\n{DisplayPath(change.Path)}");
-        string body = reason + "\n\n" + heading + "\n" + string.Join("\n\n", rows);
+            $"{RecoveryExplanation.Kind(change.Kind)} · {RecoveryExplanation.Display(change.Category)}\n{RecoveryExplanation.Display(change.Path)}");
+        string body = reason + "\n\n" + RecoveryExplanation.Summary(report.Changes) + "\n\n" + heading + "\n" + string.Join("\n\n", rows);
         feedback.TryUpdateMessageDialog(dialogId, body, pages > 1 ? (_page + 1 == pages ? "回到首批" : "下一批更改") : null,
             pages > 1 ? () => { _page = (_page + 1) % pages; Show(); }
         : null, count > 0 && restore is not null ? "回滚更改…" : null, count > 0 ? restore : null);
     }
 
-    private static string Kind(InstanceRecoveryChangeKind kind) => kind switch
-    {
-        InstanceRecoveryChangeKind.Added => "新增",
-        InstanceRecoveryChangeKind.Removed => "删除",
-        InstanceRecoveryChangeKind.Enabled => "启用",
-        InstanceRecoveryChangeKind.Disabled => "停用",
-        _ => "修改"
-    };
-
-    // Filenames are data: embedded control characters must not impersonate another row.
-    private static string DisplayPath(string path) => new(path.Select(c => char.IsControl(c) ? ' ' : c).ToArray());
 }

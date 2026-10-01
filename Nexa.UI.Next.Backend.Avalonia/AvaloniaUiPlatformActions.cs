@@ -191,6 +191,9 @@ public sealed class AvaloniaUiPlatformActions
 
     public Task<string?> PickDownloadDirectoryAsync() => PickDirectoryCoreAsync("选择资源保存目录");
 
+    public Task<string?> PickExportDirectoryAsync() => Dispatcher.UIThread.CheckAccess()
+        ? PickDirectoryCoreAsync("选择导出保存目录") : Dispatcher.UIThread.InvokeAsync(() => PickDirectoryCoreAsync("选择导出保存目录"));
+
     private async Task<string?> PickDirectoryCoreAsync(string title)
     {
         if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native folder picker is not ready.");

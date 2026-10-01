@@ -1,0 +1,42 @@
+name: XSR composition soak
+
+on:
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Fixture soak duration (7200 for a two-hour run; not real game acceptance)
+        required: true
+        default: '7200'
+        type: choice
+        options: ['60', '7200']
+
+permissions:
+  contents: read
+
+jobs:
+  soak:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        mode: [idle, navigation]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+      - name: Build composition harness
+        run: dotnet build tests/Nexa.Desktop.Tests -c Release -m:1
+      - name: Run isolated composition soak
+        run: dotnet tests/Nexa.Desktop.Tests/bin/Release/net10.0/Nexa.Desktop.Tests.dll --soak ${{ matrix.mode }} --seconds ${{ inputs.seconds }} --output soak-output
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: composition-${{ matrix.os }}-${{ matrix.mode }}
+          path: soak-output
+          if-no-files-found: error
+          retention-days: 14

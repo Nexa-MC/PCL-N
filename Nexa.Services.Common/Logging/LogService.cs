@@ -144,6 +144,12 @@ public sealed class LogService : ILogWriter, IDisposable
     /// storage. This method never throws into the operation being logged.
     /// </summary>
     public void Write(LogLevel level, string module, string message, string? exceptionText = null)
+        => WriteCore(level, module, message, exceptionText, null);
+
+    internal void WriteOperation(LogLevel level, string module, string message, string? exceptionText, DiagnosticOperationFacts facts)
+        => WriteCore(level, module, message, exceptionText, facts);
+
+    private void WriteCore(LogLevel level, string module, string message, string? exceptionText, DiagnosticOperationFacts? facts)
     {
         if (!IsEnabled(level))
         {
@@ -156,7 +162,8 @@ public sealed class LogService : ILogWriter, IDisposable
         {
             if (_disposed) return;
             LogEntry entry = new(++_sequence, _clock.GetUtcNow(), level,
-                string.IsNullOrWhiteSpace(module) ? "General" : module.Trim(), redacted, error);
+                string.IsNullOrWhiteSpace(module) ? "General" : module.Trim(), redacted, error)
+            { Operation = facts };
             _ring.Enqueue(entry);
             if (_ring.Count > _capacity) _ring.Dequeue();
             _pending = true;
