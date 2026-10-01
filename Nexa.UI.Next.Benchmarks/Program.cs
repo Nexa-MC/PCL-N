@@ -22,6 +22,7 @@ internal static partial class Program
         RunDirtyLeafRelayoutStaysBounded();
         RunSceneMatchesEntityTree();
         RunRenderThroughputReport();
+        CheckTailStatistics();
         RunPercentileReport(output, timingGate);
 
         if (_failures > 0)

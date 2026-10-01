@@ -42,6 +42,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("soak idle driver coalesces invalidations and retires", SoakIdleDriverCoalescesInvalidationsAndRetires),
         ("diagnostic export requires explicit click coalesces and cancels", DiagnosticExportRequiresClickCoalescesRequestsAndCancelsOnDispose),
         ("launch state projections skip idle frames and wake on change", LaunchProjectionsDoNotRepeatOnIdleFrames),
         ("language catalog covers locales templates and fallbacks", LanguageCatalogCoversLocalesTemplatesAndFallbacks),

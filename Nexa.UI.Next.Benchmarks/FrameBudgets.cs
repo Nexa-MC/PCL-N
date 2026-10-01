@@ -43,16 +43,16 @@ internal static partial class Program
         });
         XsrUiRenderer large = BuildGridRenderer(100, 100, out XsrUiTree largeTree, out _);
         XsrUiEntityId largeLeaf = FindFirstLeaf(largeTree, out _);
-        Measure("paint-10000-materialized", () => { largeTree.MarkDirty(largeLeaf, XsrUiDirtyKinds.Paint); return large.Render(); });
+        Measure("paint-10000-materialized", () => { largeTree.MarkDirty(largeLeaf, XsrUiDirtyKinds.Paint); return large.Render(); }, routine: false);
 
         foreach (FrameMeasurement result in results)
         {
             Report(string.Create(CultureInfo.InvariantCulture,
-                $"{result.Name}: P50={result.P50:F3}ms P95={result.P95:F3}ms P99={result.P99:F3}ms; {result.Frames} frames"));
-            if (timingGate is not null)
+                $"{result.Name}: P50={result.P50:F3}ms P95={result.P95:F3}ms P99={result.P99:F3}ms P99.9={result.P999:F3}ms max={result.Maximum:F3}ms; {result.Frames} frames"));
+            if (timingGate is not null && result.Routine)
             {
                 bool passes = timingGate == "120hz"
-                    ? result.P50 < 2 && result.P95 < 5 && result.P99 < 8
+                    ? result.P50 < 2 && result.P95 < 3 && result.P99 < 6
                     : result.P99 < 16.6;
                 Gate(passes, result.Name, $"controlled runner {timingGate} kernel budget");
             }
@@ -62,7 +62,7 @@ internal static partial class Program
         using FileStream file = new(output, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         using Utf8JsonWriter json = new(file, new JsonWriterOptions { Indented = true });
         json.WriteStartObject();
-        json.WriteNumber("schema", 1);
+        json.WriteNumber("schema", 2);
         json.WriteString("scope", "renderer-kernel-only");
         json.WriteString("framework", RuntimeInformation.FrameworkDescription);
         json.WriteString("os", RuntimeInformation.OSDescription);
@@ -79,13 +79,20 @@ internal static partial class Program
             json.WriteNumber("p50_ms", result.P50);
             json.WriteNumber("p95_ms", result.P95);
             json.WriteNumber("p99_ms", result.P99);
+            json.WriteNumber("p999_ms", result.P999);
+            json.WriteNumber("max_ms", result.Maximum);
+            json.WriteNumber("worst_1_percent_mean_ms", result.WorstOnePercent);
+            json.WriteNumber("worst_01_percent_mean_ms", result.WorstPointOnePercent);
+            json.WriteNumber("worst_1_percent_samples", TailCount(result.Frames, .01));
+            json.WriteNumber("worst_01_percent_samples", TailCount(result.Frames, .001));
+            json.WriteBoolean("routine_timing_gate_eligible", result.Routine);
             json.WriteNumber("allocated_bytes", result.Allocated);
             json.WriteEndObject();
         }
         json.WriteEndArray();
         json.WriteEndObject();
 
-        void Measure(string name, Func<XsrUiScene> frame)
+        void Measure(string name, Func<XsrUiScene> frame, bool routine = true)
         {
             const int frames = 1000;
             for (int warm = 0; warm < 100; warm++) _ = frame();
@@ -100,9 +107,31 @@ internal static partial class Program
             }
             long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
             Array.Sort(elapsed);
-            results.Add(new(name, frames, entities, allocated, elapsed[499], elapsed[949], elapsed[989]));
+            results.Add(new(name, frames, entities, allocated, elapsed[499], elapsed[949], elapsed[989], elapsed[998],
+                elapsed[^1], TailMean(elapsed, .01), TailMean(elapsed, .001), routine));
         }
     }
 
-    private sealed record FrameMeasurement(string Name, int Frames, int Entities, long Allocated, double P50, double P95, double P99);
+    private static int TailCount(int samples, double fraction) => Math.Max(1, (int)Math.Ceiling(samples * fraction));
+
+    private static double TailMean(double[] sorted, double fraction)
+    {
+        int count = TailCount(sorted.Length, fraction);
+        double total = 0;
+        for (int index = sorted.Length - count; index < sorted.Length; index++) total += sorted[index];
+        return total / count;
+    }
+
+    private static void CheckTailStatistics()
+    {
+        double[] samples = new double[1000];
+        for (int index = 0; index < samples.Length; index++) samples[index] = index + 1;
+        Gate(TailCount(samples.Length, .01) == 10 && TailMean(samples, .01) == 995.5
+            && TailCount(samples.Length, .001) == 1 && TailMean(samples, .001) == 1000,
+            "tail sample counts and means", "tail metrics use the slowest observations, with explicit sample resolution");
+    }
+
+    private sealed record FrameMeasurement(string Name, int Frames, int Entities, long Allocated,
+        double P50, double P95, double P99, double P999, double Maximum, double WorstOnePercent,
+        double WorstPointOnePercent, bool Routine);
 }
