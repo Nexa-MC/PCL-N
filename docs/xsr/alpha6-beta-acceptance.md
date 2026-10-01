@@ -107,3 +107,7 @@ UI.Next88项、backend9项、架构68项通过。60秒composition idle记录1次
 Idle try-admission，quiet/争用时留待重试，提交后取消不回退基线。474项managed/Linux
 NativeAOT Services、105项Desktop及68项目架构通过。256 KiB实际字节/Brotli回归证实文件中途
 quiet时无第二次读取且Critical能取得额度；这不是Minecraft实机争用或长期性能认证。
+
+`4b1c3811` 的Launcher Build 36875918243通过；XSR CI 36875918277在collection热路径分配
+测试失败（仅预热2次后测到24,624字节），不是格式或恢复adapter失败。测试补齐既有numeric
+lookup同样的200,000次预热，仍严格要求10,000次读的线程分配为0；具体CI分配调用栈尚未采集。

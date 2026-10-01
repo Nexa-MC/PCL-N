@@ -79,6 +79,9 @@ internal static partial class Program
         store.PublishDelta(id, new XsrCollectionDelta<MutableCollectionItem, string>(0, [first, second], []));
         var original = store.ReadCollection<MutableCollectionItem>(id);
         AssertTrue(ReferenceEquals(original, store.ReadCollection<MutableCollectionItem>(id)));
+        // Measure the steady-state path, like the existing numeric-lookup allocation gate.
+        // Two reads do not settle generic dispatch initialization/tiered compilation.
+        for (int i = 0; i < 200_000; i++) _ = store.ReadCollection<MutableCollectionItem>(id);
         long beforeReads = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 10_000; i++) _ = store.ReadCollection<MutableCollectionItem>(id);
         AssertEqual(0L, GC.GetAllocatedBytesForCurrentThread() - beforeReads);
