@@ -33,6 +33,25 @@ Coalescing is permitted for replaceable state such as progress or throughput. Th
 
 Collections need an explicit identity and ordering contract. A collection delta that cannot be applied to the reader's base revision triggers a snapshot refresh rather than best-effort mutation.
 
+Collection identity uses `EqualityComparer<TKey>.Default`; the supplied comparer orders
+keys and must not be substituted for identity equality. Repeated upserts keep the last
+value; removals win. Stable ordering preserves base position among equal-order keys,
+then first insertion order for new keys. Public delta application also retains its
+existing normalization of unordered or duplicate-key bases.
+
+For an ordered unique base, delta application sorts only changed/new entries and merges
+them into retained base order, with linear snapshot copying. Unordered/duplicate bases
+use full normalization. It must not cache keys across publications where mutable items
+could change their selector result. Selector/comparer failure leaves the previous node
+snapshot, revision and notification unchanged; old snapshots remain separate arrays.
+This reduces sorting comparisons; it does not promise O(visible) state publication or
+zero allocation, because coherent full collection snapshots still require linear work.
+
+Collection reads may reuse one immutable snapshot for the same id/revision/availability.
+Publishing a delta releases the node's old cached view; availability changes also produce
+a new view by revision. Repeated unchanged reads create no new snapshot/wrapper, while
+caller-retained old snapshots preserve their membership and captured availability.
+
 ## Availability
 
 Remote state carries availability separately from its last value:
@@ -56,4 +75,3 @@ Derived caches use an ordered vector of dependency revisions and availability, n
 
 
 Normal Sidecar shutdown, host disposal and failure invalidate dynamic mirror state and terminate pending exchanges. Initial snapshots and deltas share the termination boundary; buffered producers cannot restore availability or transition a closed session back to Ready/Active. Cached UI modules remain intact.
-

@@ -90,3 +90,11 @@ GPG 策略收口见 [XSR-728](migrations/XSR-728-detached-signature-admission.md
 同bucket复用bitmap，encoded数据不再整张复制。469项managed/Linux NativeAOT Services、
 9项Avalonia backend及68项目架构通过。全局decoded CPU/GPU预算、pressure adapter与
 真实进程RAM/长期曲线仍开放，不能用缩略图尺寸回归宣布内存SLA达标。
+
+`6bdb04b3` 的XSR CI 36868482448与Launcher Build 36868482424均已通过。
+collection单元见 [XSR-732](migrations/XSR-732-ordered-collection-deltas.md)：有序唯一基底
+仅排序变化项再线性合并，保留原有重复/无序归一化、稳定排序与失败原子性；同revision读取
+复用snapshot，10,000次不变读取的线程分配为0。managed/Linux NativeAOT runtime各102项通过，
+本机Unix socket EPERM导致1项OS IPC显式跳过，CI保留该项；Services各469项、Desktop105项、
+UI.Next88项、backend9项、架构68项通过。60秒composition idle记录1次frame/render request，
+285entities/210states稳定；唤醒尚未归因，不宣称零帧或真实原生CPU/RAM/8h验收完成。

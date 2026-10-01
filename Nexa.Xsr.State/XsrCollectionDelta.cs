@@ -64,24 +64,7 @@ public sealed class XsrCollectionDelta<TItem, TKey>
             return XsrCollectionApplyResult.Rejected(baseRevision);
         }
 
-        Dictionary<TKey, TItem> merged = [];
-        foreach (TItem item in baseItems)
-        {
-            merged[keySelector(item)] = item;
-        }
-
-        foreach (TItem item in Upserts)
-        {
-            merged[keySelector(item)] = item;
-        }
-
-        foreach (TKey key in Removals)
-        {
-            _ = merged.Remove(key);
-        }
-
-        TItem[] ordered = [.. merged.Values.OrderBy(keySelector, comparer)];
-        applied = ordered;
+        applied = XsrCollectionMerger<TItem, TKey>.Apply(baseItems, Upserts, Removals, keySelector, comparer);
         return XsrCollectionApplyResult.Applied(BaseRevision + 1);
     }
 }

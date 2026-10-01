@@ -53,6 +53,12 @@ Completed、Failed 不能被节流合并；不得丢弃终态、改变实际 IO/
 
 ## 当前工具及证据局限
 
+有序唯一collection base只排序改动项并归并，非有序/重复键base保持完整规范化；
+键身份默认equality与排序comparer分离，稳定顺序、删除优先、失败原子性保留。
+未变化的同revision read复用immutable snapshot/wrapper，发布后释放node旧缓存；
+availability改变也产生新view。该路径减少排序和重复read分配，publication仍有O(N)
+复制/校验，不等于O(visible) UI或全进程零分配，见 [XSR-732](migrations/XSR-732-ordered-collection-deltas.md)。
+
 文件校验 receipt 只属于单个 service 生命周期，容量8192；成功命中更新最近使用顺序，
 超预算只淘汰最旧条目，不能整表清空造成下一次启动集中重读。路径身份遵循平台规则，
 大小/mtime/期望 hash 任一改变使条目失效；显式 forceHash 始终重读，失败须撤销旧 receipt。

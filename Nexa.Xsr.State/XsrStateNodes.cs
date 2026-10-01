@@ -260,6 +260,7 @@ internal sealed class XsrStateCollectionNode<TItem, TKey> : XsrStateNode, IXsrSt
     private readonly Func<TItem, TKey> _keySelector;
     private readonly IComparer<TKey> _comparer;
     private TItem[] _items = [];
+    private XsrCollectionSnapshot<TItem>? _snapshot;
 
     internal XsrStateCollectionNode(
         XsrSemanticId semanticId,
@@ -287,24 +288,9 @@ internal sealed class XsrStateCollectionNode<TItem, TKey> : XsrStateNode, IXsrSt
                 return XsrCollectionApplyResult.Rejected(CurrentRevisionLocked);
             }
 
-            Dictionary<TKey, TItem> merged = [];
-            foreach (TItem item in _items)
-            {
-                merged[_keySelector(item)] = item;
-            }
-
-            foreach (TItem item in delta.Upserts)
-            {
-                merged[_keySelector(item)] = item;
-            }
-
-            foreach (TKey key in delta.Removals)
-            {
-                _ = merged.Remove(key);
-            }
-
-            TItem[] ordered = [.. merged.Values.OrderBy(_keySelector, _comparer)];
+            TItem[] ordered = XsrCollectionMerger<TItem, TKey>.Apply(_items, delta.Upserts, delta.Removals, _keySelector, _comparer);
             _items = ordered;
+            _snapshot = null;
             AdvanceLocked(changeStamp, XsrStateAvailability.Available);
             change = new XsrStateChange(
                 id,
@@ -323,7 +309,9 @@ internal sealed class XsrStateCollectionNode<TItem, TKey> : XsrStateNode, IXsrSt
 
         lock (Gate)
         {
-            return new XsrCollectionSnapshot<TItem>(
+            if (_snapshot is { } snapshot && snapshot.Id == id && snapshot.Revision == CurrentRevisionLocked)
+                return snapshot;
+            return _snapshot = new XsrCollectionSnapshot<TItem>(
                 id,
                 CurrentRevisionLocked,
                 AvailabilityLocked,
