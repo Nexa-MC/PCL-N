@@ -70,6 +70,9 @@ CI 默认跟随 Alpha 发布。安装包和便携包都存在时才提供更新�
 无同步热路径 IPC、无跨进程 CLR 委托。需先定义支持的数据与操作协议、版本化 ID、
 调用期间不可变补丁快照，以及重入/异常/async/迭代器/ref 语义，再接编译改写器。
 
+首个受限同步 string ABI 与五阶段顺序、指令预算、Host allowlist 和会话卸载契约见
+[function-patches.md](function-patches.md)。编译前改写器和实际页面 patch point 仍独立验收。
+
 ## 首次运行引导
 
 在 Foundation、账户、游戏扫描与联网会话初始化之前运行独立的轻量引导 shell。

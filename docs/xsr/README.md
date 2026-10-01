@@ -20,6 +20,8 @@ The user-requested constraints take precedence:
 - [migrations/XSR-732-ordered-collection-deltas.md](migrations/XSR-732-ordered-collection-deltas.md) — 稀疏改动排序归并与未变快照复用
 - [migrations/XSR-733-recovery-work-admission.md](migrations/XSR-733-recovery-work-admission.md) — 恢复采集共享额度与可延后分块回收
 - [migrations/XSR-734-soak-wake-attribution.md](migrations/XSR-734-soak-wake-attribution.md) — 有界状态发布记录与idle唤醒归因
+- [function-patches.md](function-patches.md) — Host授权的受限Function Patch执行、五阶段ABI与生命周期
+- [migrations/XSR-735-bounded-function-patch-execution.md](migrations/XSR-735-bounded-function-patch-execution.md) — Function Patch会话注册到Host执行的首个闭环
 - [migrations/XSR-728-detached-signature-admission.md](migrations/XSR-728-detached-signature-admission.md) — detached GPG 策略收口
 - [migrations/XSR-729-verification-receipt-lru.md](migrations/XSR-729-verification-receipt-lru.md) — 有界文件校验缓存与显式校验失败撤销
 - [review-505b9f9f.md](review-505b9f9f.md) — 新审查的事实核对、修复范围和剩余证据

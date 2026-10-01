@@ -23,6 +23,9 @@ public sealed partial class SidecarHostSession : IDisposable
     private SidecarRegistrationSet? _registration;
     private SidecarStateMirror? _mirror;
     private readonly SidecarSessionLimits _limits;
+    private XsrPreparedFunctionPatch[] _functionPatches = [];
+    private IDisposable? _functionPatchLease;
+    public XsrFunctionPatchAdmission? FunctionPatchAdmission { get; init; }
     public SidecarExtensionRegistry Extensions { get; private set; } = new();
 
     public SidecarHostSession(
@@ -209,6 +212,7 @@ public sealed partial class SidecarHostSession : IDisposable
             else if (SidecarRegistration.IsExtension(entry.Kind)) extensions.Add(entry, declaration);
         }
 
+        var functionPatches = FunctionPatchAdmission?.Prepare(extensions.Entries) ?? [];
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
         {
@@ -217,6 +221,7 @@ public sealed partial class SidecarHostSession : IDisposable
             _mirror = mirror;
             Cache = cache;
             Extensions = extensions;
+            _functionPatches = functionPatches;
         }
         return mirror;
     }
@@ -351,6 +356,17 @@ public sealed partial class SidecarHostSession : IDisposable
             SidecarCorrelationId.Create(),
             Array.Empty<byte>()),
             cancellationToken).ConfigureAwait(false);
+        try
+        {
+            lock (_gate)
+            {
+                if (_stopped || _state != SidecarSessionState.Ready)
+                    throw new SidecarProtocolException("Session ended or changed before activation publication.");
+                _functionPatchLease = FunctionPatchAdmission?.Runtime.Activate(_functionPatches);
+                _state = SidecarSessionState.Active;
+            }
+        }
+        catch (SidecarProtocolException error) { throw Fail(error.Message); }
         Transition(SidecarSessionState.Active);
     }
 
@@ -368,6 +384,11 @@ public sealed partial class SidecarHostSession : IDisposable
             SidecarCorrelationId.Create(),
             Array.Empty<byte>()),
             cancellationToken).ConfigureAwait(false);
+        lock (_gate)
+        {
+            _functionPatchLease?.Dispose();
+            _functionPatchLease = null;
+        }
         Transition(SidecarSessionState.Ready);
     }
 

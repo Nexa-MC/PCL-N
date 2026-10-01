@@ -345,6 +345,9 @@ public sealed partial class SidecarHostSession
             pending = _stopped ? [] : _pending.Values.ToArray();
             _stopped = true;
             _pending.Clear();
+            _functionPatchLease?.Dispose();
+            _functionPatchLease = null;
+            _functionPatches = [];
             Extensions = new();
         }
         InvalidateMirror();

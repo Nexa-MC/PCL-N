@@ -124,3 +124,10 @@ soak唤醒归因见 [XSR-734](migrations/XSR-734-soak-wake-attribution.md)：仅
 60秒NativeAOT idle为1frame/1state请求，关联测量开始0.0003304秒的`logging.entries`
 delta，随后未记录其他publication。历史XSR-732单帧仍未归因；此工具不关闭原生窗口/GPU、
 真实Minecraft或8h性能验收。
+
+Function Patch执行首批见 [XSR-735](migrations/XSR-735-bounded-function-patch-execution.md)：
+显式Host target grant、同步string ABI、五阶段受限指令、共享预算、单程序失败回滚和会话
+激活/卸载已通过真实二进制session测试。managed/Linux NativeAOT runtime各111项通过，
+本机既有1项Unix IPC显式跳过，CI保持112项；68项目架构通过。10,000次不变patched调用
+预热后线程分配为0。产品target尚未启用，编译前改写器、其他ABI以及UI/Event/Intent adapter
+仍开放，不能用该首批执行器宣布Sidecar平台完整。
