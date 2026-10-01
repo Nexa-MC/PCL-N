@@ -7,17 +7,34 @@ using Nexa.Services.Minecraft.Management;
 namespace Nexa.Services.Minecraft.Install;
 
 /// <summary>Task-local, immutable metadata. Corruption stops recovery instead of silently fetching new facts.</summary>
-internal sealed class PersistentInstallMetadataSource(string stage, IMinecraftInstallMetadataSource source, ModpackInstallJournal? pack = null) : IMinecraftInstallMetadataSource
+internal sealed class PersistentInstallMetadataSource(string stage, IMinecraftInstallMetadataSource source, ModpackInstallJournal? pack = null) : IMinecraftInstallMetadataSource, IVerifiedAssetIndexSource
 {
     private const int MaxRecordBytes = 16 * 1024 * 1024;
     private const long MaxCacheBytes = 64L * 1024 * 1024;
+    public bool HasVerifiedIndexBytes => source is IVerifiedAssetIndexSource { HasVerifiedIndexBytes: true };
     public Task<JsonObject> FetchVanillaVersionJsonAsync(string gameVersion, CancellationToken cancellationToken) =>
-        GetAsync("vanilla:" + gameVersion, token => source.FetchVanillaVersionJsonAsync(gameVersion, token), cancellationToken);
+        GetAsync("vanilla:v2:" + gameVersion, token => source.FetchVanillaVersionJsonAsync(gameVersion, token), cancellationToken);
     public Task<JsonObject> FetchLoaderProfileJsonAsync(InstallLoader loader, string gameVersion, string build, CancellationToken cancellationToken) =>
-        GetAsync("loader:" + JsonSerializer.Serialize(new[] { loader.ToString(), gameVersion, build }, MetadataJsonContext.Default.StringArray),
+        GetAsync("loader:v2:" + JsonSerializer.Serialize(new[] { loader.ToString(), gameVersion, build }, MetadataJsonContext.Default.StringArray),
             token => source.FetchLoaderProfileJsonAsync(loader, gameVersion, build, token), cancellationToken);
     public Task<JsonObject> FetchAssetIndexJsonAsync(string indexUrl, CancellationToken cancellationToken) =>
-        GetAsync("assets:" + indexUrl, token => source.FetchAssetIndexJsonAsync(indexUrl, token), cancellationToken);
+        GetAsync("assets:v2:" + indexUrl, token => source.FetchAssetIndexJsonAsync(indexUrl, token), cancellationToken);
+
+    public async Task<byte[]> FetchVerifiedAssetIndexAsync(string url, string? sha1, long size, CancellationToken token)
+    {
+        if (source is not IVerifiedAssetIndexSource { HasVerifiedIndexBytes: true } verified)
+            throw new NotSupportedException("此自定义元数据来源只提供已解析内容，不能声明原始字节校验。");
+        string request = "assets:raw:v2:" + JsonSerializer.Serialize(new[] { url, sha1 ?? "", size.ToString(System.Globalization.CultureInfo.InvariantCulture) }, MetadataJsonContext.Default.StringArray);
+        JsonObject payload = await GetAsync(request, async cancellation =>
+        {
+            byte[] bytes = await verified.FetchVerifiedAssetIndexAsync(url, sha1, size, cancellation).ConfigureAwait(false);
+            _ = AuthoritativeMetadata.ParseVerified(bytes, sha1, size);
+            return new JsonObject { ["raw"] = Convert.ToBase64String(bytes) };
+        }, token).ConfigureAwait(false);
+        byte[] content = Convert.FromBase64String(payload["raw"]?.GetValue<string>() ?? throw new InvalidDataException("资源索引缓存缺少原始内容。"));
+        _ = AuthoritativeMetadata.ParseVerified(content, sha1, size);
+        return content;
+    }
 
     internal async Task<IReadOnlyList<InstallDownload>> FetchAddonDownloadsAsync(string game, MinecraftInstallAddon addon,
         Func<CancellationToken, Task<IReadOnlyList<InstallDownload>>> fetch, CancellationToken token)

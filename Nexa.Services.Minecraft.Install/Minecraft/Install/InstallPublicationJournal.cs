@@ -14,12 +14,13 @@ internal sealed class InstallPublicationJournal
     private readonly string _instance;
     private readonly IReadOnlyList<InstallPublicationFile> _files;
     private readonly string _hash;
+    private readonly int _trustVersion;
     private const int RecordLimit = 16 * 1024 * 1024;
     internal string InstanceId => _instance;
     internal async Task<string> ReadPhaseAsync(CancellationToken token) => (await ReadProgressAsync(token).ConfigureAwait(false)).Phase;
 
-    private InstallPublicationJournal(string root, string stage, string instance, IReadOnlyList<InstallPublicationFile> files, string hash)
-    { _root = root; _stage = stage; _journal = Path.Combine(stage, ".publication"); _instance = instance; _files = files; _hash = hash; }
+    private InstallPublicationJournal(string root, string stage, string instance, IReadOnlyList<InstallPublicationFile> files, string hash, int trustVersion)
+    { _root = root; _stage = stage; _journal = Path.Combine(stage, ".publication"); _instance = instance; _files = files; _hash = hash; _trustVersion = trustVersion; }
 
     internal static async Task<InstallPublicationJournal> PrepareAsync(string root, string stage, string instance,
         IReadOnlyList<string> generated, IReadOnlyDictionary<string, string> removals, CancellationToken token)
@@ -61,7 +62,7 @@ internal sealed class InstallPublicationJournal
         }
         var document = new JsonObject
         {
-            ["version"] = 1,
+            ["version"] = 2,
             ["root"] = root,
             ["stage"] = stage,
             ["instance"] = instance,
@@ -70,7 +71,7 @@ internal sealed class InstallPublicationJournal
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(document, RecoveryJsonContext.Default.JsonObject);
         if (bytes.Length > RecordLimit) throw new InvalidDataException("安装发布记录过大。");
         await WriteAsync(journal, "plan.json", bytes, token).ConfigureAwait(false);
-        var result = new InstallPublicationJournal(root, stage, instance, ordered, Convert.ToHexString(SHA256.HashData(bytes)));
+        var result = new InstallPublicationJournal(root, stage, instance, ordered, Convert.ToHexString(SHA256.HashData(bytes)), 2);
         await result.ProgressAsync("prepared", 0, token).ConfigureAwait(false);
         return result;
     }
@@ -81,7 +82,8 @@ internal sealed class InstallPublicationJournal
         var document = JsonNode.Parse(bytes)!.AsObject();
         string instance = document["instance"]!.GetValue<string>();
         ValidateIdentity(root, stage, instance);
-        if (document["version"]!.GetValue<int>() != 1 || document["root"]!.GetValue<string>() != root || document["stage"]!.GetValue<string>() != stage)
+        int trustVersion = document["version"]!.GetValue<int>();
+        if (trustVersion is not (1 or 2) || document["root"]!.GetValue<string>() != root || document["stage"]!.GetValue<string>() != stage)
             throw new InvalidDataException("安装发布记录不属于当前目录。");
         var nodes = document["files"]!.AsArray();
         if (nodes.Count > 100000) throw new InvalidDataException("安装发布文件过多。");
@@ -96,12 +98,13 @@ internal sealed class InstallPublicationJournal
             if (total > RecoveryBlobStore.MaxTransactionBytes) throw new InvalidDataException("安装发布超过大小限制。");
             files.Add(new(path, before, after));
         }
-        return new(root, stage, instance, files.AsReadOnly(), Convert.ToHexString(SHA256.HashData(bytes)));
+        return new(root, stage, instance, files.AsReadOnly(), Convert.ToHexString(SHA256.HashData(bytes)), trustVersion);
     }
 
     internal async Task ApplyAsync(CancellationToken token, Action<int, int>? progress = null)
     {
         var (phase, attempted) = await ReadProgressAsync(token).ConfigureAwait(false);
+        if (_trustVersion < 2 && phase != "committed") throw new InvalidDataException("旧发布记录缺少当前下载来源验证，只能保留或回滚。");
         // A completed prefix may have been changed while the launcher was stopped.
         // Validate it before touching another file, including a previously committed transaction.
         int completed = phase == "committed" ? _files.Count : Math.Max(0, attempted - 1);

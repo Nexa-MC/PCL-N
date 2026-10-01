@@ -54,7 +54,7 @@ internal static class InstallTaskJournal
 
     internal static async Task<InstallTaskPlan> CreateAsync(string stage, MinecraftInstallCommand command, CancellationToken token)
     {
-        var plan = new InstallTaskPlan(1, Guid.ParseExact(Path.GetFileName(stage), "N"), DateTimeOffset.UtcNow, command);
+        var plan = new InstallTaskPlan(2, Guid.ParseExact(Path.GetFileName(stage), "N"), DateTimeOffset.UtcNow, command);
         Validate(stage, command.RootDirectory, plan);
         string folder = Path.Combine(stage, DirectoryName);
         RecoveryBlobStore.CheckLinks(folder);
@@ -103,7 +103,7 @@ internal static class InstallTaskJournal
     {
         ValidateStage(root, stage);
         var command = plan.Command ?? throw new InvalidDataException("安装任务缺少计划。");
-        if (plan.Schema != 1 || plan.Id == Guid.Empty || plan.Id.ToString("N") != Path.GetFileName(stage)
+        if (plan.Schema is not (1 or 2) || plan.Id == Guid.Empty || plan.Id.ToString("N") != Path.GetFileName(stage)
             || !Nexa.Core.PathIdentity.Comparer.Equals(command.RootDirectory, root)
             || !MinecraftVersionPaths.IsSafeReference(command.GameVersion)
             || !MinecraftVersionPaths.IsSafeReference(command.InstanceName)

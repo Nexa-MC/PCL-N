@@ -1,6 +1,5 @@
 using Nexa.Services.Minecraft.Management;
 
-
 namespace Nexa.Services.Minecraft.Install;
 
 public sealed partial class MinecraftInstallService
@@ -33,6 +32,21 @@ public sealed partial class MinecraftInstallService
             }
             if (status is InstallTaskStatus.RollbackRequested or InstallTaskStatus.RolledBack)
                 throw new InvalidOperationException("此任务已选择回滚，不能继续安装。");
+            if (saved.Schema < 2)
+            {
+                string priorPublication = Path.Combine(stage, ".publication");
+                RecoveryBlobStore.CheckLinks(priorPublication);
+                if (renaming || !Directory.Exists(priorPublication))
+                    throw new InvalidDataException("此旧任务缺少当前下载来源验证，请保留记录并选择回滚，然后重新安装。");
+                var prior = await InstallPublicationJournal.OpenAsync(root, stage, token).ConfigureAwait(false);
+                if (prior.InstanceId != saved.Command.InstanceName || await prior.ReadPhaseAsync(token).ConfigureAwait(false) != "committed")
+                    throw new InvalidDataException("此旧任务缺少当前下载来源验证，请保留记录并选择回滚，然后重新安装。");
+                // Only repair a terminal marker after verifying already published bytes; never publish old staged output.
+                await prior.ApplyAsync(token).ConfigureAwait(false);
+                await InstallTaskJournal.WriteStatusAsync(stage, saved, InstallTaskStatus.Completed, CancellationToken.None).ConfigureAwait(false);
+                execution.Completed = true;
+                return new(saved.Command.InstanceName!, Path.Combine(root, "versions", saved.Command.InstanceName!));
+            }
             // Generic cancel would leave a resumable task and silently restart it next time.
             // User controls go through the explicit exit pause/rollback flow.
             using var task = _tasks.Begin(new("install-recovery:" + taskId.ToString("N"), (newInstallation ? "继续安装 " : "继续修改 ") + saved.Command.InstanceName, StagePlan, CanCancel: false));

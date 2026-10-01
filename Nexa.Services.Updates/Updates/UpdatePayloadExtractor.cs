@@ -103,7 +103,7 @@ public static class UpdatePayloadExtractor
                 continue;
             }
 
-            int? unixMode = entry.Mode != 0 ? (int)entry.Mode : null;
+            int? unixMode = UpdateUnixMode.Normalize(entry.Mode != 0 ? (int)entry.Mode : null);
             inventory.Add(await ExtractAndHashAsync(
                 entry.DataStream,
                 destination,
@@ -177,17 +177,12 @@ public static class UpdatePayloadExtractor
 
     private static int? ReadZipUnixMode(ZipArchiveEntry entry)
     {
-        int external = (int)(entry.ExternalAttributes >> 16);
-        return external > 0 ? external & 0xFFF : null;
+        uint external = (uint)entry.ExternalAttributes >> 16;
+        return external != 0 ? UpdateUnixMode.Normalize((int)(external & 0xFFF)) : null;
     }
 
     private static void ApplyUnixMode(string destination, int? mode)
     {
-        if (mode is null or < 0 || OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        File.SetUnixFileMode(destination, (UnixFileMode)mode.Value);
+        UpdateUnixMode.Apply(destination, mode);
     }
 }

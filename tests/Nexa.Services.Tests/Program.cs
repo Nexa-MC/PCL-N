@@ -4,6 +4,11 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("old install trust rejects publication and preserves rollback cancel", OldInstallTrustPreservesRollbackAndRejectsPublication),
+        ("Minecraft authority rejects mirror metadata redirects and wrong digest", MinecraftAuthorityRejectsMirrorMetadataAndRedirects),
+        ("Minecraft index preserves verified bytes without second transfer", MinecraftIndexUsesVerifiedRawBytesWithoutSecondTransfer),
+        ("Forge authority rejects redirect before transfer or execution", ForgeAuthorityRejectsRedirectBeforeInstallerDownload),
+        ("update modes strip special and shared write permissions", UpdateModesCannotPropagateSpecialOrSharedWritePermissions),
         ("scheduler telemetry preserves facts while quiet and joins shutdown", TelemetryQuietPreservesQueuedFactsAndJoinsShutdown),
         ("scheduler cancellation races release every lease", WorkCancellationRacesNeverRetainResourceLeases),
         ("scheduler downloads inherit critical and release failure cancellation", ScheduledDownloadsInheritCriticalAndReleaseAfterFailure),

@@ -200,12 +200,6 @@ public sealed partial class MinecraftInstallService : IDisposable
                 VersionJson = vanillaJson,
                 MinecraftRootDirectory = root,
             });
-        if (assetIndexPlan.HasDownload)
-        {
-            gameFiles.Add(new PlannedFile(
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(assetIndexPlan.Url!, true),
-                assetIndexPlan.LocalPath!, null, 0));
-        }
 
         MinecraftClientJarDownloadPlan clientPlan = MinecraftClientDownloadPlanner.CreateClientJarPlan(
             new MinecraftClientJarDownloadPlanRequest
@@ -217,7 +211,7 @@ public sealed partial class MinecraftInstallService : IDisposable
         if (clientPlan.File is { } client)
         {
             gameFiles.Add(new PlannedFile(
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true),
+                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true, client.Sha1),
                 client.LocalPath, client.Sha1, client.ActualSize));
         }
 
@@ -246,9 +240,15 @@ public sealed partial class MinecraftInstallService : IDisposable
 
         // Assets are planned after the index document exists on disk.
         JsonObject assetIndexJson;
+        byte[]? assetIndexContent = null;
         if (assetIndexPlan.HasDownload)
         {
-            assetIndexJson = await metadata.FetchAssetIndexJsonAsync(assetIndexPlan.Url!, token).ConfigureAwait(false);
+            if (metadata is IVerifiedAssetIndexSource { HasVerifiedIndexBytes: true } verified)
+            {
+                assetIndexContent = await verified.FetchVerifiedAssetIndexAsync(assetIndexPlan.Url!, assetIndexPlan.Sha1, assetIndexPlan.Size, token).ConfigureAwait(false);
+                assetIndexJson = AuthoritativeMetadata.ParseVerified(assetIndexContent, assetIndexPlan.Sha1, assetIndexPlan.Size);
+            }
+            else assetIndexJson = await metadata.FetchAssetIndexJsonAsync(assetIndexPlan.Url!, token).ConfigureAwait(false);
         }
         else if (assetIndexPlan.IndexId is { } existingId
             && File.Exists(Path.Combine(root, "assets", "indexes", existingId + ".json")))
@@ -264,8 +264,8 @@ public sealed partial class MinecraftInstallService : IDisposable
         if (assetIndexPlan.HasDownload && assetIndexPlan.LocalPath is { } indexPath)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(indexPath)!);
-            await File.WriteAllTextAsync(indexPath, assetIndexJson.ToJsonString(JsonOptions), token)
-                .ConfigureAwait(false);
+            if (assetIndexContent is not null) await File.WriteAllBytesAsync(indexPath, assetIndexContent, token).ConfigureAwait(false);
+            else await File.WriteAllTextAsync(indexPath, assetIndexJson.ToJsonString(JsonOptions), token).ConfigureAwait(false);
         }
 
         IReadOnlyList<MinecraftAssetToken> assets = MinecraftAssetListResolver.GetAssetList(
@@ -517,7 +517,7 @@ public sealed partial class MinecraftInstallService : IDisposable
 
             // The mirror-first order stands, but a rate-limited bmclapi must not strand a
             // third-party artifact: the canonical URL rides along as the last resort.
-            string[] sources = MinecraftDownloadSourcePlanner.GetLibrarySources(library.Url, true);
+            string[] sources = MinecraftDownloadSourcePlanner.GetLibrarySources(library.Url, true, library.Sha1);
             if (!sources.Contains(library.Url, StringComparer.Ordinal))
             {
                 sources = [.. sources, library.Url];
@@ -636,26 +636,28 @@ public sealed partial class MinecraftInstallService : IDisposable
     }
 
     /// <summary>Production metadata port: manifest → per-version JSON over the shared client.</summary>
-    private sealed class HttpMinecraftInstallMetadataSource(HttpClient http) : IMinecraftInstallMetadataSource
+    internal sealed class HttpMinecraftInstallMetadataSource(HttpClient http) : IMinecraftInstallMetadataSource, IVerifiedAssetIndexSource
     {
+        public bool HasVerifiedIndexBytes => true;
         private const string ManifestUrl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
         public async Task<JsonObject> FetchVanillaVersionJsonAsync(
             string gameVersion, CancellationToken cancellationToken)
         {
-            JsonObject manifest = await FetchJsonAsync(
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(ManifestUrl, true), cancellationToken)
-                .ConfigureAwait(false);
-            string? entryUrl = (manifest["versions"]?.AsArray() ?? [])
+            JsonObject manifest = await FetchJsonAsync([ManifestUrl], cancellationToken).ConfigureAwait(false);
+            JsonObject entry = (manifest["versions"]?.AsArray() ?? [])
                 .Select(static node => node as JsonObject)
                 .Where(entry => entry is not null
                     && string.Equals(entry["id"]?.ToString(), gameVersion, StringComparison.Ordinal))
-                .Select(entry => entry!["url"]?.ToString())
-                .FirstOrDefault(static url => !string.IsNullOrWhiteSpace(url))
+                .FirstOrDefault()
                 ?? throw new InvalidOperationException($"版本清单中没有 Minecraft {gameVersion}。");
-            return await FetchJsonAsync(
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(entryUrl, true), cancellationToken)
-                .ConfigureAwait(false);
+            string entryUrl = entry["url"]?.ToString() ?? throw new InvalidDataException("版本清单缺少元数据来源。");
+            string sha1 = entry["sha1"]?.ToString() ?? throw new InvalidDataException("版本清单缺少元数据摘要。");
+            AuthoritativeMetadata.RequireMojangOrigin(entryUrl);
+            byte[] bytes = await AuthoritativeMetadata.ReadAsync(http, entryUrl, 16 * 1024 * 1024, cancellationToken).ConfigureAwait(false);
+            JsonObject document = AuthoritativeMetadata.ParseVerified(bytes, sha1, -1);
+            if (document["id"]?.ToString() != gameVersion) throw new InvalidDataException("版本元数据身份不一致。");
+            return document;
         }
 
         public async Task<JsonObject> FetchLoaderProfileJsonAsync(
@@ -685,10 +687,16 @@ public sealed partial class MinecraftInstallService : IDisposable
             return await FetchJsonAsync([url], cancellationToken).ConfigureAwait(false);
         }
 
-        public Task<JsonObject> FetchAssetIndexJsonAsync(string indexUrl, CancellationToken cancellationToken) =>
-            FetchJsonAsync(
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(indexUrl, true),
-                cancellationToken);
+        public async Task<JsonObject> FetchAssetIndexJsonAsync(string indexUrl, CancellationToken cancellationToken) =>
+            AuthoritativeMetadata.ParseVerified(await FetchVerifiedAssetIndexAsync(indexUrl, null, -1, cancellationToken).ConfigureAwait(false), null, -1);
+
+        public async Task<byte[]> FetchVerifiedAssetIndexAsync(string url, string? sha1, long size, CancellationToken token)
+        {
+            AuthoritativeMetadata.RequireMojangOrigin(url);
+            byte[] bytes = await AuthoritativeMetadata.ReadAsync(http, url, 16 * 1024 * 1024, token).ConfigureAwait(false);
+            _ = AuthoritativeMetadata.ParseVerified(bytes, sha1, size);
+            return bytes;
+        }
 
         private async Task<JsonObject> FetchJsonAsync(IReadOnlyList<string> urls, CancellationToken cancellationToken)
         {
@@ -697,13 +705,8 @@ public sealed partial class MinecraftInstallService : IDisposable
             {
                 try
                 {
-                    using HttpResponseMessage response = await http.GetAsync(url, cancellationToken)
-                        .ConfigureAwait(false);
-                    response.EnsureSuccessStatusCode();
-                    string body = await response.Content.ReadAsStringAsync(cancellationToken)
-                        .ConfigureAwait(false);
-                    return JsonNode.Parse(body)?.AsObject()
-                        ?? throw new FormatException($"响应不是 JSON 对象：{url}");
+                    return AuthoritativeMetadata.ParseVerified(await AuthoritativeMetadata.ReadAsync(http, url,
+                        16 * 1024 * 1024, cancellationToken).ConfigureAwait(false), null, -1);
                 }
                 catch (Exception exception) when (exception is not OutOfMemoryException
                     and not OperationCanceledException)
@@ -717,7 +720,7 @@ public sealed partial class MinecraftInstallService : IDisposable
     }
 
     /// <summary>Adapts one HttpClient GET to the download engine's connection port.</summary>
-    internal sealed class HttpConnection(HttpClient client, string source) : IDownloadConnection
+    internal sealed class HttpConnection(HttpClient client, string source, Uri? authoritativeOrigin = null) : IDownloadConnection
     {
         private HttpResponseMessage? _response;
 
@@ -734,6 +737,8 @@ public sealed partial class MinecraftInstallService : IDisposable
             _response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken).ConfigureAwait(false);
             _response.EnsureSuccessStatusCode();
+            if (authoritativeOrigin is not null) AuthoritativeMetadata.RequireSameOrigin(authoritativeOrigin,
+                _response.RequestMessage?.RequestUri ?? new Uri(source));
             long length = _response.Content.Headers.ContentLength ?? -1;
             return new DownloadConnectionInfo(length, beginOffset, length >= 0 ? beginOffset + length - 1 : -1, false);
         }

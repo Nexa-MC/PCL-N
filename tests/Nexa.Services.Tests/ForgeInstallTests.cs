@@ -63,7 +63,7 @@ internal static partial class Program
                 XsrStateStoreBuilder builder = new(); DownloadService.DeclareState(builder); var store = builder.Build();
                 bool ran = false;
                 var service = new ForgeInstallService(new DownloadService(store), http,
-                    _ => new ServingConnection(archive), (_, _) => Task.FromResult("java with spaces"),
+                    source => { AssertEqual(ForgeInstallService.InstallerUrl(kind, "1.20.1", "47.2.0"), source); return new ServingConnection(archive); }, (_, _) => Task.FromResult("java with spaces"),
                     async (start, token) =>
                     {
                         ran = true;

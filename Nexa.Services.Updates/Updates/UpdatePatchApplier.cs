@@ -172,12 +172,7 @@ public sealed class UpdatePatchApplier
         UpdateStaging.VerifyStagedTree(stagedRoot, manifest.TargetFiles);
         foreach (UpdateFileEntry file in manifest.TargetFiles)
         {
-            if (file.UnixMode is int mode && mode >= 0 && !OperatingSystem.IsWindows())
-            {
-                File.SetUnixFileMode(
-                    UpdateStaging.ResolveSafeRelativePath(stagedRoot, file.Path),
-                    (UnixFileMode)mode);
-            }
+            UpdateUnixMode.Apply(UpdateStaging.ResolveSafeRelativePath(stagedRoot, file.Path), file.UnixMode);
         }
     }
 

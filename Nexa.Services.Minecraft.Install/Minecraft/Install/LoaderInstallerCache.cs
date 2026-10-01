@@ -14,7 +14,8 @@ internal sealed class LoaderInstallerCache : IDisposable
 
     internal LoaderInstallerCache(string root, MinecraftLoaderInstallRequest request)
     {
-        string identity = request.Loader + "\n" + request.Game + "\n" + request.Build + "\n" + request.LocalInstaller?.Sha256;
+        string policy = request.LocalInstaller is null && request.Loader is InstallLoader.Forge or InstallLoader.NeoForge ? "official-installer-v2\n" : "";
+        string identity = policy + request.Loader + "\n" + request.Game + "\n" + request.Build + "\n" + request.LocalInstaller?.Sha256;
         string key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
         _directory = Nexa.Core.PathIdentity.Contained(root, ".task/loader/" + key);
         RecoveryBlobStore.CheckLinks(_directory); Directory.CreateDirectory(_directory);

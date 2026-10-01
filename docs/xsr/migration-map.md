@@ -32,8 +32,11 @@ There is no periodic `dev -> refactor/xsr` merge. A legacy fix is forward-ported
 ## Wave 5 status (complete)
 
 Foundation services are composed over one shared host state store with formal command/query
-routers sealed in `Nexa.Services.Composition`, and the update loop runs end to end
-(discovery → eligibility → plan → download → verify → stage → install → restart):
+routers sealed in `Nexa.Services.Composition`. The rows below record historical migration
+units and contract tests, not a Beta product acceptance result. Update discovery, planning,
+verification and staging exist; privileged automatic replacement and restart are not
+delivered. Production supplies manual installer/download URLs, and `UpdateStaging.ApplyPlan`
+refuses mutation. See [update-privilege-boundary.md](update-privilege-boundary.md).
 
 | Unit | Commit | Outcome |
 |---|---|---|
@@ -101,6 +104,11 @@ PXML vertical slices continue over the shared shell.
 | XSR-712 | follow-up | defer LiquidGlass: Experimental-only product style, no alternate palette or style-toggle activation; preserve independent motion and capsule controls |
 | XSR-714 | follow-up | in-window feedback: lower-left Info/Warn/Error notifications with fixed lifetimes and manual dismissal; modal PXML dialogs; Java acquisition confirmation migration |
 | XSR-721 | follow-up | title-free Java/Bedrock two-card installation entry; Java version input plus an embedded twelve-slice catalog with conditional Fabric API/QSL slices; `HorizontalPager` accepts drag/Left/Right but ignores mouse/trackpad wheels; unavailable start/Bedrock actions remain truthful and introduce no installer Service boundary |
+| XSR-722 | follow-up | service-owned install catalogs, merged addon sources, compatibility selection and virtualized lists; [migration](migrations/XSR-722-install-catalog.md) |
+| XSR-723 | follow-up | typed task tracking, progress bubble and task center; [migration](migrations/XSR-723-task-center.md) |
+| XSR-724 | follow-up | real installation and commit-last version publication; [migration](migrations/XSR-724-install-execution.md); current authority and recovery policy in [download-trust.md](download-trust.md) |
+| XSR-725 | follow-up | scoped capability, provenance, estimator and preflight contracts; [migration](migrations/XSR-725-capability-planning.md); estimates remain warnings |
+| XSR-726 | follow-up | JVM host boundary and bounded observation; [migration](migrations/XSR-726-jvm-host-observations.md); smoke tests do not establish real Minecraft compatibility |
 
 ## Closed migration unit
 

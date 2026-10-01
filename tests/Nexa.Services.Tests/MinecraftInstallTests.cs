@@ -126,7 +126,7 @@ internal static partial class Program
             "id": "5",
             "url": "https://piston-meta.mojang.com/v1/packages/asset-index/5.json",
             "sha1": "__ASSET_SHA__",
-            "size": 100,
+            "size": __INDEX_SIZE__,
             "totalSize": 100
           },
           "downloads": {
@@ -150,7 +150,9 @@ internal static partial class Program
             }
           ]
         }
-        """.Replace("__ASSET_SHA__", Sha1Hex("ASSET!")).Replace("__JAR_SHA__", Sha1Hex("JARCONTENT")))!.AsObject();
+        """.Replace("__ASSET_SHA__", Sha1Hex(AssetIndexJson().ToJsonString()))
+            .Replace("__INDEX_SIZE__", System.Text.Encoding.UTF8.GetByteCount(AssetIndexJson().ToJsonString()).ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .Replace("__JAR_SHA__", Sha1Hex("JARCONTENT")))!.AsObject();
 
     private static JsonObject AssetIndexJson() => JsonNode.Parse("""
         {

@@ -63,11 +63,13 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
                         sha256 = await CleanroomDigestAsync(request.Build, token).ConfigureAwait(false);
                     else if (request.Loader != InstallLoader.OptiFine)
                     {
-                        sha = (await http.GetStringAsync(url + ".sha1", token).ConfigureAwait(false)).Trim().Split(' ', '\t', '\r', '\n')[0];
+                        sha = System.Text.Encoding.UTF8.GetString(await AuthoritativeMetadata.ReadAsync(http, url + ".sha1", 1024, token).ConfigureAwait(false))
+                            .Trim().Split(' ', '\t', '\r', '\n')[0];
                         if (sha.Length != 40 || !sha.All(char.IsAsciiHexDigit)) throw new InvalidDataException("安装器校验信息无效。");
                     }
                     progress?.Report("正在下载安装器");
-                    await TransferAsync(url, installer, sha, 0, token).ConfigureAwait(false);
+                    await TransferAsync(url, installer, sha, 0, token,
+                        officialInstaller: request.Loader is InstallLoader.Forge or InstallLoader.NeoForge).ConfigureAwait(false);
                 }
                 if (sha256 is not null)
                 {
@@ -192,16 +194,17 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
         });
     }
 
-    private async Task TransferAsync(string url, string path, string? sha, long size, CancellationToken token)
+    private async Task TransferAsync(string url, string path, string? sha, long size, CancellationToken token, bool officialInstaller = false)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != "https") throw new InvalidDataException("安装器依赖必须使用 HTTPS。");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var sources = Nexa.Services.Minecraft.Downloads.MinecraftDownloadSourcePlanner.GetLibrarySources(url, true).Append(url).Distinct(StringComparer.Ordinal).ToArray();
+        string[] sources = officialInstaller ? [url] : MinecraftDownloadSourcePlanner.GetLibrarySources(url, true, sha).Append(url).Distinct(StringComparer.Ordinal).ToArray();
         var result = await downloads.DownloadAsync(new DownloadRequest
         {
             Sources = sources,
             DestinationPath = path,
-            ConnectionFactory = source => connectionFactory?.Invoke(source) ?? new MinecraftInstallService.HttpConnection(http, source),
+            ConnectionFactory = source => connectionFactory?.Invoke(source) ?? new MinecraftInstallService.HttpConnection(http, source,
+                officialInstaller ? uri : null),
         }, cancellationToken: token).ConfigureAwait(false);
         if (!result.Success || !await MinecraftFileVerifier.VerifyAsync(new(path, size > 0 ? size : null, sha), token).ConfigureAwait(false))
             throw new IOException("加载器文件下载或校验失败：" + Path.GetFileName(path));

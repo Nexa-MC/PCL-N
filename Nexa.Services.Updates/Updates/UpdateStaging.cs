@@ -182,12 +182,7 @@ public static class UpdateStaging
 
     private static void RestoreUnixMode(string path, int? mode)
     {
-        if (mode is null or < 0 || OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        File.SetUnixFileMode(path, (UnixFileMode)mode.Value);
+        UpdateUnixMode.Apply(path, mode);
     }
 
     /// <summary>

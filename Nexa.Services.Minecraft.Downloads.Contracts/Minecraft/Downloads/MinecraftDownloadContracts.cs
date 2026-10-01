@@ -1,4 +1,3 @@
-
 using System.Text.Json.Nodes;
 using Nexa.Services.Minecraft.Assets;
 
@@ -44,6 +43,8 @@ public sealed record MinecraftAssetIndexDownloadPlan
     public string? IndexId { get; init; }
     public string? Url { get; init; }
     public string? LocalPath { get; init; }
+    public string? Sha1 { get; init; }
+    public long Size { get; init; } = -1;
     public bool UsedLegacyFallback { get; init; }
     public bool HasDownload => !string.IsNullOrWhiteSpace(Url) && !string.IsNullOrWhiteSpace(LocalPath);
 }

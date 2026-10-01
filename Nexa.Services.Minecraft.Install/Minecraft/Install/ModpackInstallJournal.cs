@@ -12,6 +12,7 @@ internal sealed class ModpackInstallJournal
     internal const string DirectoryName = ".nexa-pack-jobs";
     internal string Stage { get; }
     internal MinecraftModpackCommand Command { get; }
+    internal int TrustVersion { get; }
     internal string Archive => Path.Combine(Stage, "source.pack");
     internal string Game => Path.Combine(Stage, "game");
     internal string Instance => Nexa.Core.PathIdentity.Contained(Game, "versions/" + Command.Pack.InstanceId);
@@ -28,22 +29,22 @@ internal sealed class ModpackInstallJournal
             return false;
         }
     }
-    private ModpackInstallJournal(string stage, MinecraftModpackCommand command) { Stage = stage; Command = command; }
+    private ModpackInstallJournal(string stage, MinecraftModpackCommand command, int trustVersion) { Stage = stage; Command = command; TrustVersion = trustVersion; }
     internal static async Task<ModpackInstallJournal> CreateAsync(string root, MinecraftModpackCommand command, CancellationToken token)
     {
         string stage = Path.Combine(root, DirectoryName, Guid.NewGuid().ToString("N"));
         command = command with { RootDirectory = root };
         Validate(root, stage, command);
         Directory.CreateDirectory(stage);
-        await WriteAsync(stage, "intent.json", JsonSerializer.SerializeToUtf8Bytes(new ModpackIntent(1, command), ModpackJournalJson.Default.ModpackIntent), token).ConfigureAwait(false);
-        return new(stage, command);
+        await WriteAsync(stage, "intent.json", JsonSerializer.SerializeToUtf8Bytes(new ModpackIntent(2, command), ModpackJournalJson.Default.ModpackIntent), token).ConfigureAwait(false);
+        return new(stage, command, 2);
     }
     internal static async Task<ModpackInstallJournal> OpenAsync(string root, string stage, CancellationToken token)
     {
         var intent = JsonSerializer.Deserialize(await ReadAsync(stage, "intent.json", 65536, token).ConfigureAwait(false), ModpackJournalJson.Default.ModpackIntent)
             ?? throw new InvalidDataException("整合包任务为空。");
-        if (intent.Schema != 1) throw new InvalidDataException("整合包任务版本无效。");
-        Validate(root, stage, intent.Command); return new(stage, intent.Command);
+        if (intent.Schema is not (1 or 2)) throw new InvalidDataException("整合包任务版本无效。");
+        Validate(root, stage, intent.Command); return new(stage, intent.Command, intent.Schema);
     }
     private static void Validate(string root, string stage, MinecraftModpackCommand command)
     {
@@ -85,6 +86,7 @@ internal sealed class ModpackInstallJournal
     }
     internal async Task PublishAsync(CancellationToken token)
     {
+        if (TrustVersion < 2) throw new InvalidDataException("旧整合包任务缺少当前下载来源验证，请保留记录或取消，然后重新安装。");
         if (Canceled) throw new InvalidOperationException("整合包安装已取消。");
         RecoveryBlobStore.CheckLinks(Instance); RecoveryBlobStore.CheckLinks(Destination);
         bool staged = Directory.Exists(Instance);
@@ -121,7 +123,7 @@ internal sealed class ModpackInstallJournal
     internal async Task CancelAsync()
     {
         if (Complete || Canceled) return;
-        if (Prepared && !Directory.Exists(Instance)) { await PublishAsync(CancellationToken.None).ConfigureAwait(false); return; }
+        if (TrustVersion >= 2 && Prepared && !Directory.Exists(Instance)) { await PublishAsync(CancellationToken.None).ConfigureAwait(false); return; }
         await WriteAsync(Stage, "canceled", "1"u8.ToArray(), CancellationToken.None).ConfigureAwait(false);
         InstallTaskCleanup.TryPrune(Stage, "intent.json", "canceled", "lock");
     }

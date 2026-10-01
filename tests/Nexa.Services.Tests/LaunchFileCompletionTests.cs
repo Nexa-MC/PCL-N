@@ -39,7 +39,7 @@ internal static partial class Program
         public CompletionProgressRecorder? Progress;
         public string Root;
 
-        public CompletionFixture()
+        public CompletionFixture(byte[]? indexContent = null)
         {
             XsrStateStoreBuilder builder = new();
             DownloadService.DeclareState(builder);
@@ -53,7 +53,8 @@ internal static partial class Program
                 connectionFactory: source =>
                 {
                     lock (RequestedUrls) RequestedUrls.Add(source);
-                    return new ServingConnection("REPAIRED"u8.ToArray());
+                    return new ServingConnection(indexContent is not null && source.EndsWith("5.json", StringComparison.Ordinal)
+                        ? indexContent : "REPAIRED"u8.ToArray());
                 });
         }
 
@@ -69,7 +70,15 @@ internal static partial class Program
 
     private static async ValueTask LaunchCompletionRepairsMissingFilesBeforeStart()
     {
-        using CompletionFixture fixture = new();
+        string indexText = new JsonObject
+        {
+            ["objects"] = new JsonObject
+            {
+                ["minecraft/sounds/gone.ogg"] =
+            new JsonObject { ["hash"] = Sha1Hex("REPAIRED"), ["size"] = 8 }
+            }
+        }.ToJsonString();
+        using CompletionFixture fixture = new(System.Text.Encoding.UTF8.GetBytes(indexText));
         string versionsRoot = Path.Combine(fixture.Root, "versions");
         string gameDirectory = Path.Combine(versionsRoot, "1.20.1");
         Directory.CreateDirectory(gameDirectory);
@@ -80,7 +89,7 @@ internal static partial class Program
             "id": "5",
             "url": "https://piston-meta.mojang.com/v1/packages/index/5.json",
             "sha1": "__INDEX_SHA__",
-            "size": 90,
+            "size": __INDEX_SIZE__,
             "totalSize": 90
           },
           "downloads": {
@@ -109,7 +118,8 @@ internal static partial class Program
             }
           ]
         }
-        """.Replace("__INDEX_SHA__", Sha1Hex("index"))
+        """.Replace("__INDEX_SHA__", Sha1Hex(indexText))
+           .Replace("__INDEX_SIZE__", System.Text.Encoding.UTF8.GetByteCount(indexText).ToString(System.Globalization.CultureInfo.InvariantCulture))
            .Replace("__JAR_SHA__", Sha1Hex("REPAIRED"))
            .Replace("__PRESENT_SHA__", Sha1Hex("ALREADY-THERE"))
            .Replace("__MISSING_SHA__", Sha1Hex("REPAIRED"))));
@@ -199,6 +209,8 @@ internal static partial class Program
         lock (fixture.RequestedUrls)
         {
             AssertFalse(fixture.RequestedUrls.Any(url => url.Contains("present.jar", StringComparison.Ordinal)));
+            AssertEqual(1, fixture.RequestedUrls.Count(url => url.EndsWith("5.json", StringComparison.Ordinal)));
         }
+        AssertEqual(indexText, await File.ReadAllTextAsync(Path.Combine(fixture.Root, "assets", "indexes", "5.json")));
     }
 }

@@ -37,7 +37,25 @@ internal static partial class Program
                         command = command with { Loader = InstallLoader.Fabric, LoaderBuild = "0.16.9", EditFingerprint = original.Fingerprint };
                     }
                     TaskCompletionSource entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                    using var fixture = new InstallFixture(new() { VanillaJson = VanillaJson(), AssetIndexJson = AssetIndexJson(), LoaderJson = new() { ["mainClass"] = "fabric.Main", ["inheritsFrom"] = "1.20.1" } }, connectionFactory: _ => new ExitBlockingConnection(entered));
+                    using var fixture = new InstallFixture(new()
+                    {
+                        VanillaJson = VanillaJson(),
+                        AssetIndexJson = AssetIndexJson(),
+                        LoaderJson = new()
+                        {
+                            ["mainClass"] = "fabric.Main",
+                            ["inheritsFrom"] = "1.20.1",
+                            ["libraries"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject
+                            {
+                                ["name"] = "exit:missing:1",
+                                ["downloads"] = new System.Text.Json.Nodes.JsonObject
+                                {
+                                    ["artifact"] = new System.Text.Json.Nodes.JsonObject
+                                    { ["path"] = "exit/missing/1/library.jar", ["url"] = "https://libraries.minecraft.net/exit/library.jar", ["sha1"] = Sha1Hex("JARCONTENT"), ["size"] = 10 },
+                                },
+                            }),
+                        }
+                    }, connectionFactory: _ => new ExitBlockingConnection(entered));
                     var running = fixture.Install.InstallAsync(command);
                     await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
                     AssertTrue((await fixture.Install.StopAsync(new(pause)).WaitAsync(TimeSpan.FromSeconds(10))).IsSuccess);

@@ -64,11 +64,20 @@ public static class MinecraftClientDownloadPlanner
         string? localPath = string.IsNullOrWhiteSpace(id)
             ? null
             : Contained(Path.GetFullPath(request.MinecraftRootDirectory), "assets", "indexes", id + ".json");
+        string? sha1 = resolution.IndexJson["sha1"]?.ToString();
+        if (sha1 is not null && (sha1.Length != 40 || !sha1.All(char.IsAsciiHexDigit)))
+            throw new InvalidDataException("Asset index SHA-1 is invalid.");
+        long size = -1;
+        if (resolution.IndexJson["size"] is { } sizeNode && (!long.TryParse(sizeNode.ToString(),
+            System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out size) || size < 0))
+            throw new InvalidDataException("Asset index size is invalid.");
         return new MinecraftAssetIndexDownloadPlan
         {
             IndexId = string.IsNullOrWhiteSpace(id) ? null : id,
             Url = url,
             LocalPath = localPath,
+            Sha1 = sha1,
+            Size = size,
             UsedLegacyFallback = resolution.UsedLegacyFallback,
         };
     }
@@ -121,6 +130,26 @@ public static class MinecraftDownloadSourcePlanner
         ArgumentException.ThrowIfNullOrWhiteSpace(original);
         string mirror = original.Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com", StringComparison.Ordinal).Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com", StringComparison.Ordinal).Replace("https://launcher.mojang.com", "https://bmclapi2.bangbang93.com", StringComparison.Ordinal).Replace("https://launchermeta.mojang.com", "https://bmclapi2.bangbang93.com", StringComparison.Ordinal).Replace("https://zkitefly.github.io/unlisted-versions-of-minecraft", "https://alist.8mi.tech/d/mirror/unlisted-versions-of-minecraft/Auto", StringComparison.Ordinal);
         return OrderSources([original], [mirror], preferOfficialSource);
+    }
+
+    public static string[] GetLibrarySources(string original, bool preferOfficialSource, string? expectedSha1) =>
+        HasDigest(expectedSha1) ? GetLibrarySources(original, preferOfficialSource) : OriginalHttpsSource(original);
+
+    public static string[] GetLauncherOrMetaSources(string original, bool preferOfficialSource, string? expectedSha1) =>
+        HasDigest(expectedSha1) ? GetLauncherOrMetaSources(original, preferOfficialSource) : OriginalHttpsSource(original);
+
+    private static bool HasDigest(string? sha1)
+    {
+        if (string.IsNullOrEmpty(sha1)) return false;
+        if (sha1.Length != 40 || !sha1.All(char.IsAsciiHexDigit)) throw new InvalidDataException("下载摘要无效。");
+        return true;
+    }
+
+    private static string[] OriginalHttpsSource(string original)
+    {
+        if (!Uri.TryCreate(original, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || uri.UserInfo.Length != 0)
+            throw new InvalidDataException("缺少摘要的下载必须使用原始 HTTPS 来源。");
+        return [original];
     }
 
     private static string ReplaceAssetMirror(string value) => value.Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com/assets", StringComparison.Ordinal).Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com/assets", StringComparison.Ordinal).Replace("https://resources.download.minecraft.net", "https://bmclapi2.bangbang93.com/assets", StringComparison.Ordinal);

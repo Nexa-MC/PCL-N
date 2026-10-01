@@ -4,7 +4,6 @@ using System.Text.Json.Nodes;
 using Nexa.Services.Downloads;
 using Nexa.Services.Files;
 using Nexa.Services.Minecraft.Management;
-
 using Nexa.Xsr;
 
 namespace Nexa.Services.Minecraft.Install;
@@ -33,6 +32,7 @@ public sealed partial class MinecraftInstallService
             lease = journal.Acquire();
             if (journal.Canceled) throw new InvalidOperationException("整合包安装已取消。");
             if (journal.Complete) return XsrResult.Success(new MinecraftInstallResult(command.Pack.InstanceId, journal.Destination));
+            if (journal.TrustVersion < 2) throw new InvalidDataException("旧整合包任务缺少当前下载来源验证，请保留记录或取消，然后重新安装。");
             if (journal.Prepared)
             {
                 ReadyExecution(execution, journal.Stage);

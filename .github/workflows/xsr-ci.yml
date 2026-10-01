@@ -75,6 +75,13 @@ jobs:
       - name: Run Windows native protection
         if: runner.os == 'Windows'
         run: ./native-account-tests/Nexa.Services.Tests.exe "native profile protection"
+      - name: Verify native update archive permissions
+        # Archive modes share the same cross-platform NativeAOT test binary.
+        shell: pwsh
+        run: |
+          $binary = if ($IsWindows) { './native-account-tests/Nexa.Services.Tests.exe' } else { './native-account-tests/Nexa.Services.Tests' }
+          & $binary "update modes"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run macOS native protection
         if: runner.os == 'macOS'
         run: ./native-account-tests/Nexa.Services.Tests "native profile protection"

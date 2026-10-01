@@ -65,7 +65,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
         if (clientPlan.File is { } client && !await HasVerifiedCorePatchAsync(instance, client.LocalPath, cancellationToken).ConfigureAwait(false))
         {
             AddIfMissing(candidates,
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true),
+                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true, client.Sha1),
                 client.LocalPath, client.ActualSize, client.Sha1);
         }
 
@@ -76,12 +76,6 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                 InheritedVersionJsons = manifests.Inherited,
                 MinecraftRootDirectory = root,
             });
-        if (indexPlan.HasDownload && indexPlan.LocalPath is { } indexPath)
-        {
-            AddIfMissing(candidates,
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(indexPlan.Url!, true),
-                indexPath, null, null);
-        }
 
         // Libraries accumulate across the whole chain: the child's overrides win.
         Dictionary<string, (string Url, string? Sha1, long Size)> libraries = new(Nexa.Core.PathIdentity.Comparer);
@@ -109,7 +103,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
 
         foreach ((string localPath, (string url, string? sha1, long size)) in libraries)
         {
-            string[] sources = MinecraftDownloadSourcePlanner.GetLibrarySources(url, true);
+            string[] sources = MinecraftDownloadSourcePlanner.GetLibrarySources(url, true, sha1);
             if (!sources.Contains(url, StringComparer.Ordinal))
             {
                 sources = [.. sources, url];
@@ -245,41 +239,42 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
         MinecraftAssetIndexDownloadPlan plan,
         CancellationToken cancellationToken)
     {
-        if (File.Exists(indexDiskPath) || !plan.HasDownload)
+        var expected = new MinecraftExpectedFile(indexDiskPath, plan.Size >= 0 ? plan.Size : null, plan.Sha1);
+        if (File.Exists(indexDiskPath) && await _verification.VerifyAsync(expected, cancellationToken, forceHash: true).ConfigureAwait(false))
         {
+            return;
+        }
+        if (!plan.HasDownload)
+        {
+            if (File.Exists(indexDiskPath)) throw new InvalidDataException("资源索引校验失败，且没有下载来源。");
             return;
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(indexDiskPath)!);
-        DownloadTransferResult transfer = await TransferAsync(
-            MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(plan.Url!, true),
-            indexDiskPath,
-            cancellationToken).ConfigureAwait(false);
-        if (!transfer.Success)
+        string[] sources = MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(plan.Url!, true, plan.Sha1);
+        for (int attempt = 0; attempt < 2; attempt++)
         {
-            await Task.Delay(FileRetryDelay, cancellationToken).ConfigureAwait(false);
-            transfer = await TransferAsync(
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(plan.Url!, true),
-                indexDiskPath,
-                cancellationToken).ConfigureAwait(false);
+            TryDelete(indexDiskPath);
+            DownloadTransferResult transfer = await TransferAsync(sources, indexDiskPath, cancellationToken,
+                allowResume: false).ConfigureAwait(false);
+            if (transfer.Success && await _verification.VerifyAsync(expected, cancellationToken, forceHash: true).ConfigureAwait(false)) return;
+            TryDelete(indexDiskPath);
+            if (attempt == 0) await Task.Delay(FileRetryDelay, cancellationToken).ConfigureAwait(false);
         }
-
-        if (!transfer.Success)
-        {
-            throw new InvalidOperationException("补全文件失败：资源索引下载失败。");
-        }
+        throw new InvalidOperationException("补全文件失败：资源索引下载或校验失败。");
     }
 
     private Task<DownloadTransferResult> TransferAsync(
         IReadOnlyList<string> sources,
         string destination,
         CancellationToken cancellationToken,
-        Action<DownloadProgress>? progress = null) =>
+        Action<DownloadProgress>? progress = null, bool allowResume = true) =>
         _downloads.DownloadAsync(
             new DownloadRequest
             {
                 Sources = sources,
                 DestinationPath = destination,
+                AllowResume = allowResume,
                 ConnectionFactory = _connectionFactory is { } factory
                     ? source => factory(source)
                     : source => new HttpConnectionAdapter(_http, source),
