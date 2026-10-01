@@ -1,5 +1,20 @@
 # XSR-736 Compile-time Function Patch rewriting
 
+## Cross-platform compile-item identity
+
+Source replacement matches `FullPath` metadata with MSBuild's `PathLike` normalization,
+not the literal Include spelling. Forward/backward separators, relative/absolute aliases
+and dot segments for the same source must all be removed before adding one generated
+file. The replacement still executes when generation is incrementally skipped. A real
+MSBuild item fixture runs on CI independently of the compiler's syntax tests.
+
+The initial `739e8cbb` XSR CI passed, but Launcher Windows x64/ARM64 compiled both the
+original and generated file (CS0101/CS0111 plus the intentional obsolete-marker error).
+Linux/macOS passed. Those failures are build-item identity defects, not waived gates.
+The replacement fixture fails against the previous target and passes with normalized
+metadata matching; 69-project architecture and whitespace verification also pass locally.
+Windows packaging is revalidated by the branch's unchanged six-platform Launcher gate.
+
 The architecture lock and project graph add one justified assembly: an independent managed
 Roslyn CLI with its own build/test lifecycle. Desktop's build-only project reference never
 references its output assembly or ships Roslyn. Native/AOT/RID globals are removed, and only

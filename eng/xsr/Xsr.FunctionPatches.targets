@@ -20,7 +20,7 @@
   <!-- Item replacement must also execute when the incremental generator target is skipped. -->
   <Target Name="UseNexaFunctionPatches" BeforeTargets="CoreCompile" DependsOnTargets="GenerateNexaFunctionPatches">
     <ItemGroup>
-      <Compile Remove="@(NexaFunctionPatchSource)" />
+      <Compile Remove="@(NexaFunctionPatchSource)" MatchOnMetadata="FullPath" MatchOnMetadataOptions="PathLike" />
       <Compile Include="$(_NexaPatchedSource)" />
     </ItemGroup>
   </Target>

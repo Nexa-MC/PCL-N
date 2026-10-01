@@ -1,0 +1,23 @@
+<Project DefaultTargets="Verify">
+  <Import Project="Xsr.FunctionPatches.targets" />
+  <ItemGroup>
+    <Compile Include="Source\Caption.cs;Source/./Caption.cs;Other.cs" />
+    <NexaFunctionPatchSource Include="$(MSBuildThisFileDirectory)Source/Caption.cs" />
+  </ItemGroup>
+  <!-- Isolate the actual replacement target from syntax compilation. Generation is already
+       covered by compiler/NativeAOT tests; this fixture also represents an incremental skip. -->
+  <Target Name="GenerateNexaFunctionPatches">
+    <PropertyGroup>
+      <_NexaPatchedSource>$(MSBuildThisFileDirectory)Expected.g.cs</_NexaPatchedSource>
+    </PropertyGroup>
+  </Target>
+  <Target Name="Verify" DependsOnTargets="UseNexaFunctionPatches">
+    <ItemGroup>
+      <_Other Include="@(Compile)" Condition="'%(Compile.Filename)%(Compile.Extension)' == 'Other.cs'" />
+      <_Generated Include="@(Compile)" Condition="'%(Compile.Filename)%(Compile.Extension)' == 'Expected.g.cs'" />
+    </ItemGroup>
+    <Error Condition="'@(Compile->Count())' != '2' Or '@(_Other->Count())' != '1' Or '@(_Generated->Count())' != '1'"
+           Text="NXRP001: original source aliases survived compile-item replacement: @(Compile)." />
+    <Message Importance="high" Text="PASS: Function Patch source aliases removed; unrelated source and one generated item retained." />
+  </Target>
+</Project>

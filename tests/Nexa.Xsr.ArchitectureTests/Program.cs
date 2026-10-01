@@ -254,7 +254,10 @@ internal static partial class Program
         var targets = XDocument.Load(Path.Combine(root, "eng/xsr/Xsr.FunctionPatches.targets"));
         var replacement = Elements(targets, "Target").SingleOrDefault(target => target.Attribute("Name")?.Value == "UseNexaFunctionPatches");
         if (replacement?.Attribute("BeforeTargets")?.Value != "CoreCompile"
-            || !replacement!.Descendants().Any(item => item.Name.LocalName == "Compile" && item.Attribute("Remove")?.Value == "@(NexaFunctionPatchSource)")
+            || !replacement!.Descendants().Any(item => item.Name.LocalName == "Compile"
+                && item.Attribute("Remove")?.Value == "@(NexaFunctionPatchSource)"
+                && item.Attribute("MatchOnMetadata")?.Value == "FullPath"
+                && item.Attribute("MatchOnMetadataOptions")?.Value == "PathLike")
             || !replacement.Descendants().Any(item => item.Name.LocalName == "Compile" && item.Attribute("Include")?.Value == "$(_NexaPatchedSource)"))
             failures.Add("Function Patch compile-item replacement must run before CoreCompile on incremental builds.");
     }

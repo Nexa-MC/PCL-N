@@ -161,6 +161,9 @@ jobs:
       - name: Test compile-time Function Patch rewriting
         run: dotnet run --project tools/Nexa.Xsr.Patch.Compiler --configuration Release --no-build -- --self-test
 
+      - name: Test Function Patch compile-item path identity
+        run: dotnet msbuild eng/xsr/Test.FunctionPatchItems.proj -nologo
+
       - name: Test XSR runtime kernel
         run: dotnet run --project tests/Nexa.Xsr.Runtime.Tests/Nexa.Xsr.Runtime.Tests.csproj --configuration Release --no-build
 
