@@ -97,6 +97,7 @@ def downloads_section(version):
                 lines.append(f"- `{name}` — {purpose}")
         lines.append("")
     lines.append("`SHA256SUMS` 列出全部文件的哈希。每个包和清单均附有 `.asc` 签名。")
+    lines.append("`Nexa-Release.json` 绑定版本、通道、平台、构建配置和每个包的实际长度/哈希；验证时也应核对其 `.asc` 签名。")
     lines.append("验证发布者时，先核对仓库 `GPG-PUBLIC-KEY.asc` 的指纹为 "
                  "`5701218D69B531E1A7ED35BB6E31F5974A273AEE`，导入公钥后运行 "
                  "`gpg --verify SHA256SUMS.asc SHA256SUMS`，再运行 `sha256sum -c SHA256SUMS`。")

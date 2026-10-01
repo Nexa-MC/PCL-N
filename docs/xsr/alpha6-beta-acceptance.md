@@ -74,3 +74,9 @@ GPG 策略收口见 [XSR-728](migrations/XSR-728-detached-signature-admission.md
 校验 receipt 不再在8192项满额时整表清空；改为逐项LRU，显式hash失败撤销旧记录，
 见 [XSR-729](migrations/XSR-729-verification-receipt-lru.md)。managed/Linux NativeAOT Services 464项及
 68项目架构通过。该服务生命周期缓存不持久化，也不替代实际启动和长期内存测量。
+
+签名发布清单与运行期准入见 [XSR-730](migrations/XSR-730-signed-release-manifest.md)：
+完整18包的版本/通道/RID/格式/native variant/配置/长度/hash、原始验签字节所有权、
+严格版本推进和实际包字节检查。managed/Linux NativeAOT Services 467项、68项目架构
+及20项非GnuPG Python发布回归通过。GnuPG集成保留在CI；当前环境的agent无法启动。
+受保护helper必须独立消费这些契约，high-water版本需受保护持久化；尚未启用自动替换。

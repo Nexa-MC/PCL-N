@@ -4,6 +4,9 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("signed release authenticates owned identity and actual package", SignedReleaseAuthenticatesOwnedIdentityAndActualPackage),
+        ("signed release rejects routing replay and unordered CI", SignedReleaseRejectsRoutingReplayAndUnorderedCi),
+        ("signed release rejects schema aliases and bounds input", SignedReleaseRejectsSchemaAliasesAndBoundsInput),
         ("old install trust rejects publication and preserves rollback cancel", OldInstallTrustPreservesRollbackAndRejectsPublication),
         ("Minecraft authority rejects mirror metadata redirects and wrong digest", MinecraftAuthorityRejectsMirrorMetadataAndRedirects),
         ("Minecraft index preserves verified bytes without second transfer", MinecraftIndexUsesVerifiedRawBytesWithoutSecondTransfer),

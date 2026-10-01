@@ -1,7 +1,7 @@
 # Publisher signatures for Nexa distributions
 
 All complete distributions (CI and tagged releases) must contain the exact eighteen
-packages, SHA256SUMS, and a detached armored signature for each of those nineteen
+packages, SHA256SUMS, Nexa-Release.json, and a detached armored signature for each of those twenty
 files. Signing follows package-set validation. No complete distribution or release
 upload runs if signing or independent verification fails.
 
@@ -24,3 +24,13 @@ binary-document signatures, SHA-256/384/512, known revocation and expiry from th
 trusted embedded keyring, authenticated signature expiry, and bounded input and
 decompressed envelopes. The current SHA-256 publisher command stays compatible.
 This does not complete signed release routing, replay policy or protected replacement.
+
+`Nexa-Release.json` binds the canonical version and derived channel, native host runtime
+variant, Release build configuration and each package's RID, format, exact length and
+SHA-256. Independent distribution verification checks the signed manifest against the
+actual eighteen files without regenerating the signed input. See
+[release-admission.md](release-admission.md). Historical releases retain their previous
+layout; missing manifests cannot authorize the future automatic updater. The runtime
+admission primitive verifies owned original bytes, complete asset identity, installed/
+high-water version constraints and actual package bytes. Protected helper consumption
+and durable anti-replay state remain separate delivery steps.

@@ -31,10 +31,10 @@ class SigningTests(unittest.TestCase):
             def check():
                 verify_signatures(root, "2.0.0", self.public, self.fingerprint)
             sign()
-            self.assertEqual(38, len(list(root.iterdir())))
+            self.assertEqual(40, len(list(root.iterdir())))
             sign()
             check()
-            for name in (names[0], "SHA256SUMS", names[0] + ".asc"):
+            for name in (names[0], "SHA256SUMS", "Nexa-Release.json", names[0] + ".asc"):
                 original = (root / name).read_bytes()
                 (root / name).write_bytes(b"tampered")
                 with self.assertRaises(ValueError):

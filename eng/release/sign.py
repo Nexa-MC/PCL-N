@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 
 from verify import expected_names, verify
+from manifest import MANIFEST_NAME, validate_manifest
 
 FINGERPRINT = "5701218D69B531E1A7ED35BB6E31F5974A273AEE"
 
@@ -51,7 +52,7 @@ def import_public(home, public_key, fingerprint):
 
 
 def verify_signatures(directory, version, public_key, fingerprint=FINGERPRINT):
-    names = expected_names(version) | {"SHA256SUMS"}
+    names = expected_names(version) | {"SHA256SUMS", MANIFEST_NAME}
     expected = names | {name + ".asc" for name in names}
     if {path.name for path in directory.iterdir()} != expected:
         raise ValueError("Signed distribution is incomplete or contains unexpected files")
@@ -64,6 +65,7 @@ def verify_signatures(directory, version, public_key, fingerprint=FINGERPRINT):
                        if line.startswith(b"[GNUPG:] VALIDSIG ")]
             if signers != [fingerprint]:
                 raise ValueError("Distribution was not signed by the pinned signing key")
+    validate_manifest(directory, version)
 
 
 def sign_distribution(directory, version, public_key, private_key, passphrase,
@@ -73,7 +75,7 @@ def sign_distribution(directory, version, public_key, private_key, passphrase,
     if "\n" in passphrase or "\r" in passphrase:
         raise ValueError("Signing passphrase cannot contain line breaks")
     directory = directory.resolve()
-    names = expected_names(version) | {"SHA256SUMS"}
+    names = expected_names(version) | {"SHA256SUMS", MANIFEST_NAME}
     # Only remove known signature outputs when re-running; unknown assets still fail.
     for name in names:
         (directory / (name + ".asc")).unlink(missing_ok=True)

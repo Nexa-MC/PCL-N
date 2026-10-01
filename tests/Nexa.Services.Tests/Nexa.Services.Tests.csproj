@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
     <EmbeddedResource Include="../../Nexa.UI.Next.Backend.Avalonia/Assets/Avatars/Steve.png" LogicalName="Fixtures.Steve.png" />
+    <EmbeddedResource Include="Fixtures/ReleaseManifest.json" LogicalName="Fixtures.ReleaseManifest.json" />
   </ItemGroup>
 
   <ItemGroup>

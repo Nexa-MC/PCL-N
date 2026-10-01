@@ -14,6 +14,8 @@ The user-requested constraints take precedence:
 - [work-scheduling.md](work-scheduling.md) — 共享资源 admission、Launch Quiet Mode 与可见提示生命周期
 - [download-trust.md](download-trust.md) — Minecraft 权威元数据、摘要绑定、旧任务与更新权限约束
 - [update-signature-policy.md](update-signature-policy.md) — 固定发布密钥、签名算法、认证过期策略与封套预算
+- [release-admission.md](release-admission.md) — 签名发布身份、完整包集合及未来更新准入
+- [migrations/XSR-730-signed-release-manifest.md](migrations/XSR-730-signed-release-manifest.md) — 发布清单生成、独立验签与运行期准入
 - [migrations/XSR-728-detached-signature-admission.md](migrations/XSR-728-detached-signature-admission.md) — detached GPG 策略收口
 - [migrations/XSR-729-verification-receipt-lru.md](migrations/XSR-729-verification-receipt-lru.md) — 有界文件校验缓存与显式校验失败撤销
 - [review-505b9f9f.md](review-505b9f9f.md) — 新审查的事实核对、修复范围和剩余证据

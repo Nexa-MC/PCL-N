@@ -30,8 +30,10 @@ as a complete release admission manifest. VerifiedUpdateInventory binds signed
 TargetVersion, RuntimeId, RuntimeVariant and Configuration to the installed identity;
 it is deletion authority, not authorization for a new replacement transaction.
 
-Signed release identity, channel, exact package lengths/hashes, replay/downgrade
-policy and protected helper independent verification remain required by
+XSR-730 adds the publisher-signed release identity manifest and immutable runtime
+package admission described in [release-admission.md](release-admission.md), including
+channel, exact lengths/hashes and strict version increase. Independent protected
+helper consumption and durable anti-replay state remain required by
 [update-privilege-boundary.md](update-privilege-boundary.md). ApplyPlan remains
 fail-closed. This signature policy does not supply Authenticode, Developer ID,
 notarization or a protected staging namespace.
