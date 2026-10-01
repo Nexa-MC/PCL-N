@@ -74,6 +74,8 @@ internal static partial class Program
 
     private sealed class NoisyExitPort : IMinecraftProcessPort
     {
+        public bool UsesPrivateArgumentTransport => true;
+
         public ValueTask<System.Diagnostics.Process> StartAsync(ProcessStartInfo _, CancellationToken cancellationToken = default)
         {
             var info = new ProcessStartInfo(OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh")

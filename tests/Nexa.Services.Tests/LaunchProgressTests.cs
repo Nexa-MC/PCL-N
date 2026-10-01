@@ -719,6 +719,8 @@ internal static partial class Program
     /// <summary>A process port returning a long-lived child the test can cancel.</summary>
     private sealed class LongLivedProcessPort : IMinecraftProcessPort
     {
+        public bool UsesPrivateArgumentTransport => true;
+
         public System.Diagnostics.Process? LastProcess { get; private set; }
 
         public ValueTask<System.Diagnostics.Process> StartAsync(
@@ -874,6 +876,8 @@ internal static partial class Program
     /// </summary>
     private sealed class ExitedBeforeReturnProcessPort : IMinecraftProcessPort
     {
+        public bool UsesPrivateArgumentTransport => true;
+
         public ValueTask<System.Diagnostics.Process> StartAsync(
             System.Diagnostics.ProcessStartInfo startInfo,
             CancellationToken cancellationToken = default)
@@ -898,6 +902,8 @@ internal static partial class Program
 
     private sealed class ExitingProcessPort : IMinecraftProcessPort
     {
+        public bool UsesPrivateArgumentTransport => true;
+
         public ValueTask<System.Diagnostics.Process> StartAsync(
             System.Diagnostics.ProcessStartInfo startInfo,
             CancellationToken cancellationToken = default)

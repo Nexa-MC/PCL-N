@@ -1,3 +1,4 @@
+using Nexa.Services.Composition;
 using Nexa.Services.Minecraft.Launch;
 using Nexa.Services.Minecraft.ModLoaders;
 using Nexa.Services.Minecraft.Process;
@@ -6,6 +7,115 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
+    private static async ValueTask MinecraftLaunchRequiresPrivateArgumentTransport()
+    {
+        const string credential = "fixture-credential-not-real";
+        MinecraftLaunchPlan plan = new("java", Path.GetTempPath(),
+            ["-Dcustom=" + credential, "fixture.Main", "--custom=" + credential], [], [],
+            new MinecraftModLoaderDescriptor(MinecraftModLoaderKind.Vanilla, null, "fixture.Main", []))
+        { MainClassIndex = 1 };
+        var publicPort = new RecordingArgumentPort();
+        AssertFalse(((IMinecraftProcessPort)publicPort).UsesPrivateArgumentTransport);
+        AssertFalse(((IMinecraftProcessPort)new SystemMinecraftProcessPort()).UsesPrivateArgumentTransport);
+        await using var injected = new MinecraftProcessService(publicPort);
+        foreach (MinecraftLaunchPlan candidate in new[]
+        {
+            plan,
+            plan with { Arguments = ["fixture.Main", "--accessToken", credential], MainClassIndex = 0 },
+            plan with { Arguments = ["fixture.Main", "--accessToken=" + credential], MainClassIndex = null },
+            plan with { Arguments = ["fixture.Main", credential], MainClassIndex = null },
+            plan with { Arguments = ["fixture.Main", "--demo"], MainClassIndex = 0 },
+            plan with { Arguments = [], MainClassIndex = null }
+        }) await Refuse(injected, candidate);
+        AssertEqual(0, publicPort.Calls);
+
+        await using var standard = new MinecraftProcessService();
+        await Refuse(standard, plan);
+        using var core = MinecraftRuntimeComposer.Compose();
+        await Refuse(core.Processes, plan);
+        await core.Processes.DisposeAsync();
+
+        string root = CreateTempDirectory();
+        try
+        {
+            var host = DiagnosticHost();
+            using var production = MinecraftRuntimeComposer.Compose(host, root,
+                javaLocator: new InMemoryJavaLocator([]), javaInstaller: new NeverJavaInstaller());
+            await Refuse(production.Processes, plan);
+            await production.Processes.DisposeAsync();
+            var injectedPort = new RecordingArgumentPort();
+            var injectedHost = DiagnosticHost();
+            await using var composedService = new MinecraftProcessService(injectedPort, injectedHost.StateStore);
+            using var composed = MinecraftRuntimeComposer.Compose(injectedHost, root, processes: composedService,
+                javaLocator: new InMemoryJavaLocator([]), javaInstaller: new NeverJavaInstaller());
+            await Refuse(composed.Processes, plan);
+            AssertEqual(0, injectedPort.Calls);
+        }
+        finally { Directory.Delete(root, recursive: true); }
+
+        using CancellationTokenSource cancellation = new();
+        cancellation.Cancel();
+        try
+        {
+            await injected.StartAsync(plan, "cancelled-public-transport", cancellation.Token);
+            throw new InvalidOperationException("Cancelled launch was accepted.");
+        }
+        catch (OperationCanceledException) { }
+        AssertEqual(0, publicPort.Calls);
+
+        var privatePort = new PrivateRecordingArgumentPort();
+        await using var privateService = new MinecraftProcessService(privatePort);
+        await ReachRecordingPort(privateService, plan with { MainClassIndex = null });
+        AssertEqual(1, privatePort.Calls);
+        AssertTrue(privatePort.StartInfo!.ArgumentList.SequenceEqual(plan.Arguments));
+
+        var hostPort = new RecordingArgumentPort();
+        await using var hostService = new MinecraftProcessService(hostPort,
+            jvmHostExecutable: Path.Combine(Path.GetTempPath(), "missing-nexa-host-fixture"));
+        await ReachRecordingPort(hostService, plan);
+        AssertEqual(1, hostPort.Calls);
+        AssertEqual("--jvm-host", hostPort.StartInfo!.ArgumentList.Single());
+        AssertTrue(hostPort.StartInfo.RedirectStandardInput);
+        AssertFalse(hostPort.StartInfo.ArgumentList.Any(value => value.Contains(credential, StringComparison.Ordinal)));
+
+        static async ValueTask Refuse(MinecraftProcessService service, MinecraftLaunchPlan candidate)
+        {
+            try { await service.StartAsync(candidate, "private-transport-fixture"); }
+            catch (InvalidOperationException exception)
+            {
+                AssertEqual("Missing private Minecraft argument transport. Repair the complete launcher installation before launching.", exception.Message);
+                AssertEqual(0, service.ListSessions().Count);
+                return;
+            }
+            throw new InvalidOperationException("Public launch argument transport was accepted.");
+        }
+
+        static async ValueTask ReachRecordingPort(MinecraftProcessService service, MinecraftLaunchPlan candidate)
+        {
+            try { await service.StartAsync(candidate, "private-port-fixture"); }
+            catch (IOException exception) when (exception.Message == "recording-port-stop")
+            { AssertEqual(0, service.ListSessions().Count); return; }
+            throw new InvalidOperationException("Recording transport was not reached.");
+        }
+    }
+
+    private class RecordingArgumentPort : IMinecraftProcessPort
+    {
+        public int Calls { get; private set; }
+        public System.Diagnostics.ProcessStartInfo? StartInfo { get; private set; }
+        public ValueTask<System.Diagnostics.Process> StartAsync(System.Diagnostics.ProcessStartInfo info, CancellationToken token = default)
+        {
+            Calls++;
+            StartInfo = info;
+            throw new IOException("recording-port-stop");
+        }
+    }
+
+    private sealed class PrivateRecordingArgumentPort : RecordingArgumentPort, IMinecraftProcessPort
+    {
+        public bool UsesPrivateArgumentTransport => true;
+    }
+
     private static void HostHistoryAdmissionPreservesPeakSemantics()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;

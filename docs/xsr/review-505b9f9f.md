@@ -12,7 +12,7 @@
 | 更新 GPG 策略 | 指纹固定及内容验签已有；本批收口二进制签名、SHA-256/384/512、可信内置 keyring 的过期/吊销、已认证签名过期及实际封套预算，见 [签名策略](update-signature-policy.md)。XSR-730 补齐发布端签名身份清单和运行时原始字节准入，见 [发布准入](release-admission.md)；受保护 helper 的独立消费、持久防回退状态与自动替换仍开放。 |
 | 补丁清单 / hpatchz | 自动更新未接入；unsigned patch index 不能授权最终文件。签名发布清单已交付，受保护 helper 和固定工具身份仍未交付，保持 [更新边界](update-privilege-boundary.md) 的拒绝策略。 |
 | ZIP / TAR 特殊权限 | 修复共享 updater mode 边界，覆盖解包 inventory、scatter 清单与恢复权限。只保留原有 `0755` 范围内的普通权限；标准 ZIP 文件类型位不再导致执行权限丢失。无 mode 元数据仍使用平台默认，不能据此宣称 staging 已受保护。 |
-| 账户保护 / token 参数 | DPAPI 未设置额外 entropy 本身不足以证明存在漏洞；固定公开 entropy 也不能建立同账户隔离。macOS 存储迁移和所有 JVM/兼容启动路径的 token 可见性仍需逐条证据，不将“Minecraft 限制”当作当前所有路径的结论。 |
+| 账户保护 / token 参数 | [XSR-741](migrations/XSR-741-private-launch-argument-transport.md) 关闭缺少 Host 时的公开参数回退：共享服务在进程端口前拒绝未声明私有传输的路径，覆盖自定义 JVM/game 参数、旧版计划和全部组合入口；Desktop 始终配置 sibling Host。合成 token 的前后边界复现、真实 Host stdin/取消控制及独立候选审查保留证据。DPAPI 公开 entropy 不能建立同账户隔离；macOS keychain 迁移、同账户内存和共享客户端安装身份仍是独立问题。 |
 
 ## 性能与结构
 

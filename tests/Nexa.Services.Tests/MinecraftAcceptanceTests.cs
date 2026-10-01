@@ -947,6 +947,8 @@ internal static partial class Program
 
     private sealed class ExtractionCheckingProcessPort(string requiredNativePath) : IMinecraftProcessPort
     {
+        public bool UsesPrivateArgumentTransport => true;
+
         public ValueTask<System.Diagnostics.Process> StartAsync(System.Diagnostics.ProcessStartInfo startInfo, CancellationToken cancellationToken = default)
         {
             if (!File.Exists(requiredNativePath)) throw new InvalidOperationException("Native extraction did not complete before process start.");

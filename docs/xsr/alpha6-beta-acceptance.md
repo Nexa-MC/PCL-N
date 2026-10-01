@@ -178,3 +178,11 @@ sample；按区间报告总量、采样器、未归因余量。余量包含其�
 NativeAOT Desktop各109项、69项目架构与whitespace通过；独立产品NativeAOT通过
 52-node shell/first-run验证，安装输出无编译器/Roslyn。此结果不关闭viewport网络需求、
 OS pressure、真实RAM/GPU/8h指标。
+
+私有启动参数边界见 [XSR-741](migrations/XSR-741-private-launch-argument-transport.md)：
+共享process service在端口调用前拒绝未配置Host且未保证私有传输的路径，包含默认、
+core/production及注入组合；不按token flag名称猜测安全性。Desktop始终配置sibling Host，
+缺少组件不能退回Java公开argv。合成凭据的前后复现、实际Host stdin/取消控制及独立
+候选审查通过；managed/Linux NativeAOT Services各475项、Desktop各109项、69项目
+架构及whitespace通过。独立NativeAOT产品shell52nodes/first-run通过，编译器/Roslyn
+未进入输出。此结果不关闭同账户内存、keychain迁移、安装身份或真实Minecraft验收。

@@ -223,7 +223,7 @@ internal static partial class Program
             identityResolver: accounts.LaunchIdentityResolver,
             observer: operationLog.Dispatch,
             launcherVersion: buildInfo.ProductVersion,
-            jvmHostExecutable: File.Exists(jvmHostPath) ? jvmHostPath : null,
+            jvmHostExecutable: jvmHostPath,
             gameWindowAppeared: pid => MinecraftWindowIntegration.DetachGameWindows(
                 pid,
                 "Nexa.Minecraft." + pid.ToString(System.Globalization.CultureInfo.InvariantCulture),

@@ -162,6 +162,7 @@ internal static partial class Program
         ("remediation actions require exact handlers", RemediationActionsRequireExactHandlers),
         ("JVM host describes the process boundary", Sync(JvmHostDescribesTheProcessBoundary)),
         ("JVM host transport owns bootstrap and cancellation", JvmHostTransportOwnsBootstrapAndCancellation),
+        ("Minecraft launch requires private argument transport", MinecraftLaunchRequiresPrivateArgumentTransport),
         ("JVM bootstrap preserves explicit boundaries and rejects malformed frames", JvmBootstrapPreservesBoundaryAndRejectsMalformedFrames),
         ("settings catalog locks final IA and developer visibility", Sync(SettingsCatalogLocksFinalIa)),
         ("settings policy uses sealed foundation routes", SettingsPolicyUsesSealedFoundationRoutes),

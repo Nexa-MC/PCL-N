@@ -234,6 +234,8 @@ internal static partial class Program
 
     private sealed class ExistingProcessPort(System.Diagnostics.Process process) : IMinecraftProcessPort
     {
+        public bool UsesPrivateArgumentTransport => true;
+
         public ValueTask<System.Diagnostics.Process> StartAsync(System.Diagnostics.ProcessStartInfo startInfo, CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(process);
     }

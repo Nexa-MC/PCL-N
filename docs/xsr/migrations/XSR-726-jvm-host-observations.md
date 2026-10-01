@@ -23,8 +23,8 @@ process-tree termination and crash analysis.
 
 The planner records an explicit main-class index in the final argument vector. Host requests
 must use this boundary rather than infer it from a classpath option (which can occur earlier
-in manifest/custom JVM arguments). Legacy hand-built plans remain valid for subprocess launch,
-but cannot be exported to an isolated host without this explicit boundary.
+in manifest/custom JVM arguments). Legacy hand-built plans remain valid with a private custom
+process port, but cannot be exported to an isolated host without this explicit boundary.
 
 The isolated-host bootstrap contract is a versioned, length-prefixed binary frame over a private
 stdin pipe, never a JSON request file or command-line credential payload. Strict UTF-8, a 4 MiB
@@ -42,9 +42,10 @@ launcher-only `-XstartOnFirstThread`/dock flags instead of forwarding them to JN
 and dock environment markers mirror OpenJDK's macOS launcher behavior. These markers are JDK
 implementation details, so native macOS CI verifies them along with creation of an AppKit window
 from Java. Both macOS x64 and arm64 NativeAOT checks passed before enabling product routing.
-On all three platforms Desktop selects a sibling
-`Nexa.Jvm.Host` executable when present; unpackaged development builds retain the
-Java executable path. MinecraftProcessService accepts the configured absolute Host path,
+On all three platforms Desktop requires a sibling `Nexa.Jvm.Host` executable, including
+unpackaged development builds. Missing Host components cannot select a public Java argument
+transport; see [XSR-741](XSR-741-private-launch-argument-transport.md).
+MinecraftProcessService accepts the configured absolute Host path,
 validates/encodes the request before spawning, starts output drains before writing stdin and
 closes stdin after transfer. Transfer cancellation/failure terminates the registered child;
 there is no retry through java.exe that could create a duplicate game. The launch plan retains

@@ -245,6 +245,9 @@ public sealed class MinecraftProcessService : IAsyncDisposable
         MinecraftProcessSession? startedSession = null;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_jvmHostExecutable is null && !_port.UsesPrivateArgumentTransport)
+                throw new InvalidOperationException("Missing private Minecraft argument transport. Repair the complete launcher installation before launching.");
             ProcessStartInfo startInfo = plan.ToStartInfo();
             if (bootstrap is not null)
             {

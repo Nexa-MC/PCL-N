@@ -44,6 +44,8 @@ internal static partial class Program
 
     private sealed class RecoveryExitPort : IMinecraftProcessPort
     {
+        public bool UsesPrivateArgumentTransport => true;
+
         public ValueTask<System.Diagnostics.Process> StartAsync(System.Diagnostics.ProcessStartInfo ignored, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
