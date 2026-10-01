@@ -345,6 +345,7 @@ public sealed partial class SidecarHostSession
             pending = _stopped ? [] : _pending.Values.ToArray();
             _stopped = true;
             _pending.Clear();
+            Extensions = new();
         }
         InvalidateMirror();
         foreach (var completion in pending) completion.TrySetResult(UnavailableExchange());

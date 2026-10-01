@@ -52,6 +52,31 @@ public sealed class AccountService
     private readonly LogService? _log;
     private List<LaunchProfile> _profiles;
     private long _credentialGeneration;
+    private RegionalPolicy? _regionalPolicy;
+    private readonly HashSet<string> _verifiedOwners = new(StringComparer.OrdinalIgnoreCase);
+
+    public void ConfigureRegionalPolicy(RegionalPolicy policy)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        lock (_gate) _regionalPolicy = policy;
+    }
+
+    internal void RecordVerifiedOwnership(string uuid)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(uuid);
+        lock (_gate) _verifiedOwners.Add(uuid);
+    }
+
+    public bool HasVerifiedMinecraftOwnership
+    {
+        get { lock (_gate) return _profiles.Any(profile => profile.Kind == LaunchProfileKind.Microsoft && _verifiedOwners.Contains(profile.Uuid)); }
+    }
+
+    private XsrError? CheckCreationPolicy(IEnumerable<LaunchProfile> profiles) =>
+        _regionalPolicy?.RequireMinecraftOwnership == true && !HasVerifiedMinecraftOwnership
+            && profiles.Any(profile => profile.Kind != LaunchProfileKind.Microsoft)
+            ? new XsrError(XsrErrorKind.Rejected, XsrSemanticId.Parse("accounts.minecraft_ownership_required"),
+                "请先登录并验证拥有 Minecraft Java 版的 Microsoft 账户，再添加其他类型的档案。") : null;
 
     internal bool TryCaptureRefresh(int index, LaunchProfile expected, out long generation)
     {
@@ -76,10 +101,14 @@ public sealed class AccountService
     }
 
     public AccountService(XsrStateStore store, ILaunchProfilePort port, LogService? log = null)
+        : this(store, port, log, RegionalPolicy.Current) { }
+
+    public AccountService(XsrStateStore store, ILaunchProfilePort port, LogService? log, RegionalPolicy regionalPolicy)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _port = port ?? throw new ArgumentNullException(nameof(port));
         _log = log;
+        _regionalPolicy = regionalPolicy ?? throw new ArgumentNullException(nameof(regionalPolicy));
         _profilesId = _store.Resolve(ProfilesKey);
 
         List<LaunchProfile> loaded;
@@ -148,6 +177,7 @@ public sealed class AccountService
     }
 
     public XsrStateStore StateStore => _store;
+    public RegionalPolicy RegionPolicy { get { lock (_gate) return _regionalPolicy!; } }
 
     /// <summary>
     /// The stable error recorded when the persisted store could not be read at startup.
@@ -168,6 +198,7 @@ public sealed class AccountService
         lock (_gate)
         {
             List<LaunchProfile> updated = [.. _profiles, profile];
+            if (CheckCreationPolicy([profile]) is { } rejection) return XsrResult.Failure<int>(rejection);
             XsrResult saved = Persist(updated);
             if (!saved.IsSuccess)
             {
@@ -212,6 +243,7 @@ public sealed class AccountService
         lock (_gate)
         {
             List<LaunchProfile> merged = [.. _profiles];
+            if (CheckCreationPolicy(normalized) is { } rejection) return XsrResult.Failure<int>(rejection);
             foreach (LaunchProfile profile in normalized)
             {
                 if (!merged.Any(existing => existing.Kind == profile.Kind
@@ -281,6 +313,8 @@ public sealed class AccountService
                 return XsrResult.Failure(AccountErrors.InvalidProfile("the account changed while refreshing its session."));
             List<LaunchProfile> updated = [.. _profiles];
             updated[index] = profile;
+            if (_profiles[index].Kind != profile.Kind && CheckCreationPolicy([profile]) is { } rejection)
+                return XsrResult.Failure(rejection);
             XsrResult saved = Persist(updated);
             if (!saved.IsSuccess)
             {
@@ -363,6 +397,7 @@ public sealed class AccountService
                 return saved;
             }
 
+            _verifiedOwners.Remove(_profiles[index].Uuid);
             _profiles = updated;
             // Preserve the same selected profile when an earlier row shifts down. If the
             // selected profile was removed, choose its successor (or the final survivor).

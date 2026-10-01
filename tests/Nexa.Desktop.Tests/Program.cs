@@ -19,6 +19,7 @@ internal static partial class Program
 {
     public static void Main(string[] args)
     {
+        if (Environment.GetEnvironmentVariable("NEXA_COUNTRY") is null) Environment.SetEnvironmentVariable("NEXA_COUNTRY", "CN");
         if (args.Contains("--window-integration-smoke"))
         {
             WindowPropertyStoreRoundTripsAppId();

@@ -50,7 +50,8 @@ public sealed class SidecarIpcListener : IDisposable
         SidecarIpcListener listener = new(pipeName, unixDirectory);
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
         {
-            listener.BindUnix();
+            try { listener.BindUnix(); }
+            catch { listener.Dispose(); throw; }
         }
 
         return listener;
@@ -65,8 +66,18 @@ public sealed class SidecarIpcListener : IDisposable
         if (OperatingSystem.IsWindows())
         {
             NamedPipeServerStream pipe = CreateWindowsPipe();
-            await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
-            return pipe;
+            try
+            {
+                await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+                lock (_gate)
+                {
+                    ObjectDisposedException.ThrowIf(_disposed, this);
+                    // The returned stream belongs to the caller, not to the listener.
+                    if (ReferenceEquals(_windowsServer, pipe)) _windowsServer = null;
+                }
+                return pipe;
+            }
+            catch { pipe.Dispose(); throw; }
         }
 
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())

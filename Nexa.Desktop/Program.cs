@@ -197,6 +197,9 @@ internal static class Program
                 logging.Info("Launcher", "Foundation composition started; loading persisted profiles and settings.");
             });
         using var telemetryLifetime = host.Telemetry;
+        host.Accounts.ConfigureRegionalPolicy(Nexa.Services.RegionalPolicy.Current);
+        using var sidecars = SidecarStartup.Create(host.Logging);
+        _ = SidecarStartup.StartAsync(sidecars, host.Logging);
         // The session lifecycle narrates startup/shutdown milestones at Info: every subsystem
         // the composition root brings up (and later stops) is a phase on one shared timeline.
         XsrLifecycle session = new("LauncherSession", operationLog.Lifecycle);
@@ -288,6 +291,7 @@ internal static class Program
             new NativeAccountUiEffects(platformActions), runtime.Host.Logging);
         launchPage.Attach();
         using SettingsPageController settingsPage = new(shell, uiIntents, runtime.Queries, runtime.Commands, host.StateStore, feedback);
+        settingsPage.OpenAboutLink = platformActions.OpenHttpsUri;
         settingsPage.TelemetryRequired = buildInfo.DiagnosticsRequired;
         using var updateHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(20) };
         string updateRid = (OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux") + "-" + System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();

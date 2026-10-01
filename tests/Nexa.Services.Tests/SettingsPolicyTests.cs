@@ -121,7 +121,7 @@ internal static partial class Program
     private static void SettingsCatalogLocksFinalIa()
     {
         var catalog = SettingsCatalog.Read(new(true));
-        AssertEqual(9, catalog.GlobalPages.Count); AssertEqual(9, catalog.InstancePages.Count); AssertEqual(10, catalog.InstanceSettingsSections.Count);
+        AssertEqual(10, catalog.GlobalPages.Count); AssertEqual(9, catalog.InstancePages.Count); AssertEqual(10, catalog.InstanceSettingsSections.Count);
         AssertEqual(534, catalog.Entries.Count);
         AssertFalse(catalog.GlobalPages.Any(page => page.Id == "cloud"));
         AssertFalse(catalog.Entries.Any(entry => entry.Page is "cloud" or "sync" || entry.Label.Contains("云同步", StringComparison.Ordinal)));

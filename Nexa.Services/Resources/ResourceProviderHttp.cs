@@ -4,6 +4,7 @@ namespace Nexa.Services.Resources;
 
 public sealed class ResourceProviderHttp(HttpClient http, string? curseForgeKey = null)
 {
+    public RegionalPolicy CountryPolicy { get; init; } = RegionalPolicy.Current;
     internal const string Mirror = "https://mod.mcimirror.top";
     private readonly string? _key = curseForgeKey ?? Environment.GetEnvironmentVariable("Nexa_CURSEFORGE_API_KEY") ?? Environment.GetEnvironmentVariable("CURSEFORGE_API_KEY");
     public Task<JsonDocument> ReadAsync(ResourceProvider provider, string path, bool mirrorFirst, CancellationToken token) => SendAsync(provider, path, mirrorFirst, null, token);
@@ -13,6 +14,12 @@ public sealed class ResourceProviderHttp(HttpClient http, string? curseForgeKey 
         string official = provider == ResourceProvider.Modrinth ? "https://api.modrinth.com/v2/" : "https://api.curseforge.com/v1/";
         string mirror = Mirror + (provider == ResourceProvider.Modrinth ? "/modrinth/v2/" : "/curseforge/v1/");
         string[] candidates = provider == ResourceProvider.CurseForge && string.IsNullOrEmpty(_key) ? [mirror] : mirrorFirst ? [mirror, official] : [official, mirror];
+        if (!CountryPolicy.IsMainlandChina)
+        {
+            if (provider == ResourceProvider.CurseForge && string.IsNullOrEmpty(_key))
+                throw new IOException("此地区使用 CurseForge 官方接口，需要配置 CurseForge API Key。");
+            candidates = [official];
+        }
         Exception? last = null;
         foreach (string root in candidates)
         {

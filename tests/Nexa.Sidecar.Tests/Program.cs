@@ -7,6 +7,9 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("bootstrap rejects wrong and truncated challenges", BootstrapRejectsWrongChallenge),
+        ("extensions require target and content", Sync(ExtensionsRequireTargetAndContent)),
+        ("accepted stream outlives listener", AcceptedStreamOutlivesListener),
         ("Unix listener preserves unowned paths", UnixListenerPreservesUnownedPaths),
         // XSR-401: Sidecar protocol surface.
         ("frames round trip header and payload", Sync(FrameRoundTripsHeaderAndPayload)),
@@ -31,15 +34,19 @@ internal static partial class Program
         ("ipc stream round trips frames", IpcStreamRoundTripsFrames),
     ];
 
-    private static async Task<int> Main()
+    private static async Task<int> Main(string[] args)
     {
+        int passed = 0;
         foreach ((string name, Func<ValueTask> body) in TestCases)
         {
+            if (args.Contains("--skip-os-ipc") && name is "Unix listener preserves unowned paths" or "ipc stream round trips frames" or "accepted stream outlives listener")
+            { Console.WriteLine("SKIP: " + name + " (explicit --skip-os-ipc)."); continue; }
             await body().ConfigureAwait(false);
             Console.WriteLine($"PASS: {name}");
+            passed++;
         }
 
-        Console.WriteLine($"Sidecar protocol tests passed: {TestCases.Length}.");
+        Console.WriteLine($"Sidecar protocol tests passed: {passed}; skipped: {TestCases.Length - passed}.");
         await RunPerfGates();
         return 0;
     }

@@ -7,6 +7,8 @@ public sealed partial class ForgeInstallService
 {
     internal static string OptiFineUrl(string game, string build)
     {
+        if (!RegionalPolicy.Current.IsMainlandChina)
+            throw new InvalidOperationException("此地区不使用 OptiFine 镜像，请从 optifine.net 下载后使用本地安装。");
         string prefix = game + "_";
         if (!build.StartsWith(prefix, StringComparison.Ordinal)) throw new InvalidDataException("OptiFine 版本与 Minecraft 不匹配。");
         string[] parts = build[prefix.Length..].Split('_');

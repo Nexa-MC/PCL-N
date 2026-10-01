@@ -4,6 +4,8 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("extension registration commits atomically and retires with session", ExtensionsCommitAtomicallyAndRetireWithSession),
+        ("renamed executable connects and registers extensions", RenamedExecutableConnectsAndRegistersExtensions),
         ("sidecar disposal cannot be undone by buffered snapshot", SidecarDisposalCannotBeUndoneByBufferedSnapshot),
         ("sidecar unsent cancellation preserves other requests", SidecarUnsentCancellationPreservesOtherRequests),
         ("sidecar deadlines include blocked writes", SidecarDeadlinesIncludeBlockedWrites),
@@ -106,15 +108,20 @@ internal static partial class Program
         ("session trace correlates end to end across subsystems", SessionTraceCorrelatesEndToEndAcrossSubsystems),
     ];
 
-    private static async Task<int> Main()
+    private static async Task<int> Main(string[] args)
     {
+        if (args is ["--nexa-sidecar", "--endpoint", var endpoint]) return await RunSupervisorChildAsync(endpoint);
+        int passed = 0;
         foreach ((string name, Func<ValueTask> body) in TestCases)
         {
+            if (args.Contains("--skip-os-ipc") && name == "renamed executable connects and registers extensions")
+            { Console.WriteLine("SKIP: OS IPC executable integration (explicit --skip-os-ipc)."); continue; }
             await body().ConfigureAwait(false);
             Console.WriteLine($"PASS: {name}");
+            passed++;
         }
 
-        Console.WriteLine($"XSR runtime tests passed: {TestCases.Length}.");
+        Console.WriteLine($"XSR runtime tests passed: {passed}; skipped: {TestCases.Length - passed}.");
         return 0;
     }
 

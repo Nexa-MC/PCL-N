@@ -35,6 +35,7 @@
     <EmbeddedResource Include="Assets/api-client.pfx" Condition="Exists('Assets/api-client.pfx')" />
     <EmbeddedResource Include="Assets/icon.png" />
     <EmbeddedResource Include="Assets/icon.ico" />
+    <EmbeddedResource Include="../GPG-PUBLIC-KEY.asc" LogicalName="Nexa.Desktop.SidecarReleaseKey.asc" />
     <ProjectReference Include="../Nexa.Pxml.Runtime/Nexa.Pxml.Runtime.csproj" />
     <ProjectReference Include="../Nexa.Services/Nexa.Services.csproj" />
     <ProjectReference Include="../Nexa.Services.Composition/Nexa.Services.Composition.csproj" />

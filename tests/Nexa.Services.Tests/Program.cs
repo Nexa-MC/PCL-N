@@ -4,6 +4,9 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("international resource transport uses only official", InternationalResourceTransportUsesOnlyOfficial),
+        ("regional policy requires verified ownership at every write", Sync(RegionalPolicyRequiresVerifiedOwnershipAtEveryWrite)),
+        ("regional policy disables mirrors outside mainland", Sync(RegionalPolicyDisablesMirrorsOutsideMainland)),
         ("language settings are immediate validated and durable", Sync(LanguageSettingIsImmediateValidatedAndDurable)),
         ("resource identity malformed providers preserve healthy source and cancellation", ResourceIdentityMalformedProviderPreservesHealthySource),
         ("resource provided aliases retain versions and reject incomplete declarations", ResourceProvidedAliasesKeepVersionsAndRejectIncompleteDeclarations),
@@ -454,6 +457,8 @@ internal static partial class Program
 
     private static async Task<int> Main(string[] args)
     {
+        // Existing parity fixtures model the mainland product; international tests select US explicitly.
+        if (Environment.GetEnvironmentVariable("NEXA_COUNTRY") is null) Environment.SetEnvironmentVariable("NEXA_COUNTRY", "CN");
         if (args is ["--owned-installer-child"]) return await RunOwnedInstallerChild();
         if (args is ["--owned-installer-owner"]) return await RunOwnedInstallerOwner();
         if (args is [Nexa.Services.Processes.OwnedInstallerProcess.WorkerArgument]) return await Nexa.Services.Processes.OwnedInstallerProcess.RunWorkerAsync();
@@ -461,6 +466,7 @@ internal static partial class Program
         if (args is ["--install-publication-child", var root, var stage]) return await RunInstallPublicationChild(root, stage);
         if (args is ["--jvm-host"]) return await ReceiveJvmHostFixture();
         if (args.Contains("--live-install-catalog")) { await LiveInstallCatalogSmoke(); return 0; }
+        int passed = 0;
         foreach ((string name, Func<ValueTask> body) in TestCases)
         {
             if (args is { Length: > 0 } && !args.Any(arg => name.Contains(arg, StringComparison.OrdinalIgnoreCase)))
@@ -470,9 +476,10 @@ internal static partial class Program
 
             await body().ConfigureAwait(false);
             Console.WriteLine($"PASS: {name}");
+            passed++;
         }
 
-        Console.WriteLine($"Services tests passed: {TestCases.Length}.");
+        Console.WriteLine($"Services tests passed: {passed}.");
         return 0;
     }
 

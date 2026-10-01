@@ -130,6 +130,8 @@ public sealed class AccountOnboardingService : IDisposable
         try
         {
             operation.Trace?.Stage("authenticate", $"provider={command.Provider}");
+            if (command.Provider != AccountLoginProvider.Microsoft)
+                await EnsureOwnershipAsync(operation).ConfigureAwait(false);
             LaunchProfile profile = command.Provider switch
             {
                 AccountLoginProvider.Offline => CreateOffline(command.Username),
@@ -146,7 +148,10 @@ public sealed class AccountOnboardingService : IDisposable
                 XsrResult<int> saved = AccountLoginProfiles.Upsert(_accounts, profile);
                 if (!saved.IsSuccess) throw new OnboardingFailure("档案保存失败，请解锁系统密钥库并检查数据目录权限后重试。", saved.Error!.Code.Value);
                 _accounts.SelectProfile(saved.Value);
-                Publish(new(operation.Generation, AccountLoginPhase.Completed, "档案已添加", Progress: 1));
+                if (profile.Kind == LaunchProfileKind.Microsoft) _accounts.RecordVerifiedOwnership(profile.Uuid);
+                Publish(new(operation.Generation, AccountLoginPhase.Completed,
+                    command.Provider != AccountLoginProvider.Microsoft && _accounts.RegionPolicy.IsMainlandChina
+                        ? "档案已添加。" + RegionalPolicy.PurchaseReminder : "档案已添加", Progress: 1));
                 operation.Trace?.Complete($"profile_index={saved.Value}");
             }
         }
@@ -160,6 +165,8 @@ public sealed class AccountOnboardingService : IDisposable
         {
             operation.Trace?.Stage("read_legacy_profiles");
             IReadOnlyList<LaunchProfile> profiles = await LegacyProfileImport.ReadAsync(path, operation.Cancellation.Token).ConfigureAwait(false);
+            if (profiles.Any(profile => profile.Kind != LaunchProfileKind.Microsoft))
+                await EnsureOwnershipAsync(operation).ConfigureAwait(false);
             lock (_gate)
             {
                 if (!IsCurrent(operation)) return;
@@ -167,7 +174,9 @@ public sealed class AccountOnboardingService : IDisposable
                 XsrResult<int> imported = _accounts.ImportProfiles(profiles);
                 if (!imported.IsSuccess) throw new OnboardingFailure("无法导入档案，请解锁系统密钥库并检查文件内容与目录权限。", imported.Error!.Code.Value);
                 Publish(new(operation.Generation, AccountLoginPhase.Completed,
-                    imported.Value > 0 ? $"已导入 {imported.Value} 个档案" : "这些档案已存在，无需重复导入", Progress: 1));
+                    (imported.Value > 0 ? $"已导入 {imported.Value} 个档案" : "这些档案已存在，无需重复导入")
+                        + (_accounts.RegionPolicy.IsMainlandChina && profiles.Any(profile => profile.Kind != LaunchProfileKind.Microsoft)
+                            ? "。" + RegionalPolicy.PurchaseReminder : ""), Progress: 1));
                 operation.Trace?.Complete($"added={imported.Value}");
             }
         }
@@ -193,8 +202,35 @@ public sealed class AccountOnboardingService : IDisposable
         operation.Trace?.Stage("microsoft_authorization_and_minecraft_session");
         MicrosoftMinecraftLoginResult result = await _microsoft.CompleteDeviceLoginAsync(_options.MicrosoftClientId, code,
             new InlineProgress(value => ReportProgress(operation, value)), operation.Cancellation.Token).ConfigureAwait(false);
-        if (!result.OwnsMinecraft) throw new OnboardingFailure("该 Microsoft 账户未拥有 Minecraft Java 版。", "accounts.minecraft_not_owned");
+        if (!result.OwnsMinecraft || string.IsNullOrWhiteSpace(result.Uuid) || string.IsNullOrWhiteSpace(result.AccessToken))
+            throw new OnboardingFailure("该 Microsoft 账户未拥有 Minecraft Java 版或未返回可用的游戏身份。", "accounts.minecraft_not_owned");
         return AccountLoginProfiles.FromMicrosoft(result);
+    }
+
+    private async Task EnsureOwnershipAsync(Operation operation)
+    {
+        if (!_accounts.RegionPolicy.RequireMinecraftOwnership || _accounts.HasVerifiedMinecraftOwnership) return;
+        foreach (LaunchProfileView view in _accounts.GetViews().Where(view => view.Kind == LaunchProfileKind.Microsoft))
+        {
+            LaunchProfile? profile = _accounts.GetProfile(view.Index).Value;
+            if (profile is null || string.IsNullOrWhiteSpace(profile.RefreshToken) || string.IsNullOrWhiteSpace(_options.MicrosoftClientId)) continue;
+            if (!_accounts.TryCaptureRefresh(view.Index, profile, out long generation)) continue;
+            try
+            {
+                MicrosoftMinecraftLoginResult refreshed = await _microsoft.RefreshAsync(_options.MicrosoftClientId,
+                    profile.RefreshToken, operation.Cancellation.Token).ConfigureAwait(false);
+                operation.Cancellation.Token.ThrowIfCancellationRequested();
+                if (!refreshed.OwnsMinecraft || string.IsNullOrWhiteSpace(refreshed.AccessToken)
+                    || !string.Equals(refreshed.Uuid, profile.Uuid, StringComparison.OrdinalIgnoreCase)) continue;
+                XsrResult<long> saved = _accounts.ReplaceRefreshedProfile(view.Index, AccountLoginProfiles.FromMicrosoft(refreshed), profile, generation);
+                if (!saved.IsSuccess) continue;
+                _accounts.RecordVerifiedOwnership(refreshed.Uuid);
+                return;
+            }
+            catch (Exception failure) when (failure is HttpRequestException or InvalidOperationException) { }
+        }
+        throw new OnboardingFailure("请先登录并验证拥有 Minecraft Java 版的 Microsoft 账户，再添加其他类型的档案。",
+            "accounts.minecraft_ownership_required");
     }
 
     private async Task<LaunchProfile> LoginLittleSkin(Operation operation)

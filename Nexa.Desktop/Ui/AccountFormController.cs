@@ -177,6 +177,7 @@ internal sealed class AccountFormController : IDisposable
         if (open && snapshot.Generation > _seenCompletion && snapshot.Phase == AccountLoginPhase.Completed)
         {
             _seenCompletion = snapshot.Generation;
+            _feedback.Info(snapshot.Message);
             Publish("open", false);
             _store.Publish(_store.Resolve(LaunchPageState.AccountAddVisibleKey), true);
             _store.Publish(_store.Resolve(LaunchPageState.AccountPickerKey), false);

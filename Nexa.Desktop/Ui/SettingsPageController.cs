@@ -262,6 +262,7 @@ internal sealed partial class SettingsPageController : IDisposable
             return;
         }
         if (_selected == "platform") { BuildPlatformCapabilities(); return; }
+        if (_selected == "about") { BuildAboutPage(); return; }
         if (_selected == "advanced") BuildUpdateCard();
         if (_selected == "privacy")
         {

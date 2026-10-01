@@ -23,6 +23,7 @@ public sealed partial class SidecarHostSession : IDisposable
     private SidecarRegistrationSet? _registration;
     private SidecarStateMirror? _mirror;
     private readonly SidecarSessionLimits _limits;
+    public SidecarExtensionRegistry Extensions { get; private set; } = new();
 
     public SidecarHostSession(
         SidecarConnection connection,
@@ -144,6 +145,8 @@ public sealed partial class SidecarHostSession : IDisposable
             ConsumeBudget(ref remaining, itemFrame);
             SidecarRegistrationItem item = SidecarRegistration.DecodeItem(itemFrame.Payload.Span);
             if (item.SemanticId.Length > _limits.MaximumSemanticIdCharacters) throw Fail("Sidecar semantic ID budget exceeded.");
+            if (item.TargetSemanticId is { } target && target.Length > _limits.MaximumSemanticIdCharacters)
+                throw Fail("Sidecar target semantic ID budget exceeded.");
             XsrSemanticId semantic = XsrSemanticId.Parse(item.SemanticId);
             if (declarations.ContainsKey(semantic))
             {
@@ -190,6 +193,7 @@ public sealed partial class SidecarHostSession : IDisposable
             PluginName,
             entries.Where(entry => entry.Kind == SidecarRegistrationKind.State).ToList());
         var cache = new SidecarHostCache();
+        var extensions = new SidecarExtensionRegistry();
         foreach (SidecarRegistrationEntry entry in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -202,12 +206,18 @@ public sealed partial class SidecarHostSession : IDisposable
             {
                 cache.AddResource(entry.SemanticId, resource, declaration.ContentHash!);
             }
+            else if (SidecarRegistration.IsExtension(entry.Kind)) extensions.Add(entry, declaration);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        _registration = registration;
-        _mirror = mirror;
-        Cache = cache;
+        lock (_gate)
+        {
+            if (_stopped) throw new SidecarProtocolException("Session ended before registration publication.");
+            _registration = registration;
+            _mirror = mirror;
+            Cache = cache;
+            Extensions = extensions;
+        }
         return mirror;
     }
 

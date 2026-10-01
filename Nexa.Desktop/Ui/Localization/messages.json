@@ -7829,5 +7829,85 @@
     "en": "Java selection failed:  {0}",
     "zh-Hant": "Java 選擇失敗：{0}",
     "template": true
+  },
+  {
+    "source": "关于",
+    "en": "About",
+    "zh-Hant": "關於"
+  },
+  {
+    "source": "版权信息",
+    "en": "Copyright",
+    "zh-Hant": "版權資訊"
+  },
+  {
+    "source": "开源声明",
+    "en": "Open source",
+    "zh-Hant": "開源聲明"
+  },
+  {
+    "source": "商标声明",
+    "en": "Trademarks",
+    "zh-Hant": "商標聲明"
+  },
+  {
+    "source": "鸣谢",
+    "en": "Acknowledgements",
+    "zh-Hant": "鳴謝"
+  },
+  {
+    "source": "中国大陆下载服务",
+    "en": "Mainland China download services",
+    "zh-Hant": "中國大陸下載服務"
+  },
+  {
+    "source": "源代码",
+    "en": "Source code",
+    "zh-Hant": "原始碼"
+  },
+  {
+    "source": "完整许可证",
+    "en": "Full license",
+    "zh-Hant": "完整授權條款"
+  },
+  {
+    "source": "贡献者",
+    "en": "Contributors",
+    "zh-Hant": "貢獻者"
+  },
+  {
+    "source": "Copyright © 2025 muxue。Nexa 项目贡献者保留各自贡献的版权。",
+    "en": "Copyright © 2025 muxue. Nexa contributors retain copyright in their contributions.",
+    "zh-Hant": "Copyright © 2025 muxue。Nexa 專案貢獻者保留各自貢獻的版權。"
+  },
+  {
+    "source": "Nexa Host 采用 Apache License 2.0。源代码、许可证及贡献记录：\nhttps://github.com/PCL-N-Edition/PCL-N\n随附 LICENSE 为完整授权条款；独立 Sidecar、插件与第三方依赖按各自许可证发布。",
+    "en": "Nexa Host is licensed under Apache License 2.0. Source, license and contributions:\nhttps://github.com/PCL-N-Edition/PCL-N\nThe accompanying LICENSE contains the full terms. Independent Sidecars, plugins and third-party dependencies use their respective licenses.",
+    "zh-Hant": "Nexa Host 採用 Apache License 2.0。原始碼、授權條款及貢獻記錄：\nhttps://github.com/PCL-N-Edition/PCL-N\n隨附 LICENSE 為完整授權條款；獨立 Sidecar、外掛與第三方相依套件按各自授權條款發布。"
+  },
+  {
+    "source": "Minecraft 是 Mojang / Microsoft 的商标。本项目由社区独立维护，与 Mojang / Microsoft 无隶属或官方认可关系。",
+    "en": "Minecraft is a trademark of Mojang / Microsoft. This community project is independent and is not affiliated with or endorsed by Mojang / Microsoft.",
+    "zh-Hant": "Minecraft 是 Mojang / Microsoft 的商標。本專案由社群獨立維護，與 Mojang / Microsoft 無隸屬或官方認可關係。"
+  },
+  {
+    "source": "感谢所有代码、翻译、测试和文档贡献者，以及 .NET、Avalonia、SkiaSharp、Bouncy Castle 等开源项目。感谢 Mojang 提供的游戏接口，以及 Modrinth、CurseForge、Fabric、Forge、NeoForge、Quilt 和 LittleSkin 的生态服务。",
+    "en": "Thanks to our code, translation, testing and documentation contributors; to open-source projects including .NET, Avalonia, SkiaSharp and Bouncy Castle; to Mojang for game APIs; and to Modrinth, CurseForge, Fabric, Forge, NeoForge, Quilt and LittleSkin for ecosystem services.",
+    "zh-Hant": "感謝所有程式碼、翻譯、測試和文件貢獻者，以及 .NET、Avalonia、SkiaSharp、Bouncy Castle 等開源專案。感謝 Mojang 提供的遊戲介面，以及 Modrinth、CurseForge、Fabric、Forge、NeoForge、Quilt 和 LittleSkin 的生態服務。"
+  },
+  {
+    "source": "感谢 BMCLAPI（bangbang93）、MCIM 与相关镜像维护者。中国大陆优化仅在中国大陆地区策略启用时使用。",
+    "en": "Thanks to BMCLAPI (bangbang93), MCIM and mirror maintainers. Mainland China optimizations are used only when the mainland country policy is enabled.",
+    "zh-Hant": "感謝 BMCLAPI（bangbang93）、MCIM 與相關鏡像維護者。中國大陸最佳化僅在中國大陸地區策略啟用時使用。"
+  },
+  {
+    "source": "请支持并购买正版 Minecraft；其他档案仅用于你有权访问的游戏与服务器。",
+    "en": "Please support Minecraft by purchasing a legitimate copy; use other profiles only for games and servers you are authorized to access.",
+    "zh-Hant": "請支持並購買正版 Minecraft；其他檔案僅用於你有權存取的遊戲與伺服器。"
+  },
+  {
+    "source": "请先登录并验证拥有 Minecraft Java 版的 Microsoft 账户，再添加其他类型的档案。",
+    "en": "Sign in with a Microsoft account and verify Minecraft Java Edition ownership before adding other profile types.",
+    "zh-Hant": "請先登入並驗證擁有 Minecraft Java 版的 Microsoft 帳戶，再新增其他類型的檔案。"
   }
 ]

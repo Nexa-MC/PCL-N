@@ -2,6 +2,13 @@
 
 ## Host resource admission (SEC-04)
 
+Executable discovery, pinned signature verification, bootstrap authentication and extension
+registration are defined in [NSC startup and regional policy](nsc-and-regional-policy.md).
+`.nsc` is a renamed native executable. New UI uses `UiModule` (5); extension kinds 7–12
+are append-only, use target TLV 8 and are owned by their session. Existing wire kinds retain
+their numbers and field meanings. Peers using new extension kinds require this Host revision;
+older peers can continue declaring kinds 1–6.
+
 Registration defaults to at most 4096 items, 256 characters per semantic identifier and
 32 MiB of aggregate frame payloads. The initial state snapshot has an independent 32 MiB
 budget and must declare exactly the registered state count. Each phase has a 30-second

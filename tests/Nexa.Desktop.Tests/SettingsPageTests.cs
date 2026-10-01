@@ -33,13 +33,13 @@ internal static partial class Program
         Emit(fixture.Intents, "ui.navigation.settings");
         var scene = fixture.Shell.Render(new(1000, 650));
         AssertEqual(settings.Page, fixture.Shell.Stage.Navigation.Current);
-        AssertEqual(9, scene.Nodes.Count(item => fixture.Shell.Tree.Name(item.Entity).StartsWith("SettingsNav.", StringComparison.Ordinal)));
+        AssertEqual(10, scene.Nodes.Count(item => fixture.Shell.Tree.Name(item.Entity).StartsWith("SettingsNav.", StringComparison.Ordinal)));
         var nav = FindByKey(fixture.Shell, scene, "SettingsNavigation");
         var body = FindByKey(fixture.Shell, scene, "SettingsSections");
         AssertEqual(44d, nav.Rect.Height);
         AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiSegmentedTrack>(nav.Entity) is not null);
         var pager = FindByKey(fixture.Shell, scene, "SettingsPager");
-        AssertEqual(9, fixture.Shell.Tree.GetComponent<XsrUiPager>(pager.Entity)!.PageCount);
+        AssertEqual(10, fixture.Shell.Tree.GetComponent<XsrUiPager>(pager.Entity)!.PageCount);
         fixture.Shell.Renderer.SelectPagerPage(pager.Entity, 1);
         scene = fixture.Shell.Render(new(1000, 650));
         AssertEqual("appearance", settings.SelectedSection);
@@ -52,6 +52,16 @@ internal static partial class Program
             Emit(fixture.Intents, "ui.settings.section", button.Entity);
             scene = fixture.Shell.Render(new(1000, 650));
             AssertEqual(page.Id, settings.SelectedSection);
+            if (page.Id == "about")
+            {
+                AssertTrue(scene.Nodes.Any(item => item.Text?.Contains("Copyright © 2025 muxue", StringComparison.Ordinal) == true));
+                AssertTrue(scene.Nodes.Any(item => item.Text?.Contains("Apache License 2.0", StringComparison.Ordinal) == true));
+                var aboutBody = FindByKey(fixture.Shell, scene, "SettingsSections").Entity;
+                fixture.Shell.Tree.GetComponent<XsrUiScroll>(aboutBody)!.OffsetY = 360;
+                fixture.Shell.Tree.MarkDirty(aboutBody, XsrUiDirtyKinds.Layout);
+                scene = fixture.Shell.Render(new(1000, 650));
+                AssertTrue(scene.Nodes.Any(item => item.Text == "鸣谢"));
+            }
             if (page.Id != "platform") AssertFalse(scene.Nodes.Any(item => item.Text == "尚未可用"));
             AssertTrue(scene.Nodes.Where(item => fixture.Shell.Tree.Name(item.Entity).StartsWith("SettingsRow.", StringComparison.Ordinal)).All(item => item.Rect.Width > 0));
         }

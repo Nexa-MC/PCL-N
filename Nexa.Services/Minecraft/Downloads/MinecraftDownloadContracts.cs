@@ -140,7 +140,12 @@ public static class MinecraftClientDownloadPlanner
 
 public static class MinecraftDownloadSourcePlanner
 {
-    public static string[] OrderSources(IReadOnlyList<string> officialUrls, IReadOnlyList<string> mirrorUrls, bool preferOfficialSource) => preferOfficialSource ? Merge(officialUrls, mirrorUrls) : Merge(mirrorUrls, officialUrls);
+    public static string[] OrderSources(IReadOnlyList<string> officialUrls, IReadOnlyList<string> mirrorUrls, bool preferOfficialSource) =>
+        OrderSources(officialUrls, mirrorUrls, preferOfficialSource, RegionalPolicy.Current);
+
+    public static string[] OrderSources(IReadOnlyList<string> officialUrls, IReadOnlyList<string> mirrorUrls, bool preferOfficialSource,
+        RegionalPolicy policy) => !policy.IsMainlandChina ? officialUrls.Distinct(StringComparer.Ordinal).ToArray()
+            : preferOfficialSource ? Merge(officialUrls, mirrorUrls) : Merge(mirrorUrls, officialUrls);
 
     public static string[] GetAssetSources(string original, bool preferOfficialSource)
     {
@@ -150,6 +155,7 @@ public static class MinecraftDownloadSourcePlanner
 
     public static string[] GetLibrarySources(string original, bool preferOfficialSource)
     {
+        if (!RegionalPolicy.Current.IsMainlandChina) return [original];
         const string litePath = "/com/mumfrey/liteloader/";
         int liteOffset = original.IndexOf(litePath, StringComparison.Ordinal);
         if (liteOffset >= 0)

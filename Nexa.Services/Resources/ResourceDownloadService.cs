@@ -72,9 +72,11 @@ public sealed class ResourceDownloadService(IResourceCatalogSource catalog, Down
             || (!Hash(file.Sha1, 40) && !Hash(file.Sha512, 128))) throw new InvalidDataException("资源文件元数据无效，无法安全下载。");
     }
     private static bool Allowed(string url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == "https" && uri.IsDefaultPort && uri.UserInfo.Length == 0 && uri.Fragment.Length == 0
-        && uri.Host is "cdn.modrinth.com" or "edge.forgecdn.net" or "mediafilez.forgecdn.net" or "media.forgecdn.net" or "mod.mcimirror.top" or "mcim-files.pysio.online";
+        && (uri.Host is "cdn.modrinth.com" or "edge.forgecdn.net" or "mediafilez.forgecdn.net" or "media.forgecdn.net"
+            || RegionalPolicy.Current.IsMainlandChina && uri.Host is "mod.mcimirror.top" or "mcim-files.pysio.online");
     private static string[] Sources(string url, bool mirrorFirst)
     {
+        if (!RegionalPolicy.Current.IsMainlandChina) return [url];
         var uri = new Uri(url);
         string mirror = ResourceProviderHttp.Mirror + uri.PathAndQuery;
         return mirrorFirst ? [mirror, url] : [url, mirror];

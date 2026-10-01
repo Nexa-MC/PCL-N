@@ -66,7 +66,8 @@ internal static class AdditionalLoaderProfiles
         foreach (var library in libraries.OfType<JsonObject>())
             if (library["url"] is null && library["downloads"] is null) library["url"] = library["name"]?.ToString().StartsWith("net.minecraft:", StringComparison.Ordinal) == true
                     ? "https://libraries.minecraft.net/" : "https://repo.maven.apache.org/maven2/";
-        libraries.Add((JsonNode)new JsonObject { ["name"] = "com.mumfrey:liteloader:" + build, ["url"] = "https://bmclapi2.bangbang93.com/maven/" });
+        libraries.Add((JsonNode)new JsonObject { ["name"] = "com.mumfrey:liteloader:" + build,
+            ["url"] = RegionalPolicy.Current.IsMainlandChina ? "https://bmclapi2.bangbang93.com/maven/" : "https://repo.liteloader.com/" });
         return new JsonObject
         {
             ["_nexaLiteLoaderMd5"] = latest["md5"]?.DeepClone(),

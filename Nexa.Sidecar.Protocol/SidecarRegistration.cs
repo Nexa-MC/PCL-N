@@ -13,6 +13,12 @@ public enum SidecarRegistrationKind : uint
     Event = 4,
     UiModule = 5,
     Resource = 6,
+    UiPatch = 7,
+    EventCatch = 8,
+    EventListen = 9,
+    IntentCatch = 10,
+    IntentWait = 11,
+    FunctionPatch = 12,
 }
 
 /// <summary>
@@ -29,7 +35,21 @@ public readonly record struct SidecarRegistrationItem(
     uint CodecId,
     byte[]? Payload = null,
     byte[]? ContentHash = null,
-    string? RequiredResources = null);
+    string? RequiredResources = null,
+    string? TargetSemanticId = null)
+{
+    // Preserve the original seven-field CLR constructor/deconstruction for existing SDK binaries.
+    public SidecarRegistrationItem(SidecarRegistrationKind kind, string semanticId, uint flags, uint codecId,
+        byte[]? payload, byte[]? contentHash, string? requiredResources)
+        : this(kind, semanticId, flags, codecId, payload, contentHash, requiredResources, null) { }
+
+    public void Deconstruct(out SidecarRegistrationKind kind, out string semanticId, out uint flags, out uint codecId,
+        out byte[]? payload, out byte[]? contentHash, out string? requiredResources)
+    {
+        kind = Kind; semanticId = SemanticId; flags = Flags; codecId = CodecId;
+        payload = Payload; contentHash = ContentHash; requiredResources = RequiredResources;
+    }
+}
 
 /// <summary>
 /// Encodes and decodes the REGISTER_* payloads: RegisterBegin carries the declaration count,
@@ -82,6 +102,7 @@ public static class SidecarRegistration
         {
             writer.WriteString(7, resources);
         }
+        if (item.TargetSemanticId is { } target) writer.WriteString(8, target);
 
         return writer.ToArray();
     }
@@ -95,6 +116,7 @@ public static class SidecarRegistration
         byte[]? content = null;
         byte[]? hash = null;
         string? requiredResources = null;
+        string? target = null;
         SidecarPayloadReader reader = new(payload);
         while (reader.HasMore)
         {
@@ -122,6 +144,9 @@ public static class SidecarRegistration
                 case 7:
                     requiredResources = field.ReadString();
                     break;
+                case 8:
+                    target = field.ReadString();
+                    break;
             }
         }
 
@@ -142,7 +167,7 @@ public static class SidecarRegistration
                 "Only state declarations carry a payload codec contract.");
         }
 
-        if (declaredKind is SidecarRegistrationKind.UiModule or SidecarRegistrationKind.Resource)
+        if (declaredKind is SidecarRegistrationKind.UiModule or SidecarRegistrationKind.Resource || IsExtension(declaredKind))
         {
             if (content is null || hash is null || hash.Length != 32)
             {
@@ -150,6 +175,10 @@ public static class SidecarRegistration
                     $"The {kind} declaration '{semanticId}' must carry its content and SHA-256 hash.");
             }
         }
+        if (IsExtension(declaredKind) && string.IsNullOrWhiteSpace(target))
+            throw new SidecarProtocolException("Extension registrations require a target semantic ID.");
+        if (!IsExtension(declaredKind) && target is not null)
+            throw new SidecarProtocolException("Only extension registrations carry a target semantic ID.");
 
         return new SidecarRegistrationItem(
             (SidecarRegistrationKind)kind,
@@ -158,8 +187,13 @@ public static class SidecarRegistration
             codecId,
             content,
             hash,
-            requiredResources);
+            requiredResources,
+            target);
     }
+
+    public static bool IsExtension(SidecarRegistrationKind kind) => kind is
+        SidecarRegistrationKind.UiPatch or SidecarRegistrationKind.EventCatch or SidecarRegistrationKind.EventListen
+        or SidecarRegistrationKind.IntentCatch or SidecarRegistrationKind.IntentWait or SidecarRegistrationKind.FunctionPatch;
 
     public static byte[] EncodeEnd() => [];
 }

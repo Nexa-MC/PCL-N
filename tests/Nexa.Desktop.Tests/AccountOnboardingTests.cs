@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Nexa.Desktop.Ui;
+using Nexa.Services;
 using Nexa.Services.Accounts;
 using Nexa.UI.Next;
 using Nexa.Xsr;
@@ -31,6 +32,7 @@ internal static partial class Program
             AccountFill(fixture, "OfflineName", "New_Player");
             AccountClick(fixture, "FormSubmit");
             fixture.Onboarding.Service.WhenIdle.GetAwaiter().GetResult();
+            AssertTrue(AccountSnapshot(fixture).Message.Contains(RegionalPolicy.PurchaseReminder, StringComparison.Ordinal));
             scene = fixture.Shell.Render(AccountTestSize);
             AssertEqual("New_Player", FindByKey(fixture.Shell, scene, "AccountName").Text);
             AssertEqual("账户", FindByKey(fixture.Shell, scene, "AccountHeader").Text);
@@ -50,6 +52,7 @@ internal static partial class Program
         ControlledMicrosoft microsoft = new();
         AccountEffects effects = new();
         using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]), microsoft: microsoft, accountEffects: effects);
+        fixture.Service.ConfigureRegionalPolicy(new("US"));
         AccountClick(fixture, "AccountAdd"); AccountClick(fixture, "ProviderMicrosoft");
         AwaitAccountPhase(fixture, AccountLoginPhase.AwaitingAuthorization);
         XsrUiScene scene = fixture.Shell.Render(AccountTestSize);
@@ -80,6 +83,7 @@ internal static partial class Program
         scene = fixture.Shell.Render(AccountTestSize);
         AssertEqual("OnlinePlayer", FindByKey(fixture.Shell, scene, "AccountName").Text);
         AssertEqual("PRIVATE-ACCESS", fixture.Service.GetProfile(0).Value!.AccessToken);
+        AssertTrue(fixture.Service.HasVerifiedMinecraftOwnership);
         AssertSceneHides(fixture, "PRIVATE-ACCESS", "PRIVATE-REFRESH", "PRIVATE-DEVICE");
 
         microsoft.Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);

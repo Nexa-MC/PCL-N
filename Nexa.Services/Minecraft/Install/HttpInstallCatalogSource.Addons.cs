@@ -74,6 +74,8 @@ public sealed partial class HttpInstallCatalogSource
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
                 catch (Exception error) when (error is HttpRequestException or IOException or OperationCanceledException) { /* Legacy official-to-MCIM fallback. */ }
             }
+            if (body is null && !RegionalPolicy.Current.IsMainlandChina)
+                throw new IOException("此地区使用 CurseForge 官方接口，请配置 API Key 并检查网络连接。");
             body ??= await ReadAsync("https://mod.mcimirror.top/curseforge/v1" + path, token).ConfigureAwait(false);
             using JsonDocument json = JsonDocument.Parse(body);
             JsonElement data = json.RootElement.GetProperty("data");
