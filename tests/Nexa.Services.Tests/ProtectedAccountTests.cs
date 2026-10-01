@@ -82,21 +82,24 @@ internal static partial class Program
         return ValueTask.CompletedTask;
     }
 
-    private static ValueTask NativeProfileProtectionUsesCurrentUser()
+    private static async ValueTask NativeProfileProtectionUsesCurrentUser()
     {
         if (!OperatingSystem.IsWindows() && Environment.GetEnvironmentVariable("NEXA_TEST_SYSTEM_KEYRING") != "1")
         {
             Console.WriteLine("SKIP: native keyring test requires an isolated unlocked system keyring.");
-            return ValueTask.CompletedTask;
+            return;
         }
-        var protector = new PlatformProfileDataProtector();
+        using var protector = new PlatformProfileDataProtector();
+        await protector.InitializeAsync([]).ConfigureAwait(false);
         byte[] plain = "SENSITIVE_NATIVE_TEST"u8.ToArray();
         byte[] encrypted = protector.Protect(plain);
         AssertFalse(encrypted.AsSpan().IndexOf(plain) >= 0);
-        AssertTrue(plain.SequenceEqual(new PlatformProfileDataProtector().Unprotect(encrypted)));
+        using var reopened = new PlatformProfileDataProtector();
+        Guid[] keyIds = OperatingSystem.IsWindows() ? [] : [new Guid(encrypted.AsSpan(1, 16))];
+        await reopened.InitializeAsync(keyIds).ConfigureAwait(false);
+        AssertTrue(plain.SequenceEqual(reopened.Unprotect(encrypted)));
         encrypted[^1] ^= 1;
         AssertThrows<CryptographicException>(() => protector.Unprotect(encrypted));
-        return ValueTask.CompletedTask;
     }
 
     private sealed class TestAccountProtector : IProfileDataProtector

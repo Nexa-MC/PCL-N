@@ -55,7 +55,7 @@ public sealed class ResourceDownloadService(IResourceCatalogSource catalog, Down
         finally
         {
             if (stage is not null) foreach (string path in new[] { stage, stage + ".PCLDownloading" })
-                    try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
     }
     private static void CheckDirectory(string path)

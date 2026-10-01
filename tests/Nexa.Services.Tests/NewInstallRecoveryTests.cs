@@ -1,6 +1,6 @@
 using System.Diagnostics;
-using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Downloads;
+using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Minecraft.Management;
 
 namespace Nexa.Services.Tests;

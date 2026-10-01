@@ -17,6 +17,12 @@ store first validates Load, so constructing a second port cannot overwrite unrea
 The legacy JSON port remains a compatibility/test adapter; production composition must use
 the protected port. Native platform tests are distinct from injectable cipher contract tests.
 
+The native protection test follows the asynchronous storage contract: await
+`InitializeAsync([])` before creating an envelope, and initialize a new protector with the
+envelope's key ID before reopening it on Linux/macOS. Both protectors are disposed so their
+cached key material is cleared. Windows initialization remains a no-op before current-user
+DPAPI operations. The cross-platform CI matrix exercises this same lifecycle.
+
 Linux requires `/usr/bin/secret-tool` and an unlocked Secret Service. Native backend failure
 is reported as unavailable rather than replaced by a filesystem key. This does not defend
 against malware already controlling the user's session or erase historical external backups.

@@ -1,6 +1,6 @@
 
-using Nexa.Services.Minecraft.Java;
 using Nexa.Services.Minecraft.Downloads;
+using Nexa.Services.Minecraft.Java;
 using static Nexa.Services.Capabilities.MachineInstanceCatalog;
 namespace Nexa.Services.Capabilities;
 

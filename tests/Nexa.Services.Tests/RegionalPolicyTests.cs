@@ -1,7 +1,7 @@
+using System.Net;
 using Nexa.Services.Accounts;
 using Nexa.Services.Minecraft.Downloads;
 using Nexa.Services.Resources;
-using System.Net;
 
 namespace Nexa.Services.Tests;
 

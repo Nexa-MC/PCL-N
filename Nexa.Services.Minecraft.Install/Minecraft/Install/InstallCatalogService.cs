@@ -147,11 +147,11 @@ public sealed partial class InstallCatalogService : IDisposable
             versions = Array.AsReadOnly(versions.Where(v => !string.IsNullOrWhiteSpace(v.Id)).DistinctBy(v => v.Id, StringComparer.Ordinal).ToArray());
             double normalizeMs = System.Diagnostics.Stopwatch.GetElapsedTime(normalizeStarted).TotalMilliseconds;
             lock (_gate) if (Current())
-                {
-                    if (_cache.Count >= 32) _cache.Clear();
-                    _cache[key] = versions;
-                    Publish(new(++_revision, key.Game, key.Loader, versions, false) { CacheHit = false, InputCount = inputCount, NormalizeMilliseconds = normalizeMs });
-                }
+            {
+                if (_cache.Count >= 32) _cache.Clear();
+                _cache[key] = versions;
+                Publish(new(++_revision, key.Game, key.Loader, versions, false) { CacheHit = false, InputCount = inputCount, NormalizeMilliseconds = normalizeMs });
+            }
         }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         {

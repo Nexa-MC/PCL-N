@@ -70,7 +70,7 @@ class SigningTests(unittest.TestCase):
         self.assertIn("pattern: Nexa-*", workflow)
         self.assertIn("name: Complete-Nexa-distribution\n          overwrite: true", workflow)
         self.assertNotIn("name: Nexa-complete-distribution", workflow)
-        runtime = (repo / "Nexa.Services/Updates/UpdateGpgVerifier.cs").read_text(encoding="utf-8")
+        runtime = (repo / "Nexa.Services.Updates/Updates/UpdateGpgVerifier.cs").read_text(encoding="utf-8")
         self.assertIn('ReleaseKeyFingerprint = "' + FINGERPRINT + '"', runtime)
         with keyring() as home:
             import_public(home, (repo / "GPG-PUBLIC-KEY.asc").read_bytes(), FINGERPRINT)

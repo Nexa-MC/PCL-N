@@ -129,16 +129,16 @@ public sealed partial class LauncherTelemetrySession
         if (change.SemanticId == InstallCatalogStateContract.StateKey && _telemetry.StateStore.ReadAppliedValue(change.Id) is InstallCatalogState catalog)
         {
             lock (_gate) foreach (var item in catalog.Catalogs)
-                {
-                    if (item.Loading) continue;
-                    long old = item.Loader is { } loader ? _catalogRevisions.GetValueOrDefault(loader, -1) : _gameCatalogRevision;
-                    if (item.Revision <= old) continue;
-                    if (item.Loader is { } current) _catalogRevisions[current] = item.Revision; else _gameCatalogRevision = item.Revision;
-                    if (item.CacheHit is { } hit) RecordMetric("catalog.cache.hit", hit ? 1 : 0);
-                    if (item.InputCount is { } count) RecordMetric("catalog.input.count", count);
-                    if (item.NormalizeMilliseconds is { } ms) RecordMetric("catalog.normalize.ms", ms);
-                    RecordMetric("catalog.results.count", item.Versions.Count, item.Error is null ? "ok" : "failed");
-                }
+            {
+                if (item.Loading) continue;
+                long old = item.Loader is { } loader ? _catalogRevisions.GetValueOrDefault(loader, -1) : _gameCatalogRevision;
+                if (item.Revision <= old) continue;
+                if (item.Loader is { } current) _catalogRevisions[current] = item.Revision; else _gameCatalogRevision = item.Revision;
+                if (item.CacheHit is { } hit) RecordMetric("catalog.cache.hit", hit ? 1 : 0);
+                if (item.InputCount is { } count) RecordMetric("catalog.input.count", count);
+                if (item.NormalizeMilliseconds is { } ms) RecordMetric("catalog.normalize.ms", ms);
+                RecordMetric("catalog.results.count", item.Versions.Count, item.Error is null ? "ok" : "failed");
+            }
         }
     }
 }
