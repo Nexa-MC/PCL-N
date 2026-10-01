@@ -45,6 +45,7 @@ internal sealed partial class SettingsPageController
         _contentDetail = null; _contentFilter = ""; _modCategory = "all"; _checkModUpdates = false; _checkingModUpdates = false;
         CancelManagementRead(); _management = null; _managementError = null;
         _selected = "overview"; _scrollPositions.Clear(); _recoverySnapshotPage = 0; _recoveryChangesPage = 0;
+        ResetContentGraph();
         if (_catalog is not null) RebuildManagementNavigation();
     }
 
@@ -75,7 +76,13 @@ internal sealed partial class SettingsPageController
         {
             _managementStop = new();
             _managementRead = _queries.QueryAsync<InstanceManagementQuery, InstanceManagementSnapshot>(route,
-                new(_instance) { IncludeRecoveryStorage = _selected == "recovery", IncludeTrash = _selected == "trash", CheckModUpdates = _checkModUpdates }, cancellationToken: _managementStop.Token).AsTask();
+                new(_instance)
+                {
+                    IncludeRecoveryStorage = _selected == "recovery",
+                    IncludeTrash = _selected == "trash",
+                    CheckModUpdates = _checkModUpdates,
+                    IncludeContentGraph = _selected == "contentgraph"
+                }, cancellationToken: _managementStop.Token).AsTask();
             _checkModUpdates = false;
             WakeOnPlatformCompletion(_managementRead);
         }
@@ -174,6 +181,7 @@ internal sealed partial class SettingsPageController
         }
         else if (_selected == "recovery") BuildRecoveryStorage(snapshot);
         else if (_selected == "trash") BuildContentTrash(snapshot);
+        else if (_selected == "contentgraph") BuildContentGraph(snapshot);
         else if (_selected == "modpack")
         {
             ManagementFact("整合包版本", string.IsNullOrEmpty(snapshot.ModpackVersion) ? "未记录" : snapshot.ModpackVersion);

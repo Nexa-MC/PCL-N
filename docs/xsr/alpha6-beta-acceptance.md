@@ -11,7 +11,7 @@
 | P0 | 更新事务 / 原生签名 | metadata / GPG / hash / inventory / 安装包 | 预安装受保护 helper、内部独立验签、对象绑定 staging/replace/rollback/restart，三平台替换竞争与断电测试。`UpdateStaging.ApplyPlan` 继续拒绝；不得提权用户可写的 helper。Authenticode、Developer ID、notarization 需发布者证书及 SmartScreen/Gatekeeper 实机证据。 |
 | P0 | 拆分后的稳定性 | 68 个程序集，异步账户初始化已收口 | 契约、架构、NativeAOT、trim、三平台原生生命周期通过；新增依赖边界先修改架构锁。 |
 | P1 | Sidecar 执行 / Patch compiler | 验签 EXE、认证 IPC、注册、snapshot、监督 | UI Patch / Event / Intent / Function 全部执行 adapter；显式 patch point、强类型 ABI、有界指令、capability 与 host validation；HEAD/ARGS/TAIL/RETURN/REPLACE 的错误/取消/退役会话测试。注册声明不能算执行完成。 |
-| P1 | 内容图 / 更新 | 本地 inventory、版本查询、删除的 required-by / orphan 预览 | 展示依赖及间接影响、缺失/未知/循环；选择/批量更新、changelog、同一事务 rollback。更新应绑定实际内容 hash，不能覆盖外部修改。 |
+| P1 | 内容图 / 更新 | 本地 inventory、版本查询、删除的间接影响预览；只读内容依赖页含双向关系、别名、停用、缺失/未知/歧义及循环 | 选择/批量更新、changelog、同一事务 rollback 尚未交付。更新检查复用连接池并在站点响应后复验本地 hash；实际替换仍须独立事务。metadata 图不等于实际 loaded set 或版本范围验证。 |
 | P1 | 实例工作区 | 概览、内容、文件、恢复、回收、设置，有界截图缩略图/详情预览 | 世界 datapack/版本/大小/最近游玩/备份/锁；servers.dat 编辑/favicon/延迟/Quick Join；截图元数据/裁剪；整合包导出。不能将文件列表算成管理完成。 |
 | P1 | Recovery 产品化 | 成功基线、diff、分页、逐项/全部恢复 | 按模组/配置/Java 等展示变化；只对有证据的风险作解释，不能把时间相关性称为原因；提供类别恢复与逐项恢复。快照、fingerprint 和冲突验证继续由 Service 执行。 |
 | P1 | Resource Center | 双来源、过滤、依赖规划、安全安装/删除 | 导入、更新、changelog、失败恢复及各内容类型闭环；所有异步搜索结果保留 generation 与取消边界。 |
@@ -45,4 +45,5 @@ Alpha.6 可明确列出尚待实机验收的候选能力；Beta 的支持列表�
 - 已落地两小时 composition soak 入口及三平台手动 workflow；日常 CI 仅运行 10 秒入口 smoke。本机 idle/navigation 各实跑 60 秒通过，scene entities 分别稳定在 285/319，state cells 均为 208；collected managed live bytes 未增长。此结果不替代两小时或完整原生 Desktop 验收。
 - 已落地 kernel percentile JSON 和受控 runner 的可选 120Hz/60Hz 门禁。修复 clean entity 重复 dirty acknowledgement；本机 1,600 节点 paint P50 约 2.86 → 1.78ms，layout P50 约 3.24 → 2.31ms。10,000 个全部实例化节点仍超预算；它不是虚拟列表 SLA。时间数据来自当前开发环境，不能用作受控硬件认证。
 - 已落地 Recovery 人类可读汇总与类别恢复、删除预览的间接依赖/别名影响、关于页主动诊断 ZIP。诊断包仅保留 typed operation facts，排除 raw message/exception/context；未知完整性与 Java 等事实保持 null。
+- 下一批增加只读 Instance Content Graph，按需复用 inventory、12 项分页与双向关系；迭代循环分析和读取预算不把未知/截断关系判作缺失。更新检查取消、连接池及响应后内容身份复验见 `instance-content-graph.md`；这不关闭实际批量更新工作。
 - 未新增程序集。受保护 updater、系统签名、Sidecar execution/Patch compiler、批量内容更新、完整工作区/迁移助手以及 OS accessibility、language × DPI 实机截图仍未关闭。上表是持续执行清单，不能把本批提交称作整份路线图完成。

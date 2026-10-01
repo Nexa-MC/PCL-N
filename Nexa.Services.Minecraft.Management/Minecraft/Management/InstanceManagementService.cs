@@ -29,20 +29,35 @@ public static class InstanceManagementService
                 contents.Add(await InstanceContentMetadata.EnrichAsync(ReadContent(page, token), page.Directory!, mediaBudget, token).ConfigureAwait(false));
             if (query.CheckModUpdates)
             {
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
                 for (int i = 0; i < contents.Count; i++)
                     if (contents[i].PageId == "mods")
-                        contents[i] = await InstanceModUpdates.CheckAsync(http, contents[i], Path.Combine(gameDirectory, "mods"), edit.GameVersion, edit.Selection, token).ConfigureAwait(false);
+                        contents[i] = await InstanceModUpdates.CheckAsync(InstanceModUpdates.SharedHttp, contents[i], Path.Combine(gameDirectory, "mods"), edit.GameVersion, edit.Selection, token).ConfigureAwait(false);
             }
             return new InstanceManagementSnapshot(instance, gameDirectory, edit.GameVersion, edit.Selection,
                 pages, inventory.Complete, metadata.ModpackVersion)
             {
                 Description = metadata.Description,
+                ContentGraph = query.IncludeContentGraph ? InstanceContentGraphBuilder.Build(GraphInventory(inventory, contents), edit.Selection, token) : null,
                 Trash = query.IncludeTrash ? InstanceContentTrash.Read(instance, gameDirectory) : [],
                 RecoveryStorage = query.IncludeRecoveryStorage ? await InstanceRecoveryStorageReader.ReadAsync(instance, gameDirectory, token).ConfigureAwait(false) : null,
                 Contents = contents.AsReadOnly(),
             };
         }, token);
+
+    private static LaunchModInventory GraphInventory(LaunchModInventory inventory, IReadOnlyList<InstanceContentSnapshot> contents)
+    {
+        var content = contents.FirstOrDefault(page => page.PageId == "mods");
+        // The launch inventory currently inspects JARs. Uninspected LiteLoader packages cannot
+        // make the graph claim a complete inventory or missing aliases.
+        int uninspected = content?.Entries.Count(entry => entry.Enabled is not null
+            && !entry.Name.EndsWith(".jar", StringComparison.OrdinalIgnoreCase)
+            && !entry.Name.EndsWith(".jar.disabled", StringComparison.OrdinalIgnoreCase)) ?? 0;
+        return inventory with
+        {
+            UnknownFiles = inventory.UnknownFiles + uninspected,
+            Complete = inventory.Complete && content?.Complete == true && uninspected == 0
+        };
+    }
 
     internal static InstanceContentSnapshot ReadContent(InstanceManagementPage page, CancellationToken token, int limit = 10000)
     {
@@ -84,7 +99,11 @@ public static class InstanceManagementService
             || modLoader && enabled.Overlaps(["iris", "oculus", "optifine", "angelica"]);
         bool schematics = modLoader && enabled.Overlaps(["litematica", "schematica", "worldedit", "axiom", "syncmatica", "baritone"]);
         List<InstanceManagementPage> pages = [new("overview", "总览"), new("game", "游戏设置"), new("recovery", "快照与存储")];
-        if (modLoader) pages.Add(new("mods", "模组", Path.Combine(gameDirectory, "mods")));
+        if (modLoader)
+        {
+            pages.Add(new("mods", "模组", Path.Combine(gameDirectory, "mods")));
+            pages.Add(new("contentgraph", "内容依赖"));
+        }
         pages.Add(new("resourcepacks", "资源包", Path.Combine(gameDirectory, "resourcepacks")));
         if (shaders) pages.Add(new("shaderpacks", "光影包", Path.Combine(gameDirectory, "shaderpacks")));
         if (schematics) pages.Add(new("schematics", "蓝图", Path.Combine(gameDirectory, "schematics")));

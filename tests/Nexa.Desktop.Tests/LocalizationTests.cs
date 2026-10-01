@@ -20,6 +20,9 @@ internal static partial class Program
         AssertEqual("en", UiLocalizationCatalog.ResolveLanguage("auto", "fr-FR"));
         catalog.SetLanguage("en");
         AssertEqual("Settings", catalog.Translate("设置"));
+        AssertEqual("Content dependencies", catalog.Translate("内容依赖"));
+        AssertEqual("1 Mod identity", catalog.Translate("共 1 个模组身份"));
+        AssertEqual("2000 Mod identities", catalog.Translate("共 2000 个模组身份"));
         AssertEqual("1 version", catalog.Translate("1 个版本"));
         AssertEqual("8 versions", catalog.Translate("8 个版本"));
         AssertEqual("Show Fabric installation options", catalog.Translate("显示 Fabric 安装选项"));

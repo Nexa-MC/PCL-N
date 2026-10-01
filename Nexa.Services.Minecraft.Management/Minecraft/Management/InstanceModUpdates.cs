@@ -8,9 +8,24 @@ namespace Nexa.Services.Minecraft.Management;
 /// <summary>Read-only, bounded, hash-based update lookup; never guesses project identity from a filename.</summary>
 internal static class InstanceModUpdates
 {
+    // Process-owned pool; per-call cancellation must never dispose another caller's connections.
+    internal static HttpClient SharedHttp { get; } = new(new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+        MaxConnectionsPerServer = 4
+    })
+    { Timeout = TimeSpan.FromSeconds(30) };
+
     internal static async Task<InstanceContentSnapshot> CheckAsync(HttpClient http, InstanceContentSnapshot source,
         string directory, string game, IReadOnlyList<InstallBuildSelection> components, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
+        source = source with
+        {
+            Entries = Array.AsReadOnly(source.Entries.Select(entry =>
+            entry with { UpdateAvailable = null, UpdateVersion = "" }).ToArray())
+        };
         string[] loaders = components.Select(item => item.Loader switch
         {
             InstallLoader.Fabric => "fabric",
@@ -32,21 +47,15 @@ internal static class InstanceModUpdates
                 || size > 256L * 1024 * 1024 || size > remaining) continue;
             try
             {
-                string path = Path.Combine(directory, entry.Name);
-                if (!MinecraftVersionPaths.IsSafeReference(entry.Name)) continue;
-                for (string? parent = path; parent is not null; parent = Path.GetDirectoryName(parent))
-                    if ((File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0) throw new IOException();
-                using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-                if (input.Length != size || File.GetLastWriteTimeUtc(path).Ticks != entry.ModifiedUtcTicks) continue;
                 remaining -= size;
-                string hash = await HashAsync(input, size, token).ConfigureAwait(false);
-                if (input.Length == size && File.GetLastWriteTimeUtc(path).Ticks == entry.ModifiedUtcTicks)
-                    files.Add((i, hash));
+                string? hash = await ReadCurrentHashAsync(directory, entry, token).ConfigureAwait(false);
+                if (hash is not null) files.Add((i, hash));
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         }
         try
         {
+            bool changed = false;
             foreach (var batch in files.Chunk(100))
             {
                 var request = new JsonObject
@@ -71,16 +80,45 @@ internal static class InstanceModUpdates
                     if (!DateTimeOffset.TryParse(Text(current, "date_published"), out var before)
                         || !DateTimeOffset.TryParse(Text(candidate, "date_published"), out var after)) continue;
                     bool update = !same && after > before;
+                    try
+                    {
+                        if (await ReadCurrentHashAsync(directory, entries[file.Index], token).ConfigureAwait(false) != file.Hash)
+                        { changed = true; continue; }
+                    }
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+                    { changed = true; continue; }
                     entries[file.Index] = entries[file.Index] with
                     { UpdateAvailable = update, UpdateVersion = update ? Text(candidate, "version_number") : "" };
                 }
             }
-            return source with { Entries = Array.AsReadOnly(entries) };
+            return source with
+            {
+                Entries = Array.AsReadOnly(entries),
+                Error = changed ? "部分文件在检查期间发生变化，请刷新后重新检查。" : source.Error
+            };
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception error) when (error is HttpRequestException or IOException or System.Text.Json.JsonException
             or InvalidOperationException or OperationCanceledException)
         { return source with { Entries = Array.AsReadOnly(entries), Error = "更新检查未完成，请稍后重试。未识别的模组保持未检测状态。" }; }
+    }
+
+    private static async Task<string?> ReadCurrentHashAsync(string directory, InstanceContentEntry entry, CancellationToken token)
+    {
+        if (!MinecraftVersionPaths.IsSafeReference(entry.Name) || entry.Size is not { } size) return null;
+        string path = Path.Combine(directory, entry.Name);
+        CheckLinks(path);
+        using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+        if (input.Length != size || File.GetLastWriteTimeUtc(path).Ticks != entry.ModifiedUtcTicks) return null;
+        string hash = await HashAsync(input, size, token).ConfigureAwait(false);
+        CheckLinks(path);
+        return input.Length == size && File.GetLastWriteTimeUtc(path).Ticks == entry.ModifiedUtcTicks ? hash : null;
+    }
+
+    private static void CheckLinks(string path)
+    {
+        for (string? parent = path; parent is not null; parent = Path.GetDirectoryName(parent))
+            if ((File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0) throw new IOException("不能检查链接目录中的模组。");
     }
 
     private static async Task<string> HashAsync(Stream input, long size, CancellationToken token)

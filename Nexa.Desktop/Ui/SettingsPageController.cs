@@ -92,7 +92,11 @@ internal sealed partial class SettingsPageController : IDisposable
         {
             var content = _shell.Tree.GetComponent<XsrUiElement>(_shell.Content)!;
             if (visible) { _previousContentPadding = content.Padding; content.Padding = default; }
-            else { content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); }
+            else
+            {
+                content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview();
+                ReleaseContentGraph();
+            }
             _visible = visible;
             _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
         }
@@ -168,6 +172,7 @@ internal sealed partial class SettingsPageController : IDisposable
         UpdateManagement();
         UpdateOnlineContent();
         UpdateModRemovalPreview();
+        UpdateContentGraph();
         int index = _shell.Tree.GetComponent<XsrUiPager>(_pager)!.PageIndex;
         if (index >= 0 && index < Pages.Count && Pages[index].Id != _selected)
             SwitchPage(Pages[index].Id);
@@ -182,6 +187,11 @@ internal sealed partial class SettingsPageController : IDisposable
     private void SwitchPage(string page)
     {
         _scrollPositions[_selected] = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY;
+        if (_selected == "contentgraph")
+        {
+            if (_managementRead is not null) CancelManagementRead();
+            ReleaseContentGraph();
+        }
 
         _contentDetail = null; _contentFilter = "";
         _selected = page; _sections = _pages[page];
@@ -191,6 +201,12 @@ internal sealed partial class SettingsPageController : IDisposable
             if (_management is { } management) _management = management with { RecoveryStorage = null, RecoveryComparison = null };
         }
         if (_instanceDirectory is not null && page == "trash") CancelManagementRead();
+        if (_instanceDirectory is not null && page == "contentgraph")
+        {
+            ResetContentGraph();
+            CancelManagementRead();
+            if (_management is { } management) _management = management with { ContentGraph = null };
+        }
         BuildSections(navigating: true); UpdateNavigation(); UpdateEditors();
     }
 
@@ -255,6 +271,7 @@ internal sealed partial class SettingsPageController : IDisposable
         foreach (var child in _shell.Tree.Children(_sections).ToArray()) _shell.Tree.Destroy(child);
         _editors.Clear(); _inheritButtons.Clear(); _selectors.Clear(); _argumentEditors.Clear(); _argumentActions.Clear(); _choices.Clear();
         _managementActions.Clear(); _contentSearch = default; _contentList = default; _contentWindowStart = -1;
+        _graphSearch = _graphBody = default; _graphActions.Clear();
         if (_instanceDirectory is not null && _selected != "game")
         {
             BuildManagementSection();

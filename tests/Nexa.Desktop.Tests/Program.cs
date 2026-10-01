@@ -61,6 +61,7 @@ internal static partial class Program
         ("product PXML shell accepts native window metrics", ProductPxmlShellAcceptsNativeWindowMetrics),
         ("Version settings isolate overrides and restore inheritance", VersionSettingsAreScopedAndRestoreInheritance),
         ("Instance management projects content with bounded realized rows", InstanceManagementShowsContentAndBoundsRealizedRows),
+        ("Instance content graph bounds relations and retires stale instances", ContentGraphPageBoundsRelationsAndRetiresOldInstances),
         ("Settings page keeps the final navigation and compact layout", SettingsPageUsesFinalNavigationAndCompactLayout),
         ("Settings page saves through Services without losing draft focus", SettingsPageSavesThroughServicesAndPreservesDraftFocus),
         ("Settings developer toggle preserves scroll position and focus", SettingsDeveloperToggleKeepsPositionAndFocus),

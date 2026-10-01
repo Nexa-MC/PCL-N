@@ -9,6 +9,7 @@ public sealed record InstanceManagementQuery(string InstanceDirectory)
     public bool IncludeRecoveryStorage { get; init; }
     public bool IncludeTrash { get; init; }
     public bool CheckModUpdates { get; init; }
+    public bool IncludeContentGraph { get; init; }
 }
 public sealed record InstanceManagementPage(string Id, string Label, string? Directory = null);
 public sealed record InstanceContentEntry(string Name, bool IsDirectory, long? Size)
@@ -34,6 +35,7 @@ public sealed record InstanceManagementSnapshot(string InstanceDirectory, string
     public InstanceRecoveryStorage? RecoveryStorage { get; init; }
     public InstanceRecoveryReport? RecoveryComparison { get; init; }
     public IReadOnlyList<InstanceTrashedContent> Trash { get; init; } = [];
+    public InstanceContentGraph? ContentGraph { get; init; }
 }
 
 public static class InstanceManagementContract

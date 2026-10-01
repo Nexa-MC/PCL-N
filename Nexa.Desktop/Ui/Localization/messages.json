@@ -8486,5 +8486,167 @@
     "source": "停用 · 游戏选项",
     "en": "Disabled · game options",
     "zh-Hant": "停用 · 遊戲選項"
+  },
+  {
+    "source": "以下关系来自本地包声明，不代表 Minecraft 已加载，也未验证版本范围；循环和缺失提示不会自动阻止启动。",
+    "en": "These relationships come from local package declarations. They do not prove that Minecraft loaded these Mods or that version requirements match. Cycle and missing-dependency notices do not automatically block launch.",
+    "zh-Hant": "以下關係來自本地包宣告，不代表 Minecraft 已載入，也未驗證版本範圍；循環和缺失提示不會自動阻止啟動。"
+  },
+  {
+    "source": "依赖前置",
+    "en": "Required dependencies",
+    "zh-Hant": "依賴前置"
+  },
+  {
+    "source": "依赖图超过读取上限，当前仅显示部分关系。",
+    "en": "Dependency graph exceeds the read budget. Only some relationships are shown.",
+    "zh-Hant": "依賴圖超過讀取上限，目前僅顯示部分關係。"
+  },
+  {
+    "source": "共 {0} 个模组身份",
+    "en": "{0} Mod identities",
+    "zh-Hant": "共 {0} 個模組身分",
+    "template": true,
+    "en-one": "{0} Mod identity"
+  },
+  {
+    "source": "关系未知",
+    "en": "Unknown relationship",
+    "zh-Hant": "關係未知"
+  },
+  {
+    "source": "内容依赖",
+    "en": "Content dependencies",
+    "zh-Hant": "內容依賴"
+  },
+  {
+    "source": "内嵌候选，尚未确认实际加载",
+    "en": "Nested candidate; actual loading not confirmed",
+    "zh-Hant": "內嵌候選，尚未確認實際載入"
+  },
+  {
+    "source": "存在依赖循环，仅供排查。",
+    "en": "Dependency cycle detected; diagnostic information only.",
+    "zh-Hant": "存在依賴循環，僅供排查。"
+  },
+  {
+    "source": "存在多个提供者，关系有歧义",
+    "en": "Multiple providers; relationship is ambiguous",
+    "zh-Hant": "存在多個提供者，關係有歧義"
+  },
+  {
+    "source": "提供者已停用",
+    "en": "Provider is disabled",
+    "zh-Hant": "提供者已停用"
+  },
+  {
+    "source": "搜索依赖",
+    "en": "Search dependencies",
+    "zh-Hant": "搜尋依賴"
+  },
+  {
+    "source": "搜索模组 ID、版本或依赖",
+    "en": "Search Mod IDs, versions or dependencies",
+    "zh-Hant": "搜尋模組 ID、版本或依賴"
+  },
+  {
+    "source": "更多候选可通过模组 ID 搜索查看。",
+    "en": "Search the Mod ID to view additional candidates.",
+    "zh-Hant": "更多候選可透過模組 ID 搜尋檢視。"
+  },
+  {
+    "source": "未发现依赖此模组的声明。",
+    "en": "No declarations depend on this Mod.",
+    "zh-Hant": "未發現依賴此模組的宣告。"
+  },
+  {
+    "source": "未发现必需依赖声明。",
+    "en": "No required dependencies were declared.",
+    "zh-Hant": "未發現必需依賴宣告。"
+  },
+  {
+    "source": "未识别文件",
+    "en": "Unrecognized files",
+    "zh-Hant": "未識別檔案"
+  },
+  {
+    "source": "未验证的内嵌候选",
+    "en": "Unverified nested candidate",
+    "zh-Hant": "未驗證的內嵌候選"
+  },
+  {
+    "source": "本地存在，版本范围尚未验证",
+    "en": "Present locally; version requirement not verified",
+    "zh-Hant": "本地存在，版本範圍尚未驗證"
+  },
+  {
+    "source": "本地已启用",
+    "en": "Enabled locally",
+    "zh-Hant": "本地已啟用"
+  },
+  {
+    "source": "本地缺失",
+    "en": "Missing locally",
+    "zh-Hant": "本地缺失"
+  },
+  {
+    "source": "查看关系",
+    "en": "View relationships",
+    "zh-Hant": "檢視關係"
+  },
+  {
+    "source": "查看提供者",
+    "en": "View provider",
+    "zh-Hant": "檢視提供者"
+  },
+  {
+    "source": "查看消费者",
+    "en": "View dependent Mod",
+    "zh-Hant": "檢視消費者"
+  },
+  {
+    "source": "正在读取依赖关系…",
+    "en": "Reading dependencies…",
+    "zh-Hant": "正在讀取依賴關係…"
+  },
+  {
+    "source": "此模组的依赖声明尚未完整识别。",
+    "en": "This Mod’s dependency declarations are not fully recognized.",
+    "zh-Hant": "此模組的依賴宣告尚未完整識別。"
+  },
+  {
+    "source": "没有匹配的模组身份。",
+    "en": "No matching Mod identities.",
+    "zh-Hant": "沒有符合的模組身分。"
+  },
+  {
+    "source": "消费者已停用",
+    "en": "Dependent Mod is disabled",
+    "zh-Hant": "消費者已停用"
+  },
+  {
+    "source": "由游戏、Java 或加载器提供，版本范围尚未验证",
+    "en": "Provided by Minecraft, Java or the loader; version requirement not verified",
+    "zh-Hant": "由遊戲、Java 或載入器提供，版本範圍尚未驗證"
+  },
+  {
+    "source": "被哪些模组依赖",
+    "en": "Dependent Mods",
+    "zh-Hant": "被哪些模組依賴"
+  },
+  {
+    "source": "返回依赖列表",
+    "en": "Back to dependencies",
+    "zh-Hant": "返回依賴清單"
+  },
+  {
+    "source": "部分文件在检查期间发生变化，请刷新后重新检查。",
+    "en": "Some files changed during the check. Refresh and check again.",
+    "zh-Hant": "部分檔案在檢查期間發生變化，請重新整理後再次檢查。"
+  },
+  {
+    "source": "部分模组或依赖尚未识别，未知关系不能当作缺失。",
+    "en": "Some Mods or dependencies are unrecognized. Unknown relationships must not be treated as missing.",
+    "zh-Hant": "部分模組或依賴尚未識別，未知關係不能當作缺失。"
   }
 ]

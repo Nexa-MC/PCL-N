@@ -64,6 +64,7 @@ internal static partial class Program
     private sealed class ModCategoryHttp(string hash) : HttpMessageHandler
     {
         internal string Mode { get; set; } = "newer";
+        internal Action? OnUpdate { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
             if (Mode == "offline") throw new HttpRequestException();
@@ -74,6 +75,7 @@ internal static partial class Program
             {
                 AssertEqual("fabric", body["loaders"]![0]!.ToString());
                 AssertEqual("1.20.1", body["game_versions"]![0]!.ToString());
+                OnUpdate?.Invoke();
             }
             string game = Mode == "incompatible" ? "1.21" : "1.20.1";
             string date = update && Mode != "older" ? "2026-02-01T00:00:00Z" : "2026-01-01T00:00:00Z";
@@ -92,5 +94,73 @@ internal static partial class Program
             };
             return new(HttpStatusCode.OK) { Content = new StringContent(result.ToJsonString()) };
         }
+    }
+
+    private static async ValueTask ModUpdateCheckRejectsChangedContentAndClearsOldConclusions()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            string path = Path.Combine(root, "good.jar");
+            byte[] original;
+            using (var output = new MemoryStream())
+            {
+                using (var archive = new ZipArchive(output, ZipArchiveMode.Create, true))
+                {
+                    using var writer = new StreamWriter(archive.CreateEntry("fabric.mod.json").Open());
+                    writer.Write("""{"id":"good","version":"1"}""");
+                }
+                original = output.ToArray();
+            }
+            string hash = Convert.ToHexString(SHA512.HashData(original)).ToLowerInvariant();
+            using var handler = new ModCategoryHttp(hash);
+            using var http = new HttpClient(handler);
+            foreach (string change in new[] { "same-size-same-stamp", "grow", "delete" })
+            {
+                File.WriteAllBytes(path, original);
+                var info = new FileInfo(path);
+                var source = new InstanceContentSnapshot("mods", [
+                    new("good.jar", false, info.Length) { Enabled = true, PackageReadable = true,
+                        ModifiedUtcTicks = info.LastWriteTimeUtc.Ticks, UpdateAvailable = true, UpdateVersion = "stale" }
+                ], true, null);
+                handler.OnUpdate = () =>
+                {
+                    if (change == "delete") File.Delete(path);
+                    else if (change == "grow") File.WriteAllBytes(path, [.. original, 0]);
+                    else
+                    {
+                        var replacement = original.ToArray(); replacement[^1] ^= 1;
+                        File.WriteAllBytes(path, replacement);
+                        File.SetLastWriteTimeUtc(path, new DateTime(source.Entries[0].ModifiedUtcTicks, DateTimeKind.Utc));
+                    }
+                };
+                var result = await InstanceModUpdates.CheckAsync(http, source, root, "1.20.1", [new(InstallLoader.Fabric, "0.16")], default);
+                AssertTrue(result.Entries[0].UpdateAvailable is null);
+                AssertEqual("", result.Entries[0].UpdateVersion);
+                AssertTrue(result.Error?.Contains("发生变化", StringComparison.Ordinal) == true);
+                // Unsupported loaders must also retire prior results, even before hashing or HTTP.
+                result = await InstanceModUpdates.CheckAsync(http, source, root, "1.20.1", [], default);
+                AssertTrue(result.Entries[0].UpdateAvailable is null); AssertEqual("", result.Entries[0].UpdateVersion);
+            }
+            File.WriteAllBytes(path, original);
+            var fresh = new FileInfo(path);
+            var snapshot = new InstanceContentSnapshot("mods", [
+                new("good.jar", false, fresh.Length) { Enabled = true, PackageReadable = true,
+                    ModifiedUtcTicks = fresh.LastWriteTimeUtc.Ticks, UpdateAvailable = true, UpdateVersion = "stale" }
+            ], true, null);
+            handler.OnUpdate = null; handler.Mode = "offline";
+            var failed = await InstanceModUpdates.CheckAsync(http, snapshot, root, "1.20.1", [new(InstallLoader.Fabric, "0.16")], default);
+            AssertTrue(failed.Entries[0].UpdateAvailable is null); AssertEqual("", failed.Entries[0].UpdateVersion);
+            handler.Mode = "newer";
+            using var stop = new CancellationTokenSource();
+            handler.OnUpdate = stop.Cancel;
+            try
+            {
+                await InstanceModUpdates.CheckAsync(http, snapshot, root, "1.20.1", [new(InstallLoader.Fabric, "0.16")], stop.Token);
+                throw new InvalidOperationException("Cancellation ignored.");
+            }
+            catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+        }
+        finally { Directory.Delete(root, true); }
     }
 }
