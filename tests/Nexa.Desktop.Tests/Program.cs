@@ -56,6 +56,7 @@ internal static partial class Program
         ("resource function patch rewrites actual list and detail captions", ResourceFunctionPatchRewritesActualListAndDetailCaptions),
         ("resources page uses service queries and preserves search", ResourcesPageUsesServiceQueriesAndPreservesSearch),
         ("resource icons arrive without rebuilding search or rows", ResourceIconsArriveWithoutRebuildingSearchOrRows),
+        ("resource pages release images and retire canceled icon generations", ResourcePagesReleaseImagesAndRetireCanceledIconGenerations),
         ("resources page discards superseded search and restores navigation", ResourcesPageDiscardsSupersededSearchAndRestoresNavigation),
         ("Install exit failure allows retry after worker becomes terminal", InstallExitFailureAllowsRetryAfterWorkerBecomesTerminal),
         ("Install exit waits for stop and preserves stay choice", InstallExitWaitsForStopAndPreservesStayChoice),

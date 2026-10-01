@@ -122,6 +122,7 @@ PXML vertical slices continue over the shared shell.
 | XSR-737 | follow-up | process-wide dynamic raster pixel budget, shared leases and visibility/retirement cleanup; [migration](migrations/XSR-737-shared-raster-budget.md) |
 | XSR-738 | follow-up | bounded offline soak windows, source receipt/binary binding and separate forced-GC endpoints; [migration](migrations/XSR-738-soak-window-analysis.md) |
 | XSR-739 | follow-up | aligned precise process and fixture-thread sampler allocation; legacy attribution remains unknown; [migration](migrations/XSR-739-soak-sampler-allocation.md) |
+| XSR-740 | follow-up | page-owned icon descriptors, hidden encoded-image release and cancellation-scoped completion; [migration](migrations/XSR-740-resource-page-image-ownership.md) |
 
 ## Closed migration unit
 

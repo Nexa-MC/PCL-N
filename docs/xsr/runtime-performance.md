@@ -120,3 +120,10 @@ receipt保留构建身份，不能将工作树版本升级为后来clean commit�
 精确进程累计分配与fixture线程的capture/JSON写入计数在写入前对齐，当前写入计入下一次
 sample；按区间报告总量、采样器、未归因余量。余量包含其他fixture和后台工作，不能
 称为产品纯idle分配；CPU采样成本仍未分离。schema-3历史数据保持null归因。
+
+资源页编码图片所有权见 [XSR-740](migrations/XSR-740-resource-page-image-ownership.md)：
+列表/详情退到后台时取消旧图标读取、释放raster引用，返回只请求当前页并保留条目和
+搜索草稿；销毁条目删除descriptor，取消的迟到completion不再唤醒UI。managed/Linux
+NativeAOT Desktop各109项、69项目架构与whitespace通过；独立产品NativeAOT通过
+52-node shell/first-run验证，安装输出无编译器/Roslyn。此结果不关闭viewport网络需求、
+OS pressure、真实RAM/GPU/8h指标。

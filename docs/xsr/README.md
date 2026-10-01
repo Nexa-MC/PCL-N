@@ -26,6 +26,7 @@ The user-requested constraints take precedence:
 - [migrations/XSR-737-shared-raster-budget.md](migrations/XSR-737-shared-raster-budget.md) — 共享动态bitmap预算、lease与可见性回收
 - [migrations/XSR-738-soak-window-analysis.md](migrations/XSR-738-soak-window-analysis.md) — 独立常规观测窗口、峰值/趋势与原始证据哈希
 - [migrations/XSR-739-soak-sampler-allocation.md](migrations/XSR-739-soak-sampler-allocation.md) — 对齐进程与采样器分配计数；旧记录保持未测量
+- [migrations/XSR-740-resource-page-image-ownership.md](migrations/XSR-740-resource-page-image-ownership.md) — 资源页隐藏时释放编码图片引用，恢复原有条目且取消旧图标请求
 - [migrations/XSR-728-detached-signature-admission.md](migrations/XSR-728-detached-signature-admission.md) — detached GPG 策略收口
 - [migrations/XSR-729-verification-receipt-lru.md](migrations/XSR-729-verification-receipt-lru.md) — 有界文件校验缓存与显式校验失败撤销
 - [review-505b9f9f.md](review-505b9f9f.md) — 新审查的事实核对、修复范围和剩余证据

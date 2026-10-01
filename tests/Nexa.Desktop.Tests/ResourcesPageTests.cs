@@ -72,6 +72,94 @@ internal static partial class Program
         AssertEqual(row, FindByKey(fixture.Shell, scene, "ResourceProject.WithIcon").Entity);
         AssertEqual(search, FindByKey(fixture.Shell, scene, "ResourceSearch").Entity);
     }
+    private static void ResourcePagesReleaseImagesAndRetireCanceledIconGenerations()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        var home = fixture.Shell.Stage.Navigation.Current;
+        var project = new ResourceProject("OwnedIcon", "Owned icon", "", "", 1, "https://modrinth.com/project/OwnedIcon")
+        { IconUrl = "https://cdn.modrinth.com/data/test/icon.png" };
+        List<(CancellationToken Token, TaskCompletionSource<ResourceIconResult> Result)> reads = [];
+        int searches = 0;
+        var queries = new XsrQueryRouterBuilder();
+        queries.Register<ResourceSearchQuery, ResourceSearchResult>(ResourceCatalogContract.Search, (query, token) =>
+        {
+            searches++;
+            return ValueTask.FromResult(XsrResult.Success(new ResourceSearchResult([project], 1, 0)));
+        });
+        queries.Register<ResourceDetailQuery, ResourceDetail>(ResourceCatalogContract.Detail,
+            (query, token) => ValueTask.FromResult(XsrResult.Success(new ResourceDetail(project, "MIT", []))));
+        queries.Register<ResourceIconQuery, ResourceIconResult>(ResourceCatalogContract.Icon, async (query, token) =>
+        {
+            TaskCompletionSource<ResourceIconResult> result = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            reads.Add((token, result));
+            return XsrResult.Success(await result.Task); // Deliberately ignores cancellation to exercise late completion.
+        });
+        using var page = new ResourcesPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()), fixture.Store, _ => { });
+        fixture.Shell.Renderer.ReducedMotion = true;
+        fixture.Shell.Stage.Navigation.Replace(page.Page);
+        var scene = fixture.Shell.Render(new(1000, 650));
+        var listIcon = FindByKey(fixture.Shell, scene, "ResourceProjectIcon").Entity;
+        var row = FindByKey(fixture.Shell, scene, "ResourceProject.OwnedIcon").Entity;
+        var search = FindByKey(fixture.Shell, scene, "ResourceSearch").Entity;
+        fixture.Shell.Renderer.SetTextInputValue(search, "kept draft");
+        var png = Nexa.Core.Media.PngImage.TryCreate(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a3ioAAAAASUVORK5CYII="))!;
+        AssertEqual(1, reads.Count);
+        Complete(0, listIcon);
+        Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDetails.OwnedIcon"));
+        scene = fixture.Shell.Render(new(1000, 650));
+        var detailIcon = FindByKey(fixture.Shell, scene, "ResourceDetailIcon").Entity;
+        AssertTrue(Image(listIcon).Raster is null);
+        AssertTrue(reads[0].Token.IsCancellationRequested);
+        AssertEqual(2, reads.Count);
+        Complete(1, detailIcon);
+        fixture.Shell.Stage.Navigation.Pop();
+        scene = fixture.Shell.Render(new(1000, 650));
+        AssertTrue(Image(detailIcon).Raster is null);
+        AssertEqual(3, reads.Count);
+        AssertEqual(row, FindByKey(fixture.Shell, scene, "ResourceProject.OwnedIcon").Entity);
+        AssertEqual(search, FindByKey(fixture.Shell, scene, "ResourceSearch").Entity);
+        AssertEqual("kept draft", fixture.Shell.Tree.GetComponent<XsrUiTextInput>(search)!.ReadDraft());
+        fixture.Shell.Stage.Navigation.Replace(home);
+        fixture.Shell.Render(new(1000, 650));
+        AssertTrue(reads[2].Token.IsCancellationRequested);
+        reads[2].Result.SetResult(new(png));
+        fixture.Shell.Render(new(1000, 650));
+        AssertTrue(Image(listIcon).Raster is null);
+        AssertTrue(Image(detailIcon).Raster is null);
+        fixture.Shell.Stage.Navigation.Replace(page.Page);
+        scene = fixture.Shell.Render(new(1000, 650));
+        AssertEqual(4, reads.Count); // Only the current list is requested; the old detail remains a placeholder.
+        AssertEqual(1, searches);
+        AssertEqual(row, FindByKey(fixture.Shell, scene, "ResourceProject.OwnedIcon").Entity);
+        AssertTrue(Image(listIcon).Raster is null);
+        Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceSearchButton"));
+        scene = fixture.Shell.Render(new(1000, 650));
+        var replacement = FindByKey(fixture.Shell, scene, "ResourceProjectIcon").Entity;
+        AssertFalse(fixture.Shell.Tree.IsAlive(listIcon));
+        AssertTrue(reads[3].Token.IsCancellationRequested);
+        AssertEqual(5, reads.Count); // No dead row or hidden detail is requested during replacement.
+        reads[3].Result.SetResult(new(png));
+        fixture.Shell.Render(new(1000, 650));
+        AssertTrue(Image(replacement).Raster is null);
+        Complete(4, replacement);
+        page.Dispose();
+        AssertTrue(Image(replacement).Raster is null);
+        AssertTrue(reads[4].Token.IsCancellationRequested);
+
+        XsrUiImage Image(XsrUiEntityId entity) => fixture.Shell.Tree.GetComponent<XsrUiImage>(entity)!;
+        void Complete(int index, XsrUiEntityId entity)
+        {
+            var fresh = Nexa.Core.Media.PngImage.TryCreate(png.Bytes.Span)!;
+            reads[index].Result.SetResult(new(fresh));
+            AssertTrue(SpinWait.SpinUntil(() =>
+            {
+                fixture.Shell.Render(new(1000, 650));
+                return Image(entity).Raster is not null;
+            }, TimeSpan.FromSeconds(5)));
+            AssertTrue(ReferenceEquals(fresh, Image(entity).Raster!.Image));
+        }
+    }
+
     private static void ResourcesPageUsesServiceQueriesAndPreservesSearch()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));

@@ -36,6 +36,7 @@ internal sealed class ResourcesPageController : IDisposable
     private CancellationTokenSource _stop = new();
     private CancellationTokenSource _contextStop = new();
     private CancellationTokenSource _iconStop = new();
+    private CancellationTokenSource _translationStop = new();
     private XsrCommandRouter? _commands;
     private Func<Task<string?>>? _pickDownload;
     private DesktopFeedbackService? _feedback;
@@ -59,6 +60,8 @@ internal sealed class ResourcesPageController : IDisposable
     private Task<XsrResult<ResourceSearchResult>>? _searching;
     private Task<XsrResult<ResourceDetail>>? _reading;
     private readonly List<(XsrUiEntityId Entity, Task<XsrResult<ResourceIconResult>> Read)> _icons = [];
+    private readonly List<ResourcePageIcon> _iconDescriptors = [];
+    private XsrUiEntityId _iconPage;
     private Task<XsrResult<MinecraftInstallEditSnapshot>>? _instanceReading;
     private MinecraftInstallEditQuery? _instanceRequest;
     private XsrQueryRouter? _instanceQueries;
@@ -135,11 +138,12 @@ internal sealed class ResourcesPageController : IDisposable
             else
             {
                 content.Padding = _previousPadding;
-                if (_searching is not null || _icons.Count > 0) _started = false;
-                Cancel(); CancelIcons(); _planStop.Cancel(); _planning = null; _installDraft = null; _contextStop.Cancel(); _contextRequest = null; _contextReading = null;
+                if (_searching is not null) _started = false;
+                Cancel(); CancelTranslations(); _planStop.Cancel(); _planning = null; _installDraft = null; _contextStop.Cancel(); _contextRequest = null; _contextReading = null;
             }
             _visible = visible; _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
         }
+        SyncIcons(visible ? _shell.Stage.Navigation.Current : default);
         if (!visible) return;
         UpdateSegmentWidths();
         if (_optionalVisible && _shell.Stage.Navigation.Current != DetailPage)
@@ -238,12 +242,13 @@ internal sealed class ResourcesPageController : IDisposable
             if (PendingQuery.Succeeded(reading)) { _detail = reading.Result.Value!; ShowDetail(); }
             else ShowFailure(_detailBody, "暂时无法加载详情。请重试。", () => ReadDetail(_detailId!), _detailActions);
         }
+        SyncIcons(_shell.Stage.Navigation.Current == Page || _shell.Stage.Navigation.Current == DetailPage ? _shell.Stage.Navigation.Current : default);
     }
 
     private string Draft(XsrUiEntityId entity) => _shell.Tree.GetComponent<XsrUiTextInput>(entity)!.ReadDraft().Trim();
     private void Search(int page)
     {
-        Cancel(); CancelIcons(); _result = null;
+        Cancel(); CancelIcons(); ReleaseIcons(); CancelTranslations(); _result = null;
         _filter = _filter with { Text = Draft(_search), GameVersion = Draft(_game), Loader = Draft(_loader), Page = page };
         Clear(_entities["ResourceList"], _listActions);
         if (_favoriteMode) { ShowFavorites(); return; }
@@ -275,11 +280,7 @@ internal sealed class ResourcesPageController : IDisposable
                 ResourceKind.Shader => "nexa/content-shader",
                 _ => "nexa/content-package"
             }));
-            if (project.IconUrl is { } url && _queries.TryResolve(ResourceCatalogContract.Icon, out var iconRoute))
-            {
-                var read = _queries.QueryAsync<ResourceIconQuery, ResourceIconResult>(iconRoute, new(url), cancellationToken: _iconStop.Token).AsTask();
-                _icons.Add((icon, read)); Wake(read);
-            }
+            TrackIcon(icon, project, Page);
             var copy = Stack(row, "ResourceProjectCopy"); E(copy).Weight = 1;
             LiteralText(copy, ProjectTitle(project.DisplayName), 15, Ink, 22, 600);
             Translate(LiteralText(copy, project.DisplayDescription, 12, Muted, 20), project);
@@ -391,8 +392,8 @@ internal sealed class ResourcesPageController : IDisposable
     {
         if (project.Sources.Count == 0 || !_queries.TryResolve(ResourceCatalogContract.Translate, out var route)) return;
         var source = project.Sources[0];
-        var read = _queries.QueryAsync<ResourceTranslationQuery, ResourceTranslation>(route, new(source, project.Description), cancellationToken: _iconStop.Token).AsTask();
-        _translations.Add((entity, read)); Wake(read);
+        var read = _queries.QueryAsync<ResourceTranslationQuery, ResourceTranslation>(route, new(source, project.Description), cancellationToken: _translationStop.Token).AsTask();
+        _translations.Add((entity, read)); Wake(read, _translationStop.Token);
     }
     private ResourceInstanceQuery? CurrentInstance() => _selectedInstance?.Invoke() is { } selected ? new(selected.RootDirectory, selected.InstanceId, _filter.MirrorFirst) : null;
     private void ReadContext()
@@ -538,15 +539,45 @@ internal sealed class ResourcesPageController : IDisposable
     {
         var icon = Element(parent, name, XsrUiSemanticRole.Image, project.DisplayName); E(icon).Width = size; E(icon).Height = size;
         Style(icon, Tint, Muted, 14); _shell.Tree.SetComponent(icon, new XsrUiImage("lucide/blocks"));
-        if (project.IconUrl is { } url && _queries.TryResolve(ResourceCatalogContract.Icon, out var route))
-        { var read = _queries.QueryAsync<ResourceIconQuery, ResourceIconResult>(route, new(url), cancellationToken: _iconStop.Token).AsTask(); _icons.Add((icon, read)); Wake(read); }
+        TrackIcon(icon, project, DetailPage);
         return icon;
     }
     private void Cancel() { _stop.Cancel(); _stop.Dispose(); _stop = new(); _searching = null; _reading = null; _instanceReading = null; }
-    private void CancelIcons() { _translations.Clear(); _iconStop.Cancel(); _iconStop.Dispose(); _iconStop = new(); _icons.Clear(); }
-    private void Wake(Task task) => _ = task.ContinueWith(_ =>
+    private void CancelIcons() { _iconStop.Cancel(); _iconStop.Dispose(); _iconStop = new(); _icons.Clear(); _iconPage = default; }
+    private void CancelTranslations() { _translations.Clear(); _translationStop.Cancel(); _translationStop.Dispose(); _translationStop = new(); }
+    private readonly record struct ResourcePageIcon(XsrUiEntityId Entity, string Url, XsrUiEntityId Page);
+    private void TrackIcon(XsrUiEntityId entity, ResourceProject project, XsrUiEntityId page)
     {
-        if (_disposed) return;
+        if (project.IconUrl is not { } url) return;
+        ResourcePageIcon descriptor = new(entity, url, page);
+        _iconDescriptors.Add(descriptor);
+        if (_iconPage == page) ReadIcon(descriptor);
+    }
+    private void ReadIcon(ResourcePageIcon descriptor)
+    {
+        if (!_queries.TryResolve(ResourceCatalogContract.Icon, out var route)) return;
+        var read = _queries.QueryAsync<ResourceIconQuery, ResourceIconResult>(route, new(descriptor.Url), cancellationToken: _iconStop.Token).AsTask();
+        _icons.Add((descriptor.Entity, read)); Wake(read, _iconStop.Token);
+    }
+    private void SyncIcons(XsrUiEntityId page)
+    {
+        if (_iconPage == page) return;
+        CancelIcons(); ReleaseIcons(); _iconPage = page;
+        foreach (var descriptor in _iconDescriptors)
+            if (descriptor.Page == page && _shell.Tree.IsAlive(descriptor.Entity)) ReadIcon(descriptor);
+    }
+    private void ReleaseIcons()
+    {
+        foreach (var descriptor in _iconDescriptors)
+        {
+            if (!_shell.Tree.IsAlive(descriptor.Entity) || _shell.Tree.GetComponent<XsrUiImage>(descriptor.Entity) is not { Raster: not null } image) continue;
+            image.Raster = null;
+            _shell.Tree.MarkDirty(descriptor.Entity, XsrUiDirtyKinds.Paint);
+        }
+    }
+    private void Wake(Task task, CancellationToken token = default) => _ = task.ContinueWith(_ =>
+    {
+        if (_disposed || token.IsCancellationRequested) return;
         try { _store.Publish(_store.Resolve(ResourcesPresentationState.Wake), Interlocked.Increment(ref _wake)); }
         catch (ObjectDisposedException) { }
     }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -562,6 +593,7 @@ internal sealed class ResourcesPageController : IDisposable
         foreach (var child in _shell.Tree.Children(parent).ToArray())
         { _shell.Tree.Walk(child, entity => { removed.Add(entity); return true; }); _shell.Tree.Destroy(child); }
         _translations.RemoveAll(item => removed.Contains(item.Entity)); _icons.RemoveAll(item => removed.Contains(item.Entity));
+        _iconDescriptors.RemoveAll(item => removed.Contains(item.Entity));
     }
     private XsrUiElement E(XsrUiEntityId entity) => _shell.Tree.GetComponent<XsrUiElement>(entity)!;
     private XsrUiEntityId Element(XsrUiEntityId parent, string name, XsrUiSemanticRole role = XsrUiSemanticRole.None, string? label = null)
@@ -662,5 +694,11 @@ internal sealed class ResourcesPageController : IDisposable
             if (E(track).Width != total) { E(track).Width = total; _shell.Tree.MarkDirty(track, XsrUiDirtyKinds.Layout); }
         }
     }
-    public void Dispose() { _disposed = true; _planStop.Cancel(); _planStop.Dispose(); _contextStop.Cancel(); _contextStop.Dispose(); _downloadsStop.Cancel(); _downloadsStop.Dispose(); _iconStop.Cancel(); _iconStop.Dispose(); _stop.Cancel(); _stop.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame; }
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true; _planStop.Cancel(); _planStop.Dispose(); _contextStop.Cancel(); _contextStop.Dispose(); _downloadsStop.Cancel(); _downloadsStop.Dispose();
+        _iconStop.Cancel(); _iconStop.Dispose(); _translationStop.Cancel(); _translationStop.Dispose(); ReleaseIcons(); _iconDescriptors.Clear(); _icons.Clear(); _translations.Clear();
+        _stop.Cancel(); _stop.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
+    }
 }

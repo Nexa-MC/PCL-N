@@ -38,7 +38,7 @@ The search field survives result publication, preserving selection and focus.
 Resource icons use a separate cancellable sealed query, so image latency never
 delays search results. Only HTTPS cdn.modrinth.com/data/ and Forge CDN /avatars/ assets are accepted, with
 redirects disabled, four concurrent reads, a 1 MiB actual-byte limit and a bounded
-32-entry cache. The existing encoded raster carrier gains an explicit resource-icon
+32 MiB/256-entry LRU cache. The existing encoded raster carrier gains an explicit resource-icon
 factory for static PNG/WebP/JPEG (1024px maximum); existing PNG-only factories retain
 their contract. Decoding stays in the backend and invalid images keep a placeholder.
 WebP header reference: https://developers.google.com/speed/webp/docs/riff_container.
@@ -46,6 +46,13 @@ JPEG frame-header reference: https://github.com/libjpeg-turbo/libjpeg-turbo/blob
 The current-instance filter reuses `MinecraftInstallEditContract.Query` through
 the existing install catalog router; Desktop does not parse version JSON or infer
 Minecraft/loader versions from filenames. A changed selection invalidates its result.
+
+The controller retains URL/entity/page descriptors while a page is inactive, releases
+its encoded raster references and cancels pending icon reads. Only the current list or
+detail page requests icons on return, preserving rows and search drafts. Canceled icon
+or translation completions cannot wake the UI. This page ownership rule supplements the
+Service encoded-cache budget and backend decoded-raster budget; it does not certify OS
+memory pressure or viewport-driven network demand. See [XSR-740](XSR-740-resource-page-image-ownership.md).
 
 Both providers cover mods, modpacks, resource packs, shaders and data packs.
 Favorites and automatic dependency installation use the follow-up contracts below.
