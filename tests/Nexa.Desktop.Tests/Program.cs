@@ -926,7 +926,7 @@ internal static partial class Program
             AccountForm.Dispose();
             Onboarding.Dispose();
             _launchObserverSubscription?.Dispose();
-            Controller.Dispose();
+            Controller.DisposeAsync().AsTask().GetAwaiter().GetResult();
             InstallCatalog.Dispose();
             Library.Dispose();
             FeedbackPresenter.Dispose();
@@ -1050,7 +1050,7 @@ internal static partial class Program
 
             if (Hang)
             {
-                return new ValueTask<XsrResult>(_hang.Task);
+                return new ValueTask<XsrResult>(_hang.Task.WaitAsync(cancellationToken));
             }
 
             return ValueTask.FromResult(Outcome);

@@ -2,73 +2,10 @@ using System.Xml.Linq;
 
 namespace Nexa.Xsr.ArchitectureTests;
 
-internal static class Program
+internal static partial class Program
 {
-    private static readonly IReadOnlyDictionary<string, string[]> AllowedReferences =
-        new Dictionary<string, string[]>(StringComparer.Ordinal)
-        {
-            ["Nexa.Core"] = [],
-            ["Nexa.Domain"] = ["Nexa.Core"],
-            ["Nexa.Contracts"] = ["Nexa.Core"],
-            ["Nexa.Xsr.Abstractions"] = ["Nexa.Contracts", "Nexa.Core"],
-            ["Nexa.Xsr.State"] = ["Nexa.Core", "Nexa.Xsr.Abstractions"],
-            ["Nexa.Xsr.Diagnostics"] = ["Nexa.Core", "Nexa.Xsr.Abstractions"],
-            ["Nexa.Xsr.Transport"] = ["Nexa.Core", "Nexa.Xsr.Abstractions", "Nexa.Xsr.Diagnostics"],
-            ["Nexa.Xsr.Runtime"] =
-            [
-                "Nexa.Contracts",
-                "Nexa.Core",
-                "Nexa.Sidecar.Protocol",
-                "Nexa.Sidecar.Transport",
-                "Nexa.Xsr.Abstractions",
-                "Nexa.Xsr.Diagnostics",
-                "Nexa.Xsr.State",
-                "Nexa.Xsr.Transport",
-            ],
-            ["Nexa.Xsr.Generators"] = [],
-            ["Nexa.Services"] =
-            [
-                "Nexa.Contracts",
-                "Nexa.Core",
-                "Nexa.Domain",
-                "Nexa.Xsr.Abstractions",
-                "Nexa.Xsr.State",
-            ],
-            ["Nexa.Services.Composition"] = ["Nexa.Services", "Nexa.Xsr.Runtime"],
-            ["CapabilityProbe"] = ["Nexa.Services"],
-            ["Nexa.Minecraft.Benchmarks"] = ["Nexa.Services", "Nexa.Xsr.State"],
-            ["Nexa.Jvm.Host"] = ["Nexa.Services"],
-            ["Nexa.UI.Next"] = ["Nexa.Core", "Nexa.Xsr.Abstractions", "Nexa.Xsr.State"],
-            ["Nexa.UI.Next.Backend.Avalonia"] = ["Nexa.UI.Next"],
-            ["Nexa.UI.Next.DevTools"] = ["Nexa.UI.Next", "Nexa.Xsr.Diagnostics"],
-            ["Nexa.UI.Next.Benchmarks"] = ["Nexa.UI.Next", "Nexa.Xsr.State"],
-            ["Nexa.Pxml.Compiler"] = ["Nexa.Core", "Nexa.Pxml.Generators", "Nexa.Xsr.Abstractions", "Nexa.UI.Next"],
-            ["Nexa.Pxml.Runtime"] =
-            ["Nexa.Core", "Nexa.Pxml.Compiler", "Nexa.UI.Next", "Nexa.Xsr.Abstractions", "Nexa.Xsr.State"],
-            ["Nexa.Pxml.Generators"] = [],
-            ["Nexa.Sidecar.Protocol"] = [],
-            ["Nexa.Sidecar.Transport"] = ["Nexa.Sidecar.Protocol"],
-            ["Nexa.Desktop"] =
-            [
-                "Nexa.Pxml.Runtime",
-                "Nexa.Services",
-                "Nexa.Services.Composition",
-                "Nexa.Sidecar.Protocol",
-                "Nexa.Sidecar.Transport",
-                "Nexa.UI.Next",
-                "Nexa.UI.Next.Backend.Avalonia",
-                "Nexa.Xsr.Runtime",
-            ],
-            ["Nexa.Xsr.ArchitectureTests"] = [],
-            ["Nexa.Xsr.Runtime.Tests"] = ["Nexa.Sidecar.Protocol", "Nexa.Sidecar.Transport", "Nexa.Xsr.Abstractions", "Nexa.Xsr.Diagnostics", "Nexa.Xsr.Runtime", "Nexa.Xsr.State"],
-            ["Nexa.UI.Next.Tests"] = ["Nexa.Xsr.Abstractions", "Nexa.Xsr.State", "Nexa.UI.Next"],
-            ["Nexa.UI.Next.Backend.Avalonia.Tests"] = ["Nexa.UI.Next.Backend.Avalonia", "Nexa.Xsr.Abstractions", "Nexa.Xsr.State"],
-            ["Nexa.Pxml.Tests"] = ["Nexa.Pxml.Compiler", "Nexa.Pxml.Runtime", "Nexa.UI.Next", "Nexa.Xsr.Abstractions", "Nexa.Xsr.State"],
-            ["Nexa.Sidecar.Tests"] = ["Nexa.Sidecar.Protocol", "Nexa.Sidecar.Transport"],
-            ["Nexa.Services.Tests"] =
-            ["Nexa.Pxml.Compiler", "Nexa.Pxml.Runtime", "Nexa.Services", "Nexa.Services.Composition", "Nexa.UI.Next", "Nexa.Xsr.Runtime", "Nexa.Xsr.State"],
-            ["Nexa.Desktop.Tests"] = ["Nexa.Desktop", "Nexa.Services", "Nexa.Services.Composition", "Nexa.UI.Next", "Nexa.Xsr.State"],
-        };
+    private static IReadOnlyDictionary<string, string[]> AllowedReferences = new Dictionary<string, string[]>();
+    private static readonly Dictionary<string, string[]> ActualReferences = new(StringComparer.Ordinal);
 
     private static readonly HashSet<string> ExecutableProjects =
         [
@@ -88,7 +25,7 @@ internal static class Program
         ];
 
     private static readonly HashSet<string> GeneratorProjects =
-        ["Nexa.Pxml.Generators", "Nexa.Xsr.Generators"];
+        ["Nexa.Pxml.Generators"];
 
     private static readonly HashSet<string> AotCompatibleProjects =
         [
@@ -107,6 +44,8 @@ internal static class Program
     public static int Main(string[] args)
     {
         string repositoryRoot = ResolveRepositoryRoot(args);
+        AllowedReferences = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string[]>>(
+            File.ReadAllText(Path.Combine(repositoryRoot, "docs/xsr/project-references.json")))!;
         List<string> failures = [];
         Dictionary<string, string> projectPaths = DiscoverProjects(repositoryRoot, failures);
 
@@ -114,10 +53,8 @@ internal static class Program
         ValidateProjects(repositoryRoot, projectPaths, failures);
         ValidateSolution(repositoryRoot, failures);
         ValidateCommonBuildProperties(repositoryRoot, failures);
-        ValidateServicesDoNotNameDesktop(repositoryRoot, failures);
-        ValidateDesktopInstallBoundary(repositoryRoot, failures);
-        ValidateDesktopSettingsBoundary(repositoryRoot, failures);
-        ValidatePlatformPresentationBoundary(repositoryRoot, failures);
+        ValidateSemanticBoundaries(repositoryRoot, projectPaths, failures);
+
         ValidateNativeHostInterop(repositoryRoot, failures);
         ValidatePxmlControlCatalog(repositoryRoot, projectPaths, failures);
         ValidateWave3Ci(repositoryRoot, failures);
@@ -136,69 +73,6 @@ internal static class Program
         }
 
         return 1;
-    }
-
-    private static void ValidateDesktopSettingsBoundary(string repositoryRoot, List<string> failures)
-    {
-        foreach (string path in Directory.EnumerateFiles(Path.Combine(repositoryRoot, "Nexa.Desktop", "Ui"), "*.cs", SearchOption.AllDirectories))
-        {
-            if (IsBuildOutput(path)) continue;
-            string source = File.ReadAllText(path);
-            foreach (string forbidden in new[] { "SettingsPolicyService", "SettingsPolicySchema", "LauncherSettingsJsonPort", "SettingsService", "NexaSettingsLayers" })
-                if (source.Contains(forbidden, StringComparison.Ordinal))
-                    failures.Add($"Settings UI must use sealed state/query/command contracts, not {forbidden}: {Path.GetRelativePath(repositoryRoot, path)}");
-        }
-    }
-
-    private static void ValidatePlatformPresentationBoundary(string repositoryRoot, List<string> failures)
-    {
-        string path = Path.Combine(repositoryRoot, "Nexa.Desktop", "Ui", "SettingsPageController.Platform.cs");
-        string source = File.ReadAllText(path);
-        foreach (string forbidden in new[] { ".GetAwaiter().GetResult()", "IssueLabel(" })
-            if (source.Contains(forbidden, StringComparison.Ordinal))
-                failures.Add($"Platform presentation must consume an existing snapshot and service-owned issue text, not {forbidden}.");
-    }
-
-    private static void ValidateDesktopInstallBoundary(string repositoryRoot, List<string> failures)
-    {
-        foreach (string path in Directory.EnumerateFiles(Path.Combine(repositoryRoot, "Nexa.Desktop"), "*.cs", SearchOption.AllDirectories))
-        {
-            if (IsBuildOutput(path)) continue;
-            string source = File.ReadAllText(path);
-            if (Path.GetFileName(path).StartsWith("LaunchPageController", StringComparison.Ordinal))
-                foreach (string forbidden in new[] { "MinecraftLaunchFaultAnalyzer", "System.Diagnostics.Process", "Process.GetProcessById" })
-                    if (source.Contains(forbidden, StringComparison.Ordinal))
-                        failures.Add($"Desktop launch UI must consume Service process state, not {forbidden}: {Path.GetRelativePath(repositoryRoot, path)}");
-            foreach (string forbidden in new[] { "InstallCompatibility", "InstallCatalogService.StateKey", "MachineCapabilityBroker", "IMachineCapabilityProvider", "MachineCapabilityCatalog" })
-                if (source.Contains(forbidden, StringComparison.Ordinal))
-                    failures.Add($"Desktop must project the sealed install contract, not {forbidden}: {Path.GetRelativePath(repositoryRoot, path)}");
-        }
-    }
-
-    private static void ValidateServicesDoNotNameDesktop(
-        string repositoryRoot,
-        List<string> failures)
-    {
-        string servicesDirectory = Path.Combine(repositoryRoot, "Nexa.Services");
-        foreach (string sourcePath in Directory.EnumerateFiles(
-                     servicesDirectory,
-                     "*.cs",
-                     SearchOption.AllDirectories))
-        {
-            if (IsBuildOutput(sourcePath))
-            {
-                continue;
-            }
-
-            string source = File.ReadAllText(sourcePath);
-            if (source.Contains("Nexa.Desktop", StringComparison.Ordinal))
-            {
-                string relativePath = Path.GetRelativePath(repositoryRoot, sourcePath)
-                    .Replace('\\', '/');
-                failures.Add(
-                    $"{relativePath} names the Desktop product layer; UI projection state belongs to the composition root.");
-            }
-        }
     }
 
     private static void ValidateNativeHostInterop(string repositoryRoot, List<string> failures)
@@ -319,6 +193,16 @@ internal static class Program
                 failures.Add($"{projectName} is missing locked project reference '{missing}'.");
             }
 
+            ActualReferences[projectName] = actualReferences.ToArray();
+            bool portable = projectName.EndsWith(".Contracts", StringComparison.Ordinal)
+                || projectName is "Nexa.Core" or "Nexa.Domain" or "Nexa.Contracts" or "Nexa.Platform.Abstractions";
+            if (portable)
+                foreach (string implementation in actualReferences.Where(IsServiceImplementation))
+                    failures.Add($"Portable contract {projectName} references implementation {implementation}.");
+            if (!GeneratorProjects.Contains(projectName)
+                && !Directory.EnumerateFiles(Path.GetDirectoryName(projectPath)!, "*.cs", SearchOption.AllDirectories)
+                    .Any(path => !IsBuildOutput(path)))
+                failures.Add($"Empty source project: {projectName}.");
             ValidateProjectKind(projectName, project, failures);
             ValidateFrameworkPackages(projectName, project, failures);
         }
@@ -455,7 +339,7 @@ internal static class Program
         HashSet<string> visiting = new(StringComparer.Ordinal);
         HashSet<string> visited = new(StringComparer.Ordinal);
 
-        foreach (string project in AllowedReferences.Keys)
+        foreach (string project in ActualReferences.Keys)
         {
             Visit(project, visiting, visited, failures);
         }
@@ -758,13 +642,13 @@ internal static class Program
 
         if (!visiting.Add(project))
         {
-            failures.Add($"The locked project graph contains a cycle at '{project}'.");
+            failures.Add($"The actual project graph contains a cycle at '{project}'.");
             return;
         }
 
-        foreach (string dependency in AllowedReferences[project])
+        foreach (string dependency in ActualReferences[project])
         {
-            if (AllowedReferences.ContainsKey(dependency))
+            if (ActualReferences.ContainsKey(dependency))
             {
                 Visit(dependency, visiting, visited, failures);
             }

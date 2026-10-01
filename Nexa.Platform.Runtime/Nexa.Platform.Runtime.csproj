@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><Description>XSR platform boundary.</Description><IsAotCompatible>true</IsAotCompatible><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nexa.Platform.Abstractions/Nexa.Platform.Abstractions.csproj" />
+    <ProjectReference Include="../Nexa.Services.Common/Nexa.Services.Common.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Java.Contracts/Nexa.Services.Minecraft.Java.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Process.Contracts/Nexa.Services.Minecraft.Process.Contracts.csproj" />
+    <InternalsVisibleTo Include="Nexa.Services" />
+    <InternalsVisibleTo Include="Nexa.Services.Tests" />
+    <InternalsVisibleTo Include="Nexa.Desktop.Tests" />
+    <InternalsVisibleTo Include="Nexa.Services.Accounts" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Java" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Install" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Process" />
+    <InternalsVisibleTo Include="Nexa.Services.Composition" />
+    <ProjectReference Include="../Nexa.Services.Capabilities.Contracts/Nexa.Services.Capabilities.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Metadata/Nexa.Services.Minecraft.Metadata.csproj" />
+  </ItemGroup>
+</Project>

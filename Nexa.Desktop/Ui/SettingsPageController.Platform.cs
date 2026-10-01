@@ -61,7 +61,7 @@ internal sealed partial class SettingsPageController
         if (_machineRefreshing is { IsCompleted: true } refreshed)
         {
             _machineRefreshing = null;
-            if (!refreshed.IsCompletedSuccessfully || !refreshed.Result.IsSuccess) { _machineError = "检测未完成，请重试。"; if (_selected == "platform") BuildSections(); }
+            if (!PendingQuery.Succeeded(refreshed)) { _machineError = "检测未完成，请重试。"; if (_selected == "platform") BuildSections(); }
             else _machine = null;
         }
         if (_selected != "platform" || !_sections.IsAssigned) return;
@@ -80,7 +80,7 @@ internal sealed partial class SettingsPageController
             return;
         }
         _machineReadingScope = null;
-        if (reading.IsCompletedSuccessfully && reading.Result.IsSuccess)
+        if (PendingQuery.Succeeded(reading))
         {
             _machine = reading.Result.Value;
             _machineSourceRevision = _store.Read<long>(
@@ -94,7 +94,7 @@ internal sealed partial class SettingsPageController
 
     private MachineCapabilityQuery ResolveMachineScope()
     {
-        if (_store.ReadAppliedValue(_store.Resolve(MinecraftLibraryService.StateKey))
+        if (_store.ReadAppliedValue(_store.Resolve(MinecraftLibraryContract.StateKey))
             is not MinecraftLibrarySnapshot library)
         {
             return new();
@@ -257,14 +257,14 @@ internal sealed partial class SettingsPageController
         }
     }
 
-    /// <summary>The remediation panel: preflight is a PURE function over the snapshot this
-    /// page already holds — evaluating inline never blocks the build path, never issues a
-    /// query, and never re-collects machine state (the old route re-collected per render
-    /// and fed the revision loop).</summary>
+    /// <summary>Projects the bounded service evaluation of the existing snapshot.</summary>
     private void BuildPreflightCard()
     {
         if (_machine is null) return;
-        CapabilityPreflightReport report = CapabilityPreflightEngine.Evaluate(_machine);
+        if (!_queries.TryResolve(MachineCapabilityStateContract.PreflightQuery, out var route)) return;
+        var response = _queries.QueryAsync<LaunchPreflightQuery, CapabilityPreflightReport>(route, new(_machine)).AsTask();
+        if (!PendingQuery.Succeeded(response)) return;
+        CapabilityPreflightReport report = response.Result.Value!;
         if (report.OverallSeverity == PreflightSeverity.None) return;
 
         Text(_sections, "诊断与修复", 12, Muted, 24, 600);

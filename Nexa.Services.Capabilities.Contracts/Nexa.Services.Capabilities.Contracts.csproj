@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Owned Capabilities.Contracts service boundary.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Nexa.Services</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nexa.Contracts/Nexa.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Core/Nexa.Core.csproj" />
+    <ProjectReference Include="../Nexa.Domain/Nexa.Domain.csproj" />
+    <ProjectReference Include="../Nexa.Xsr.Abstractions/Nexa.Xsr.Abstractions.csproj" />
+    <ProjectReference Include="../Nexa.Xsr.State/Nexa.Xsr.State.csproj" />
+    <InternalsVisibleTo Include="Nexa.Desktop.Tests" />
+    <InternalsVisibleTo Include="Nexa.Services" />
+    <InternalsVisibleTo Include="Nexa.Services.Capabilities" />
+    <InternalsVisibleTo Include="Nexa.Services.Composition" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Launch.Contracts" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Metadata" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Process" />
+    <InternalsVisibleTo Include="Nexa.Services.Tests" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Java.Contracts/Nexa.Services.Minecraft.Java.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Downloads.Contracts/Nexa.Services.Minecraft.Downloads.Contracts.csproj" />
+    <InternalsVisibleTo Include="Nexa.Platform.Runtime" />
+  </ItemGroup>
+</Project>

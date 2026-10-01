@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Owned Minecraft.Launch service boundary.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Nexa.Services</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nexa.Services.Accounts/Nexa.Services.Accounts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Accounts.Contracts/Nexa.Services.Accounts.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Common/Nexa.Services.Common.csproj" />
+    <ProjectReference Include="../Nexa.Services.Common.Contracts/Nexa.Services.Common.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Assets.Contracts/Nexa.Services.Minecraft.Assets.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Downloads.Contracts/Nexa.Services.Minecraft.Downloads.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Java/Nexa.Services.Minecraft.Java.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Java.Contracts/Nexa.Services.Minecraft.Java.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Launch.Contracts/Nexa.Services.Minecraft.Launch.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Library.Contracts/Nexa.Services.Minecraft.Library.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Metadata/Nexa.Services.Minecraft.Metadata.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Process/Nexa.Services.Minecraft.Process.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Process.Contracts/Nexa.Services.Minecraft.Process.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Contracts/Nexa.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Core/Nexa.Core.csproj" />
+    <ProjectReference Include="../Nexa.Domain/Nexa.Domain.csproj" />
+    <ProjectReference Include="../Nexa.Xsr.Abstractions/Nexa.Xsr.Abstractions.csproj" />
+    <ProjectReference Include="../Nexa.Xsr.State/Nexa.Xsr.State.csproj" />
+    <ProjectReference Include="../Nexa.Services.Settings/Nexa.Services.Settings.csproj" />
+    <ProjectReference Include="../Nexa.Services.Settings.Contracts/Nexa.Services.Settings.Contracts.csproj" />
+    <InternalsVisibleTo Include="Nexa.Desktop.Tests" />
+    <InternalsVisibleTo Include="Nexa.Services" />
+    <InternalsVisibleTo Include="Nexa.Services.Composition" />
+    <InternalsVisibleTo Include="Nexa.Services.Tests" />
+  </ItemGroup>
+</Project>

@@ -33,7 +33,7 @@ internal sealed class MinecraftDropController : IDisposable
         if (_disposed) return;
         if (paths.Count != 1) { _feedback.Error("请每次拖入一个文件或文件夹。"); return; }
         if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0) return;
-        var snapshot = (MinecraftLibrarySnapshot?)_store.ReadAppliedValue(_store.Resolve(MinecraftLibraryService.StateKey));
+        var snapshot = (MinecraftLibrarySnapshot?)_store.ReadAppliedValue(_store.Resolve(MinecraftLibraryContract.StateKey));
         _ = InspectAsync(paths[0], snapshot?.RootDirectory, snapshot?.SelectedInstanceId ?? "");
     }
 

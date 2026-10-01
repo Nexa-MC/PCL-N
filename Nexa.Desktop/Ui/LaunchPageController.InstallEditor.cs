@@ -45,7 +45,7 @@ internal sealed partial class LaunchPageController
     {
         if (!_editingInstall || _installEditRead is not { IsCompleted: true } read) return;
         _installEditRead = null;
-        if (!read.IsCompletedSuccessfully || !read.Result.IsSuccess)
+        if (!PendingQuery.Succeeded(read))
         { _feedback.Warn("无法读取版本信息，请返回后重试。"); return; }
         _installEdit = read.Result.Value!;
         _installGameChosen = true;

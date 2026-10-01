@@ -9,6 +9,6 @@
     <ApplicationIcon>../Nexa.Desktop/Assets/icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Nexa.Services/Nexa.Services.csproj" />
+    <ProjectReference Include="../Nexa.Contracts/Nexa.Contracts.csproj" />
   </ItemGroup>
 </Project>

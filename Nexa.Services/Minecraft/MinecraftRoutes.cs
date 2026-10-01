@@ -4,57 +4,6 @@ using Nexa.Xsr;
 
 namespace Nexa.Services.Minecraft;
 
-public sealed record MinecraftVersionsQuery(string MinecraftRootDirectory);
-public sealed record MinecraftInstancesQuery(string MinecraftRootDirectory);
-public sealed record MinecraftStartCommand(string InstanceId, int AccountIndex)
-{
-    public string? MinecraftRootDirectory { get; init; }
-}
-public sealed record MinecraftLaunchCommand(MinecraftLaunchRequest Request);
-public sealed record MinecraftCancelProcessCommand(Guid SessionId);
-public sealed record MinecraftCancelLaunchCommand;
-public sealed record MinecraftDecideJavaAcquisitionCommand(bool Approve);
-public sealed record MinecraftSelectJavaCommand(string Path);
-public sealed record MinecraftSelectJavaVersionCommand(int Major);
-public sealed record MinecraftCrashAnalyzeQuery(IReadOnlyList<string> Evidence, string? Stage = null, string? LastClassName = null);
-
-public static class MinecraftRouteIds
-{
-    public static readonly XsrSemanticId VersionsRead = XsrSemanticId.Parse("minecraft.versions.read");
-    public static readonly XsrSemanticId InstancesRead = XsrSemanticId.Parse("minecraft.instances.read");
-    public static readonly XsrSemanticId Start = XsrSemanticId.Parse("minecraft.start");
-    public static readonly XsrSemanticId Launch = XsrSemanticId.Parse("minecraft.launch");
-    public static readonly XsrSemanticId LaunchCancel = XsrSemanticId.Parse("minecraft.launch.cancel");
-    public static readonly XsrSemanticId AcquireDecide = XsrSemanticId.Parse("minecraft.java.acquire.decide");
-    public static readonly XsrSemanticId JavaVersionSelect = XsrSemanticId.Parse("minecraft.java.version.select");
-    public static readonly XsrSemanticId JavaSelect = XsrSemanticId.Parse("minecraft.java.select");
-    public static readonly XsrSemanticId ProcessCancel = XsrSemanticId.Parse("minecraft.process.cancel");
-    public static readonly XsrSemanticId CrashAnalyze = XsrSemanticId.Parse("minecraft.crash.analyze");
-}
-
-public static class MinecraftErrors
-{
-    public static readonly XsrSemanticId InvalidRequestCode = XsrSemanticId.Parse("minecraft.invalid_request");
-    public static readonly XsrSemanticId LaunchFailedCode = XsrSemanticId.Parse("minecraft.launch_failed");
-    public static readonly XsrSemanticId LaunchPreparationFailedCode = XsrSemanticId.Parse("minecraft.launch_preparation_failed");
-    public static readonly XsrSemanticId InstanceNotFoundCode = XsrSemanticId.Parse("minecraft.instance_not_found");
-    public static readonly XsrSemanticId JavaUnavailableCode = XsrSemanticId.Parse("minecraft.java_unavailable");
-    public static readonly XsrSemanticId UnsupportedAccountCode = XsrSemanticId.Parse("minecraft.unsupported_account");
-    public static readonly XsrSemanticId ProcessNotFoundCode = XsrSemanticId.Parse("minecraft.process_not_found");
-    public static readonly XsrSemanticId LaunchAlreadyActiveCode = XsrSemanticId.Parse("minecraft.launch_already_active");
-    public static readonly XsrSemanticId ExitedBeforeWindowCode = XsrSemanticId.Parse("minecraft.exited_before_window");
-
-    public static XsrError InvalidRequest(string reason) => new(XsrErrorKind.Rejected, InvalidRequestCode, $"The Minecraft request was rejected: {reason}");
-    public static XsrError LaunchFailed(string reason) => new(XsrErrorKind.Unavailable, LaunchFailedCode, $"The Minecraft process could not be started: {reason}");
-    public static XsrError LaunchPreparationFailed(string reason) => new(XsrErrorKind.Rejected, LaunchPreparationFailedCode, $"The Minecraft launch could not be prepared: {reason}");
-    public static XsrError InstanceNotFound(string instanceId) => new(XsrErrorKind.NotFound, InstanceNotFoundCode, $"The Minecraft instance '{instanceId}' is not installed.");
-    public static XsrError JavaUnavailable(string reason) => new(XsrErrorKind.Unavailable, JavaUnavailableCode, $"A compatible Java runtime is unavailable: {reason}");
-    public static XsrError UnsupportedAccount(string reason) => new(XsrErrorKind.Rejected, UnsupportedAccountCode, $"The launch account cannot be used: {reason}");
-    public static XsrError ProcessNotFound(Guid sessionId) => new(XsrErrorKind.NotFound, ProcessNotFoundCode, $"The Minecraft process session '{sessionId}' was not found or has already ended.");
-    public static XsrError LaunchAlreadyActive() => new(XsrErrorKind.Rejected, LaunchAlreadyActiveCode, "A Minecraft launch pipeline is already running; cancel it before starting another.");
-    public static XsrError ExitedBeforeWindow() => new(XsrErrorKind.Unavailable, ExitedBeforeWindowCode, "The Minecraft process exited before its window appeared.");
-}
-
 public static class MinecraftCommands
 {
     public static XsrCommandHandler<MinecraftStartCommand> CreateStartHandler(

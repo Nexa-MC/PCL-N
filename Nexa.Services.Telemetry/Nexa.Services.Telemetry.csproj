@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Owned Telemetry service boundary.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Nexa.Services</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nexa.Services.Common/Nexa.Services.Common.csproj" />
+    <ProjectReference Include="../Nexa.Services.Common.Contracts/Nexa.Services.Common.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Install.Contracts/Nexa.Services.Minecraft.Install.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Process/Nexa.Services.Minecraft.Process.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Process.Contracts/Nexa.Services.Minecraft.Process.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Contracts/Nexa.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Core/Nexa.Core.csproj" />
+    <ProjectReference Include="../Nexa.Domain/Nexa.Domain.csproj" />
+    <ProjectReference Include="../Nexa.Xsr.Abstractions/Nexa.Xsr.Abstractions.csproj" />
+    <ProjectReference Include="../Nexa.Xsr.State/Nexa.Xsr.State.csproj" />
+    <ProjectReference Include="../Nexa.Services.Settings/Nexa.Services.Settings.csproj" />
+    <ProjectReference Include="../Nexa.Services.Telemetry.Contracts/Nexa.Services.Telemetry.Contracts.csproj" />
+    <InternalsVisibleTo Include="Nexa.Desktop.Tests" />
+    <InternalsVisibleTo Include="Nexa.Services" />
+    <InternalsVisibleTo Include="Nexa.Services.Composition" />
+    <InternalsVisibleTo Include="Nexa.Services.Tests" />
+  </ItemGroup>
+</Project>

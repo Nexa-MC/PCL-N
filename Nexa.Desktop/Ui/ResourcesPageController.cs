@@ -147,13 +147,13 @@ internal sealed class ResourcesPageController : IDisposable
         if (_contextReading is { IsCompleted: true } contextRead)
         {
             _contextReading = null;
-            if (_contextRequest == CurrentInstance() && contextRead.IsCompletedSuccessfully && contextRead.Result.IsSuccess)
+            if (_contextRequest == CurrentInstance() && PendingQuery.Succeeded(contextRead))
             { _context = contextRead.Result.Value; if (_result is not null && _shell.Stage.Navigation.Current == Page) ShowResults(); }
         }
         if (_favoritesReading is { IsCompleted: true } favoritesRead)
         {
             _favoritesReading = null;
-            if (favoritesRead.IsCompletedSuccessfully && favoritesRead.Result.IsSuccess)
+            if (PendingQuery.Succeeded(favoritesRead))
             {
                 _favorites = favoritesRead.Result.Value!;
                 if (_favoriteMode && _shell.Stage.Navigation.Current == Page) ShowFavorites();
@@ -164,7 +164,7 @@ internal sealed class ResourcesPageController : IDisposable
         if (_planning is { IsCompleted: true } planned)
         {
             _planning = null;
-            if (planned.IsCompletedSuccessfully && planned.Result.IsSuccess && _installDraft is { } draft && draft.Instance == CurrentInstance())
+            if (PendingQuery.Succeeded(planned) && _installDraft is { } draft && draft.Instance == CurrentInstance())
             {
                 var plan = planned.Result.Value!;
                 if (plan.Optional.Count == 0) { _installDraft = null; _ = RunInstallAsync(draft); }
@@ -181,7 +181,7 @@ internal sealed class ResourcesPageController : IDisposable
             var (entity, read) = _translations[i];
             if (!read.IsCompleted) continue;
             _translations.RemoveAt(i);
-            if (read.IsCompletedSuccessfully && read.Result.IsSuccess && read.Result.Value?.Description is { } description)
+            if (PendingQuery.Succeeded(read) && read.Result.Value?.Description is { } description)
             {
                 var text = _shell.Tree.GetComponent<XsrUiText>(entity);
                 if (text is null) continue;
@@ -195,7 +195,7 @@ internal sealed class ResourcesPageController : IDisposable
             var (entity, read) = _icons[i];
             if (!read.IsCompleted) continue;
             _icons.RemoveAt(i);
-            if (read.IsCompletedSuccessfully && read.Result.IsSuccess && read.Result.Value?.Image is { } image)
+            if (PendingQuery.Succeeded(read) && read.Result.Value?.Image is { } image)
             {
                 _shell.Tree.GetComponent<XsrUiImage>(entity)!.Raster = new(image,
                     [new(new(0, 0, image.Width, image.Height), new(0, 0, 1, 1))])
@@ -211,7 +211,7 @@ internal sealed class ResourcesPageController : IDisposable
             _instanceReading = null;
             if (_instanceRequest != _selectedInstance?.Invoke())
                 _shell.Tree.SetComponent(_status, new XsrUiText("当前选择已改变，请重新选择筛选。"));
-            else if (instanceReading.IsCompletedSuccessfully && instanceReading.Result.IsSuccess)
+            else if (PendingQuery.Succeeded(instanceReading))
             {
                 var instance = instanceReading.Result.Value!;
                 _shell.Renderer.SetTextInputValue(_game, instance.GameVersion);
@@ -225,7 +225,7 @@ internal sealed class ResourcesPageController : IDisposable
         if (_searching is { IsCompleted: true } searching)
         {
             _searching = null;
-            if (searching.IsCompletedSuccessfully && searching.Result.IsSuccess)
+            if (PendingQuery.Succeeded(searching))
             { _result = searching.Result.Value!; ShowResults(); }
             else ShowFailure(_entities["ResourceList"], "暂时无法加载资源。请检查网络后重试。", () => Search(_filter.Page), _listActions);
             UpdatePagination();
@@ -233,7 +233,7 @@ internal sealed class ResourcesPageController : IDisposable
         if (_reading is { IsCompleted: true } reading)
         {
             _reading = null;
-            if (reading.IsCompletedSuccessfully && reading.Result.IsSuccess) { _detail = reading.Result.Value!; ShowDetail(); }
+            if (PendingQuery.Succeeded(reading)) { _detail = reading.Result.Value!; ShowDetail(); }
             else ShowFailure(_detailBody, "暂时无法加载详情。请重试。", () => ReadDetail(_detailId!), _detailActions);
         }
     }

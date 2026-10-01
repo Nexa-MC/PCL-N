@@ -112,7 +112,7 @@ internal sealed partial class SettingsPageController : IDisposable
             if (!_queries.TryResolve(SettingsPolicyContract.CatalogQuery, out var route)) return;
             _catalogReading ??= _queries.QueryAsync<SettingsCatalogQuery, SettingsCatalogSnapshot>(route, new(true)).AsTask();
             if (!_catalogReading.IsCompleted) return;
-            var result = _catalogReading.GetAwaiter().GetResult();
+            if (!new PendingQuery<SettingsCatalogSnapshot>(_catalogReading).TryRead(out var result)) { _catalogReading = null; return; }
             _catalogReading = null;
             if (!result.IsSuccess) return;
             _catalog = result.Value!;
@@ -125,7 +125,7 @@ internal sealed partial class SettingsPageController : IDisposable
         if (_reading is { IsCompleted: true } reading)
         {
             _reading = null;
-            if (reading.IsCompletedSuccessfully && reading.Result.IsSuccess)
+            if (PendingQuery.Succeeded(reading))
             {
                 if (_instanceDirectory is not null && _selected == "recovery" && _revision >= 0 && _revision != reading.Result.Value!.Revision)
                     CancelManagementRead();

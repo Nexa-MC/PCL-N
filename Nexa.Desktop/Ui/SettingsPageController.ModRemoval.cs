@@ -26,7 +26,7 @@ internal sealed partial class SettingsPageController
         if (_instance != primary.InstanceDirectory || _selected != "mods") { CancelModRemovalPreview(); return; }
         if (_modRemovalRead is not { IsCompleted: true } read) return;
         _modRemovalRead = null; _modRemovalPrimary = null; _modRemovalStop?.Dispose(); _modRemovalStop = null;
-        if (!read.IsCompletedSuccessfully || !read.Result.IsSuccess || !_commands.TryResolve(InstanceManagementContract.RemoveMod, out var route))
+        if (!PendingQuery.Succeeded(read) || !_commands.TryResolve(InstanceManagementContract.RemoveMod, out var route))
         { _feedback.Error("无法检查依赖关系，请刷新后重试。"); return; }
         var preview = read.Result.Value!;
         string message = $"将“{primary.Name}”移至已移除内容，可随时还原。";

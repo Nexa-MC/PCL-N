@@ -78,8 +78,10 @@ public sealed class SidecarSupervisor : IDisposable, IAsyncDisposable
             Task<Stream> accepting = listener.AcceptAsync(deadline.Token).AsTask();
             var start = new ProcessStartInfo(path)
             {
-                UseShellExecute = false, CreateNoWindow = true,
-                WorkingDirectory = Path.GetDirectoryName(path)!, RedirectStandardInput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = Path.GetDirectoryName(path)!,
+                RedirectStandardInput = true,
             };
             start.ArgumentList.Add("--nexa-sidecar");
             start.ArgumentList.Add("--endpoint");

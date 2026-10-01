@@ -45,8 +45,8 @@ internal sealed partial class SettingsPageController
     {
         if (_updateReading is not { IsCompleted: true } task) return;
         _updateReading = null;
-        _updateOffer = task.IsCompletedSuccessfully && task.Result.IsSuccess ? task.Result.Value!.Offer : null;
-        _updateStatus = !task.IsCompletedSuccessfully || !task.Result.IsSuccess ? "暂时无法检查更新，请重试。"
+        _updateOffer = PendingQuery.Succeeded(task) ? task.Result.Value!.Offer : null;
+        _updateStatus = !PendingQuery.Succeeded(task) ? "暂时无法检查更新，请重试。"
             : _updateOffer is null ? "此通道没有可用的新版本。" : "新版本 " + _updateOffer.Version + " 已可下载。";
         if (_selected == "advanced") BuildSections();
     }

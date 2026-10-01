@@ -65,7 +65,7 @@ internal sealed partial class SettingsPageController
             _managementWrite = null;
             if (_managementWriteInstance == _instance)
             {
-                if (!writing.IsCompletedSuccessfully || !writing.Result.IsSuccess)
+                if (!PendingQuery.Succeeded(writing))
                     _feedback.Error(writing.IsCompletedSuccessfully ? writing.Result.Error?.Message ?? "版本更改未完成。" : "版本更改未完成。");
                 else { _contentDetail = null; ManagementChanged?.Invoke(); }
                 CancelManagementRead();
@@ -82,7 +82,7 @@ internal sealed partial class SettingsPageController
         if (_managementRead is not { IsCompleted: true } reading) return;
         _managementRead = null; _managementLoaded = true; _checkingModUpdates = false;
         _managementStop?.Dispose(); _managementStop = null;
-        if (reading.IsCompletedSuccessfully && reading.Result.IsSuccess
+        if (PendingQuery.Succeeded(reading)
             && reading.Result.Value!.InstanceDirectory == _instance)
         {
             _management = reading.Result.Value; _managementError = null;

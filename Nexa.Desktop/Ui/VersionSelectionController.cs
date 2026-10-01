@@ -99,7 +99,7 @@ internal sealed class VersionSelectionController : IDisposable
 
     public XsrUiEntityId Page { get; }
     public Task WaitUntilIdle() => _pending;
-    private MinecraftLibrarySnapshot Snapshot => (MinecraftLibrarySnapshot)_store.ReadAppliedValue(_store.Resolve(MinecraftLibraryService.StateKey))!;
+    private MinecraftLibrarySnapshot Snapshot => (MinecraftLibrarySnapshot)_store.ReadAppliedValue(_store.Resolve(MinecraftLibraryContract.StateKey))!;
 
     private void OnIntent(object? sender, DesktopUiIntentEventArgs e)
     {
@@ -282,7 +282,7 @@ internal sealed class VersionSelectionController : IDisposable
         if (_revision == snapshot.Revision && filter == _filter && _processRevision == processRevision) return;
         _processRevision = processRevision;
         _revision = snapshot.Revision; _filter = filter;
-        MinecraftLibraryDirectory current = snapshot.Directories.First(item => MinecraftLibraryService.PathComparer.Equals(item.Path, snapshot.RootDirectory));
+        MinecraftLibraryDirectory current = snapshot.Directories.First(item => Nexa.Core.PathIdentity.Comparer.Equals(item.Path, snapshot.RootDirectory));
         Publish("directory.name", current.DisplayName); Publish("directory.path", current.Path); Publish("directory.named", current.HasName);
         if (_entities.TryGetValue("LibraryDirectoryName", out var directoryName))
         {
@@ -369,7 +369,7 @@ internal sealed class VersionSelectionController : IDisposable
         HashSet<string> runningDirectories = _store.TryResolve(MinecraftProcessStateComposition.SessionsKey, out var sessions)
             ? new(_store.ReadCollection<MinecraftProcessSnapshot>(sessions).Items
                 .Where(item => item.State is MinecraftProcessState.Created or MinecraftProcessState.Running)
-                .Select(item => item.InstanceDirectory), MinecraftLibraryService.PathComparer) : new(MinecraftLibraryService.PathComparer);
+                .Select(item => item.InstanceDirectory), Nexa.Core.PathIdentity.Comparer) : new(Nexa.Core.PathIdentity.Comparer);
         XsrUiFileDrag CreateTransfer(IEnumerable<string> directories)
         {
             string[] paths = directories.ToArray();
@@ -429,7 +429,7 @@ internal sealed class VersionSelectionController : IDisposable
         foreach (var (row, root) in _directories)
         {
             MinecraftLibraryDirectory directory = snapshot.Directories.First(item => item.Path == root);
-            MarkSelected(row, MinecraftLibraryService.PathComparer.Equals(root, snapshot.RootDirectory), "当前目录", directory.DisplayName);
+            MarkSelected(row, Nexa.Core.PathIdentity.Comparer.Equals(root, snapshot.RootDirectory), "当前目录", directory.DisplayName);
             _shell.Tree.Walk(row, entity =>
             {
                 string key = _shell.Tree.Name(entity).Split(':')[0];

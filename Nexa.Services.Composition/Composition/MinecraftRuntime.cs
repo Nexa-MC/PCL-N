@@ -127,13 +127,14 @@ public static class MinecraftRuntimeComposer
         }
 
         List<IDisposable> owned = [];
-        IJavaRuntimeLocator locator = javaLocator ?? new LocalJavaRuntimeLocator(runtimeRoot, host.Logging);
+        IJavaRuntimeLocator locator = javaLocator ?? (javaRuntimeRootDirectory is null ? host.JavaLocator : new LocalJavaRuntimeLocator(runtimeRoot, host.Logging));
         IJavaRuntimeInstaller installer;
         if (javaInstaller is null)
         {
             HttpJavaRuntimeMetadataProvider metadata = new(host.Logging);
             JavaRuntimeInstaller concreteInstaller = new(metadata, host.Logging, host.Tasks);
             owned.Add(metadata);
+            concreteInstaller.RuntimesChanged += locator.Invalidate;
             owned.Add(concreteInstaller);
             installer = concreteInstaller;
         }

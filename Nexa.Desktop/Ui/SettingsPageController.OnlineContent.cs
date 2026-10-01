@@ -54,7 +54,7 @@ internal sealed partial class SettingsPageController
         if (_onlineRead is { IsCompleted: true } read)
         {
             _onlineRead = null; updated = true;
-            if (read.IsCompletedSuccessfully && read.Result.IsSuccess) _onlineContent = read.Result.Value;
+            if (PendingQuery.Succeeded(read)) _onlineContent = read.Result.Value;
             else _onlineError = "暂时无法获取在线信息，请稍后重试。";
             if (_onlineContent?.Project?.IconUrl is { } url && _resourceQueries?.TryResolve(ResourceCatalogContract.Icon, out var route) == true)
             {
@@ -65,7 +65,7 @@ internal sealed partial class SettingsPageController
         if (_onlineIconRead is { IsCompleted: true } iconRead)
         {
             _onlineIconRead = null;
-            if (iconRead.IsCompletedSuccessfully && iconRead.Result.IsSuccess) { _onlineIcon = iconRead.Result.Value!.Image; updated = true; }
+            if (PendingQuery.Succeeded(iconRead)) { _onlineIcon = iconRead.Result.Value!.Image; updated = true; }
         }
         if (updated && _onlineSection.IsAssigned && _shell.Tree.IsAlive(_onlineSection)) RenderOnlineContent();
     }

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Owned Common service boundary.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Nexa.Services</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nexa.Services.Common.Contracts/Nexa.Services.Common.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Contracts/Nexa.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Core/Nexa.Core.csproj" />
+    <ProjectReference Include="../Nexa.Domain/Nexa.Domain.csproj" />
+    <ProjectReference Include="../Nexa.Xsr.Abstractions/Nexa.Xsr.Abstractions.csproj" />
+    <ProjectReference Include="../Nexa.Xsr.State/Nexa.Xsr.State.csproj" />
+    <InternalsVisibleTo Include="Nexa.Desktop.Tests" />
+    <InternalsVisibleTo Include="Nexa.Services" />
+    <InternalsVisibleTo Include="Nexa.Services.Accounts" />
+    <InternalsVisibleTo Include="Nexa.Services.Composition" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Install" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Java" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Launch" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Management" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Metadata" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Process" />
+    <InternalsVisibleTo Include="Nexa.Services.Resources" />
+    <InternalsVisibleTo Include="Nexa.Services.Settings" />
+    <InternalsVisibleTo Include="Nexa.Services.Setup" />
+    <InternalsVisibleTo Include="Nexa.Services.Telemetry" />
+    <InternalsVisibleTo Include="Nexa.Services.Tests" />
+    <InternalsVisibleTo Include="Nexa.Services.Updates" />
+  </ItemGroup>
+</Project>

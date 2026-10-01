@@ -11,14 +11,13 @@ internal sealed partial class LaunchPageController
     private readonly XsrCommandRouter? _installCatalogCommands;
     private readonly XsrQueryRouter? _installCatalogQueries;
     private readonly XsrCommandRouter? _installRunCommands;
-    private bool _installGameChosen;
     private Task _installPrefetchTask = Task.CompletedTask;
     private void PrefetchInstallCatalog(string game)
     {
         if (_installCatalogCommands is not null && _installCatalogCommands.TryResolve(InstallCatalogRoutes.Prefetch, out XsrCommandId id))
             _installPrefetchTask = _installCatalogCommands.Dispatch(id, new InstallCatalogPrefetchCommand(game), cancellationToken: _lifetimeCancellation.Token).Completion;
     }
-    private static InstallLoader? ParseInstallLoader(string? value) => Enum.TryParse(value?.Replace(" ", "", StringComparison.Ordinal), out InstallLoader loader) ? loader : null;
+    private static InstallLoader? ParseInstallLoader(string? value) => Enum.TryParse(value?.Replace(" ", "", StringComparison.Ordinal), ignoreCase: true, out InstallLoader loader) ? loader : null;
     private void ResetInstallSelection()
     {
         _editingInstall = false;
@@ -60,7 +59,6 @@ internal sealed partial class LaunchPageController
     private IReadOnlyList<InstallCatalogVersion> _filteredGames = [];
     private readonly Dictionary<string, InstallCatalogSnapshot> _catalogCache = [];
     private string CurrentCatalogKey => ActiveCatalogLoader is null ? "games" : _selectedInstallVersion + ":" + _activeJavaInstallPage;
-    private readonly Dictionary<InstallLoader, string> _selectedInstallBuilds = [];
     private readonly Dictionary<string, XsrUiEntityId> _catalogHosts = [];
     private readonly Dictionary<XsrUiEntityId, InstallCatalogVersion> _catalogRows = [];
     private readonly Dictionary<string, XsrUiEntityId> _catalogStatus = [];
@@ -177,6 +175,8 @@ internal sealed partial class LaunchPageController
         {
             var result = QueryInstallEligibility(ActiveCatalogLoader, [version.Id], version.Id);
             if (result is null || result.Rejection is not null) return true;
+            _selectedInstallLoader = result.PrimaryLoader is { } primary
+                ? JavaInstallSubpages.First(page => ParseInstallLoader(page.Loader) == primary).Loader! : "原版 Minecraft";
             _selectedInstallBuilds.Clear();
             _selectedInstallAddons.Clear();
             foreach (var item in result.Selection)
@@ -185,8 +185,6 @@ internal sealed partial class LaunchPageController
                 if (result.Loaders.Any(loader => loader.Loader == item.Loader && loader.IsAddon))
                     _selectedInstallAddons.Add(item.Loader == InstallLoader.FabricApi ? "Fabric API" : item.Loader == InstallLoader.Qsl ? "QSL" : item.Loader.ToString());
             }
-            _selectedInstallLoader = result.PrimaryLoader is { } primary
-                ? JavaInstallSubpages.First(page => ParseInstallLoader(page.Loader) == primary).Loader! : "原版 Minecraft";
             UpdateJavaInstallSubpageVisibility();
         }
         _catalogRevision = -1;

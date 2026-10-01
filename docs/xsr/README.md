@@ -16,6 +16,7 @@ The user-requested constraints take precedence:
 - [state-model.md](state-model.md) — state ownership, snapshots, deltas, and derived state
 - [service-model.md](service-model.md) — service responsibilities and communication primitives
 - [renderer-model.md](renderer-model.md) — UI.Next and backend boundaries
+- [capability-fabric.md](capability-fabric.md) — provider discovery, dependencies and permissions
 - [sidecar-protocol.md](sidecar-protocol.md) — Sidecar Fabric control/data planes
 - [versioning.md](versioning.md) — XSR product-version grammar and compatibility surfaces
 - [migration-map.md](migration-map.md) — waves, closed work units, and cutover gates

@@ -6,11 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Settings/SettingsCatalog.json" />
-    <EmbeddedResource Include="Resources/ChineseNames.json" />
     <InternalsVisibleTo Include="Nexa.Services.Tests" />
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
     <PackageReference Include="ZstdSharp.Port" Version="0.8.6" />
+    <ProjectReference Include="../Nexa.Platform.Runtime/Nexa.Platform.Runtime.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,5 +18,43 @@
     <ProjectReference Include="../Nexa.Domain/Nexa.Domain.csproj" />
     <ProjectReference Include="../Nexa.Xsr.Abstractions/Nexa.Xsr.Abstractions.csproj" />
     <ProjectReference Include="../Nexa.Xsr.State/Nexa.Xsr.State.csproj" />
+    <ProjectReference Include="../Nexa.Services.Accounts/Nexa.Services.Accounts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Accounts.Contracts/Nexa.Services.Accounts.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Capabilities/Nexa.Services.Capabilities.csproj" />
+    <ProjectReference Include="../Nexa.Services.Capabilities.Contracts/Nexa.Services.Capabilities.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Common/Nexa.Services.Common.csproj" />
+    <ProjectReference Include="../Nexa.Services.Common.Contracts/Nexa.Services.Common.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Foundation.Contracts/Nexa.Services.Foundation.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Assets.Contracts/Nexa.Services.Minecraft.Assets.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Crash.Contracts/Nexa.Services.Minecraft.Crash.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Downloads.Contracts/Nexa.Services.Minecraft.Downloads.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Install/Nexa.Services.Minecraft.Install.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Install.Contracts/Nexa.Services.Minecraft.Install.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Java/Nexa.Services.Minecraft.Java.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Java.Contracts/Nexa.Services.Minecraft.Java.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Launch/Nexa.Services.Minecraft.Launch.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Launch.Contracts/Nexa.Services.Minecraft.Launch.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Library.Contracts/Nexa.Services.Minecraft.Library.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Management/Nexa.Services.Minecraft.Management.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Management.Contracts/Nexa.Services.Minecraft.Management.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Metadata/Nexa.Services.Minecraft.Metadata.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Process/Nexa.Services.Minecraft.Process.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Process.Contracts/Nexa.Services.Minecraft.Process.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Network/Nexa.Services.Network.csproj" />
+    <ProjectReference Include="../Nexa.Services.Network.Contracts/Nexa.Services.Network.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Recovery.Storage/Nexa.Services.Recovery.Storage.csproj" />
+    <ProjectReference Include="../Nexa.Services.Resources/Nexa.Services.Resources.csproj" />
+    <ProjectReference Include="../Nexa.Services.Resources.Contracts/Nexa.Services.Resources.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Rollouts/Nexa.Services.Rollouts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Rollouts.Contracts/Nexa.Services.Rollouts.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Settings/Nexa.Services.Settings.csproj" />
+    <ProjectReference Include="../Nexa.Services.Settings.Contracts/Nexa.Services.Settings.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Setup/Nexa.Services.Setup.csproj" />
+    <ProjectReference Include="../Nexa.Services.Setup.Contracts/Nexa.Services.Setup.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Telemetry/Nexa.Services.Telemetry.csproj" />
+    <ProjectReference Include="../Nexa.Services.Telemetry.Contracts/Nexa.Services.Telemetry.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Services.Updates/Nexa.Services.Updates.csproj" />
+    <ProjectReference Include="../Nexa.Services.Updates.Contracts/Nexa.Services.Updates.Contracts.csproj" />
+    <ProjectReference Include="../Nexa.Platform.Runtime/Nexa.Platform.Runtime.csproj" />
   </ItemGroup>
 </Project>

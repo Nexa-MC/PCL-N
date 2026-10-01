@@ -92,10 +92,10 @@ internal static class Program
     // The Win32 clipboard (Avalonia's OLE implementation) requires an STA thread with COM
     // initialized; without this, every SetTextAsync fails with CO_E_NOTINITIALIZED.
     [STAThread]
-    private static int Main(string[] args)
+    private static async Task<int> Main(string[] args)
     {
         if (args is [Nexa.Services.Processes.OwnedInstallerProcess.WorkerArgument])
-            return Nexa.Services.Processes.OwnedInstallerProcess.RunWorkerAsync().GetAwaiter().GetResult();
+            return await Nexa.Services.Processes.OwnedInstallerProcess.RunWorkerAsync().ConfigureAwait(false);
         LogService? log = null;
         FileLogSink? fileSink = null;
         string stage = "resolve_folders";
@@ -109,7 +109,7 @@ internal static class Program
         TaskScheduler.UnobservedTaskException += OnUnobserved;
         try
         {
-            exitCode = Run(args, logging => log = logging, sink => fileSink = sink, value => stage = value);
+            exitCode = await Nexa.Platform.ApplicationSession.RunAsync(() => RunAsync(args, logging => log = logging, sink => fileSink = sink, value => stage = value)).ConfigureAwait(false);
             return exitCode;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException)
@@ -137,7 +137,7 @@ internal static class Program
         }
     }
 
-    private static int Run(string[] args, Action<LogService> onLogReady, Action<FileLogSink> onSinkReady, Action<string> setStage)
+    private static async Task<int> RunAsync(string[] args, Action<LogService> onLogReady, Action<FileLogSink> onSinkReady, Action<string> setStage)
     {
         // Composition root: the two-phase foundation composition. Phase one declares every
         // foundation module's state into one shared builder; phase two builds the store once
@@ -293,13 +293,13 @@ internal static class Program
         using SettingsPageController settingsPage = new(shell, uiIntents, runtime.Queries, runtime.Commands, host.StateStore, feedback);
         settingsPage.OpenAboutLink = platformActions.OpenHttpsUri;
         settingsPage.TelemetryRequired = buildInfo.DiagnosticsRequired;
-        using var updateHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(20) };
-        string updateRid = (OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux") + "-" + System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
+        using var networking = new LauncherNetworkRuntime(host, settingsFolder, buildInfo);
+        HttpClient updateHttp = networking.Http;
+        string updateRid = networking.RuntimeId;
         string updateChannel = buildInfo.UpdateChannel;
-        using var rollouts = new Nexa.Services.Rollouts.RolloutService(updateHttp, host.StateStore,
-            Path.Combine(settingsFolder, "rollout-seed"), buildInfo.Channel, updateRid);
-        var updateService = new Nexa.Services.Updates.NexaUpdateService(updateHttp, rollouts);
-        var updateQueries = NexaUpdateRuntimeComposer.Compose(updateService);
+        var rollouts = networking.Rollouts;
+        var updateService = networking.Updates;
+        var updateQueries = networking.Queries;
         settingsPage.ConfigureUpdates(updateQueries, new(buildInfo.ProductVersion, updateRid, updateChannel), platformActions.OpenHttpsUri);
         launchPage.SettingsPage = settingsPage.Page;
         using var resourcesRuntime = ResourceCatalogRuntimeComposer.Compose(host: host, favoritesPath: Path.Combine(settingsFolder, "resources-favorites.json"), installer: installRun.Service);
@@ -346,21 +346,17 @@ internal static class Program
             setStage("shutdown");
             session.Enter(XsrLifecyclePhase.Stopping);
             session.Enter(XsrLifecyclePhase.Stopped);
+            launchPage.Dispose();
+            await launchPage.DisposeAsync().ConfigureAwait(false);
+            await host.Accounts.DisposeAsync().ConfigureAwait(false);
             return 0;
         }
 
-        using CloudflareApiClient? cloudflare = OpenCloudflareClient(host.Logging);
-        using var telemetrySession = cloudflare is null ? null : new Nexa.Services.Telemetry.LauncherTelemetrySession(
-            host.Telemetry, host.Settings, new Nexa.Services.Telemetry.CloudflareTelemetryTransport(cloudflare.Client,
-                () => rollouts.CompactTelemetryBatches, reason => host.Logging.Warn("Telemetry", reason)), host.Logging, ResolveInformationalVersion());
+        using var telemetry = new LauncherTelemetryRuntime(host, rollouts, updateService, ResolveInformationalVersion(),
+            () => typeof(Program).Assembly.GetManifestResourceStream("Nexa.Desktop.Assets.api-client.pfx"));
+        var telemetrySession = telemetry.Session;
         using IDisposable? telemetrySubscription = telemetrySession is null ? null : stateObservation.Subscribe(telemetrySession);
-        if (telemetrySession is not null)
-        {
-            host.Logging.AddSink(telemetrySession);
-            operationLog.Diagnostics = telemetrySession;
-            rollouts.Record = telemetrySession.Record;
-            updateService.Record = telemetrySession.Record;
-        }
+        operationLog.Diagnostics = telemetrySession;
         rollouts.Start();
         using var onlineResourceModels = new Nexa.Services.Capabilities.OnlineWorkingSetModelSession(updateHttp, host.OnlineResourceModels);
         var recoveryRoots = host.StateStore.Read<MinecraftLibrarySnapshot>(host.StateStore.Resolve(MinecraftLibraryService.StateKey)).Value?.Directories
@@ -378,28 +374,27 @@ internal static class Program
             telemetrySession?.Record("app.failure", "failed");
             throw;
         }
-        finally { installRecovery.Dispose(); }
+        finally
+        {
+            // Dispose UI objects on the GUI thread before the first asynchronous handoff.
+            launchPage.Dispose();
+            accountForm.Dispose();
+            settingsPage.Dispose();
+            versionSettings.Dispose();
+            resourcesPage.Dispose();
+            taskCenterPage.Dispose();
+            dropController.Dispose();
+            installRecovery.Dispose();
+            await Task.WhenAll(launchPage.DisposeAsync().AsTask(), installRecovery.DisposeAsync().AsTask()).ConfigureAwait(false);
+            await host.Accounts.DisposeAsync().ConfigureAwait(false);
+            await telemetry.DisposeAsync().ConfigureAwait(false);
+            await networking.DisposeAsync().ConfigureAwait(false);
+        }
         setStage("shutdown");
         host.Logging.Info("Launcher", $"GUI lifetime completed exit_code={exitCode}; releasing session resources.");
         session.Enter(XsrLifecyclePhase.Stopping);
         session.Enter(XsrLifecyclePhase.Stopped);
         return exitCode;
-    }
-
-    private static CloudflareApiClient? OpenCloudflareClient(LogService log)
-    {
-        try
-        {
-            var client = CloudflareApiClient.TryCreate();
-            if (client is null)
-                log.Warn("Telemetry", "遥测未启动：此构建未包含 API 客户端证书。请通过 NEXA_API_CLIENT_CERT_PATH 配置有效 PFX；需要密码时设置 NEXA_API_CLIENT_CERT_PASSWORD。");
-            return client;
-        }
-        catch (Exception error) when (error is IOException or System.Security.Cryptography.CryptographicException or InvalidOperationException)
-        {
-            log.Warn("Cloudflare", "API 客户端身份不可用，联网服务暂不可用。");
-            return null;
-        }
     }
 
     private static int RunFirstRun(string[] args, FirstRunService service, bool validate)

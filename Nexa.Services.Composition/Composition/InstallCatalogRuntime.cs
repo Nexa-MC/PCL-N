@@ -17,6 +17,9 @@ public static class InstallCatalogRuntimeComposer
         HttpClient? http = source is null ? new HttpClient() : null;
         InstallCatalogService service = new(host.StateStore, source ?? new HttpInstallCatalogSource(http!));
         XsrCommandRouterBuilder commands = new();
+        MinecraftInstallDraftService draft = new(host.StateStore);
+        commands.Register<InstallDraftChange>(MinecraftInstallDraftContract.Change, (change, token) =>
+        { token.ThrowIfCancellationRequested(); return ValueTask.FromResult(draft.Apply(change)); });
         commands.Register<InstallCatalogReadCommand>(InstallCatalogRoutes.Read, async (command, token) => await service.ReadAsync(command, token).ConfigureAwait(false));
         commands.Register<InstallCatalogPrefetchCommand>(InstallCatalogRoutes.Prefetch, async (command, token) => await service.PrefetchAsync(command, token).ConfigureAwait(false));
         XsrQueryRouterBuilder queries = new();

@@ -22,7 +22,7 @@ internal static unsafe class NativeJvmHost
         {
             using Stream input = Console.OpenStandardInput();
             using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
-            JvmHostBootstrapRequest request = JvmHostBootstrap.ReadAsync(input, timeout.Token).AsTask().GetAwaiter().GetResult();
+            JvmHostBootstrapRequest request = JvmHostBootstrapCodec.ReadAsync(input, timeout.Token).AsTask().GetAwaiter().GetResult();
             Console.Error.WriteLine("Nexa JVM Host: bootstrap received");
             if (!OperatingSystem.IsMacOS()) return Execute(request);
             using MacJvmMainThread scope = new();

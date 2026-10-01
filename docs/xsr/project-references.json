@@ -1,0 +1,566 @@
+{
+  "CapabilityProbe": [
+    "Nexa.Services"
+  ],
+  "Nexa.Contracts": [
+    "Nexa.Core"
+  ],
+  "Nexa.Core": [],
+  "Nexa.Desktop": [
+    "Nexa.Pxml.Runtime",
+    "Nexa.Services",
+    "Nexa.Services.Composition",
+    "Nexa.Sidecar.Protocol",
+    "Nexa.Sidecar.Transport",
+    "Nexa.UI.Next",
+    "Nexa.UI.Next.Backend.Avalonia",
+    "Nexa.Xsr.Runtime"
+  ],
+  "Nexa.Desktop.Tests": [
+    "Nexa.Desktop",
+    "Nexa.Services",
+    "Nexa.Services.Composition",
+    "Nexa.UI.Next",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Domain": [
+    "Nexa.Core"
+  ],
+  "Nexa.Jvm.Host": [
+    "Nexa.Contracts"
+  ],
+  "Nexa.Minecraft.Benchmarks": [
+    "Nexa.Services",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Platform.Abstractions": [
+    "Nexa.Core"
+  ],
+  "Nexa.Platform.Runtime": [
+    "Nexa.Platform.Abstractions",
+    "Nexa.Services.Capabilities.Contracts",
+    "Nexa.Services.Common",
+    "Nexa.Services.Minecraft.Java.Contracts",
+    "Nexa.Services.Minecraft.Metadata",
+    "Nexa.Services.Minecraft.Process.Contracts"
+  ],
+  "Nexa.Pxml.Compiler": [
+    "Nexa.Core",
+    "Nexa.Pxml.Generators",
+    "Nexa.UI.Next",
+    "Nexa.Xsr.Abstractions"
+  ],
+  "Nexa.Pxml.Generators": [],
+  "Nexa.Pxml.Runtime": [
+    "Nexa.Core",
+    "Nexa.Pxml.Compiler",
+    "Nexa.UI.Next",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Pxml.Tests": [
+    "Nexa.Pxml.Compiler",
+    "Nexa.Pxml.Runtime",
+    "Nexa.UI.Next",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Runtime",
+    "Nexa.Services.Accounts",
+    "Nexa.Services.Accounts.Contracts",
+    "Nexa.Services.Capabilities",
+    "Nexa.Services.Capabilities.Contracts",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Foundation.Contracts",
+    "Nexa.Services.Minecraft.Assets.Contracts",
+    "Nexa.Services.Minecraft.Crash.Contracts",
+    "Nexa.Services.Minecraft.Downloads.Contracts",
+    "Nexa.Services.Minecraft.Install",
+    "Nexa.Services.Minecraft.Install.Contracts",
+    "Nexa.Services.Minecraft.Java",
+    "Nexa.Services.Minecraft.Java.Contracts",
+    "Nexa.Services.Minecraft.Launch",
+    "Nexa.Services.Minecraft.Launch.Contracts",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Services.Minecraft.Management",
+    "Nexa.Services.Minecraft.Management.Contracts",
+    "Nexa.Services.Minecraft.Metadata",
+    "Nexa.Services.Minecraft.Process",
+    "Nexa.Services.Minecraft.Process.Contracts",
+    "Nexa.Services.Network",
+    "Nexa.Services.Network.Contracts",
+    "Nexa.Services.Recovery.Storage",
+    "Nexa.Services.Resources",
+    "Nexa.Services.Resources.Contracts",
+    "Nexa.Services.Rollouts",
+    "Nexa.Services.Rollouts.Contracts",
+    "Nexa.Services.Settings",
+    "Nexa.Services.Settings.Contracts",
+    "Nexa.Services.Setup",
+    "Nexa.Services.Setup.Contracts",
+    "Nexa.Services.Telemetry",
+    "Nexa.Services.Telemetry.Contracts",
+    "Nexa.Services.Updates",
+    "Nexa.Services.Updates.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Accounts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Runtime",
+    "Nexa.Services.Accounts.Contracts",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Accounts.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Abstractions",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Capabilities": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Capabilities.Contracts",
+    "Nexa.Services.Minecraft.Downloads.Contracts",
+    "Nexa.Services.Minecraft.Java.Contracts",
+    "Nexa.Services.Settings.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Capabilities.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Minecraft.Downloads.Contracts",
+    "Nexa.Services.Minecraft.Java.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Common": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Common.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Composition": [
+    "Nexa.Services",
+    "Nexa.Xsr.Runtime"
+  ],
+  "Nexa.Services.Foundation.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Accounts.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Assets.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Crash.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Downloads.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Minecraft.Assets.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Install": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Runtime",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Minecraft.Assets.Contracts",
+    "Nexa.Services.Minecraft.Downloads.Contracts",
+    "Nexa.Services.Minecraft.Install.Contracts",
+    "Nexa.Services.Minecraft.Java",
+    "Nexa.Services.Minecraft.Java.Contracts",
+    "Nexa.Services.Minecraft.Launch.Contracts",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Services.Minecraft.Management",
+    "Nexa.Services.Minecraft.Metadata",
+    "Nexa.Services.Minecraft.Process.Contracts",
+    "Nexa.Services.Recovery.Storage",
+    "Nexa.Services.Settings",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Install.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Java": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Runtime",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Minecraft.Java.Contracts",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Services.Recovery.Storage",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Java.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Launch": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Accounts",
+    "Nexa.Services.Accounts.Contracts",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Minecraft.Assets.Contracts",
+    "Nexa.Services.Minecraft.Downloads.Contracts",
+    "Nexa.Services.Minecraft.Java",
+    "Nexa.Services.Minecraft.Java.Contracts",
+    "Nexa.Services.Minecraft.Launch.Contracts",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Services.Minecraft.Metadata",
+    "Nexa.Services.Minecraft.Process",
+    "Nexa.Services.Minecraft.Process.Contracts",
+    "Nexa.Services.Settings",
+    "Nexa.Services.Settings.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Launch.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Capabilities.Contracts",
+    "Nexa.Services.Minecraft.Java.Contracts",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Library.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Management": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Common",
+    "Nexa.Services.Minecraft.Install.Contracts",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Services.Minecraft.Management.Contracts",
+    "Nexa.Services.Minecraft.Metadata",
+    "Nexa.Services.Minecraft.Process.Contracts",
+    "Nexa.Services.Recovery.Storage",
+    "Nexa.Services.Settings",
+    "Nexa.Services.Settings.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Management.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Minecraft.Install.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Metadata": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Capabilities.Contracts",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Minecraft.Assets.Contracts",
+    "Nexa.Services.Minecraft.Crash.Contracts",
+    "Nexa.Services.Minecraft.Downloads.Contracts",
+    "Nexa.Services.Minecraft.Install.Contracts",
+    "Nexa.Services.Minecraft.Launch.Contracts",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Services.Minecraft.Process.Contracts",
+    "Nexa.Services.Recovery.Storage",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Process": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Runtime",
+    "Nexa.Services.Capabilities",
+    "Nexa.Services.Capabilities.Contracts",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Minecraft.Crash.Contracts",
+    "Nexa.Services.Minecraft.Management",
+    "Nexa.Services.Minecraft.Metadata",
+    "Nexa.Services.Minecraft.Process.Contracts",
+    "Nexa.Services.Recovery.Storage",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Minecraft.Process.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Abstractions",
+    "Nexa.Services.Minecraft.Crash.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Network": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Network.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Network.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Recovery.Storage": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Resources": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Minecraft.Install",
+    "Nexa.Services.Minecraft.Install.Contracts",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Services.Minecraft.Metadata",
+    "Nexa.Services.Minecraft.Process",
+    "Nexa.Services.Minecraft.Process.Contracts",
+    "Nexa.Services.Resources.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Resources.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Rollouts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Rollouts.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Rollouts.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Settings": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Settings.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Settings.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Setup": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Common",
+    "Nexa.Services.Settings",
+    "Nexa.Services.Settings.Contracts",
+    "Nexa.Services.Setup.Contracts",
+    "Nexa.Services.Telemetry.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Setup.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Telemetry": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Common",
+    "Nexa.Services.Common.Contracts",
+    "Nexa.Services.Minecraft.Install.Contracts",
+    "Nexa.Services.Minecraft.Process",
+    "Nexa.Services.Minecraft.Process.Contracts",
+    "Nexa.Services.Settings",
+    "Nexa.Services.Telemetry.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Telemetry.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Services.Updates.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Tests": [
+    "Nexa.Pxml.Compiler",
+    "Nexa.Pxml.Runtime",
+    "Nexa.Services",
+    "Nexa.Services.Composition",
+    "Nexa.UI.Next",
+    "Nexa.Xsr.Runtime",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Updates": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Runtime",
+    "Nexa.Services.Common",
+    "Nexa.Services.Rollouts",
+    "Nexa.Services.Updates.Contracts",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Services.Updates.Contracts": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Domain",
+    "Nexa.Platform.Abstractions",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Sidecar.Protocol": [],
+  "Nexa.Sidecar.Tests": [
+    "Nexa.Sidecar.Protocol",
+    "Nexa.Sidecar.Transport"
+  ],
+  "Nexa.Sidecar.Transport": [
+    "Nexa.Sidecar.Protocol"
+  ],
+  "Nexa.UI.Next": [
+    "Nexa.Core",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.UI.Next.Backend.Avalonia": [
+    "Nexa.UI.Next"
+  ],
+  "Nexa.UI.Next.Backend.Avalonia.Tests": [
+    "Nexa.UI.Next.Backend.Avalonia",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.UI.Next.Benchmarks": [
+    "Nexa.UI.Next",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.UI.Next.Tests": [
+    "Nexa.UI.Next",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Xsr.Abstractions": [
+    "Nexa.Contracts",
+    "Nexa.Core"
+  ],
+  "Nexa.Xsr.ArchitectureTests": [],
+  "Nexa.Xsr.Diagnostics": [
+    "Nexa.Core",
+    "Nexa.Xsr.Abstractions"
+  ],
+  "Nexa.Xsr.Runtime": [
+    "Nexa.Contracts",
+    "Nexa.Core",
+    "Nexa.Sidecar.Protocol",
+    "Nexa.Sidecar.Transport",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.Diagnostics",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Xsr.Runtime.Tests": [
+    "Nexa.Sidecar.Protocol",
+    "Nexa.Sidecar.Transport",
+    "Nexa.Xsr.Abstractions",
+    "Nexa.Xsr.Diagnostics",
+    "Nexa.Xsr.Runtime",
+    "Nexa.Xsr.State"
+  ],
+  "Nexa.Xsr.State": [
+    "Nexa.Core",
+    "Nexa.Xsr.Abstractions"
+  ]
+}

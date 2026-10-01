@@ -97,3 +97,182 @@ Reconnect starts a new session: handshake, complete registration, state snapshot
 ## Compatibility surfaces
 
 Sidecar protocol, Plugin SDK, Plugin API, manifest schema, package format, Plugin UI IR, PXML language, and XSR product version are independent version axes. None may be inferred from another.
+
+
+## Capability fabric target design
+
+The following sections consolidate the earlier draft. They define future fabric extensions;
+current implemented registration and wire compatibility rules above remain authoritative.
+See [Capability fabric](capability-fabric.md) for provider resolution and permissions.
+
+# 2. Transport topology
+
+Physical transport is Host-centric:
+
+```text
+Sidecar A ─┐
+Sidecar B ─┼── Host
+Sidecar C ─┤
+Sidecar D ─┘
+```
+
+Sidecars do not exchange private endpoint information.
+
+A request from one Sidecar to a Capability provided by another Sidecar is sent to Host, resolved by the Capability Fabric, and routed to the active Provider Session.
+
+---
+
+# 8. Capability registration
+
+A Sidecar may register one or more provided Capabilities.
+
+Conceptually:
+
+```text
+REGISTER_CAPABILITY
+{
+    CapabilityId
+    Version
+    Cardinality
+    ProviderMetadata
+}
+```
+
+A Sidecar registration must not silently provide Capabilities absent from static discovery policy unless Host policy explicitly permits runtime extension.
+
+Capability ownership becomes active only after the registration transaction commits.
+
+---
+
+# 11. Nested Providers
+
+A Sidecar may host nested providers.
+
+Primary example:
+
+```text
+Nexa.Plugin.Sidecar
+├─ Plugin A
+├─ Plugin B
+└─ Plugin C
+```
+
+Nested provider identity is explicitly registered.
+
+Conceptually:
+
+```text
+ProviderAddress
+{
+    SidecarSessionId
+    NestedProviderId?
+}
+```
+
+A nested Plugin must receive its own:
+
+```text
+Capability ownership
+permissions
+State ownership
+diagnostics attribution
+contract namespace
+```
+
+The Plugin Runtime Sidecar must not flatten every Plugin into one indistinguishable provider.
+
+---
+
+# 16. Cross-Sidecar Capability dispatch
+
+A Sidecar Consumer never addresses another Sidecar by PID, Pipe or Session ID.
+
+It sends a Capability request to Host.
+
+Conceptual route:
+
+```text
+Consumer Sidecar
+→ CapabilityId
+→ ContractId
+→ Host Capability Fabric
+→ active Provider
+→ Provider Session
+→ Provider RuntimeId
+```
+
+Host performs:
+
+```text
+caller validation
+permission authorization
+Capability resolution
+Provider health check
+correlation translation
+timeout binding
+cancellation binding
+backpressure
+```
+
+before forwarding.
+
+---
+
+# 19. Availability
+
+Provider availability is independent from last-known State value.
+
+If a Sidecar disconnects:
+
+```text
+State value
+→ may remain last-known
+
+State availability
+→ stale / unavailable
+```
+
+Renderer and Services must not treat stale values as active provider truth.
+
+---
+
+# 24. Health
+
+Sidecar Session health includes:
+
+```text
+process alive
+transport alive
+registration state
+queue health
+heartbeat/health state
+crash count
+activation duration
+last failure
+```
+
+Health is visible to Sidecar Supervisor and diagnostics.
+
+Health reporting does not itself create a business Capability.
+
+---
+
+# 29. Compatibility axes
+
+The following versions are independent:
+
+```text
+Sidecar Protocol
+Capability contract
+Plugin SDK
+Plugin API
+Plugin Package
+Plugin UI IR
+PXML language
+Host product version
+DRM grant format
+```
+
+None may be inferred from another.
+
+---

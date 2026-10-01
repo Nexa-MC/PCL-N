@@ -7,11 +7,12 @@ using Nexa.Xsr.Runtime;
 namespace Nexa.Desktop.Ui;
 
 /// <summary>One startup dispatch with an owned lifetime; it never runs disk work on the render thread.</summary>
-internal sealed class DesktopInstallRecoverySession : IDisposable
+internal sealed class DesktopInstallRecoverySession : IDisposable, IAsyncDisposable
 {
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Task _work;
     private int _disposed;
+    private readonly TaskCompletionSource _shutdown = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     internal DesktopInstallRecoverySession(XsrCommandRouter commands, IReadOnlyList<string> roots, Action<string> report, XsrCommandRouter? javaCommands = null, XsrCommandRouter? recoveryCommands = null)
     {
@@ -45,7 +46,19 @@ internal sealed class DesktopInstallRecoverySession : IDisposable
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _lifetime.Cancel();
-        try { _work.GetAwaiter().GetResult(); }
+        _ = CompleteShutdownAsync();
+    }
+
+    private async Task CompleteShutdownAsync()
+    {
+        try { await _work.ConfigureAwait(false); _shutdown.TrySetResult(); }
+        catch (Exception error) { _shutdown.TrySetException(error); }
         finally { _lifetime.Dispose(); }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return new(_shutdown.Task);
     }
 }

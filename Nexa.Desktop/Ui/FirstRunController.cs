@@ -94,7 +94,7 @@ internal sealed class FirstRunController : IDisposable
         if (_saving is { IsCompleted: true } saved)
         {
             _saving = null;
-            if (saved.IsCompletedSuccessfully && saved.Result.IsSuccess)
+            if (PendingQuery.Succeeded(saved))
             { Completed = true; _close(); return; }
             Error(saved.IsCompletedSuccessfully ? saved.Result.Error?.Message ?? "未能保存设置。" : "未能保存设置，请重试。");
             Update();

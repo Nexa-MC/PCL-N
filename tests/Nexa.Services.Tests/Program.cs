@@ -4,6 +4,10 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("Java cache is scoped and rejects invalidated scans", JavaCacheIsScopedAndInvalidationRejectsOldScan),
+        ("profile initialization is asynchronous and preserves pending store", ProfileInitializationIsAsyncAndPreservesPendingStore),
+        ("profile initialization cancels at shutdown", ProfileInitializationCanBeCancelledAtShutdown),
+        ("install draft is service owned and normalizes incompatible addons", Sync(InstallDraftBelongsToServiceAndRejectsIncompatibleAddons)),
         ("international resource transport uses only official", InternationalResourceTransportUsesOnlyOfficial),
         ("regional policy requires verified ownership at every write", Sync(RegionalPolicyRequiresVerifiedOwnershipAtEveryWrite)),
         ("regional policy disables mirrors outside mainland", Sync(RegionalPolicyDisablesMirrorsOutsideMainland)),

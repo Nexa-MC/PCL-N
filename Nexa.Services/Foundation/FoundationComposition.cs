@@ -1,7 +1,7 @@
 using Nexa.Services.Accounts;
 using Nexa.Services.Capabilities;
 using Nexa.Services.Downloads;
-using Nexa.Services.Files;
+
 using Nexa.Services.Logging;
 using Nexa.Services.Minecraft.Process;
 using Nexa.Services.Settings;
@@ -47,6 +47,7 @@ public static class FoundationState
         Minecraft.Launch.MinecraftLaunchProgressState.DeclareState(builder);
         Minecraft.MinecraftLibraryService.DeclareState(builder);
         Minecraft.Install.InstallCatalogStateContract.DeclareState(builder);
+        Minecraft.Install.MinecraftInstallDraftContract.DeclareState(builder);
         return builder;
     }
 }
@@ -91,6 +92,7 @@ public sealed class FoundationHost
         // The full environment registry: machine facts plus the display/storage/filesystem/
         // power and java/minecraft.files namespaces. Instance-scoped providers bind to the
         // active Minecraft root so storage and file-integrity facts answer for THAT path.
+        JavaLocator = new Minecraft.Java.LocalJavaRuntimeLocator(minecraftRootDirectory is null ? null : Path.Combine(Path.GetFullPath(minecraftRootDirectory), "runtime"), logging);
         CapabilityRegistry capabilityRegistry = new CapabilityRegistry(
         [
             .. ModCatalog.Definitions(),
@@ -105,11 +107,11 @@ public sealed class FoundationHost
                 MachineInstanceCatalog.MergeInto(
                     MachineEnvironmentCatalog.MergeInto(MachineCapabilityCatalog.CreateRegistry()))).Definitions,
         ]);
-        List<IMachineCapabilityProvider> capabilityProviders = [.. MachineCapabilityCatalog.CreateProviders(),
+        List<IMachineCapabilityProvider> capabilityProviders = [.. PlatformCapabilityProviders.CreateProviders(),
             new DisplayCapabilityProvider(),
             new StorageCapabilityProvider(minecraftRootDirectory),
             new FilesystemCapabilityProvider(minecraftRootDirectory),
-            new JavaEnvironmentCapabilityProvider(javaLocator: null, minecraftRootDirectory),
+            new JavaEnvironmentCapabilityProvider(JavaLocator, minecraftRootDirectory),
             new GpuCapabilityProvider(),
             new ThermalCapabilityProvider(),
             new HardwarePowerCapabilityProvider(),
@@ -123,7 +125,7 @@ public sealed class FoundationHost
 
         // The Java provider probes each runtime with one `java -version` process; the
         // registry default window (3s) times the whole java namespace out on machines with
-        // several runtimes. 45s keeps the first refresh honest; the locator's process-wide
+        // several runtimes. 45s keeps the first refresh honest; the locator's host-scoped
         // cache makes every later refresh instant.
         MachineCapabilities = new MachineCapabilityBroker(
             capabilityRegistry, capabilityProviders, StateStore,
@@ -136,6 +138,8 @@ public sealed class FoundationHost
         _services = Array.AsReadOnly<object>([Logging, Downloads, Accounts, Telemetry, Settings, SettingsPolicy, Tasks,
             InputUsage, ObservationHistory, MachineCapabilities, ResourceEstimator, Preflight, Remediations]);
     }
+
+    public Minecraft.Java.IJavaRuntimeLocator JavaLocator { get; }
 
     public XsrStateStore StateStore { get; }
 

@@ -34,7 +34,7 @@ internal sealed class AccountFormController : IDisposable
     private readonly XsrStateStore _store;
     private readonly DesktopFeedbackService _feedback;
     private readonly IAccountUiEffects? _effects;
-    private readonly LogService? _log;
+    private readonly ILogWriter? _log;
     private readonly Dictionary<string, XsrUiEntityId> _entities = [];
     private readonly Dictionary<XsrUiEntityId, string> _importRows = [];
     private readonly Dictionary<XsrUiEntityId, string> _characterRows = [];
@@ -51,7 +51,7 @@ internal sealed class AccountFormController : IDisposable
 
     public AccountFormController(XsrUiShell shell, DesktopUiIntentSink intents, XsrCommandRouter commands,
         XsrStateStore store, XsrUiEntityId accountBody, DesktopFeedbackService feedback,
-        IAccountUiEffects? effects = null, LogService? log = null)
+        IAccountUiEffects? effects = null, ILogWriter? log = null)
     {
         _shell = shell; _intents = intents; _commands = commands; _store = store;
         _feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
@@ -295,7 +295,7 @@ internal sealed class AccountFormController : IDisposable
     private async Task OpenAuthorization(AccountLoginSnapshot snapshot)
     {
         string address = snapshot.VerificationUri;
-        if (!AccountOnboardingService.IsVerificationUri(_provider, address))
+        if (!AccountVerificationContract.IsVerificationUri(_provider, address))
         {
             if (!_disposed) _feedback.Warn("授权地址无效，请重新发起登录。");
             return;

@@ -1,0 +1,598 @@
+using Nexa.Services.Logging;
+using Nexa.Xsr;
+using Nexa.Xsr.State;
+
+namespace Nexa.Services.Accounts;
+
+/// <summary>
+/// Stable error contracts of the account capability. Codes are semantic identifiers and never
+/// change meaning.
+/// </summary>
+public static class AccountErrors
+{
+    public static readonly XsrSemanticId InvalidProfileCode = XsrSemanticId.Parse("accounts.invalid_profile");
+    public static readonly XsrSemanticId ProfileNotFoundCode = XsrSemanticId.Parse("accounts.profile_not_found");
+    public static readonly XsrSemanticId PersistFailedCode = XsrSemanticId.Parse("accounts.persist_failed");
+    public static readonly XsrSemanticId LaunchNotSupportedCode = XsrSemanticId.Parse("accounts.launch_not_supported");
+
+    public static XsrError InvalidProfile(string reason) =>
+        new(XsrErrorKind.Rejected, InvalidProfileCode, $"The launch profile was rejected: {reason}");
+
+    public static XsrError ProfileNotFound(int index) =>
+        new(XsrErrorKind.NotFound, ProfileNotFoundCode, $"No launch profile exists at index {index}.");
+
+    public static XsrError PersistFailed(string reason) =>
+        new(XsrErrorKind.Unavailable, PersistFailedCode, $"The launch profile store could not be written: {reason}");
+    public static XsrError LaunchNotSupported(LaunchProfileKind kind, string reason) =>
+        new(XsrErrorKind.Rejected, LaunchNotSupportedCode, $"The {kind} account cannot launch yet: {reason}");
+}
+
+/// <summary>
+/// The account capability: the persisted launch profile list published as one ordered state
+/// collection of credential-free views. Writes are durable-first — the port saves the new
+/// profile set before any state is published, so Success means persisted and a failure changes
+/// nothing. Credentials stay in the persistence layer and results; they never enter state.
+/// </summary>
+public sealed class AccountService : IAsyncDisposable
+{
+    public const string OwnerName = "Nexa.Services.Accounts";
+
+    /// <summary>
+    /// The ordered collection state key: items are <see cref="LaunchProfileView"/>, keyed by
+    /// list index.
+    /// </summary>
+    public static readonly XsrSemanticId ProfilesKey = AccountStateContract.ProfilesKey;
+
+    private const int MaxStateConflicts = 8;
+
+    private readonly ILaunchProfilePort _port;
+    private readonly object _gate = new();
+    private readonly XsrStateStore _store;
+    private readonly XsrStateId _profilesId;
+    private readonly LogService? _log;
+    private List<LaunchProfile> _profiles;
+    private long _credentialGeneration;
+    private readonly CancellationTokenSource _initializationLifetime = new();
+    private int _disposed;
+    private RegionalPolicy? _regionalPolicy;
+    private readonly HashSet<string> _verifiedOwners = new(StringComparer.OrdinalIgnoreCase);
+
+    public void ConfigureRegionalPolicy(RegionalPolicy policy)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        lock (_gate) _regionalPolicy = policy;
+    }
+
+    internal void RecordVerifiedOwnership(string uuid)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(uuid);
+        lock (_gate) _verifiedOwners.Add(uuid);
+    }
+
+    public bool HasVerifiedMinecraftOwnership
+    {
+        get { lock (_gate) return _profiles.Any(profile => profile.Kind == LaunchProfileKind.Microsoft && _verifiedOwners.Contains(profile.Uuid)); }
+    }
+
+    private XsrError? CheckCreationPolicy(IEnumerable<LaunchProfile> profiles) =>
+        _regionalPolicy?.RequireMinecraftOwnership == true && !HasVerifiedMinecraftOwnership
+            && profiles.Any(profile => profile.Kind != LaunchProfileKind.Microsoft)
+            ? new XsrError(XsrErrorKind.Rejected, XsrSemanticId.Parse("accounts.minecraft_ownership_required"),
+                "请先登录并验证拥有 Minecraft Java 版的 Microsoft 账户，再添加其他类型的档案。") : null;
+
+    internal bool TryCaptureRefresh(int index, LaunchProfile expected, out long generation)
+    {
+        lock (_gate)
+        {
+            generation = _credentialGeneration;
+            return index >= 0 && index < _profiles.Count && _profiles[index] == expected;
+        }
+    }
+
+    /// <summary>The index of the profile the product currently launches with.</summary>
+    public static readonly XsrSemanticId SelectedKey = AccountStateContract.SelectedKey;
+
+    public static void DeclareState(XsrStateStoreBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Collection<LaunchProfileView, int>(
+            ProfilesKey,
+            OwnerName,
+            static view => view.Index);
+        builder.Cell<int>(SelectedKey, OwnerName);
+    }
+
+    public AccountService(XsrStateStore store, ILaunchProfilePort port, LogService? log = null)
+        : this(store, port, log, RegionalPolicy.Current) { }
+
+    public AccountService(XsrStateStore store, ILaunchProfilePort port, LogService? log, RegionalPolicy regionalPolicy)
+    {
+        _store = store ?? throw new ArgumentNullException(nameof(store));
+        _port = port ?? throw new ArgumentNullException(nameof(port));
+        _log = log;
+        _regionalPolicy = regionalPolicy ?? throw new ArgumentNullException(nameof(regionalPolicy));
+        _profilesId = _store.Resolve(ProfilesKey);
+
+        _profiles = [];
+        if (_port is IAsyncLaunchProfilePort { RequiresAsyncInitialization: true } asyncPort)
+        {
+            LoadError = AccountErrors.PersistFailed("账户安全存储正在初始化，请稍后重试。");
+            lock (_gate) { PublishAll(); _store.MarkAvailability(_profilesId, XsrStateAvailability.Unavailable); }
+            PublishSelection();
+            Initialization = InitializeAsync(asyncPort);
+        }
+        else LoadProfiles();
+    }
+
+    public Task Initialization { get; } = Task.CompletedTask;
+
+    private async Task InitializeAsync(IAsyncLaunchProfilePort port)
+    {
+        try
+        {
+            LaunchProfileSet profiles = await port.LoadAsync(_initializationLifetime.Token).ConfigureAwait(false);
+            lock (_gate) { LoadError = null; LoadProfiles(profiles); }
+        }
+        catch (OperationCanceledException) when (_initializationLifetime.IsCancellationRequested) { }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            lock (_gate)
+            {
+                LoadError = AccountErrors.PersistFailed(failure.Message);
+                _store.MarkAvailability(_profilesId, XsrStateAvailability.Unavailable);
+            }
+            _log?.Warn("Account", "Account storage initialization failed; original profiles preserved.");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        _initializationLifetime.Cancel();
+        try { await Initialization.ConfigureAwait(false); }
+        finally
+        {
+            if (_port is IDisposable disposable) disposable.Dispose();
+            _initializationLifetime.Dispose();
+        }
+    }
+
+    private void LoadProfiles(LaunchProfileSet? initialized = null)
+    {
+        List<LaunchProfile> loaded;
+        _log?.Debug("Account", "Loading persisted launch profiles.");
+        try
+        {
+            loaded = [.. (initialized ?? _port.Load()).Profiles];
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            LoadError = AccountErrors.PersistFailed(failure.Message);
+            loaded = [];
+            _log?.Write(LogLevel.Warn, "Account", "Profile load failed; publishing an unavailable roster. code=accounts.persist_failed", ExceptionDiagnostics.Describe(failure));
+        }
+
+        _profiles = RepairLegacyOfflineUuids(loaded);
+        _selectedIndex = _profiles.Count > 0 ? 0 : -1;
+        _log?.Info("Account", $"Profile load completed count={_profiles.Count} available={LoadError is null}");
+        lock (_gate)
+        {
+            PublishAll();
+            if (LoadError is not null)
+            {
+                _store.MarkAvailability(_profilesId, XsrStateAvailability.Unavailable);
+            }
+        }
+
+        PublishSelection();
+    }
+
+    private int _selectedIndex = -1;
+
+    /// <summary>
+    /// The profile the product currently launches with, or -1 when the roster is empty.
+    /// Selection is session state published as <see cref="SelectedKey"/>; the roster file is
+    /// untouched by switching.
+    /// </summary>
+    public int SelectedIndex { get { lock (_gate) return _selectedIndex; } }
+
+    /// <summary>
+    /// Switches the active profile as session state. An optional roster revision rejects stale
+    /// UI rows after a concurrent roster edit. Switching does not write the profile file.
+    /// </summary>
+    public XsrError? SelectProfile(int index, long? expectedRosterRevision = null)
+    {
+        lock (_gate)
+        {
+            if (expectedRosterRevision is { } expected
+                && _store.ReadCollection<LaunchProfileView>(_profilesId).Revision != expected)
+            {
+                _log?.Warn("Account", $"Profile selection rejected index={index} reason=stale_roster");
+                return AccountErrors.InvalidProfile("the roster changed; select the profile again.");
+            }
+
+            if (index < 0 || index >= _profiles.Count)
+            {
+                _log?.Warn("Account", $"Profile selection rejected index={index} code=accounts.profile_not_found");
+                return AccountErrors.ProfileNotFound(index);
+            }
+
+            _selectedIndex = index;
+            PublishSelection();
+        }
+        _log?.Info("Account", $"Active profile selected index={index}");
+        return null;
+    }
+
+    public XsrStateStore StateStore => _store;
+    public RegionalPolicy RegionPolicy { get { lock (_gate) return _regionalPolicy!; } }
+
+    /// <summary>
+    /// The stable error recorded when the persisted store could not be read at startup.
+    /// </summary>
+    public XsrError? LoadError { get; private set; }
+
+    /// <summary>
+    /// Appends one profile and persists the whole list atomically.
+    /// </summary>
+    public XsrResult<int> AddProfile(LaunchProfile profile)
+    {
+        XsrResult validated = Validate(profile);
+        if (!validated.IsSuccess)
+        {
+            return XsrResult.Failure<int>(validated.Error!);
+        }
+
+        lock (_gate)
+        {
+            List<LaunchProfile> updated = [.. _profiles, profile];
+            if (CheckCreationPolicy([profile]) is { } rejection) return XsrResult.Failure<int>(rejection);
+            XsrResult saved = Persist(updated);
+            if (!saved.IsSuccess)
+            {
+                return XsrResult.Failure<int>(saved.Error!);
+            }
+
+            _profiles = updated;
+            if (_selectedIndex < 0 && _profiles.Count > 0)
+            {
+                _selectedIndex = 0;
+            }
+            PublishAll();
+            PublishSelection();
+            _log?.Info("Account", $"Profile added index={_profiles.Count - 1} kind={profile.Kind} count={_profiles.Count}");
+            return XsrResult.Success(_profiles.Count - 1);
+        }
+    }
+
+    /// <summary>Imports a fully validated batch in one durable write, preserving existing identities.</summary>
+    public XsrResult<int> ImportProfiles(IReadOnlyList<LaunchProfile> profiles)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+        if (profiles.Count > 256) return XsrResult.Failure<int>(AccountErrors.InvalidProfile("Too many imported profiles."));
+        List<LaunchProfile> normalized = [];
+        foreach (LaunchProfile profile in profiles)
+        {
+            XsrResult valid = Validate(profile);
+            if (!valid.IsSuccess) return XsrResult.Failure<int>(valid.Error!);
+            normalized.Add(profile with
+            {
+                Info = profile.Info ?? "",
+                Uuid = profile.Uuid ?? "",
+                Logo = profile.Logo ?? "",
+                SvgIcon = profile.SvgIcon ?? "lucide/user",
+                AuthServer = profile.AuthServer ?? "",
+                AccessToken = profile.AccessToken ?? "",
+                RefreshToken = profile.RefreshToken ?? "",
+                ProviderAccessToken = profile.ProviderAccessToken ?? "",
+                ClientToken = profile.ClientToken ?? "",
+            });
+        }
+        lock (_gate)
+        {
+            List<LaunchProfile> merged = [.. _profiles];
+            if (CheckCreationPolicy(normalized) is { } rejection) return XsrResult.Failure<int>(rejection);
+            foreach (LaunchProfile profile in normalized)
+            {
+                if (!merged.Any(existing => existing.Kind == profile.Kind
+                    && string.Equals(existing.AuthServer.TrimEnd('/'), profile.AuthServer.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)
+                    && (profile.Uuid.Length > 0
+                        ? string.Equals(existing.Uuid, profile.Uuid, StringComparison.OrdinalIgnoreCase)
+                        : string.Equals(existing.Username, profile.Username, StringComparison.OrdinalIgnoreCase))))
+                    merged.Add(profile);
+            }
+            int added = merged.Count - _profiles.Count;
+            if (added == 0) return XsrResult.Success(0);
+            XsrResult saved = Persist(merged);
+            if (!saved.IsSuccess) return XsrResult.Failure<int>(saved.Error!);
+            _profiles = merged;
+            if (_selectedIndex < 0) _selectedIndex = 0;
+            PublishAll();
+            PublishSelection();
+            _log?.Info("Account", $"Profile import completed added={added} count={_profiles.Count}");
+            return XsrResult.Success(added);
+        }
+    }
+
+    /// <summary>
+    /// Replaces the profile at the given index and persists the whole list atomically.
+    /// </summary>
+    public XsrResult ReplaceProfile(int index, LaunchProfile profile, LaunchProfile? expected = null)
+        => ReplaceProfileCore(index, profile, expected, null, out _);
+
+    internal XsrResult<long> ReplaceRefreshedProfile(int index, LaunchProfile profile, LaunchProfile expected, long expectedGeneration)
+    {
+        XsrResult result = ReplaceProfileCore(index, profile, expected, expectedGeneration, out long generation);
+        return result.IsSuccess ? XsrResult.Success(generation) : XsrResult.Failure<long>(result.Error!);
+    }
+
+    internal XsrResult<int> UpsertLoginProfile(LaunchProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        lock (_gate)
+        {
+            int index = _profiles.FindIndex(existing => existing.Kind == profile.Kind
+                && !string.IsNullOrEmpty(existing.Uuid)
+                && string.Equals(existing.Uuid, profile.Uuid, StringComparison.OrdinalIgnoreCase));
+            if (index < 0) return AddProfile(profile);
+            XsrResult replaced = ReplaceProfile(index, profile);
+            return replaced.IsSuccess ? XsrResult.Success(index) : XsrResult.Failure<int>(replaced.Error!);
+        }
+    }
+
+    private XsrResult ReplaceProfileCore(int index, LaunchProfile profile, LaunchProfile? expected, long? expectedGeneration, out long generation)
+    {
+        generation = 0;
+        XsrResult validated = Validate(profile);
+        if (!validated.IsSuccess)
+        {
+            return validated;
+        }
+
+        lock (_gate)
+        {
+            if (index < 0 || index >= _profiles.Count)
+            {
+                return XsrResult.Failure(AccountErrors.ProfileNotFound(index));
+            }
+
+            if ((expected is not null && _profiles[index] != expected)
+                || (expectedGeneration is { } captured && captured != _credentialGeneration))
+                return XsrResult.Failure(AccountErrors.InvalidProfile("the account changed while refreshing its session."));
+            List<LaunchProfile> updated = [.. _profiles];
+            updated[index] = profile;
+            if (_profiles[index].Kind != profile.Kind && CheckCreationPolicy([profile]) is { } rejection)
+                return XsrResult.Failure(rejection);
+            XsrResult saved = Persist(updated);
+            if (!saved.IsSuccess)
+            {
+                return saved;
+            }
+
+            _profiles = updated;
+            // Capture before observer callbacks can re-enter and change the roster again.
+            generation = _credentialGeneration;
+            PublishAll();
+            _log?.Info("Account", $"Profile replaced index={index} kind={profile.Kind}");
+            return XsrResult.Success();
+        }
+    }
+
+    /// <summary>
+    /// Persists refreshed Microsoft credentials for the profile at the given index,
+    /// durable-first and only while the captured profile and roster generation still match.
+    /// </summary>
+    internal XsrResult UpdateMicrosoftProfile(
+        int index,
+        LaunchProfile expectedProfile,
+        long expectedGeneration,
+        string username,
+        string uuid,
+        string accessToken,
+        string refreshToken)
+    {
+        lock (_gate)
+        {
+            if (_credentialGeneration != expectedGeneration || index < 0 || index >= _profiles.Count
+                || _profiles[index] != expectedProfile)
+                return XsrResult.Failure(AccountErrors.InvalidProfile("the account changed while refreshing its session."));
+            LaunchProfile profile = _profiles[index];
+            if (profile.Kind != LaunchProfileKind.Microsoft)
+            {
+                return XsrResult.Failure(AccountErrors.InvalidProfile("only Microsoft profiles carry refreshable tokens."));
+            }
+
+            List<LaunchProfile> updated = [.. _profiles];
+            updated[index] = profile with
+            {
+                Username = string.IsNullOrWhiteSpace(username) ? profile.Username : username,
+                Uuid = string.IsNullOrWhiteSpace(uuid) ? profile.Uuid : uuid,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+            };
+            XsrResult saved = Persist(updated);
+            if (!saved.IsSuccess)
+            {
+                return saved;
+            }
+
+            _profiles = updated;
+            PublishAll();
+            return XsrResult.Success();
+        }
+    }
+
+    /// <summary>
+    /// Removes the profile at the given index and persists the whole list atomically. Later
+    /// profiles shift down; published views re-index accordingly.
+    /// </summary>
+    public XsrResult RemoveProfile(int index, long? expectedRosterRevision = null)
+    {
+        lock (_gate)
+        {
+            if (expectedRosterRevision is { } expected && _store.ReadCollection<LaunchProfileView>(_profilesId).Revision != expected)
+                return XsrResult.Failure(AccountErrors.InvalidProfile("the roster changed; choose the profile again."));
+            if (index < 0 || index >= _profiles.Count)
+            {
+                return XsrResult.Failure(AccountErrors.ProfileNotFound(index));
+            }
+
+            List<LaunchProfile> updated = [.. _profiles];
+            updated.RemoveAt(index);
+            XsrResult saved = Persist(updated);
+            if (!saved.IsSuccess)
+            {
+                return saved;
+            }
+
+            _verifiedOwners.Remove(_profiles[index].Uuid);
+            _profiles = updated;
+            // Preserve the same selected profile when an earlier row shifts down. If the
+            // selected profile was removed, choose its successor (or the final survivor).
+            _selectedIndex = _profiles.Count == 0 ? -1
+                : _selectedIndex > index ? _selectedIndex - 1
+                : Math.Min(_selectedIndex, _profiles.Count - 1);
+            PublishAll();
+            PublishSelection();
+            _log?.Info("Account", $"Profile removed index={index} remaining={_profiles.Count} selected={_selectedIndex}");
+            return XsrResult.Success();
+        }
+    }
+
+    /// <summary>
+    /// One coherent read of the published credential-free views.
+    /// </summary>
+    public IReadOnlyList<LaunchProfileView> GetViews() =>
+        _store.ReadCollection<LaunchProfileView>(_profilesId).Items;
+
+    /// <summary>
+    /// Resolves one full launch profile inside the Services boundary. Credentials are returned
+    /// only to trusted launch/account orchestration and are never published into host state.
+    /// </summary>
+    public XsrResult<LaunchProfile> GetProfile(int index)
+    {
+        lock (_gate)
+        {
+            return index >= 0 && index < _profiles.Count
+                ? XsrResult.Success(_profiles[index])
+                : XsrResult.Failure<LaunchProfile>(AccountErrors.ProfileNotFound(index));
+        }
+    }
+
+    private static XsrResult Validate(LaunchProfile profile)
+    {
+        if (profile is null)
+        {
+            return XsrResult.Failure(AccountErrors.InvalidProfile("profiles cannot be null."));
+        }
+
+        if (string.IsNullOrWhiteSpace(profile.Username))
+        {
+            return XsrResult.Failure(AccountErrors.InvalidProfile("a username is required."));
+        }
+
+        if (!Enum.IsDefined(profile.Kind))
+        {
+            return XsrResult.Failure(AccountErrors.InvalidProfile("the profile kind is not defined."));
+        }
+
+        return XsrResult.Success();
+    }
+
+    /// <summary>
+    /// Repairs offline profiles persisted by the XSR alpha whose UUID was derived through the
+    /// Guid constructor (little-endian field order) instead of the RFC byte order vanilla
+    /// servers expect. Recognized profiles are rewritten with the correct identifier in one
+    /// durable write; anything else is untouched.
+    /// </summary>
+    private List<LaunchProfile> RepairLegacyOfflineUuids(List<LaunchProfile> profiles)
+    {
+        List<LaunchProfile>? repaired = null;
+        for (int index = 0; index < profiles.Count; index++)
+        {
+            LaunchProfile profile = profiles[index];
+            if (profile.Kind != LaunchProfileKind.Offline
+                || string.IsNullOrWhiteSpace(profile.Username)
+                || string.IsNullOrWhiteSpace(profile.Uuid)
+                || !string.Equals(profile.Uuid, Minecraft.Launch.MinecraftOfflineIdentity.LegacyMismatchedUuid(profile.Username), StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            repaired ??= [.. profiles];
+            repaired[index] = profile with
+            {
+                Uuid = Minecraft.Launch.MinecraftOfflineIdentity.UuidFromName(profile.Username),
+            };
+            _log?.Info("Account", $"Repaired offline profile UUID for '{profile.Username}'.");
+        }
+
+        if (repaired is null)
+        {
+            return profiles;
+        }
+
+        XsrResult saved = Persist(repaired);
+        return saved.IsSuccess ? repaired : profiles;
+    }
+
+    private XsrResult Persist(List<LaunchProfile> profiles)
+    {
+        if (LoadError is { } error && _port is IAsyncLaunchProfilePort { RequiresAsyncInitialization: true }) return XsrResult.Failure(error);
+        using LogOperation? operation = _log?.BeginOperation("Account", "PersistProfiles", $"count={profiles.Count}");
+        try
+        {
+            _port.Save(new LaunchProfileSet { Profiles = profiles });
+            LoadError = null;
+            _credentialGeneration++;
+            operation?.Complete();
+            return XsrResult.Success();
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            operation?.Fail(failure);
+            return XsrResult.Failure(AccountErrors.PersistFailed(failure.Message));
+        }
+    }
+
+    private void PublishSelection() => _store.Publish(_store.Resolve(SelectedKey), _selectedIndex);
+
+    private void PublishAll()
+    {
+        lock (_gate)
+        {
+            for (int attempt = 0; attempt < MaxStateConflicts; attempt++)
+            {
+                XsrCollectionSnapshot<LaunchProfileView> snapshot = _store.ReadCollection<LaunchProfileView>(_profilesId);
+                int bound = Math.Max(snapshot.Count, _profiles.Count);
+                HashSet<int> kept = [.. Enumerable.Range(0, _profiles.Count)];
+                List<int> removals = [.. Enumerable.Range(0, bound).Where(index => !kept.Contains(index))];
+                List<LaunchProfileView> upserts = [.. Enumerable.Range(0, _profiles.Count).Select(ViewAt)];
+
+                XsrCollectionApplyResult result = _store.PublishDelta(
+                    _profilesId,
+                    new XsrCollectionDelta<LaunchProfileView, int>(snapshot.Revision, upserts, removals));
+                if (result.IsApplied)
+                {
+                    _store.MarkAvailability(_profilesId, XsrStateAvailability.Available);
+                    return;
+                }
+            }
+        }
+    }
+
+    private LaunchProfileView ViewAt(int index)
+    {
+        LaunchProfile profile = _profiles[index];
+        return new LaunchProfileView(
+            index,
+            profile.Username,
+            profile.Info,
+            profile.Kind,
+            profile.Uuid,
+            profile.Logo,
+            profile.SvgIcon,
+            profile.SkinAddress,
+            profile.AuthServer);
+    }
+}

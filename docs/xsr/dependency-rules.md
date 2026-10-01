@@ -4,19 +4,21 @@ Dependencies point toward portable policy and stable contracts. Platform framewo
 
 ## Allowed direction
 
-```text
-Desktop
-  -> Services composition
-       -> Services + XSR Runtime
-  -> UI.Next
-  -> Platform implementations
+| Layer | Dependencies |
+|---|---|
+| Desktop UI | Contracts, Domain, Core, UI.Next, runtime routers and composition handles |
+| Service contracts | Lower contracts, Domain, Core, XSR state/abstractions, Platform.Abstractions |
+| Service implementations | Lower service contracts/implementations and portable shared algorithms |
+| Services.Composition | Service implementations, XSR Runtime, platform implementations |
+| Platform.Runtime | Platform ports, capability contracts and portable shared algorithms/logging |
+| Domain | Core |
+| Renderer backend | UI.Next and its platform framework |
 
-Services.* -> XSR abstractions/state + Domain + Contracts + Core + Platform.Abstractions
-Services.Composition -> Services + XSR Runtime
-UI.Next    -> renderer contracts + Domain/Core value types when explicitly approved
-Backends   -> UI.Next + platform framework
-Domain     -> Core only
-```
+The exact current direct references are locked in `project-references.json`. `Services` is a
+compatibility facade and foundation composition entrypoint. Its consumers in the Desktop
+entrypoint are an approved composition edge; Desktop/Ui cannot use concrete service types.
+Native process creation, control, key-ring operations and capability probes live in Platform.
+
 
 References not shown are denied by default for new XSR projects.
 
@@ -43,6 +45,11 @@ returns the sealed command/query routers to Desktop.
 `Nexa.Pxml.Generators` is a build-only Roslyn component with no product-project reference. `Nexa.Pxml.Compiler` consumes it as an analyzer and receives UI.Next-owned control descriptors only through the configured `AdditionalFiles` catalog; generated code may use the compiler's existing UI.Next contract reference but the generator assembly must not reference UI.Next or Compiler.
 
 ## Enforcement
+
+The actual reference graph is checked for cycles and empty projects. Portable contracts cannot
+reference service implementations. Symbol-based checks resolve aliases and type forwards when
+checking UI ownership, renderer leakage, blocking APIs and platform process creation. See
+[migration-architecture-boundaries.md](migration-architecture-boundaries.md).
 
 The initial project graph is defined in [migrations/XSR-002-project-graph.md](migrations/XSR-002-project-graph.md). `Nexa.Xsr.ArchitectureTests` scans every project, rejects unregistered or external project references, enforces the locked direct-reference graph, verifies generator and executable roles, and prevents Avalonia packages outside the backend.
 

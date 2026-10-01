@@ -35,7 +35,7 @@ public static class Program
                 Console.WriteLine($"round {round}...");
                 var displayTask = new DisplayCapabilityProvider().CollectAsync(DateTimeOffset.UtcNow, CancellationToken.None);
                 var gpuTask = Task.Run(() => GpuProbes.CollectGpu(DateTimeOffset.UtcNow));
-                var javaTask = Task.Run(async () => await MachineInstanceCatalog.CollectJavaAsync(
+                var javaTask = Task.Run(async () => await MinecraftMachineFacts.CollectJavaAsync(
                     new Nexa.Services.Minecraft.Java.LocalJavaRuntimeLocator(), DateTimeOffset.UtcNow, CancellationToken.None));
                 await Task.WhenAll(
                     displayTask.AsTask(),
@@ -68,7 +68,7 @@ public static class Program
             for (int round = 0; round < 10; round++)
             {
                 Console.WriteLine($"round {round}...");
-                foreach (ICapability fact in await MachineInstanceCatalog.CollectJavaAsync(
+                foreach (ICapability fact in await MinecraftMachineFacts.CollectJavaAsync(
                     new Nexa.Services.Minecraft.Java.LocalJavaRuntimeLocator(), DateTimeOffset.UtcNow, CancellationToken.None))
                 {
                     Console.WriteLine($"  {fact.Id} {fact.Availability} {fact.DisplayValue}");

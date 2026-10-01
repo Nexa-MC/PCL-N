@@ -12,12 +12,13 @@ internal static partial class Program
         using var entered = new ManualResetEventSlim();
         using var stopped = new ManualResetEventSlim();
         string? observed = null;
+        TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
         XsrCommandRouterBuilder builder = new();
         builder.Register<MinecraftInstallRecoveryCommand>(MinecraftInstallRoutes.Recover, async (command, token) =>
         {
             observed = command.RootDirectories[0]; entered.Set();
             try { await Task.Delay(Timeout.Infinite, token); }
-            finally { stopped.Set(); }
+            finally { stopped.Set(); await release.Task.ConfigureAwait(false); }
             return XsrResult.Success();
         });
         List<string> reports = [];
@@ -26,6 +27,10 @@ internal static partial class Program
         roots[0] = "changed-root";
         AssertTrue(entered.Wait(TimeSpan.FromSeconds(5)));
         session.Dispose(); session.Dispose();
+        Task shutdown = session.DisposeAsync().AsTask();
+        AssertFalse(shutdown.IsCompleted);
+        release.SetResult();
+        shutdown.GetAwaiter().GetResult();
         AssertTrue(stopped.IsSet); AssertEqual("original-root", observed); AssertEqual(0, reports.Count);
     }
 }
