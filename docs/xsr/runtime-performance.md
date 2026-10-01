@@ -28,6 +28,17 @@ Time To Splash从用户启动进程到首次实际呈现测量，争取100–200
 
 ## 日志与下载发布契约
 
+资源图标 encoded cache 使用32 MiB实际字节预算与256条目上限，命中更新LRU，
+入缓存只淘汰满足预算所需的最旧条目。正在显示的图片由页面持有，不计作可被cache
+强制释放的对象；缓存预算不等于整个进程图片预算。取消须覆盖缓存命中，dispose后
+迟到的HTTP/decode结果不能重新填充cache；四条pipeline和Quiet Mode admission保留。
+
+FitToBounds图片按可见DIP尺寸和当前RenderScaling选择向上取整的二次幂解码宽度，
+最多1024像素、不得超过原图；同一bucket复用bitmap，DPI改变在绘制时重新核对。
+皮肤layer保持原始像素坐标和nearest-neighbor语义。backend读取已有encoded数组，
+不复制整张图片；更换/退休control必须dispose旧bitmap。此约束减少小图的decoded占用，
+不是全局64 MiB CPU或64–128 MiB GPU预算，memory-pressure adapter与实机测量仍待验收。
+
 日志 batch publication 采用一次性唤醒：无待发布条目时 timer 必须停用，第一条
 新消息才启动一个 publication interval。连续写入合并为同一 batch；显式 flush、
 clear 和 dispose 保留立即可见/最终排空语义，observer 重入写入不得丢失下一 batch。

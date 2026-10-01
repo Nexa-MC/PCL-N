@@ -114,6 +114,46 @@ internal static partial class Program
             AssertTrue(PngImage.TryCreateResourceIcon(jpegBytes.AsSpan()[..^2]) is null);
         }
 
+        // Decode real encoded pixels at visible size; a DPI change must work even when
+        // Apply skips an unchanged scene node. Keep original layer sampling untouched.
+        var window = global::Avalonia.Controls.TopLevel.GetTopLevel(surface)!;
+        double originalDensity = window.RenderScaling;
+        global::Avalonia.Headless.HeadlessWindowExtensions.SetRenderScaling(window, 1);
+        var imageElement = shell.Tree.GetComponent<XsrUiElement>(image)!;
+        imageElement.Width = 48; imageElement.Height = 48;
+        using (var pixels = new SkiaSharp.SKBitmap(1024, 1024))
+        using (var target = new global::Avalonia.Media.Imaging.RenderTargetBitmap(new(256, 256)))
+        {
+            pixels.Erase(SkiaSharp.SKColors.CornflowerBlue);
+            using var encoded = SkiaSharp.SKImage.FromBitmap(pixels);
+            foreach (var format in new[] { SkiaSharp.SKEncodedImageFormat.Png, SkiaSharp.SKEncodedImageFormat.Jpeg, SkiaSharp.SKEncodedImageFormat.Webp })
+            {
+                using var content = encoded.Encode(format, 90);
+                var large = PngImage.TryCreateResourceIcon(content.ToArray())!;
+                AssertTrue(large is not null);
+                media.Raster = new(large!, []) { FitToBounds = true };
+                shell.Tree.MarkDirty(image, XsrUiDirtyKinds.Layout); surface.CommitScene();
+                AssertEqual(new global::Avalonia.PixelSize(64, 64), control.DecodedRaster!.PixelSize);
+                var sameBucket = control.DecodedRaster;
+                imageElement.Width = 50; imageElement.Height = 50;
+                shell.Tree.MarkDirty(image, XsrUiDirtyKinds.Layout); surface.CommitScene();
+                AssertTrue(ReferenceEquals(sameBucket, control.DecodedRaster));
+                global::Avalonia.Headless.HeadlessWindowExtensions.SetRenderScaling(window, 2);
+                control.Measure(new(50, 50)); control.Arrange(new(0, 0, 50, 50));
+                target.Render(control);
+                AssertEqual(new global::Avalonia.PixelSize(128, 128), control.DecodedRaster!.PixelSize);
+                AssertTrue(!ReferenceEquals(sameBucket, control.DecodedRaster));
+                global::Avalonia.Headless.HeadlessWindowExtensions.SetRenderScaling(window, 1);
+                control.Measure(new(50, 50)); control.Arrange(new(0, 0, 50, 50));
+                target.Render(control);
+                AssertEqual(new global::Avalonia.PixelSize(64, 64), control.DecodedRaster!.PixelSize);
+                imageElement.Width = 48; imageElement.Height = 48;
+            }
+        }
+        global::Avalonia.Headless.HeadlessWindowExtensions.SetRenderScaling(window, originalDensity);
+        AssertEqual(25, AvaloniaUiSceneNodeControl.PreviewWidth(100, 4096, 1000, 1000, 2));
+        AssertEqual(16, AvaloniaUiSceneNodeControl.PreviewWidth(16, 16, 200, 200, 2));
+
         media.Raster = null; shell.Tree.MarkDirty(image, XsrUiDirtyKinds.Paint); surface.CommitScene();
         AssertFalse(control.HasDecodedRaster);
         AssertEqual("pcl/avatar/steve", control.Node.ImageSource);

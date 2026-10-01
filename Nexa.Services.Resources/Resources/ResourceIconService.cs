@@ -3,26 +3,60 @@ using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Resources;
 
-public sealed class ResourceIconService(HttpClient http) : IDisposable
+public sealed class ResourceIconService : IDisposable
 {
+    private readonly HttpClient _http;
+    private readonly long _byteBudget;
+    private readonly int _entryBudget;
     public IWorkScheduler? WorkScheduler { get; init; }
     private readonly SemaphoreSlim _slots = new(4);
-    private readonly Dictionary<string, PngImage> _cache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, LinkedListNode<(string Url, PngImage Image)>> _cache = new(StringComparer.Ordinal);
+    private readonly LinkedList<(string Url, PngImage Image)> _recency = new();
     private readonly object _gate = new();
+    private long _encodedBytes;
+    private bool _disposed;
+
+    public ResourceIconService(HttpClient http) : this(http, 32 * 1_048_576, 256) { }
+
+    internal ResourceIconService(HttpClient http, long byteBudget, int entryBudget)
+    {
+        ArgumentNullException.ThrowIfNull(http);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteBudget);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entryBudget);
+        _http = http; _byteBudget = byteBudget; _entryBudget = entryBudget;
+    }
+
+    private PngImage? Find(string url)
+    {
+        if (!_cache.TryGetValue(url, out var node)) return null;
+        _recency.Remove(node); _recency.AddFirst(node);
+        return node.Value.Image;
+    }
+
     public static bool IsAllowed(string url) => url.Length <= 2048 && Uri.TryCreate(url, UriKind.Absolute, out var uri)
         && uri.Scheme == "https" && uri.IsDefaultPort
         && uri.UserInfo.Length == 0 && uri.Fragment.Length == 0 && (uri.Host == "cdn.modrinth.com" && uri.AbsolutePath.StartsWith("/data/", StringComparison.Ordinal) || uri.Host is "media.forgecdn.net" or "mediafilez.forgecdn.net" && uri.AbsolutePath.StartsWith("/avatars/", StringComparison.Ordinal));
 
     public async Task<ResourceIconResult> ReadAsync(ResourceIconQuery query, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
         if (!IsAllowed(query.Url)) return new(null);
-        lock (_gate) if (_cache.TryGetValue(query.Url, out var cached)) return new(cached);
+        lock (_gate)
+        {
+            if (_disposed) return new(null);
+            if (Find(query.Url) is { } cached) return new(cached);
+        }
         IDisposable? admission = null;
         bool entered = false;
         try
         {
             await _slots.WaitAsync(token).ConfigureAwait(false); entered = true;
-            lock (_gate) if (_cache.TryGetValue(query.Url, out var cached)) return new(cached);
+            token.ThrowIfCancellationRequested();
+            lock (_gate)
+            {
+                if (_disposed) return new(null);
+                if (Find(query.Url) is { } cached) return new(cached);
+            }
             // All icon work is optional. Bound the entire encoded/decode pipeline locally,
             // before taking shared HTTP admission, so quiet CPU waits cannot retain HTTP slots.
             admission = WorkScheduler is null ? null
@@ -31,7 +65,7 @@ public sealed class ResourceIconService(HttpClient http) : IDisposable
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, query.Url);
                 request.Headers.UserAgent.ParseAdd("NexaCL/2.0 (https://github.com/PCL-N-Edition/PCL-N)");
-                using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > 1_048_576) return new(null);
                 await using var input = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
                 byte[] buffer = new byte[16384];
@@ -47,12 +81,25 @@ public sealed class ResourceIconService(HttpClient http) : IDisposable
             using IDisposable? decode = WorkScheduler is null ? null
                 : await WorkScheduler.AcquireAsync(WorkPriority.Background, WorkResource.Cpu, token).ConfigureAwait(false);
             var image = PngImage.TryCreateResourceIcon(output.GetBuffer().AsSpan(0, (int)output.Length));
+            token.ThrowIfCancellationRequested();
             if (image is not null)
             {
                 lock (_gate)
                 {
-                    if (_cache.Count >= 32) _cache.Remove(_cache.Keys.First());
-                    _cache[query.Url] = image;
+                    if (_disposed) return new(null);
+                    // Concurrent requests for one URL share the first admitted image.
+                    if (Find(query.Url) is { } cached) return new(cached);
+                    if (image.Bytes.Length <= _byteBudget)
+                    {
+                        while (_cache.Count >= _entryBudget || _encodedBytes > _byteBudget - image.Bytes.Length)
+                        {
+                            var oldest = _recency.Last!;
+                            _cache.Remove(oldest.Value.Url); _recency.RemoveLast();
+                            _encodedBytes -= oldest.Value.Image.Bytes.Length;
+                        }
+                        _cache.Add(query.Url, _recency.AddFirst((query.Url, image)));
+                        _encodedBytes += image.Bytes.Length;
+                    }
                 }
             }
             return new(image);
@@ -63,5 +110,11 @@ public sealed class ResourceIconService(HttpClient http) : IDisposable
     }
     // The runtime cancels outstanding queries before disposal. Do not dispose a semaphore
     // while canceled HTTP operations are still unwinding and releasing their slots.
-    public void Dispose() { lock (_gate) _cache.Clear(); }
+    public void Dispose()
+    {
+        lock (_gate)
+        {
+            _disposed = true; _cache.Clear(); _recency.Clear(); _encodedBytes = 0;
+        }
+    }
 }

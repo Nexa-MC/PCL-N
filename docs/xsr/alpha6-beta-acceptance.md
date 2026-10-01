@@ -80,3 +80,13 @@ GPG 策略收口见 [XSR-728](migrations/XSR-728-detached-signature-admission.md
 严格版本推进和实际包字节检查。managed/Linux NativeAOT Services 467项、68项目架构
 及20项非GnuPG Python发布回归通过。GnuPG集成保留在CI；当前环境的agent无法启动。
 受保护helper必须独立消费这些契约，high-water版本需受保护持久化；尚未启用自动替换。
+
+`3ff6d31a` 的Launcher metadata job 110382944803已通过23项Python发布测试，包含3项
+真实GnuPG集成；本机agent限制不再阻挡发布脚本回归证据。
+同提交XSR CI 36866432112及Launcher Build 36866431789均已通过。
+
+图片单元见 [XSR-731](migrations/XSR-731-image-residency-budgets.md)：图标encoded cache
+按32 MiB/256项LRU保留，关闭后不被迟到结果复活；FitToBounds按可见尺寸/DPI解码，
+同bucket复用bitmap，encoded数据不再整张复制。469项managed/Linux NativeAOT Services、
+9项Avalonia backend及68项目架构通过。全局decoded CPU/GPU预算、pressure adapter与
+真实进程RAM/长期曲线仍开放，不能用缩略图尺寸回归宣布内存SLA达标。

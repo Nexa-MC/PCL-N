@@ -36,6 +36,14 @@ environment; the existing 3 signing integration tests remain enabled in CI and n
 include manifest tampering and the forty-file distribution. No signing secret is required
 or exposed by the local generator tests.
 
+Commit `3ff6d31a` Launcher metadata job 110382944803 passed all 23 Python release
+tests, including the three real GnuPG integration cases. This CI evidence closes the
+local agent-socket limitation for the publisher regression suite; it does not supply
+publisher OS certificates or protected update execution.
+
+The same commit passed XSR CI 36866432112 and Launcher Build 36866431789, including
+exact solution formatting, NativeAOT/trim checks and six-platform launcher packaging.
+
 Runtime tests use the Python-generated embedded fixture and genuine GPG signatures,
 with buffer mutation after verification, actual package corruption/underflow/overrun,
 channel/RID/format/variant/configuration mismatches, installed/high-water replay,

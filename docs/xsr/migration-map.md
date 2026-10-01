@@ -113,6 +113,7 @@ PXML vertical slices continue over the shared shell.
 | XSR-728 | follow-up | detached signature admission, authenticated expiry and bounded envelopes; [migration](migrations/XSR-728-detached-signature-admission.md) |
 | XSR-729 | follow-up | bounded verification receipt LRU and explicit failure revocation; [migration](migrations/XSR-729-verification-receipt-lru.md) |
 | XSR-730 | follow-up | signed release identity, version admission and exact package-byte checks; [migration](migrations/XSR-730-signed-release-manifest.md) |
+| XSR-731 | follow-up | encoded icon byte LRU and visible-size/DPI raster decoding; [migration](migrations/XSR-731-image-residency-budgets.md) |
 
 ## Closed migration unit
 

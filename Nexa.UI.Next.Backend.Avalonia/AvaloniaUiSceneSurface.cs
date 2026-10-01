@@ -845,7 +845,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         XsrUiSceneNode previous = _node;
         _node = node;
         Opacity = node.PresentationOpacity;
-        UpdateRaster(node.RasterImage);
+        UpdateRaster(node.RasterImage, node.Rect.Width, node.Rect.Height);
         UpdateTextInput(previous.TextInput, node.TextInput);
         if (previous.IsFocused != node.IsFocused) ResetCaret();
         IsEnabled = node.IsEnabled;

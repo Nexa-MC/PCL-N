@@ -7,8 +7,8 @@
 
 | 审查项 | 当前事实与剩余工作 |
 | --- | --- |
-| 每次变化重画所有控件、逐项 IndexOf | `AvaloniaUiSceneNodeControl.Apply` 已比较 node，未变化时直接返回；clip、文本有复用，visual 字段变化才 invalidate。surface 已有 child index 表。dirty scene 仍遍历可见节点，重排仍有范围更新；复杂 rich text / image 的相等与缓存命中率、OS/GPU 帧预算仍待实测。 |
-| 启动全量 hash 与线性去重 | 当前候选文件是路径字典；内容寻址资产按已知大小复用，库有服务生命周期 receipt，修复下载强制 hash。receipt 达到 8192 后全清仍会造成抖动；不能将路径/大小/mtime 的跨重启缓存当成可信完整性证明。 |
+| 每次变化重画所有控件、逐项 IndexOf | `AvaloniaUiSceneNodeControl.Apply` 已比较 node，未变化时直接返回；clip、文本有复用，visual 字段变化才 invalidate。surface 已有 child index 表。XSR-731补齐图标实际字节LRU和按可见尺寸/DPI解码，避免encoded整张复制与key拼接。dirty scene仍遍历可见节点，复杂rich text、全局CPU/GPU图片预算及实机帧成本仍待验收。 |
+| 启动全量 hash 与线性去重 | 当前候选文件是路径字典；内容寻址资产按已知大小复用，库有服务生命周期 receipt，修复下载强制 hash。XSR-729 已将8192项receipt全清改为逐项LRU，并在强制hash失败后撤销旧记录；不能将路径/大小/mtime 的缓存当成可信完整性证明。 |
 | 文件逐个下载、重复线性查询 | install 与 launch 已使用 `FileBatchProgress.RunAsync`，并发上限 8，路径字典去重，连接通过 pooled HTTP。当前共享 admission 还限制 HTTP/disk；真实网络和 Minecraft 启动争用仍缺证据。 |
 | Recovery 每次重新压缩、再次校验、串行 | `RecoverySnapshotStore` 已按源文件与 blob stamp 复用，最多 4 个 capture worker；新 blob 替换旧对象，不再额外解压 dedupe hit。恢复仍校验实际内容。单文件 fsync 与 8 GiB 预算是数据持久性/资源约束，不能直接删除；大包策略和后台 IO admission 仍待验收。 |
 | 每条日志重排、同步 flush | ring 使用有界队列，batch timer 只在有新消息时一次性唤醒，file sink 空闲时仅等待 channel；单流下载进度也按100ms合并并保留最终字节。`PublishDelta` 仍复制/排序 collection；真实 idle 与高压日志成本继续测量，详见 [XSR-727](migrations/XSR-727-idle-logging-and-download-progress.md)。 |

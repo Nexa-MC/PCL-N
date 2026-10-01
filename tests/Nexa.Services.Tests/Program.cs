@@ -55,6 +55,8 @@ internal static partial class Program
         ("resource download validates bytes hashes publication and cancellation", ResourceDownloadsValidateActualBytesHashAndNeverOverwrite),
         ("resource catalog filters and validates provider results", ResourceCatalogFiltersAndValidatesProviderResults),
         ("resource icons are bounded cached and restricted to provider", ResourceIconsAreBoundedCachedAndRestrictedToProvider),
+        ("resource icon cache honors bytes recency and cancellation", ResourceIconCacheHonorsBytesRecencyAndCancellation),
+        ("resource icon disposal rejects late and queued work", ResourceIconDisposalRejectsLateAndQueuedWork),
         ("resource catalog bounds actual response and honors cancellation", ResourceCatalogBoundsActualResponseAndHonorsCancellation),
         ("nested Quilt and JarJar inventory preserves content identity", NestedQuiltAndJarJarInventoryPreservesContentIdentity),
         ("installed loader compatibility requires explicit evidence", InstalledLoaderCompatibilityRequiresExplicitEvidence),
