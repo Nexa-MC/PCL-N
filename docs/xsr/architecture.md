@@ -44,6 +44,7 @@ X coordinates service registration, command/query routing, state, events, scopes
 |---|---|
 | `Nexa.Core`, `Nexa.Domain`, `Nexa.Contracts` | portable primitives, domain rules, and stable cross-module contracts |
 | `Nexa.Xsr.*` | runtime abstractions, routing, state, transport, diagnostics, and generated code |
+| `tools/Nexa.Xsr.Patch.Compiler` | independent managed compile-time source rewriting tool; no product assembly reference or runtime code generation |
 | `Nexa.Services.*` | business capabilities grouped by change ownership; `Nexa.Services.Composition` is the explicit edge that binds those capabilities to Runtime routers |
 | `Nexa.UI.Next` | canonical semantic renderer |
 | `Nexa.UI.Next.Backend.*` | platform rendering, windows, native input, IME, clipboard, and accessibility bridges |

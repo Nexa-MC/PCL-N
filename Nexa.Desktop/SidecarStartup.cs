@@ -6,13 +6,14 @@ namespace Nexa.Desktop;
 
 internal static class SidecarStartup
 {
-    public static SidecarSupervisor Create(LogService log)
+    public static SidecarSupervisor Create(LogService log, XsrFunctionPatchAdmission? functionPatches = null)
     {
         using Stream key = typeof(SidecarStartup).Assembly.GetManifestResourceStream("Nexa.Desktop.SidecarReleaseKey.asc")
             ?? throw new InvalidDataException("The pinned Sidecar verification key is missing.");
         using var reader = new StreamReader(key);
         var verifier = new UpdateGpgVerifier(reader.ReadToEnd());
-        return new(verifier.VerifyAsync, (name, status) => log.Info("Sidecar", $"{name}: {status}"));
+        return new(verifier.VerifyAsync, (name, status) => log.Info("Sidecar", $"{name}: {status}"))
+        { FunctionPatchAdmission = functionPatches };
     }
 
     public static async Task StartAsync(SidecarSupervisor supervisor, LogService log)

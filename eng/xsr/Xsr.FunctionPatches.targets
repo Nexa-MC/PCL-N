@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <_NexaPatchDotnet Condition="'$(DOTNET_HOST_PATH)' != ''">$(DOTNET_HOST_PATH)</_NexaPatchDotnet>
+    <_NexaPatchDotnet Condition="'$(_NexaPatchDotnet)' == ''">dotnet</_NexaPatchDotnet>
+    <_NexaPatchCompiler>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '..', '..', 'tools', 'Nexa.Xsr.Patch.Compiler', 'bin', '$(Configuration)', 'net10.0', 'Nexa.Xsr.Patch.Compiler.dll'))</_NexaPatchCompiler>
+  </PropertyGroup>
+  <!-- IntermediateOutputPath is finalized by SDK targets after this import is evaluated. -->
+  <Target Name="InitializeNexaFunctionPatchPaths">
+    <PropertyGroup>
+      <_NexaPatchIntermediate>$([System.String]::Copy('$(IntermediateOutputPath)').Replace('\', '/'))</_NexaPatchIntermediate>
+      <_NexaPatchedSource>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(_NexaPatchIntermediate)', 'NexaPatches', 'ResourceCaptions.g.cs'))</_NexaPatchedSource>
+    </PropertyGroup>
+  </Target>
+  <Target Name="GenerateNexaFunctionPatches" DependsOnTargets="ResolveProjectReferences;InitializeNexaFunctionPatchPaths"
+          Inputs="@(NexaFunctionPatchSource);$(_NexaPatchCompiler)"
+          Outputs="$(_NexaPatchedSource)">
+    <Error Condition="'@(NexaFunctionPatchSource->Count())' != '1'" Text="NXRP001: exactly one explicit Function Patch source file is required." />
+    <Exec Command="&quot;$(_NexaPatchDotnet)&quot; &quot;$(_NexaPatchCompiler)&quot; --input &quot;@(NexaFunctionPatchSource)&quot; --output &quot;$(_NexaPatchedSource)&quot;" />
+  </Target>
+  <!-- Item replacement must also execute when the incremental generator target is skipped. -->
+  <Target Name="UseNexaFunctionPatches" BeforeTargets="CoreCompile" DependsOnTargets="GenerateNexaFunctionPatches">
+    <ItemGroup>
+      <Compile Remove="@(NexaFunctionPatchSource)" />
+      <Compile Include="$(_NexaPatchedSource)" />
+    </ItemGroup>
+  </Target>
+</Project>

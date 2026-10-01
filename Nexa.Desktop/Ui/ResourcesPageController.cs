@@ -25,6 +25,7 @@ internal sealed class ResourcesPageController : IDisposable
     private readonly XsrQueryRouter _queries;
     private readonly XsrStateStore _store;
     private readonly Action<Uri> _open;
+    private readonly DesktopFunctionPatches _functionPatches;
     private readonly Dictionary<XsrUiEntityId, Action> _actions = [];
     private readonly ConcurrentQueue<XsrUiEntityId> _pending = new();
     private readonly Dictionary<string, XsrUiEntityId> _entities = [];
@@ -74,9 +75,10 @@ internal sealed class ResourcesPageController : IDisposable
     internal XsrUiEntityId DetailPage { get; }
 
     internal ResourcesPageController(XsrUiShell shell, DesktopUiIntentSink intents, XsrQueryRouter queries,
-        XsrStateStore store, Action<Uri> open)
+        XsrStateStore store, Action<Uri> open, DesktopFunctionPatches? functionPatches = null)
     {
         _shell = shell; _intents = intents; _queries = queries; _store = store; _open = open;
+        _functionPatches = functionPatches ?? new();
         using var stream = typeof(ResourcesPageController).Assembly.GetManifestResourceStream("Nexa.Desktop.Ui.ResourcesPage.pxml")!;
         using var reader = new StreamReader(stream);
         var host = shell.Tree.Create("resources-loader");
@@ -279,7 +281,7 @@ internal sealed class ResourcesPageController : IDisposable
                 _icons.Add((icon, read)); Wake(read);
             }
             var copy = Stack(row, "ResourceProjectCopy"); E(copy).Weight = 1;
-            LiteralText(copy, project.DisplayName, 15, Ink, 22, 600);
+            LiteralText(copy, ProjectTitle(project.DisplayName), 15, Ink, 22, 600);
             Translate(LiteralText(copy, project.DisplayDescription, 12, Muted, 20), project);
             Text(copy, $"{project.SourceLabel}  ·  {project.Author}  ·  {FormatDownloads(project.Downloads)} 次下载", 11, Muted, 18);
             _listActions.Add(IconButton(row, "ResourceDetails." + project.Id, "详情", "lucide/info", () =>
@@ -310,7 +312,7 @@ internal sealed class ResourcesPageController : IDisposable
         var heading = Stack(_detailBody, "ResourceDetailHeading", true);
         ProjectIcon(heading, "ResourceDetailIcon", detail.Project, 64);
         var headingCopy = Stack(heading, "ResourceDetailHeadingCopy"); E(headingCopy).Weight = 1;
-        LiteralText(headingCopy, detail.Project.DisplayName, 25, Ink, 36, 650);
+        LiteralText(headingCopy, ProjectTitle(detail.Project.DisplayName), 25, Ink, 36, 650);
         LiteralText(headingCopy, detail.Project.Author + " · " + detail.Project.SourceLabel, 12, Muted, 24);
         _detailActions.Add(IconButton(heading, "ResourceFavorite", IsSaved(detail.Project) ? "取消收藏" : "收藏", "lucide/star", () => ToggleFavorite(detail.Project)));
         Translate(LiteralText(_detailBody, detail.Project.DisplayDescription, 14, Muted, 68, lines: 3), detail.Project);
@@ -578,6 +580,7 @@ internal sealed class ResourcesPageController : IDisposable
     }
     private XsrUiEntityId LiteralText(XsrUiEntityId parent, string value, double size, XsrUiColor color, double height, double weight = 400, int lines = 1) =>
         DesktopLiteralText.Preserve(_shell.Tree, Text(parent, value, size, color, height, weight, lines));
+    private string ProjectTitle(string title) => ResourceCaptions.ProjectTitle(_functionPatches.Runtime, _functionPatches.ProjectTitle, title);
 
     private XsrUiEntityId Text(XsrUiEntityId parent, string value, double size, XsrUiColor color, double height, double weight = 400, int lines = 1)
     {

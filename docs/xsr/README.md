@@ -22,6 +22,7 @@ The user-requested constraints take precedence:
 - [migrations/XSR-734-soak-wake-attribution.md](migrations/XSR-734-soak-wake-attribution.md) — 有界状态发布记录与idle唤醒归因
 - [function-patches.md](function-patches.md) — Host授权的受限Function Patch执行、五阶段ABI与生命周期
 - [migrations/XSR-735-bounded-function-patch-execution.md](migrations/XSR-735-bounded-function-patch-execution.md) — Function Patch会话注册到Host执行的首个闭环
+- [migrations/XSR-736-compile-time-function-patches.md](migrations/XSR-736-compile-time-function-patches.md) — 编译前源码改写、增量构建隔离和实际资源标题point
 - [migrations/XSR-728-detached-signature-admission.md](migrations/XSR-728-detached-signature-admission.md) — detached GPG 策略收口
 - [migrations/XSR-729-verification-receipt-lru.md](migrations/XSR-729-verification-receipt-lru.md) — 有界文件校验缓存与显式校验失败撤销
 - [review-505b9f9f.md](review-505b9f9f.md) — 新审查的事实核对、修复范围和剩余证据

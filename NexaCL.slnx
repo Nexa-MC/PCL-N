@@ -12,6 +12,7 @@
   <Folder Name="/XSR/">
     <Project Path="Nexa.Xsr.Abstractions/Nexa.Xsr.Abstractions.csproj" />
     <Project Path="Nexa.Xsr.Runtime/Nexa.Xsr.Runtime.csproj" />
+    <Project Path="tools/Nexa.Xsr.Patch.Compiler/Nexa.Xsr.Patch.Compiler.csproj" />
     <Project Path="Nexa.Xsr.State/Nexa.Xsr.State.csproj" />
     <Project Path="Nexa.Xsr.Diagnostics/Nexa.Xsr.Diagnostics.csproj" />
   </Folder>

@@ -131,3 +131,16 @@ Function Patch执行首批见 [XSR-735](migrations/XSR-735-bounded-function-patc
 本机既有1项Unix IPC显式跳过，CI保持112项；68项目架构通过。10,000次不变patched调用
 预热后线程分配为0。产品target尚未启用，编译前改写器、其他ABI以及UI/Event/Intent adapter
 仍开放，不能用该首批执行器宣布Sidecar平台完整。
+
+`6a9f7692` 的XSR CI 36881910562、Launcher Build 36881910337均通过；
+`05b303ab` 的XSR CI 36883496173、Launcher Build 36883496270也均通过，包含未跳过的
+OS IPC与112项runtime测试、NativeAOT及最后的Desktop shell/trim门禁。
+
+编译前改写与产品point见 [XSR-736](migrations/XSR-736-compile-time-function-patches.md)：
+新增一个独立build工具程序集，产物不进入运行依赖/安装包；SDK finalized obj路径、增量
+Compile替换和相对debug映射均已核对。managed/Linux NativeAOT Desktop各107项、69项目
+架构、编译器执行与18类拒绝回归通过；独立NativeAOT shell52nodes与first-run验证通过。
+资源列表/详情的literal标题可实际执行会话程序，项目ID/元数据不变，卸载后后续重建恢复原文。
+这是首个受限string point；其他ABI、UI/Event/Intent执行adapter和真实插件burn-in仍开放。
+本机已启动带binary/source哈希receipt的两小时NativeAOT idle composition fixture，仍在运行；
+构建身份为基础提交加XSR-736工作树，不作为clean-commit版本、OS窗口或Minecraft证据。

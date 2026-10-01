@@ -199,7 +199,8 @@ internal static partial class Program
             });
         using var telemetryLifetime = host.Telemetry;
         host.Accounts.ConfigureRegionalPolicy(Nexa.Services.RegionalPolicy.Current);
-        using var sidecars = SidecarStartup.Create(host.Logging);
+        DesktopFunctionPatches functionPatches = new();
+        using var sidecars = SidecarStartup.Create(host.Logging, functionPatches.Admission);
         _ = SidecarStartup.StartAsync(sidecars, host.Logging);
         // The session lifecycle narrates startup/shutdown milestones at Info: every subsystem
         // the composition root brings up (and later stops) is a phase on one shared timeline.
@@ -306,7 +307,7 @@ internal static partial class Program
         launchPage.SettingsPage = settingsPage.Page;
         using var resourcesRuntime = ResourceCatalogRuntimeComposer.Compose(host: host, favoritesPath: Path.Combine(settingsFolder, "resources-favorites.json"), installer: installRun.Service);
         using var resourcesPage = new ResourcesPageController(shell, uiIntents, resourcesRuntime.Queries,
-            host.StateStore, platformActions.OpenHttpsUri);
+            host.StateStore, platformActions.OpenHttpsUri, functionPatches);
         launchPage.ResourcesPage = resourcesPage.Page;
         resourcesPage.ConfigureDownloads(resourcesRuntime.Commands!, platformActions.PickDownloadDirectoryAsync, feedback);
         resourcesPage.ConfigureInstanceFilter(installCatalog.Queries, () =>

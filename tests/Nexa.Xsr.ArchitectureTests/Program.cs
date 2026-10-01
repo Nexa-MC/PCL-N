@@ -16,6 +16,7 @@ internal static partial class Program
             "Nexa.UI.Next.Benchmarks",
             "Nexa.Xsr.ArchitectureTests",
             "Nexa.Xsr.Runtime.Tests",
+            "Nexa.Xsr.Patch.Compiler",
             "Nexa.UI.Next.Tests",
             "Nexa.UI.Next.Backend.Avalonia.Tests",
             "Nexa.Pxml.Tests",
@@ -57,6 +58,7 @@ internal static partial class Program
 
         ValidateNativeHostInterop(repositoryRoot, failures);
         ValidatePxmlControlCatalog(repositoryRoot, projectPaths, failures);
+        ValidateFunctionPatchCompiler(repositoryRoot, projectPaths, failures);
         ValidateWave3Ci(repositoryRoot, failures);
         ValidateAcyclicGraph(failures);
 
@@ -232,6 +234,29 @@ internal static partial class Program
         {
             failures.Add($"{projectName} must remain marked as AOT compatible.");
         }
+    }
+
+    private static void ValidateFunctionPatchCompiler(string root, Dictionary<string, string> projects, List<string> failures)
+    {
+        if (!projects.TryGetValue("Nexa.Xsr.Patch.Compiler", out var compilerPath))
+        { failures.Add("Explicit Function Patch compiler project is missing."); return; }
+        var compiler = XDocument.Load(compilerPath);
+        var desktop = XDocument.Load(projects["Nexa.Desktop"]);
+        var reference = Elements(desktop, "ProjectReference").SingleOrDefault(item =>
+            item.Attribute("Include")?.Value.Replace('\\', '/').EndsWith("Nexa.Xsr.Patch.Compiler.csproj", StringComparison.Ordinal) == true);
+        if (reference?.Attribute("ReferenceOutputAssembly")?.Value != "false"
+            || reference.Attribute("Private")?.Value != "false"
+            || Property(compiler, "ShouldBeValidatedAsExecutableReference") != "false"
+            || Property(compiler, "SelfContained") != "false" || Property(compiler, "PublishAot") != "false")
+            failures.Add("Function Patch compiler must be an isolated, non-shipped managed build tool.");
+        if (Property(desktop, "ValidateExecutableReferencesMatchSelfContained") == "false")
+            failures.Add("Desktop must retain product executable-reference validation.");
+        var targets = XDocument.Load(Path.Combine(root, "eng/xsr/Xsr.FunctionPatches.targets"));
+        var replacement = Elements(targets, "Target").SingleOrDefault(target => target.Attribute("Name")?.Value == "UseNexaFunctionPatches");
+        if (replacement?.Attribute("BeforeTargets")?.Value != "CoreCompile"
+            || !replacement!.Descendants().Any(item => item.Name.LocalName == "Compile" && item.Attribute("Remove")?.Value == "@(NexaFunctionPatchSource)")
+            || !replacement.Descendants().Any(item => item.Name.LocalName == "Compile" && item.Attribute("Include")?.Value == "$(_NexaPatchedSource)"))
+            failures.Add("Function Patch compile-item replacement must run before CoreCompile on incremental builds.");
     }
 
     private static void ValidateFrameworkPackages(string projectName, XDocument project, List<string> failures)

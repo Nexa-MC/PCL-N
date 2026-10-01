@@ -14,6 +14,7 @@
     "Nexa.Sidecar.Transport",
     "Nexa.UI.Next",
     "Nexa.UI.Next.Backend.Avalonia",
+    "Nexa.Xsr.Patch.Compiler",
     "Nexa.Xsr.Runtime"
   ],
   "Nexa.Desktop.Tests": [
@@ -51,6 +52,7 @@
     "Nexa.Xsr.Abstractions"
   ],
   "Nexa.Pxml.Generators": [],
+  "Nexa.Xsr.Patch.Compiler": [],
   "Nexa.Pxml.Runtime": [
     "Nexa.Core",
     "Nexa.Pxml.Compiler",

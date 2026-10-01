@@ -63,3 +63,41 @@ Runtime assembly, without adding projects. It does not itself rewrite existing m
 or complete UI Patch/Event/Intent adapters. The following compiler must rewrite explicit
 opt-in source methods before CoreCompile, reject unsupported shapes, and connect a real
 presentation-only host point; a source generator alone is insufficient.
+
+## Compile-before-CoreCompile contract
+
+`tools/Nexa.Xsr.Patch.Compiler` is an independent managed Roslyn build tool, not a shipped
+runtime dependency or source generator. The Desktop build references it with
+ReferenceOutputAssembly=false/Private=false and removes RID/AOT/single-file/trim globals. It rewrites one
+explicit opt-in source file under obj, removes the original file from Compile and always
+adds the rewritten file, including incremental builds. CLI and source rewriting are tested
+in that build tool; product execution is tested under NativeAOT separately.
+
+Only the build tool sets ShouldBeValidatedAsExecutableReference=false: the SDK must not
+classify that non-shipped managed tool as a self-contained application's executable runtime
+dependency. Desktop retains the SDK's executable-reference validation for product dependencies.
+
+`[XsrFunctionPatch("versioned.target")]` marks a static method in a nongeneric static class,
+with exact parameters `(XsrFunctionPatchRuntime runtime, XsrFunctionPatchPoint point,
+string value)` and a non-null string return. Context parameters must not be used in the
+original body. The host composition root binds the point to the annotation's target once;
+generated calls use that instance-owned numeric handle. The compiler preserves the method
+signature and creates a private original string-to-string body plus a cached static delegate.
+All existing returns and original exceptions remain within that original body.
+
+The first compiler rejects instance/generic/async/ref/out/default-parameter methods,
+additional attributes, overload/generated-name collisions, directives, await/yield/lambdas,
+object construction and invocation expressions in the original. Its initial body subset is
+return/if/block and literal/string argument/string Length, binary/unary/conditional/parenthesized
+expressions; indexers, implicit construction/conversion and user handler code are excluded.
+The restriction includes
+nameof and prevents implicit CallerMemberName/FilePath/LineNumber/ArgumentExpression from
+changing when the original body moves. Expanding that subset requires semantic call binding
+and new parity tests; silently changing caller information is unacceptable. Debug locations
+for the original body use #line with a source path relative to the generated file, rather than exposing an absolute
+workstation path. Invalid input fails the build and cannot fall back to an unpatched body.
+
+The first enabled target is `ui.resource.project-title.v1`: literal resource list/detail titles
+only. It cannot alter provider IDs, downloads, ownership checks, updates or dependency metadata.
+Catalog/search remain service-owned. Activation does not itself schedule a UI refresh; patches
+are observed by subsequent normal presentation rebuilds. Live rerender adapters are separate.
