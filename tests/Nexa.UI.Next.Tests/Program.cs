@@ -12,6 +12,8 @@ internal static partial class Program
         ("HorizontalStackReservesRightSideVerticalIndicatorGutter", Sync(HorizontalStackReservesRightSideVerticalIndicatorGutter)),
         ("WrappedContentMeasuresInsideIndicatorViewport", Sync(WrappedContentMeasuresInsideIndicatorViewport)),
         ("IndicatorGutterAffectsScrollExtentCoherently", Sync(IndicatorGutterAffectsScrollExtentCoherently)),
+        ("scroll snapshot query uses last scene and rejects retired entities", Sync(ScrollSnapshotQueryUsesLastSceneAndRejectsRetiredEntities)),
+        ("logical focus navigation validates targets and preserves barriers", Sync(LogicalFocusNavigationValidatesTargetsAndPreservesBarriers)),
         ("segmented track supports drag snap keyboard and cancellation", Sync(SegmentedTrackSupportsDragSnapKeyboardAndCancellation)),
         ("list drag keeps clicks separate and publishes inertia", Sync(ListDragKeepsClicksSeparateAndPublishesInertia)),
         // XSR-201: ECS kernel.

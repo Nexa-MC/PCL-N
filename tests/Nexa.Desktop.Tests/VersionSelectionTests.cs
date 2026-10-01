@@ -9,6 +9,111 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void VersionSelectionBoundsLargeListsAndKeepsLogicalTransfers()
+    {
+        foreach (int total in new[] { 1000, 10000 })
+        {
+            using var fixture = new LaunchPageFixture(new ImmediateInstanceSource(
+                [.. Enumerable.Range(0, total).Select(index => Instance($"fixture-{index:D5}"))]));
+            fixture.Controller.WaitUntilIdle().GetAwaiter().GetResult();
+            var shell = fixture.Shell;
+            XsrUiSize size = new(850, 500);
+            shell.Renderer.ReducedMotion = true;
+            shell.Renderer.Activate(FindByKey(shell, shell.Render(size), "InstanceListButton").Entity);
+            XsrUiScene scene = shell.Render(size);
+            XsrUiEntityId host = FindEntity(shell, "LibraryVersionRows");
+            if (shell.Tree.Children(host).Count > 32)
+                throw new InvalidOperationException($"Installed-version window materialized {shell.Tree.Children(host).Count} rows for {total} logical entries.");
+            AssertTrue(shell.Tree.Count < 1200);
+            AssertTrue(scene.Count < 800);
+            var snapshot = fixture.Store.Read<MinecraftLibrarySnapshot>(fixture.Store.Resolve(MinecraftLibraryContract.StateKey)).Value;
+            var logical = snapshot.Instances;
+            XsrUiScroll scroll = shell.Tree.GetComponent<XsrUiScroll>(host)!;
+            AssertClose(total * 80 - 8, FindByKey(shell, scene, "LibraryVersionRows").Scroll!.Value.ContentHeight);
+            string Row(int index) => "LibraryRow:version:" + logical[index].Id;
+            var first = FindByKey(shell, scene, Row(1)).Entity;
+            Emit(fixture.Intents, "ui.versions.toggle-transfer", first);
+            scene = shell.Render(size);
+            var overlap = FindByKey(shell, scene, Row(2)).Entity;
+            scroll.OffsetY = 80;
+            shell.Tree.MarkDirty(host, XsrUiDirtyKinds.Layout);
+            scene = shell.Render(size);
+            AssertEqual(overlap, FindByKey(shell, scene, Row(2)).Entity);
+
+            int middle = total / 2;
+            scroll.OffsetY = middle * 80;
+            shell.Tree.MarkDirty(host, XsrUiDirtyKinds.Layout);
+            scene = shell.Render(size);
+            AssertTrue(shell.Tree.Children(host).Count <= 32);
+            Emit(fixture.Intents, "ui.versions.extend-transfer", FindByKey(shell, scene, Row(middle)).Entity);
+            scene = shell.Render(size);
+            var transfer = shell.Tree.GetComponent<XsrUiFileDrag>(FindByKey(shell, scene, Row(middle)).Entity)!;
+            AssertTrue(transfer.Paths.SequenceEqual(logical.Skip(1).Take(middle).Select(item => item.DirectoryPath)));
+            var sessions = fixture.Store.Resolve(MinecraftProcessStateComposition.SessionsKey);
+            fixture.Store.PublishDelta(sessions, new XsrCollectionDelta<MinecraftProcessSnapshot, Guid>(0,
+                [new(Guid.NewGuid(), logical[2].Id, 123, MinecraftProcessState.Running, null, DateTimeOffset.UtcNow, null)
+                { InstanceDirectory = logical[2].DirectoryPath }], []));
+            scene = shell.Render(size);
+            AssertFalse(shell.Tree.GetComponent<XsrUiFileDrag>(FindByKey(shell, scene, Row(middle)).Entity)!
+                .Effects.HasFlag(XsrUiFileDragEffects.Move));
+
+            scroll.OffsetY = total * 80;
+            shell.Tree.MarkDirty(host, XsrUiDirtyKinds.Layout);
+            scene = shell.Render(size);
+            AssertTrue(HasKey(shell, scene, Row(total - 1)));
+            AssertTrue(shell.Tree.Children(host).Count <= 32);
+            AssertClose(total * 80 - 8, FindByKey(shell, scene, "LibraryVersionRows").Scroll!.Value.ContentHeight);
+
+            shell.Renderer.SetTextInputValue(FindByKey(shell, scene, "LibrarySearch").Entity, logical[middle].Id);
+            scene = shell.Render(size);
+            AssertEqual(logical[middle].DirectoryPath,
+                shell.Tree.GetComponent<XsrUiFileDrag>(FindByKey(shell, scene, Row(middle)).Entity)!.Paths.Single());
+            shell.Renderer.SetTextInputValue(FindByKey(shell, scene, "LibrarySearch").Entity, "");
+            scroll.OffsetY = 0;
+            shell.Tree.MarkDirty(host, XsrUiDirtyKinds.Layout);
+            scene = shell.Render(size);
+            shell.Renderer.Focus(FindByKey(shell, scene, Row(0)).Entity);
+            scene = shell.Render(size);
+            int furthest = 0;
+            for (int tab = 0; tab < 100; tab++)
+            {
+                AssertTrue(shell.Renderer.HandleKey(XsrUiKey.Tab));
+                scene = shell.Render(size);
+                XsrUiEntityId focused = shell.Renderer.Focused;
+                while (focused.IsAssigned && shell.Tree.IsAlive(focused))
+                {
+                    string name = shell.Tree.Name(focused);
+                    if (name.StartsWith("LibraryRow:version:", StringComparison.Ordinal))
+                    {
+                        string id = name["LibraryRow:version:".Length..];
+                        for (int index = 0; index < logical.Count; index++)
+                            if (logical[index].Id == id) { furthest = Math.Max(furthest, index); break; }
+                        break;
+                    }
+                    focused = shell.Tree.Parent(focused);
+                }
+                AssertTrue(shell.Tree.Children(host).Count <= 32);
+            }
+            if (furthest < 20) throw new InvalidOperationException($"Keyboard focus only reached logical row {furthest}.");
+            for (int tab = 0; tab < 100; tab++)
+            {
+                AssertTrue(shell.Renderer.FocusPrevious());
+                scene = shell.Render(size);
+                AssertTrue(shell.Tree.Children(host).Count <= 32);
+            }
+            AssertEqual(FindByKey(shell, scene, Row(0)).Entity, shell.Renderer.Focused);
+            // Wheel scrolling preserves the focused row without forcing the viewport back.
+            scroll.OffsetY = middle * 80;
+            shell.Tree.MarkDirty(host, XsrUiDirtyKinds.Layout);
+            scene = shell.Render(size);
+            AssertClose(middle * 80, scroll.OffsetY);
+            AssertTrue(shell.Tree.IsAlive(shell.Renderer.Focused));
+            scene = shell.Render(new(850, 700));
+            AssertTrue(HasKey(shell, scene, Row(middle)));
+            AssertTrue(shell.Tree.Children(host).Count <= 40);
+        }
+    }
+
     private static void VersionTransferSelectionSupportsRanges()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([Instance("a"), Instance("b"), Instance("c"), Instance("d")]));

@@ -17,7 +17,7 @@
         <TextInput Key="LibrarySearch" Label="搜索版本" Placeholder="搜索版本" Width="208" Height="36" />
         <Button Key="LibraryRefresh" Content="刷新" Label="刷新版本" Command="ui.versions.refresh" Icon="pcl/refresh" Width="84" Height="36" />
       </StackPanel>
-      <StackPanel Key="LibraryVersionRows" Orientation="Vertical" Weight="1" Spacing="8" Scroll="true" />
+      <StackPanel Key="LibraryVersionRows" Orientation="Vertical" Weight="1" Spacing="0" Scroll="true" />
       <Text Key="LibraryEmpty" Content="{state versions.list.status}" Height="56" Margin="18,16,18,0" IsVisible="{state versions.list.empty}" />
     </StackPanel>
   </StackPanel>

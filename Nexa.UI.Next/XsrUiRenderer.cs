@@ -130,6 +130,23 @@ public sealed partial class XsrUiRenderer
     /// </summary>
     public long SceneVersion => _scene?.Version ?? 0;
 
+    /// <summary>Reads advisory scroll geometry from the last produced scene without rendering.</summary>
+    public bool TryGetScrollSnapshot(XsrUiEntityId entity, out XsrUiScrollSnapshot snapshot)
+    {
+        snapshot = default;
+        if (_scene is null || !_tree.IsAlive(entity) || _tree.GetComponent<XsrUiScroll>(entity) is null)
+            return false;
+        for (int index = 0; index < _scene.Count; index++)
+        {
+            if (_scene[index].Entity == entity && _scene[index].Scroll is { } scroll)
+            {
+                snapshot = scroll;
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>
     /// Gets how many entities the last render measured. Layout touches only dirty subtrees.
     /// </summary>
@@ -1007,6 +1024,17 @@ public sealed partial class XsrUiRenderer
         if (_scene is null)
         {
             return false;
+        }
+
+        if (_focused.IsAssigned && _tree.IsAlive(_focused) && IsInVisibleTree(_focused))
+        {
+            for (XsrUiEntityId ancestor = _focused; ancestor.IsAssigned; ancestor = _tree.Parent(ancestor))
+            {
+                if (_tree.GetComponent<XsrUiFocusNavigation>(ancestor) is not { } navigation) continue;
+                XsrUiEntityId target = navigation.Resolve(_focused, step > 0);
+                if (target.IsAssigned && _tree.IsAlive(target) && Focus(target)) return true;
+                break;
+            }
         }
 
         List<XsrUiEntityId> focusable = [];

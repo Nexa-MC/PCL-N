@@ -69,4 +69,26 @@ internal static partial class Program
         AssertEqual(0d, f.Scroll.OffsetY);
         AssertEqual(new XsrUiRect(0, 0, 300, 40), scene.Nodes.Single(n => n.Entity == f.Child).Rect);
     }
+
+    private static void ScrollSnapshotQueryUsesLastSceneAndRejectsRetiredEntities()
+    {
+        var f = ScrollViewport(XsrUiOrientation.Vertical);
+        f.Tree.GetComponent<XsrUiElement>(f.Child)!.Height = 120;
+        AssertFalse(f.Renderer.TryGetScrollSnapshot(f.Root, out _));
+        XsrUiScene scene = f.Renderer.Render();
+        AssertTrue(f.Renderer.TryGetScrollSnapshot(f.Root, out var initial));
+        AssertEqual(scene.Nodes.Single(node => node.Entity == f.Root).Scroll!.Value, initial);
+        AssertFalse(f.Renderer.TryGetScrollSnapshot(f.Child, out _));
+        f.Scroll.OffsetY = 30;
+        f.Tree.MarkDirty(f.Root, XsrUiDirtyKinds.Layout);
+        AssertTrue(f.Renderer.TryGetScrollSnapshot(f.Root, out var pending));
+        AssertEqual(initial, pending);
+        f.Renderer.Render();
+        AssertTrue(f.Renderer.TryGetScrollSnapshot(f.Root, out var current));
+        AssertEqual(30d, current.OffsetY);
+        f.Tree.SetComponent<XsrUiScroll>(f.Root, null);
+        AssertFalse(f.Renderer.TryGetScrollSnapshot(f.Root, out _));
+        f.Tree.Destroy(f.Root);
+        AssertFalse(f.Renderer.TryGetScrollSnapshot(f.Root, out _));
+    }
 }

@@ -57,3 +57,9 @@ The PXML compiler does not define the control surface. A required build input po
 ## Performance and accessibility gates
 
 Frame work is bounded, deterministic where practical, and free from blocking I/O. Dirty propagation touches only entities that depend on a changed state. Reduced motion, keyboard navigation, focus visibility, semantic roles, contrast, IME, and native accessibility remain contract requirements across backends.
+
+Virtualized collection focus and advisory last-scene scroll geometry follow
+[XSR-743](migrations/XSR-743-version-list-visible-window.md). A host-local focus resolver may
+materialize adjacent UI entities; the renderer still validates enabled/structurally visible
+targets and enforces modal/pager barriers. It never performs service calls or exposes clipped
+rows as pointer or accessibility targets.

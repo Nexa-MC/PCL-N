@@ -193,3 +193,13 @@ core/production及注入组合；不按token flag名称猜测安全性。Desktop
 最终强制GC分别保留。schema-4采样器分配单列，余量不称作产品纯idle；构建身份仍为
 基础提交加当时工作树，不能升级为clean commit或Alpha.6实机结果。两份压缩样本精确
 重放分析及19项Python回归通过。真实8h原生窗口/Minecraft与未测指标继续开放。
+
+`c1049112` 的 XSR CI 36906662615 与 Launcher Build 36906662691 均已通过；
+保留的长期 fixture 记录与六平台打包检查通过仍不等于真实 Minecraft 支持验收。
+
+安装版本列表见 [XSR-743](migrations/XSR-743-version-list-visible-window.md)：只创建可视
+窗口附近的行，重叠行复用实体；范围选择和拖放使用完整逻辑顺序。1,000/10,000实例
+fixture 的行/实体上限、完整滚动 extent、跨屏多选、运行中 Move 限制、搜索、双向
+键盘遍历、轮滚焦点保留及缩放通过。managed/Linux NativeAOT Desktop各110项、
+renderer各90项、69项目架构与格式检查通过；独立产品52-node shell/first-run及trim
+输出检查通过。此结果不关闭10,000目录扫描、实机frame tail或OS读屏验收。

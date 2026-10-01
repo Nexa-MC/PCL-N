@@ -134,3 +134,11 @@ OS pressure、真实RAM/GPU/8h指标。
 schema-4将采样器分配单列，余量仍含其他fixture/后台工作，CPU采样成本未分离。
 19项Python回归与两份压缩数据的精确重放通过；工作树构建不能改称clean commit、
 原生OS窗口或Minecraft 8h验收。
+
+`c1049112` 的 XSR CI 36906662615 与 Launcher Build 36906662691 均已通过。
+
+安装版本列表的可视规模投影见 [XSR-743](migrations/XSR-743-version-list-visible-window.md)：
+未变化的帧复用逻辑索引，滚动仅重建有界行窗口和spacer，保持重叠实体与一个焦点pin；
+范围选择不依赖已创建的行。1,000/10,000实例fixture及双向键盘、搜索、缩放回归通过；
+managed/Linux NativeAOT Desktop各110项、renderer各90项，69项目架构/格式及独立
+产品AOT/trim检查通过。实际filesystem规模与OS/GPU帧percentile仍需单独测量。
