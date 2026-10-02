@@ -7,8 +7,10 @@ import tempfile
 from package import validate_runtime_contents
 
 
-def run(*args):
-    subprocess.run([str(arg) for arg in args], check=True)
+def run(*args, timeout=None):
+    command = [str(arg) for arg in args]
+    print(f"Running: {subprocess.list2cmdline(command)} (timeout={timeout}s)", flush=True)
+    subprocess.run(command, check=True, timeout=timeout)
 
 
 def require(path):
@@ -25,6 +27,11 @@ def check_jvm_host(path):
 
 
 def windows(root, base):
+    # Bound individual commands so a stalled installer fails while the runner can
+    # still upload diagnostics, rather than losing everything at the job timeout.
+    installer_timeout = 180
+    diagnostics = root.parent / "install-diagnostics"
+    diagnostics.mkdir(parents=True, exist_ok=True)
     executable = Path(os.environ.get("ProgramW6432", os.environ["ProgramFiles"])) / "NexaCL/Nexa.Desktop.exe"
     desktop = Path(os.environ["PUBLIC"]) / "Desktop/NexaCL.lnk"
     menu = Path(os.environ["ProgramData"]) / "Microsoft/Windows/Start Menu/Programs/NexaCL.lnk"
@@ -38,21 +45,21 @@ def windows(root, base):
             require(path)
         check_jvm_host(host)
         validate_runtime_contents(executable.parent)
-        run(executable, "--validate-shell")
-    run(root / (base + ".setup.exe"), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/TASKS=desktopicon")
+        run(executable, "--validate-shell", timeout=30)
+    run(root / (base + ".setup.exe"), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/TASKS=desktopicon",
+        f"/LOG={diagnostics / 'inno-install.log'}", timeout=installer_timeout)
     try:
         check()
     finally:
-        run(executable.parent / "unins000.exe", "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART")
+        run(executable.parent / "unins000.exe", "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
+            f"/LOG={diagnostics / 'inno-uninstall.log'}", timeout=installer_timeout)
     check_removed()
     msi = root / (base + ".msi")
-    diagnostics = root.parent / "install-diagnostics"
-    diagnostics.mkdir(parents=True, exist_ok=True)
-    run("msiexec.exe", "/i", msi, "/qn", "/norestart", "/L*V", diagnostics / "msi-install.log")
+    run("msiexec.exe", "/i", msi, "/qn", "/norestart", "/L*V", diagnostics / "msi-install.log", timeout=installer_timeout)
     try:
         check()
     finally:
-        run("msiexec.exe", "/x", msi, "/qn", "/norestart", "/L*V", diagnostics / "msi-uninstall.log")
+        run("msiexec.exe", "/x", msi, "/qn", "/norestart", "/L*V", diagnostics / "msi-uninstall.log", timeout=installer_timeout)
     check_removed()
 
 

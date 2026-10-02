@@ -1,4 +1,5 @@
 import plistlib
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -39,11 +40,22 @@ class InstallScopeTests(unittest.TestCase):
                         "menu": root / "data/Microsoft/Windows/Start Menu/Programs/NexaCL.lnk",
                     }
                     installed = []
-                    def run(*args):
+                    def run(*args, timeout=None):
+                        self.assertIsNotNone(timeout)
+                        self.assertGreater(timeout, 0)
+                        self.assertLessEqual(timeout, 180)
                         command = str(args[0])
                         install = command.endswith(".setup.exe") or command == "msiexec.exe" and args[1] == "/i"
                         uninstall = command.endswith("unins000.exe") or command == "msiexec.exe" and args[1] == "/x"
+                        if install or uninstall:
+                            diagnostic_name = ("install" if install else "uninstall") + ".log"
+                            if command == "msiexec.exe":
+                                self.assertIn("/L*V", args)
+                                self.assertIn(root.parent / "install-diagnostics" / ("msi-" + diagnostic_name), args)
+                            else:
+                                self.assertIn(f"/LOG={root.parent / 'install-diagnostics' / ('inno-' + diagnostic_name)}", args)
                         if install:
+                            self.assertTrue((root.parent / "install-diagnostics").is_dir())
                             installed.append("msi" if command == "msiexec.exe" else "exe")
                             for path in files.values():
                                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -63,6 +75,13 @@ class InstallScopeTests(unittest.TestCase):
                             with self.assertRaisesRegex(RuntimeError, "uninstall left"):
                                 smoke_install.windows(root, "fixture")
                     self.assertEqual(["exe"] if leftover and failed_uninstall == "exe" else ["exe", "msi"], installed)
+
+    def test_smoke_command_timeout_is_propagated(self):
+        failure = subprocess.TimeoutExpired(["installer.exe"], 180)
+        with patch.object(smoke_install.subprocess, "run", side_effect=failure) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                smoke_install.run(Path("installer.exe"), "/VERYSILENT", timeout=180)
+        run.assert_called_once_with(["installer.exe", "/VERYSILENT"], check=True, timeout=180)
 
     def test_payload_requires_nonempty_host_on_every_platform(self):
         with tempfile.TemporaryDirectory() as temporary:
