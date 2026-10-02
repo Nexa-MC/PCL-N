@@ -1,5 +1,12 @@
 # XSR-518 helper hand-off and restart scheduling
 
+> Historical migration record. The executable handoff below was retired by
+> [XSR-751](XSR-751-update-reception-boundary.md): a caller-controlled staged binary
+> cannot satisfy the same-account attacker boundary. Scheduling and start-info creation
+> now refuse before filesystem access or process launch. Public signatures remain for
+> compatibility; manual installer flows remain available. The historical verification
+> counts below are not current acceptance evidence.
+
 ## Outcome
 
 The Update family's final piece: handing a verified update to a replacement process. The

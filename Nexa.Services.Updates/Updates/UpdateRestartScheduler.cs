@@ -1,76 +1,41 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nexa.Services.Updates;
 
 /// <summary>
-/// Helper-process hand-off and restart scheduling: validates the staged update, then starts
-/// the staged executable as a replacement process that waits for this process to exit,
-/// applies the install plan (or swaps the single binary), and optionally restarts the
-/// launcher. The argument order is the helper's contract and never changes.
+/// Compatibility entry points for the retired caller-controlled executable handoff.
+/// Automatic replacement requires a separately installed, protected update helper.
 /// </summary>
 public sealed class UpdateRestartScheduler
 {
-    private readonly IProcessLauncher _launcher;
-
     public UpdateRestartScheduler(IProcessLauncher launcher)
     {
-        _launcher = launcher ?? throw new ArgumentNullException(nameof(launcher));
+        ArgumentNullException.ThrowIfNull(launcher);
     }
 
-    /// <summary>Schedules the install; the replacement restarts the launcher afterwards.</summary>
+    /// <summary>Refuses the retired install-and-restart handoff.</summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Preserve the retired instance API while refusing unsafe handoff.")]
     public void ScheduleInstallAndRestart(PreparedLauncherUpdate update, int processId) =>
-        ScheduleInstall(update, processId, restartAfterInstall: true);
+        RefuseUnprotectedHandoff(update);
 
-    /// <summary>Schedules the install without restarting afterwards.</summary>
+    /// <summary>Refuses the retired install-on-exit handoff.</summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Preserve the retired instance API while refusing unsafe handoff.")]
     public void ScheduleInstallOnExit(PreparedLauncherUpdate update, int processId) =>
-        ScheduleInstall(update, processId, restartAfterInstall: false);
+        RefuseUnprotectedHandoff(update);
 
-    private void ScheduleInstall(PreparedLauncherUpdate update, int processId, bool restartAfterInstall)
+    private static void RefuseUnprotectedHandoff(PreparedLauncherUpdate update)
     {
         ArgumentNullException.ThrowIfNull(update);
-        if (!File.Exists(update.StagedExecutablePath) ||
-            (!string.IsNullOrWhiteSpace(update.InstallPlanPath) && !File.Exists(update.InstallPlanPath)))
-        {
-            throw new FileNotFoundException("已下载的启动器更新不存在。", update.StagedExecutablePath);
-        }
-
-        Directory.CreateDirectory(update.WorkDirectory);
-        ProcessStartInfo startInfo = CreateReplacementProcess(update, processId, restartAfterInstall);
-        _launcher.Launch(startInfo);
+        throw new NotSupportedException("自动更新需要预安装且受保护的更新助手。请使用系统安装包并按提示提升权限。");
     }
 
     /// <summary>
-    /// Builds the replacement process start info. Tree updates pass the install plan file;
-    /// plain updates pass the staged executable; both end with the wait-for-pid, the work
-    /// directory, and the restart flag.
+    /// Refuses to turn a caller-controlled staged executable into an update helper.
     /// </summary>
     public static ProcessStartInfo CreateReplacementProcess(PreparedLauncherUpdate update, int processId, bool restartAfterInstall)
     {
         ArgumentNullException.ThrowIfNull(update);
-        ProcessStartInfo startInfo = new(update.StagedExecutablePath)
-        {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WindowStyle = ProcessWindowStyle.Hidden,
-            WorkingDirectory = Path.GetDirectoryName(update.CurrentExecutablePath) ?? Environment.CurrentDirectory,
-        };
-        if (!string.IsNullOrWhiteSpace(update.InstallPlanPath))
-        {
-            startInfo.ArgumentList.Add("--pcln-apply-tree-update");
-            startInfo.ArgumentList.Add(processId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            startInfo.ArgumentList.Add(update.CurrentExecutablePath);
-            startInfo.ArgumentList.Add(update.InstallPlanPath);
-            startInfo.ArgumentList.Add(update.WorkDirectory);
-            startInfo.ArgumentList.Add(restartAfterInstall ? "1" : "0");
-            return startInfo;
-        }
-
-        startInfo.ArgumentList.Add("--pcln-apply-update");
-        startInfo.ArgumentList.Add(processId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        startInfo.ArgumentList.Add(update.CurrentExecutablePath);
-        startInfo.ArgumentList.Add(update.StagedExecutablePath);
-        startInfo.ArgumentList.Add(update.WorkDirectory);
-        startInfo.ArgumentList.Add(restartAfterInstall ? "1" : "0");
-        return startInfo;
+        throw new NotSupportedException("暂存的启动器不能作为受保护更新助手执行。请使用系统安装包并按提示提升权限。");
     }
 }

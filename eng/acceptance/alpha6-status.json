@@ -24,8 +24,8 @@
       "id": "protected-update-transaction",
       "priority": "P0",
       "state": "pending",
-      "summary": "Signed package admission exists, but the protected updater and persistent downgrade barrier do not.",
-      "evidence": ["docs/xsr/migrations/XSR-730-signed-release-manifest.md", "docs/xsr/migrations/XSR-746-update-high-water-store.md"],
+      "summary": "Signed package reception and durable high-water primitives exist; the protected helper and end-to-end update transaction remain incomplete. Caller-controlled staged helpers are refused.",
+      "evidence": ["docs/xsr/migrations/XSR-730-signed-release-manifest.md", "docs/xsr/migrations/XSR-746-update-high-water-store.md", "docs/xsr/migrations/XSR-751-update-reception-boundary.md"],
       "remaining": ["Implement preinstalled protected helper, independent verification, protected staging, atomic replacement, rollback, restart and protected high-water persistence.", "Exercise power-loss and replacement races on all three operating systems."]
     },
     {

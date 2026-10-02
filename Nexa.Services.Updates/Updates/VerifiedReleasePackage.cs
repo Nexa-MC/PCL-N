@@ -100,6 +100,46 @@ public sealed class VerifiedReleasePackage
 
     /// <summary>Checks actual bytes only; the helper must retain object ownership through later use.</summary>
     public async Task VerifyPackageAsync(Stream package, CancellationToken cancellationToken = default)
+        => await ReceivePackageAsync(package, destination: null, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// Hashes the same bytes copied into an already-open, initially empty helper-owned stream.
+    /// The helper must establish protected object ownership before calling and discard failed output.
+    /// Neither stream is closed or reopened; successful output is flushed and rewound.
+    /// </summary>
+    public async Task CopyVerifiedPackageAsync(Stream package, Stream destination,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        ArgumentNullException.ThrowIfNull(destination);
+        if (ReferenceEquals(package, destination) || !destination.CanWrite || !destination.CanSeek
+            || destination.Position != 0 || destination.Length != 0)
+            throw new ArgumentException("更新接收目标必须是独立、可写、可定位且为空的受保护对象。", nameof(destination));
+        // An already-cancelled call does not inspect/read the source or mutate the destination.
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            await ReceivePackageAsync(package, destination, cancellationToken).ConfigureAwait(false);
+            await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            destination.Position = 0;
+        }
+        catch (Exception failure)
+        {
+            try
+            {
+                destination.SetLength(0);
+                destination.Position = 0;
+            }
+            catch (Exception cleanupFailure)
+            {
+                throw new AggregateException("更新接收失败且无法清除暂存内容，必须丢弃该对象。", failure, cleanupFailure);
+            }
+            throw;
+        }
+    }
+
+    private async Task ReceivePackageAsync(Stream package, Stream? destination, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(package);
         using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -113,6 +153,8 @@ public sealed class VerifiedReleasePackage
             if (count > Size - total) throw new InvalidDataException("发布包实际长度超过已签名长度。");
             total += count;
             digest.AppendData(buffer, 0, count);
+            if (destination is not null)
+                await destination.WriteAsync(buffer.AsMemory(0, count), cancellationToken).ConfigureAwait(false);
         }
         if (total != Size || !Convert.ToHexString(digest.GetHashAndReset()).Equals(Sha256, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("发布包长度或摘要不匹配。");

@@ -102,7 +102,7 @@ jobs:
         shell: pwsh
         run: |
           $binary = if ($IsWindows) { './native-account-tests/Nexa.Services.Tests.exe' } else { './native-account-tests/Nexa.Services.Tests' }
-          & $binary "update modes"
+          & $binary "update modes" "protected update"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run macOS native protection
         if: runner.os == 'macOS'

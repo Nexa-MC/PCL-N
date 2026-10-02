@@ -7,6 +7,9 @@ internal static partial class Program
         ("signed release authenticates owned identity and actual package", SignedReleaseAuthenticatesOwnedIdentityAndActualPackage),
         ("signed release rejects routing replay and unordered CI", SignedReleaseRejectsRoutingReplayAndUnorderedCi),
         ("signed release rejects schema aliases and bounds input", SignedReleaseRejectsSchemaAliasesAndBoundsInput),
+        ("protected update reception copies verified bytes without source reopening", UpdateReceptionCopiesVerifiedBytesWithoutReopening),
+        ("protected update reception rejects actual byte and digest mismatches", UpdateReceptionRejectsActualLengthAndDigest),
+        ("protected update reception invalidates cancellation and IO failures", UpdateReceptionInvalidatesCancellationAndIoFailure),
         ("old install trust rejects publication and preserves rollback cancel", OldInstallTrustPreservesRollbackAndRejectsPublication),
         ("Minecraft authority rejects mirror metadata redirects and wrong digest", MinecraftAuthorityRejectsMirrorMetadataAndRedirects),
         ("Minecraft index preserves verified bytes without second transfer", MinecraftIndexUsesVerifiedRawBytesWithoutSecondTransfer),
@@ -416,9 +419,9 @@ internal static partial class Program
         ("telemetry buffers with bounded eviction", Sync(TelemetryBuffersWithBoundedEviction)),
         ("telemetry flush uploads and clears or retains", TelemetryFlushUploadsAndClearsOrRetains),
         ("telemetry batch serialization is stable", Sync(TelemetryBatchSerializationIsStable)),
-        // XSR-518: helper hand-off and restart scheduling.
-        ("replacement process arguments follow the helper contract", Sync(ReplacementProcessArgumentsFollowTheHelperContract)),
-        ("the scheduler validates artifacts before launch", Sync(SchedulerValidatesArtifactsBeforeLaunch)),
+        // XSR-751: caller staging is never protected-helper authority.
+        ("protected update scheduling refuses caller controlled executable", Sync(UpdateSchedulingRefusesCallerControlledExecutable)),
+        ("protected update scheduling refuses before inspecting missing artifacts", Sync(UpdateSchedulingRefusesBeforeInspectingMissingArtifacts)),
         ("staged path helpers sanitize versions", Sync(StagedPathHelpersSanitizeVersions)),
         // XSR-606: Wave 6 acceptance hardening.
         ("conflicting java ranges are rejected", Sync(ConflictingJavaRangesAreRejected)),

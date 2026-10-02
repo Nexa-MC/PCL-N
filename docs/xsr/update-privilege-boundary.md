@@ -46,3 +46,18 @@ implemented and deterministic replacement-race tests pass. SEC-07 remains open.
 ### Audit enforcement
 UpdateStaging.ApplyPlan is now an explicit fail-closed compatibility entry point: it throws NotSupportedException before inspecting or mutating any install/staging path. There is no trusted object-bound privileged helper yet. Verified planning, download and manual installer flows remain usable; calling the legacy path-based apply API is not an authorization to replace files. A future helper must meet the same-account attacker contract before this capability is enabled.
 
+The legacy restart scheduler must likewise refuse both scheduling and process-start-info
+creation before any filesystem access or process launch. A signed download is not a
+preinstalled helper, and a caller-supplied staged executable must never become the updater.
+The existing public signatures remain compatibility entry points, not executable handoff
+authority. Production composition is forbidden from invoking these entry points.
+
+Package reception must copy and hash the same bytes in a single pass into a fresh,
+helper-owned destination handle. Enforce the signed length before each write, reject short
+or overlong input and digest mismatches, and flush successful output. Failure or cancellation
+invalidates and truncates partial output; a cleanup failure is reported rather than hidden.
+The destination is never obtained by reopening a caller-controlled path after verification.
+This stream primitive does not prove directory protection: the future helper still owns
+ancestor/ACL admission, exclusive handles, durable publication and transaction recovery.
+It must discard a failed destination even if truncation fails, and cannot treat it as verified.
+

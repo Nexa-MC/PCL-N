@@ -56,6 +56,9 @@ internal static partial class Program
                     if (symbol is IMethodSymbol method)
                     {
                         string fullType = method.ContainingType.ToDisplayString();
+                        if (fullType == "Nexa.Services.Updates.UpdateRestartScheduler"
+                            && method.Name is "ScheduleInstallAndRestart" or "ScheduleInstallOnExit" or "CreateReplacementProcess")
+                            failures.Add($"Production must not execute a caller-controlled staged update helper: {method} at {location}.");
                         bool blocking = (method.Name == "Wait" && fullType.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal))
                             || (method.Name == "GetResult" && fullType.StartsWith("System.Runtime.CompilerServices.", StringComparison.Ordinal) && fullType.Contains("Awaiter", StringComparison.Ordinal))
                             || (method.Name == "WaitForExit" && fullType == "System.Diagnostics.Process");
