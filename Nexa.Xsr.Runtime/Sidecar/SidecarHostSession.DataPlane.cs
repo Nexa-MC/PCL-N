@@ -348,6 +348,9 @@ public sealed partial class SidecarHostSession
             _functionPatchLease?.Dispose();
             _functionPatchLease = null;
             _functionPatches = [];
+            _signalLease?.Dispose();
+            _signalLease = null;
+            _signals = [];
             Extensions = new();
         }
         InvalidateMirror();

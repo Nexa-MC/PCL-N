@@ -40,9 +40,9 @@
       "id": "sidecar-execution-platform",
       "priority": "P1",
       "state": "partial",
-      "summary": "Bounded Function ABI, compiler rewriting and one product patch point are present; the complete adapter surface is not.",
-      "evidence": ["docs/xsr/migrations/XSR-735-bounded-function-patch-execution.md", "docs/xsr/migrations/XSR-736-compile-time-function-patches.md"],
-      "remaining": ["Deliver and test UI Patch, Event, Intent, remaining Function ABI shapes and hook adapters, including cancellation and retired sessions."]
+      "summary": "Bounded Function ABI, compiler rewriting and Event/Intent execution with resource presentation adapters are present; UI adapters and additional Function shapes remain incomplete.",
+      "evidence": ["docs/xsr/migrations/XSR-735-bounded-function-patch-execution.md", "docs/xsr/migrations/XSR-736-compile-time-function-patches.md", "docs/xsr/migrations/XSR-747-sidecar-event-intent-execution.md"],
+      "remaining": ["Deliver and test UI Patch/New UI and remaining Function ABI shapes and hook adapters, including cancellation and retired sessions."]
     },
     {
       "id": "content-instance-management",

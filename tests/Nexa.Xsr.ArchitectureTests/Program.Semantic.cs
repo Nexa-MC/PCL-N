@@ -19,7 +19,8 @@ internal static partial class Program
             .GroupBy(Path.GetFileName, StringComparer.Ordinal).Select(g => g.First()).ToArray();
         foreach ((string projectName, string projectPath) in projects)
         {
-            if (projectName.EndsWith(".Tests", StringComparison.Ordinal) || (!projectName.StartsWith("Nexa.Services", StringComparison.Ordinal) && projectName != "Nexa.Desktop")) continue;
+            bool renderer = projectName.StartsWith("Nexa.UI.Next", StringComparison.Ordinal);
+            if (projectName.EndsWith(".Tests", StringComparison.Ordinal) || (!projectName.StartsWith("Nexa.Services", StringComparison.Ordinal) && projectName != "Nexa.Desktop" && !renderer)) continue;
             string directory = Path.GetDirectoryName(projectPath)!;
             var trees = Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories).Where(p => !IsBuildOutput(p))
                 .Select(p => CSharpSyntaxTree.ParseText(File.ReadAllText(p), path: p)).ToList();
@@ -38,6 +39,11 @@ internal static partial class Program
                     INamedTypeSymbol? type = symbol as INamedTypeSymbol ?? symbol?.ContainingType;
                     string? owner = type?.ContainingAssembly.Name;
                     string location = $"{Path.GetRelativePath(root, tree.FilePath)}:{node.GetLocation().GetLineSpan().StartLinePosition.Line + 1}";
+                    if (renderer && type is not null && (owner?.StartsWith("Nexa.Sidecar.", StringComparison.Ordinal) == true
+                        || (owner == "Nexa.Xsr.Runtime" && (type.Name.StartsWith("Sidecar", StringComparison.Ordinal)
+                            || type.Name.StartsWith("XsrSignal", StringComparison.Ordinal)
+                            || type.Name.StartsWith("XsrFunctionPatch", StringComparison.Ordinal)))))
+                        failures.Add($"Renderer must emit host intent rather than access Sidecar execution: {symbol} at {location}.");
                     if (presentation && owner is not null && IsServiceImplementation(owner))
                         failures.Add($"UI must consume contracts: {symbol} belongs to {owner} at {location}.");
                     if (projectName.StartsWith("Nexa.Services", StringComparison.Ordinal)

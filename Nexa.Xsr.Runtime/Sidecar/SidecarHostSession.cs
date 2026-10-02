@@ -26,6 +26,9 @@ public sealed partial class SidecarHostSession : IDisposable
     private XsrPreparedFunctionPatch[] _functionPatches = [];
     private IDisposable? _functionPatchLease;
     public XsrFunctionPatchAdmission? FunctionPatchAdmission { get; init; }
+    private XsrPreparedSignal[] _signals = [];
+    private XsrSignalRuntime.SignalLease? _signalLease;
+    public XsrSignalAdmission? SignalAdmission { get; init; }
     public SidecarExtensionRegistry Extensions { get; private set; } = new();
 
     public SidecarHostSession(
@@ -147,6 +150,8 @@ public sealed partial class SidecarHostSession : IDisposable
                 cancellationToken).ConfigureAwait(false);
             ConsumeBudget(ref remaining, itemFrame);
             SidecarRegistrationItem item = SidecarRegistration.DecodeItem(itemFrame.Payload.Span);
+            if (XsrSignalAdmission.IsSignal(item.Kind) && item.CodecId != 0)
+                throw Fail("Signal registration codec must be zero.");
             if (item.SemanticId.Length > _limits.MaximumSemanticIdCharacters) throw Fail("Sidecar semantic ID budget exceeded.");
             if (item.TargetSemanticId is { } target && target.Length > _limits.MaximumSemanticIdCharacters)
                 throw Fail("Sidecar target semantic ID budget exceeded.");
@@ -213,6 +218,7 @@ public sealed partial class SidecarHostSession : IDisposable
         }
 
         var functionPatches = FunctionPatchAdmission?.Prepare(extensions.Entries) ?? [];
+        var signals = SignalAdmission?.Prepare(extensions.Entries) ?? [];
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
         {
@@ -222,6 +228,7 @@ public sealed partial class SidecarHostSession : IDisposable
             Cache = cache;
             Extensions = extensions;
             _functionPatches = functionPatches;
+            _signals = signals;
         }
         return mirror;
     }
@@ -363,7 +370,10 @@ public sealed partial class SidecarHostSession : IDisposable
                 if (_stopped || _state != SidecarSessionState.Ready)
                     throw new SidecarProtocolException("Session ended or changed before activation publication.");
                 _functionPatchLease = FunctionPatchAdmission?.Runtime.Activate(_functionPatches);
+                _signalLease = SignalAdmission?.Runtime.Activate(_signals);
                 _state = SidecarSessionState.Active;
+                if (_signalLease is { } lease)
+                    _ = Task.Run(() => lease.PumpAsync(SendHookSignalAsync, () => Fail("Sidecar signal delivery failed or overflowed.")), CancellationToken.None);
             }
         }
         catch (SidecarProtocolException error) { throw Fail(error.Message); }
@@ -388,6 +398,8 @@ public sealed partial class SidecarHostSession : IDisposable
         {
             _functionPatchLease?.Dispose();
             _functionPatchLease = null;
+            _signalLease?.Dispose();
+            _signalLease = null;
         }
         Transition(SidecarSessionState.Ready);
     }
@@ -502,4 +514,8 @@ public sealed partial class SidecarHostSession : IDisposable
         if (frame.Payload.Length > remaining) throw Fail("Sidecar transfer byte budget exceeded.");
         remaining -= frame.Payload.Length;
     }
+
+    private ValueTask SendHookSignalAsync(SidecarHookSignal signal, CancellationToken cancellationToken) =>
+        _connection.SendAsync(new(SidecarProtocol.Version, SidecarMessageType.HookSignal,
+            SidecarFrameTraits.None, SidecarCorrelationId.Create(), signal.Encode()), cancellationToken);
 }

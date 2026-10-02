@@ -26,6 +26,7 @@ internal sealed class ResourcesPageController : IDisposable
     private readonly XsrStateStore _store;
     private readonly Action<Uri> _open;
     private readonly DesktopFunctionPatches _functionPatches;
+    private readonly DesktopSidecarSignals? _sidecarSignals;
     private readonly Dictionary<XsrUiEntityId, Action> _actions = [];
     private readonly ConcurrentQueue<XsrUiEntityId> _pending = new();
     private readonly Dictionary<string, XsrUiEntityId> _entities = [];
@@ -78,10 +79,12 @@ internal sealed class ResourcesPageController : IDisposable
     internal XsrUiEntityId DetailPage { get; }
 
     internal ResourcesPageController(XsrUiShell shell, DesktopUiIntentSink intents, XsrQueryRouter queries,
-        XsrStateStore store, Action<Uri> open, DesktopFunctionPatches? functionPatches = null)
+        XsrStateStore store, Action<Uri> open, DesktopFunctionPatches? functionPatches = null,
+        DesktopSidecarSignals? sidecarSignals = null)
     {
         _shell = shell; _intents = intents; _queries = queries; _store = store; _open = open;
         _functionPatches = functionPatches ?? new();
+        _sidecarSignals = sidecarSignals;
         using var stream = typeof(ResourcesPageController).Assembly.GetManifestResourceStream("Nexa.Desktop.Ui.ResourcesPage.pxml")!;
         using var reader = new StreamReader(stream);
         var host = shell.Tree.Create("resources-loader");
@@ -99,7 +102,8 @@ internal sealed class ResourcesPageController : IDisposable
         _search = Input(toolbar, "ResourceSearch", "搜索资源", 0); E(_search).Weight = 1;
         _game = Input(toolbar, "ResourceGame", "游戏版本", 104);
         _loader = Input(toolbar, "ResourceLoader", "加载器", 100);
-        Button(toolbar, "ResourceSearchButton", "搜索", 56, () => Search(0));
+        Button(toolbar, "ResourceSearchButton", "搜索", 56, () =>
+        { if (_sidecarSignals?.CatchResourceSearch() != true) Search(0); });
         Button(toolbar, "ResourceCurrentInstance", "当前版本", 76, UseCurrentInstance);
         Button(toolbar, "ResourceReset", "重置", 48, () =>
         {
@@ -231,6 +235,7 @@ internal sealed class ResourcesPageController : IDisposable
         if (_searching is { IsCompleted: true } searching)
         {
             _searching = null;
+            _sidecarSignals?.ResourceSearchCompleted(PendingQuery.Succeeded(searching));
             if (PendingQuery.Succeeded(searching))
             { _result = searching.Result.Value!; ShowResults(); }
             else ShowFailure(_entities["ResourceList"], "暂时无法加载资源。请检查网络后重试。", () => Search(_filter.Page), _listActions);

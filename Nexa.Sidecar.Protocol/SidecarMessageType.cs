@@ -33,6 +33,7 @@ public enum SidecarMessageType : ushort
     QueryResult = 67,
     StateDelta = 72,
     Event = 73,
+    HookSignal = 74,
     StreamChunk = 80,
 }
 

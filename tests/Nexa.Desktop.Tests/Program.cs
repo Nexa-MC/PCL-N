@@ -42,6 +42,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("resource signal adapter catches only search and retires with session", ResourceSignalAdapterCatchesOnlySearchAndRetiresWithSession),
         ("soak idle driver coalesces invalidations and retires", SoakIdleDriverCoalescesInvalidationsAndRetires),
         ("soak state attribution excludes warmup bounds entries and retires", SoakStateAttributionExcludesWarmupBoundsEntriesAndRetires),
         ("soak allocation meter aligns counts and rejects invalid use", SoakAllocationMeterAlignsCountsAndRejectsInvalidUse),

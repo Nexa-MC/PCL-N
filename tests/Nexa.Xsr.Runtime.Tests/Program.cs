@@ -4,6 +4,12 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("signals execute locally and notify in order", SignalsExecuteLocallyAndNotifyInOrder),
+        ("signal budgets are atomic and concurrent wait delivers once", SignalBudgetsAreAtomicAndConcurrentWaitDeliversOnce),
+        ("signals reject unauthorized or malformed registration atomically", SignalsRejectUnauthorizedOrMalformedRegistrationAtomically),
+        ("signal overflow disables catch and fails without blocking caller", SignalOverflowDisablesCatchAndFailsSessionWithoutBlockingCaller),
+        ("signal terminal paths retire and buffered activation cannot resurrect", SignalTerminalPathsRetireAndBufferedActivationCannotResurrect),
+        ("inactive signals allocate nothing and wire rejects missing identity", Sync(InactiveSignalsAllocateNothingAndWireRejectsMissingIdentity)),
         ("sidecar shutdown tolerates an already closed transport", SidecarShutdownIsSafeAfterTransportClosure),
         ("extension registration commits atomically and retires with session", ExtensionsCommitAtomicallyAndRetireWithSession),
         ("renamed executable connects and registers extensions", RenamedExecutableConnectsAndRegistersExtensions),
