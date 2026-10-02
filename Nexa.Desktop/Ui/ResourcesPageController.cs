@@ -29,6 +29,7 @@ internal sealed class ResourcesPageController : IDisposable
     private readonly DesktopSidecarSignals? _sidecarSignals;
     private readonly DesktopSidecarUiPatches? _sidecarUi;
     private long _captionRevision = -1;
+    private long _moduleRevision = -1;
     private readonly Dictionary<XsrUiEntityId, Action> _actions = [];
     private readonly ConcurrentQueue<XsrUiEntityId> _pending = new();
     private readonly Dictionary<string, XsrUiEntityId> _entities = [];
@@ -95,6 +96,9 @@ internal sealed class ResourcesPageController : IDisposable
         shell.Tree.Detach(Page); shell.Tree.Destroy(host);
         shell.Tree.Walk(Page, entity => { _entities[shell.Tree.Name(entity)] = entity; return true; });
         shell.Tree.SetComponent(_entities["ResourceList"], new XsrUiScrollGesture());
+        var extensionCard = _entities["ResourceExtensionCard"];
+        Style(extensionCard, Tint, Ink, 10);
+        shell.Tree.SetComponent(extensionCard, new XsrUiScrollGesture());
         Segment(_entities["ResourceCategories"], "ResourceCategory", ["收藏", "模组", "整合包", "资源包", "光影", "数据包"], index =>
         { _favoriteMode = index == 0; if (!_favoriteMode) _filter = _filter with { Kind = (ResourceKind)(index - 1) }; Search(0); }, 62, initial: 1);
         var header = _entities["ResourceCategories"];
@@ -153,6 +157,7 @@ internal sealed class ResourcesPageController : IDisposable
         SyncIcons(visible ? _shell.Stage.Navigation.Current : default);
         if (!visible) return;
         ProjectSidecarCaptions();
+        ProjectSidecarModules();
         UpdateSegmentWidths();
         if (_optionalVisible && _shell.Stage.Navigation.Current != DetailPage)
         { _optionalVisible = false; _planStop.Cancel(); _planning = null; _installDraft = null; }
@@ -255,6 +260,26 @@ internal sealed class ResourcesPageController : IDisposable
     }
 
     private string Draft(XsrUiEntityId entity) => _shell.Tree.GetComponent<XsrUiTextInput>(entity)!.ReadDraft().Trim();
+    private void ProjectSidecarModules()
+    {
+        if (_sidecarUi is null) return;
+        var snapshot = _store.Read<XsrUiModuleSnapshot>(_sidecarUi.ModuleState);
+        if (snapshot.Revision == _moduleRevision) return;
+        _moduleRevision = snapshot.Revision;
+        var card = snapshot.Value?.CardAt(_sidecarUi.CardIndex);
+        var slot = _entities["ResourceExtensionCard"];
+        foreach (var child in _shell.Tree.Children(slot).ToArray()) _shell.Tree.Destroy(child);
+        E(slot).IsVisible = card is not null;
+        if (card is not null)
+        {
+            LiteralText(slot, card.Title, 14, Ink, 22, 600);
+            var body = LiteralText(slot, card.Body, 13, Muted, 0, lines: 0);
+            E(body).Height = null;
+            _shell.Tree.GetComponent<XsrUiVisualStyle>(body)!.WrapText = true;
+        }
+        _shell.Tree.GetComponent<XsrUiScroll>(slot)!.OffsetY = 0;
+        _shell.Tree.MarkDirty(slot, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
+    }
     private void ProjectSidecarCaptions()
     {
         if (_sidecarUi is null) return;

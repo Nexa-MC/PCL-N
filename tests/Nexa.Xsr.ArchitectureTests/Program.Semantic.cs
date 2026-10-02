@@ -44,6 +44,8 @@ internal static partial class Program
                             || type.Name.StartsWith("XsrSignal", StringComparison.Ordinal)
                             || type.Name.StartsWith("XsrUiPatchRuntime", StringComparison.Ordinal)
                             || type.Name.StartsWith("XsrUiPatchAdmission", StringComparison.Ordinal)
+                            || type.Name.StartsWith("XsrUiModuleRuntime", StringComparison.Ordinal)
+                            || type.Name.StartsWith("XsrUiModuleAdmission", StringComparison.Ordinal)
                             || type.Name.StartsWith("XsrFunctionPatch", StringComparison.Ordinal)))))
                         failures.Add($"Renderer must emit host intent rather than access Sidecar execution: {symbol} at {location}.");
                     if (presentation && owner is not null && IsServiceImplementation(owner))

@@ -4,6 +4,11 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("modules publish immutable state and restore live predecessor", ModulesPublishImmutableStateAndRestoreLivePredecessor),
+        ("modules reject unauthorized malformed and over budget batches", ModulesRejectUnauthorizedMalformedAndOverBudgetBatches),
+        ("module publications remain ordered under reentrancy and blocked observers", ModulePublicationsRemainOrderedUnderReentrancyAndBlockedObservers),
+        ("module terminal paths retire and buffered activation cannot resurrect", ModuleTerminalPathsRetireAndBufferedActivationCannotResurrect),
+        ("module activation failure does not strand earlier caption publication", ModuleActivationFailureDoesNotStrandEarlierCaptionPublication),
         ("caption patches publish immutable state and restore prior activations", CaptionPatchesPublishImmutableStateAndRestorePriorActivations),
         ("caption terminal paths restore and buffered activation cannot resurrect", CaptionTerminalPathsRestoreAndBufferedActivationCannotResurrect),
         ("caption patches reject grants budgets and malformed payloads atomically", CaptionPatchesRejectGrantsBudgetsAndMalformedPayloadsAtomically),

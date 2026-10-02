@@ -66,7 +66,7 @@ internal static partial class Program
         new byte[] { 2, 4, 6, 8 }.CopyTo(payload, 11 + text.Length);
         var (host, peer) = SidecarLoopbackStream.CreatePair();
         SidecarHostSession session = new(new SidecarConnection(host), "CaptionFixture")
-        { FunctionPatchAdmission = patches.Admission, SignalAdmission = signals?.Admission, UiPatchAdmission = uiPatches?.Admission };
+        { FunctionPatchAdmission = patches.Admission, SignalAdmission = signals?.Admission, UiPatchAdmission = uiPatches?.Admission, UiModuleAdmission = uiPatches?.ModuleAdmission };
         SidecarConnection plugin = new(peer);
         try
         {
@@ -130,6 +130,44 @@ internal static partial class Program
             var frame = peer.ReceiveAsync(deadline.Token).AsTask().GetAwaiter().GetResult();
             AssertEqual(SidecarMessageType.HookSignal, frame.MessageType);
             return SidecarHookSignal.Decode(frame.Payload.Span);
+        }
+    }
+
+    private static void ResourceModuleRendersLiteralTextWithoutActionsAndRetiresWithoutSpace()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        var queries = new XsrQueryRouterBuilder();
+        queries.Register<ResourceSearchQuery, ResourceSearchResult>(ResourceCatalogContract.Search, (_, _) =>
+            ValueTask.FromResult(XsrResult.Success(new ResourceSearchResult([], 0, 0))));
+        DesktopSidecarUiPatches ui = new(fixture.Store);
+        using var page = new ResourcesPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()),
+            fixture.Store, _ => { }, sidecarUi: ui);
+        fixture.Shell.Stage.Navigation.Replace(page.Page); fixture.Shell.Renderer.ReducedMotion = true;
+        fixture.Shell.Render(new(1000, 650)); fixture.Shell.Render(new(1000, 650));
+        var slot = page.Find("ResourceExtensionCard");
+        AssertFalse(fixture.Shell.Tree.GetComponent<XsrUiElement>(slot)!.IsVisible);
+        var search = page.Find("ResourceSearchButton");
+        byte[] payload = new SidecarUiCard(DesktopSidecarUiPatches.ResourceCard.Value, "扩展 {title}", new string('测', 400)).Encode();
+        var (session, peer) = ActivateCaptionPatch(new(), "", declarations:
+            [new(SidecarRegistrationKind.UiModule, "plugin.card", 0, 0, payload, SHA256.HashData(payload))], uiPatches: ui).GetAwaiter().GetResult();
+        using (session) using (peer)
+        {
+            var scene = fixture.Shell.Render(new(1000, 650));
+            AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiElement>(slot)!.IsVisible);
+            var title = scene.Nodes.Single(node => node.Text == "扩展 {title}");
+            AssertFalse(fixture.Shell.Tree.GetComponent<XsrUiText>(title.Entity)!.Localize);
+            AssertEqual("扩展 {title}", fixture.Shell.Tree.GetComponent<XsrUiSemantic>(title.Entity)!.Label);
+            foreach (var child in fixture.Shell.Tree.Children(slot))
+                AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiCommandBinding>(child) is null);
+            AssertEqual(96d, fixture.Shell.Tree.GetComponent<XsrUiElement>(slot)!.Height!.Value);
+            AssertTrue(scene.Nodes.Single(node => node.Entity == slot).Scroll!.Value.ContentHeight > 96);
+            AssertEqual(search, page.Find("ResourceSearchButton"));
+            session.Dispose();
+            scene = fixture.Shell.Render(new(1000, 650));
+            AssertFalse(fixture.Shell.Tree.GetComponent<XsrUiElement>(slot)!.IsVisible);
+            AssertEqual(0, fixture.Shell.Tree.Children(slot).Count);
+            AssertFalse(scene.Nodes.Any(node => node.Text == "扩展 {title}"));
+            AssertEqual(page.Page, fixture.Shell.Stage.Navigation.Current);
         }
     }
 

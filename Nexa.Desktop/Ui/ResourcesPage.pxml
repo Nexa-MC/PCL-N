@@ -2,6 +2,7 @@
   <StackPanel Key="ResourcesLayout" Orientation="Vertical" Weight="1" Spacing="8" Padding="16,12,16,8">
     <StackPanel Key="ResourceCategories" Orientation="Horizontal" Height="34" Spacing="8" />
     <StackPanel Key="ResourceToolbar" Orientation="Horizontal" Height="36" Spacing="6" />
+    <StackPanel Key="ResourceExtensionCard" Orientation="Vertical" Height="96" Padding="12,8,12,8" Spacing="2" IsVisible="false" Scroll="true" />
     <StackPanel Key="ResourceList" Orientation="Vertical" Weight="1" MinHeight="80" Spacing="6" Scroll="true" />
     <StackPanel Key="ResourcePagination" Orientation="Horizontal" Height="28" Spacing="8" />
   </StackPanel>
