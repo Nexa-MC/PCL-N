@@ -44,15 +44,21 @@ internal static partial class Program
 
     private static async ValueTask AcceptedStreamOutlivesListener()
     {
-        var listener = SidecarIpcListener.Bind("ownership-" + Guid.NewGuid().ToString("N"));
+        using var listener = SidecarIpcListener.Bind("ownership-" + Guid.NewGuid().ToString("N"));
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         Task<Stream> accepted = listener.AcceptAsync(deadline.Token).AsTask();
         using Stream client = await SidecarIpcConnector.ConnectAsync(listener.Endpoint, deadline.Token);
         using Stream server = await accepted;
         listener.Dispose();
-        await client.WriteAsync(new byte[] { 42 }, deadline.Token);
         byte[] received = new byte[1];
-        await server.ReadExactlyAsync(received, deadline.Token);
+        // Unbuffered pipe writes may wait for the reader even for one byte.
+        Task serverReading = server.ReadExactlyAsync(received, deadline.Token).AsTask();
+        await client.WriteAsync(new byte[] { 42 }, deadline.Token);
+        await serverReading;
         AssertEqual((byte)42, received[0]);
+        Task clientReading = client.ReadExactlyAsync(received, deadline.Token).AsTask();
+        await server.WriteAsync(new byte[] { 43 }, deadline.Token);
+        await clientReading;
+        AssertEqual((byte)43, received[0]);
     }
 }

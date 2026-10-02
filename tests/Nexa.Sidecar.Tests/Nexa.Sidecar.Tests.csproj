@@ -3,6 +3,8 @@
     <OutputType>Exe</OutputType>
     <Description>Focused executable tests for the Sidecar protocol and transport.</Description>
     <IsAotCompatible>true</IsAotCompatible>
+    <!-- Local managed tests need no unsigned apphost. Explicit NativeAOT CI keeps its native executable. -->
+    <UseAppHost Condition="'$(PublishAot)' != 'true'">false</UseAppHost>
   </PropertyGroup>
 
   <ItemGroup>
