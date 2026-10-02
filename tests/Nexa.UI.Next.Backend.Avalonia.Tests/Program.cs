@@ -30,12 +30,16 @@ internal static partial class Program
         ("capsule spring is no bounce and preserves reversal velocity", CapsuleSpringPreservesReversalVelocity),
         ("feedback overlays expose live semantics and honor reduced motion", FeedbackOverlaysExposeLiveSemanticsAndReducedMotion),
         ("post-navigation double click respects time position button and cancellation", PostNavigationDoubleClickBoundaries),
+        ("typeface cache preserves usable platform defaults", TypefaceCachePreservesUsableDefault),
+        ("typeface cache probes fallbacks and preserves weight and style", TypefaceCacheProbesFallbacks),
+        ("typeface cache reports missing fonts without caching failure", TypefaceCacheDoesNotCacheFailure),
         ("lifetime: splash never owns the process and main window close terminates", LifetimeSplashNeverOwnsProcessAndMainWindowCloseTerminates),
     ];
 
     private static int Main(string[] args)
     {
         if (args.Contains("--native-corner-smoke")) return RunNativeCornerSmoke();
+        if (args.Contains("--native-font-smoke")) return RunNativeFontSmoke(args.Contains("--expect-font-fallback"));
         foreach ((string name, Action body) in TestCases)
         {
             body();
@@ -400,6 +404,7 @@ internal static partial class Program
         try
         {
             await Task.Delay(30).ConfigureAwait(true);
+            VerifyTypefaceRenderingAndInput();
             VerifyAccessibleContentAndNativeFocus(window, shell, surface);
             VerifyPointerCursorProjection(window, shell, surface);
             VerifyPostNavigationDoubleClickRouting(window);

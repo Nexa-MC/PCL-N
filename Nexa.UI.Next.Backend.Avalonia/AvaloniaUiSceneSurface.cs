@@ -1425,6 +1425,8 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
             {
                 if (run.Start < 0 || run.Length <= 0 || run.Start > text.Length - run.Length) continue;
                 fresh.SetForegroundBrush(Brush(run.Foreground), run.Start, run.Length);
+                fresh.SetFontFamily(CachedTypeface(run.Bold ? FontWeight.Bold : weight,
+                    run.Italic ? FontStyle.Italic : FontStyle.Normal).FontFamily, run.Start, run.Length);
                 fresh.SetFontWeight(run.Bold ? FontWeight.Bold : weight, run.Start, run.Length);
                 fresh.SetFontStyle(run.Italic ? FontStyle.Italic : FontStyle.Normal, run.Start, run.Length);
                 TextDecorationCollection decorations = [];
@@ -1622,14 +1624,9 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
     private FormattedText? _formattedText;
     private readonly record struct TextCacheKey(string Text, double Size, FontWeight Weight, XsrUiColor Color,
         double Width, int Lines, bool Trim, IReadOnlyList<XsrUiTextRun>? Runs, string Culture);
-    private static readonly Dictionary<FontWeight, Typeface> Typefaces = [];
     private static readonly Dictionary<XsrUiColor, IBrush> BrushesByColor = [];
-    private static Typeface CachedTypeface(FontWeight weight)
-    {
-        if (!Typefaces.TryGetValue(weight, out var typeface))
-            Typefaces.Add(weight, typeface = new Typeface(FontFamily.Default, FontStyle.Normal, weight));
-        return typeface;
-    }
+    private static Typeface CachedTypeface(FontWeight weight, FontStyle style = FontStyle.Normal) =>
+        AvaloniaUiTypefaceCache.GetDefault(weight, style);
     private static IBrush? Brush(XsrUiColor color)
     {
         if (color.Alpha == 0) return null;

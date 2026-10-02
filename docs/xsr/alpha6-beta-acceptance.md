@@ -221,3 +221,7 @@ helper侧版本高水位仅接受规范公开版本，在独占锁内拒绝同�
 write-through、落盘flush和原子替换提交；孤立临时文件不构成权威状态。既有三平台native
 account-security GitHub Actions矩阵通过update-mode入口验证竞争与重启语义。目录保护、安装身份、独立验签、对象绑定替换/回滚及真实断电仍开放，
 `UpdateStaging.ApplyPlan`继续拒绝；本单元不启用自动更新，也不将hosted runner称作实机验收。
+
+## 后续待办
+
+- [ ] 自写渲染后端（待规划）。

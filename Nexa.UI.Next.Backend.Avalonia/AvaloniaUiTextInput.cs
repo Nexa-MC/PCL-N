@@ -168,7 +168,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl
 
     private FormattedText FormatInput(string text, IBrush? foreground = null) => new(
         text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-        new Typeface(FontFamily.Default), _node.VisualStyle.FontSize > 0 ? _node.VisualStyle.FontSize : 14,
+        CachedTypeface(FontWeight.Normal), _node.VisualStyle.FontSize > 0 ? _node.VisualStyle.FontSize : 14,
         foreground ?? (IBrush?)Brush(_node.VisualStyle.Foreground) ?? Brushes.Black);
 
     internal int TextPositionAt(double x)

@@ -44,6 +44,11 @@ The state boundary is thread-safe by construction: state publishers run on arbit
 
 Backends own native windows and surfaces, final drawing submission, device resources, native input/IME bridges, clipboard integration, and platform accessibility bridges. Backend types do not appear in UI.Next public contracts.
 
+The Avalonia backend validates native typefaces before formatting or measuring text. It
+keeps a usable platform default, otherwise selects a loadable fallback without changing
+system font settings. Labels, styled runs and text-input/caret measurement share this policy;
+see [native font compatibility](migrations/native-font-compatibility.md).
+
 Services own business facts and effects. Renderer-local state is limited to ephemeral presentation mechanics such as hover, focus, an in-progress gesture, or animation progress. It cannot become a duplicate account, download, launch, or selection model.
 
 ## Plugin UI
