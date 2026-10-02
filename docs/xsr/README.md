@@ -30,6 +30,7 @@ The user-requested constraints take precedence:
 - [migrations/XSR-741-private-launch-argument-transport.md](migrations/XSR-741-private-launch-argument-transport.md) — 共享启动边界拒绝公开参数传输，缺少Host时不回退到Java命令行
 - [migrations/XSR-742-retained-idle-soak-evidence.md](migrations/XSR-742-retained-idle-soak-evidence.md) — 完整保留两小时/30分钟实际fixture样本、构建receipt与可重放分析
 - [migrations/XSR-743-version-list-visible-window.md](migrations/XSR-743-version-list-visible-window.md) — 安装版本列表按可见窗口创建行，保留逻辑多选与双向键盘遍历
+- [migrations/XSR-744-input-scratch-allocation.md](migrations/XSR-744-input-scratch-allocation.md) — 稳态指针命中复用有界scratch，结构输入屏障不分配临时子节点数组
 - [migrations/XSR-728-detached-signature-admission.md](migrations/XSR-728-detached-signature-admission.md) — detached GPG 策略收口
 - [migrations/XSR-729-verification-receipt-lru.md](migrations/XSR-729-verification-receipt-lru.md) — 有界文件校验缓存与显式校验失败撤销
 - [review-505b9f9f.md](review-505b9f9f.md) — 新审查的事实核对、修复范围和剩余证据

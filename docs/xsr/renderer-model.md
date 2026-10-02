@@ -63,3 +63,8 @@ Virtualized collection focus and advisory last-scene scroll geometry follow
 materialize adjacent UI entities; the renderer still validates enabled/structurally visible
 targets and enforces modal/pager barriers. It never performs service calls or exposes clipped
 rows as pointer or accessibility targets.
+
+Steady pointer-query scratch and live sibling input validation follow
+[XSR-744](migrations/XSR-744-input-scratch-allocation.md). Public child snapshots remain
+isolated; internal indexed reads are confined to the owning UI thread and do not weaken
+pager, visibility or modal barriers.

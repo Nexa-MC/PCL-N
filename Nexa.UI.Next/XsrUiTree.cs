@@ -140,6 +140,10 @@ public sealed class XsrUiTree
         return [.. value.Children.Select(IndexToHandle)];
     }
 
+    // Allocation-free owner-thread traversal; callers must not mutate the hierarchy mid-read.
+    internal int ChildCount(XsrUiEntityId entity) => Require(entity).Children.Count;
+    internal XsrUiEntityId ChildAt(XsrUiEntityId entity, int index) => IndexToHandle(Require(entity).Children[index]);
+
     /// <summary>
     /// Gets a value indicating whether the handle refers to a live entity. A stale handle —
     /// same index as a recycled entity, older generation — is not alive.

@@ -71,6 +71,12 @@ public sealed partial class XsrUiRenderer
     private bool MoveSegmentDrag(XsrUiPoint point)
     {
         if (!_segmentDrag.IsAssigned) return false;
+        // Keep the active gesture's captured queries off ordinary pointer moves. A closure
+        // in this method would otherwise be allocated before the early return too.
+        return MoveActiveSegmentDrag(point);
+    }
+    private bool MoveActiveSegmentDrag(XsrUiPoint point)
+    {
         if (!_tree.IsAlive(_segmentDrag) || !IsInVisibleTree(_segmentDrag)) return EndSegmentDrag();
         XsrUiSegmentedTrack track = _tree.GetComponent<XsrUiSegmentedTrack>(_segmentDrag)!;
         XsrUiSceneNode[] segments = _scene!.Nodes.Where(n => n.IsClickable && _tree.IsAlive(n.Entity) && _tree.Parent(n.Entity) == _segmentDrag && n.IsEnabled).ToArray();

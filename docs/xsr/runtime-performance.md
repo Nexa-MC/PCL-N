@@ -142,3 +142,10 @@ schema-4将采样器分配单列，余量仍含其他fixture/后台工作，CPU�
 范围选择不依赖已创建的行。1,000/10,000实例fixture及双向键盘、搜索、缩放回归通过；
 managed/Linux NativeAOT Desktop各110项、renderer各90项，69项目架构/格式及独立
 产品AOT/trim检查通过。实际filesystem规模与OS/GPU帧percentile仍需单独测量。
+
+稳态指针热路径见 [XSR-744](migrations/XSR-744-input-scratch-allocation.md)：复用命中
+scratch，结构可见性检查不再创建子节点数组，无拖动时不创建分段手势闭包。
+10,000组hover/光标、10,000组按钮边缘和1,000组背景查询的线程分配分别从
+2.48/36.72/1.24 MB降为0；managed/Linux NativeAOT renderer各92项、Desktop各110项、
+backend9项、69项目架构与格式门禁通过。独立AOT/linked trim产品的52-node shell及
+first-run通过，发布无warning/error。该结果不等于全部动画/scroll零分配或实机frame SLA。

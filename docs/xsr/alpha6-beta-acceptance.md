@@ -203,3 +203,9 @@ fixture 的行/实体上限、完整滚动 extent、跨屏多选、运行中 Mov
 键盘遍历、轮滚焦点保留及缩放通过。managed/Linux NativeAOT Desktop各110项、
 renderer各90项、69项目架构与格式检查通过；独立产品52-node shell/first-run及trim
 输出检查通过。此结果不关闭10,000目录扫描、实机frame tail或OS读屏验收。
+
+稳态hover/光标输入见 [XSR-744](migrations/XSR-744-input-scratch-allocation.md)：命中
+scratch复用并随场景缩小回收容量，结构输入屏障改为索引扫描，非活动分段手势不创建
+闭包。三组预热后查询在managed/Linux NativeAOT均为0线程分配；renderer各92项、
+Desktop各110项、backend9项、69项目架构与格式及独立产品AOT/linked trim验证通过。
+隐藏pager、叠加modal和退役handle语义保留；实际拖动、动画、OS/GPU帧及8h实机继续开放。

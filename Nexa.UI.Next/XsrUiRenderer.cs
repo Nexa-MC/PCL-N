@@ -215,6 +215,10 @@ public sealed partial class XsrUiRenderer
         XsrUiSceneNode[] nodes = CollectNodes(_root, depth: 0);
         _sceneVersion++;
         _scene = new XsrUiScene(_sceneVersion, nodes, _outgoingLayers.ToArray());
+        _inputVisited.Clear();
+        int inputCapacity = Math.Max(16, nodes.Length);
+        if (_inputVisited.EnsureCapacity(0) > inputCapacity * 2L)
+            _inputVisited.TrimExcess(inputCapacity);
         LastLayoutVisits = _layoutVisits;
 
         _tree.Walk(_root, entity =>
@@ -1249,25 +1253,20 @@ public sealed partial class XsrUiRenderer
             XsrUiEntityId parent = _tree.Parent(entity);
             if (parent.IsAssigned)
             {
-                XsrUiEntityId[] visibleSiblings = [.. _tree.Children(parent).Where(IsVisible)];
-                if (_tree.GetComponent<XsrUiPager>(parent) is { } pager
-                    && visibleSiblings.ElementAtOrDefault(pager.PageIndex) != entity)
-                {
-                    return false;
-                }
-
                 // A modal overlay is a structural input barrier as soon as it is staged. This
                 // protects direct activation/focus and automation calls too, including the frame
                 // before the newly attached overlay has entered the immutable scene.
-                int entityIndex = Array.IndexOf(visibleSiblings, entity);
-                int modalIndex = -1;
-                for (int index = 0; index < visibleSiblings.Length; index++)
+                int visibleIndex = 0, entityIndex = -1, modalIndex = -1;
+                for (int index = 0, count = _tree.ChildCount(parent); index < count; index++)
                 {
-                    if (_tree.GetComponent<XsrUiOverlayLayer>(visibleSiblings[index])?.IsModal == true)
-                    {
-                        modalIndex = index;
-                    }
+                    XsrUiEntityId sibling = _tree.ChildAt(parent, index);
+                    if (!IsVisible(sibling)) continue;
+                    if (sibling == entity) entityIndex = visibleIndex;
+                    if (_tree.GetComponent<XsrUiOverlayLayer>(sibling)?.IsModal == true) modalIndex = visibleIndex;
+                    visibleIndex++;
                 }
+                if (_tree.GetComponent<XsrUiPager>(parent) is { } pager
+                    && (entityIndex < 0 || entityIndex != pager.PageIndex)) return false;
                 if (modalIndex >= 0 && entityIndex >= 0 && entityIndex < modalIndex)
                 {
                     return false;
@@ -1278,6 +1277,8 @@ public sealed partial class XsrUiRenderer
         return false;
     }
 
+    private readonly HashSet<int> _inputVisited = [];
+
     private XsrUiEntityId InputAt(XsrUiPoint point)
     {
         if (_scene is null)
@@ -1285,7 +1286,7 @@ public sealed partial class XsrUiRenderer
             return default;
         }
 
-        HashSet<int> visited = [];
+        _inputVisited.Clear();
         for (int index = _scene.Count - 1; index >= 0; index--)
         {
             XsrUiSceneNode node = _scene[index];
@@ -1298,7 +1299,7 @@ public sealed partial class XsrUiRenderer
             XsrUiEntityId entity = node.Entity;
             while (entity.IsAssigned && _tree.IsAlive(entity))
             {
-                if (!visited.Add(entity.Index))
+                if (!_inputVisited.Add(entity.Index))
                 {
                     break;
                 }

@@ -126,6 +126,7 @@ PXML vertical slices continue over the shared shell.
 | XSR-741 | follow-up | shared private-argument transport guard, explicit trusted-port contract and mandatory Desktop JVM Host; [migration](migrations/XSR-741-private-launch-argument-transport.md) |
 | XSR-742 | follow-up | retained actual 2h/schema-3 and 30min/schema-4 NativeAOT fixture records, compressed samples and exact analysis replay; [migration](migrations/XSR-742-retained-idle-soak-evidence.md) |
 | XSR-743 | follow-up | installed-version visible window, logical transfer ranges and validated collection focus traversal; [migration](migrations/XSR-743-version-list-visible-window.md) |
+| XSR-744 | follow-up | bounded hit-test scratch and allocation-free structural input validation; [migration](migrations/XSR-744-input-scratch-allocation.md) |
 
 ## Closed migration unit
 
