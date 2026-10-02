@@ -16,6 +16,7 @@ public sealed class SidecarSupervisor : IDisposable, IAsyncDisposable
     private bool _started, _disposed;
     public XsrFunctionPatchAdmission? FunctionPatchAdmission { get; init; }
     public XsrSignalAdmission? SignalAdmission { get; init; }
+    public XsrUiPatchAdmission? UiPatchAdmission { get; init; }
 
     public SidecarSupervisor(Func<Stream, Stream, CancellationToken, Task> verify,
         Action<string, string>? diagnostic = null)
@@ -108,7 +109,7 @@ public sealed class SidecarSupervisor : IDisposable, IAsyncDisposable
             }
             await SidecarBootstrap.AuthenticateAsync(stream, challenge, deadline.Token).ConfigureAwait(false);
             session = new(new SidecarConnection(stream), Path.GetFileNameWithoutExtension(path))
-            { FunctionPatchAdmission = FunctionPatchAdmission, SignalAdmission = SignalAdmission };
+            { FunctionPatchAdmission = FunctionPatchAdmission, SignalAdmission = SignalAdmission, UiPatchAdmission = UiPatchAdmission };
             stream = null; // Session now owns the stream.
             await session.HandshakeAsync(deadline.Token).ConfigureAwait(false);
             await session.AcceptRegistrationAsync(deadline.Token).ConfigureAwait(false);

@@ -35,7 +35,8 @@ transactionally with the session after the IPC bootstrap. The table is published
 READY and activation. Disposal removes extension registrations with their owning session.
 Registration does not permit arbitrary CLR/Harmony execution: generated Host patch sites
 and renderer/event/intent execution adapters must consume these contracts explicitly.
-Event/Intent execution now follows [sidecar-signals.md](sidecar-signals.md), and the bounded
-Function ABI follows [function-patches.md](function-patches.md). UI Patch/New UI renderer
-adapters, further Function shapes and the independently owned Sidecar executable remain
+Event/Intent execution follows [sidecar-signals.md](sidecar-signals.md), the bounded Function
+ABI follows [function-patches.md](function-patches.md), and the UI caption State adapter follows
+[sidecar-ui-patches.md](sidecar-ui-patches.md). New UI rendering, other visual properties,
+further Function shapes and the independently owned Sidecar executable remain
 separate work; declaration retention alone does not grant execution.

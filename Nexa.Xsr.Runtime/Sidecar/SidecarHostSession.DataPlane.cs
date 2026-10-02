@@ -340,6 +340,7 @@ public sealed partial class SidecarHostSession
     private void EndPending()
     {
         TaskCompletionSource<SidecarExchangeOutcome>[] pending;
+        XsrUiPatchRuntime.CaptionLease? captionLease;
         lock (_gate)
         {
             pending = _stopped ? [] : _pending.Values.ToArray();
@@ -351,8 +352,12 @@ public sealed partial class SidecarHostSession
             _signalLease?.Dispose();
             _signalLease = null;
             _signals = [];
+            captionLease = _uiPatchLease;
+            _uiPatchLease = null;
+            _uiPatches = [];
             Extensions = new();
         }
+        captionLease?.Dispose();
         InvalidateMirror();
         foreach (var completion in pending) completion.TrySetResult(UnavailableExchange());
         _sessionEnded.Cancel();

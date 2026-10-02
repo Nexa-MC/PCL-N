@@ -57,7 +57,8 @@ internal static partial class Program
     }
 
     private static async Task<(SidecarHostSession Session, SidecarConnection Plugin)> ActivateCaptionPatch(DesktopFunctionPatches patches, string prefix,
-        DesktopSidecarSignals? signals = null, SidecarRegistrationItem[]? declarations = null)
+        DesktopSidecarSignals? signals = null, SidecarRegistrationItem[]? declarations = null,
+        DesktopSidecarUiPatches? uiPatches = null)
     {
         byte[] text = Encoding.UTF8.GetBytes(prefix);
         byte[] payload = new byte[15 + text.Length]; "NFP1"u8.CopyTo(payload); payload[4] = 1; payload[5] = 4; payload[6] = 5;
@@ -65,7 +66,7 @@ internal static partial class Program
         new byte[] { 2, 4, 6, 8 }.CopyTo(payload, 11 + text.Length);
         var (host, peer) = SidecarLoopbackStream.CreatePair();
         SidecarHostSession session = new(new SidecarConnection(host), "CaptionFixture")
-        { FunctionPatchAdmission = patches.Admission, SignalAdmission = signals?.Admission };
+        { FunctionPatchAdmission = patches.Admission, SignalAdmission = signals?.Admission, UiPatchAdmission = uiPatches?.Admission };
         SidecarConnection plugin = new(peer);
         try
         {
@@ -129,6 +130,40 @@ internal static partial class Program
             var frame = peer.ReceiveAsync(deadline.Token).AsTask().GetAwaiter().GetResult();
             AssertEqual(SidecarMessageType.HookSignal, frame.MessageType);
             return SidecarHookSignal.Decode(frame.Payload.Span);
+        }
+    }
+
+    private static void ResourceCaptionPatchReadsStateAndRestoresTextAndAccessibility()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        var queries = new XsrQueryRouterBuilder();
+        int searches = 0;
+        queries.Register<ResourceSearchQuery, ResourceSearchResult>(ResourceCatalogContract.Search, (_, _) =>
+        { searches++; return ValueTask.FromResult(XsrResult.Success(new ResourceSearchResult([], 0, 0))); });
+        DesktopSidecarUiPatches ui = new(fixture.Store);
+        using var page = new ResourcesPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()),
+            fixture.Store, _ => { }, sidecarUi: ui);
+        fixture.Shell.Stage.Navigation.Replace(page.Page); fixture.Shell.Renderer.ReducedMotion = true;
+        fixture.Shell.Render(new(1000, 650)); fixture.Shell.Render(new(1000, 650));
+        var button = page.Find("ResourceSearchButton");
+        byte[] payload = SidecarUiCaptionPatch.Encode("检索");
+        var (session, peer) = ActivateCaptionPatch(new(), "", declarations:
+            [new(SidecarRegistrationKind.UiPatch, "plugin.search-caption", 0, 0, payload, SHA256.HashData(payload), TargetSemanticId: DesktopSidecarUiPatches.SearchLabel.Value)],
+            uiPatches: ui).GetAwaiter().GetResult();
+        using (session) using (peer)
+        {
+            var scene = fixture.Shell.Render(new(1000, 650));
+            AssertTrue(scene.Nodes.Any(node => node.Entity == button && node.Text == "检索"));
+            AssertFalse(fixture.Shell.Tree.GetComponent<XsrUiText>(button)!.Localize);
+            AssertEqual("检索", fixture.Shell.Tree.GetComponent<XsrUiSemantic>(button)!.Label);
+            Emit(fixture.Intents, "ui.resources.action", button); fixture.Shell.Render(new(1000, 650));
+            AssertEqual(2, searches); // A caption patch cannot replace the command.
+            session.Dispose();
+            scene = fixture.Shell.Render(new(1000, 650));
+            AssertTrue(scene.Nodes.Any(node => node.Entity == button && node.Text == "搜索"));
+            AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiText>(button)!.Localize);
+            AssertEqual("搜索", fixture.Shell.Tree.GetComponent<XsrUiSemantic>(button)!.Label);
+            AssertEqual(button, page.Find("ResourceSearchButton"));
         }
     }
 }

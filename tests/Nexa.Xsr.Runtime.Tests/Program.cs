@@ -4,6 +4,10 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("caption patches publish immutable state and restore prior activations", CaptionPatchesPublishImmutableStateAndRestorePriorActivations),
+        ("caption terminal paths restore and buffered activation cannot resurrect", CaptionTerminalPathsRestoreAndBufferedActivationCannotResurrect),
+        ("caption patches reject grants budgets and malformed payloads atomically", CaptionPatchesRejectGrantsBudgetsAndMalformedPayloadsAtomically),
+        ("caption publications cannot regress when observer blocks or disposes session", CaptionPublicationsCannotRegressWhenObserverBlocksOrDisposesSession),
         ("signals execute locally and notify in order", SignalsExecuteLocallyAndNotifyInOrder),
         ("signal budgets are atomic and concurrent wait delivers once", SignalBudgetsAreAtomicAndConcurrentWaitDeliversOnce),
         ("signals reject unauthorized or malformed registration atomically", SignalsRejectUnauthorizedOrMalformedRegistrationAtomically),

@@ -27,6 +27,8 @@ internal sealed class ResourcesPageController : IDisposable
     private readonly Action<Uri> _open;
     private readonly DesktopFunctionPatches _functionPatches;
     private readonly DesktopSidecarSignals? _sidecarSignals;
+    private readonly DesktopSidecarUiPatches? _sidecarUi;
+    private long _captionRevision = -1;
     private readonly Dictionary<XsrUiEntityId, Action> _actions = [];
     private readonly ConcurrentQueue<XsrUiEntityId> _pending = new();
     private readonly Dictionary<string, XsrUiEntityId> _entities = [];
@@ -80,11 +82,12 @@ internal sealed class ResourcesPageController : IDisposable
 
     internal ResourcesPageController(XsrUiShell shell, DesktopUiIntentSink intents, XsrQueryRouter queries,
         XsrStateStore store, Action<Uri> open, DesktopFunctionPatches? functionPatches = null,
-        DesktopSidecarSignals? sidecarSignals = null)
+        DesktopSidecarSignals? sidecarSignals = null, DesktopSidecarUiPatches? sidecarUi = null)
     {
         _shell = shell; _intents = intents; _queries = queries; _store = store; _open = open;
         _functionPatches = functionPatches ?? new();
         _sidecarSignals = sidecarSignals;
+        _sidecarUi = sidecarUi;
         using var stream = typeof(ResourcesPageController).Assembly.GetManifestResourceStream("Nexa.Desktop.Ui.ResourcesPage.pxml")!;
         using var reader = new StreamReader(stream);
         var host = shell.Tree.Create("resources-loader");
@@ -149,6 +152,7 @@ internal sealed class ResourcesPageController : IDisposable
         }
         SyncIcons(visible ? _shell.Stage.Navigation.Current : default);
         if (!visible) return;
+        ProjectSidecarCaptions();
         UpdateSegmentWidths();
         if (_optionalVisible && _shell.Stage.Navigation.Current != DetailPage)
         { _optionalVisible = false; _planStop.Cancel(); _planning = null; _installDraft = null; }
@@ -251,6 +255,18 @@ internal sealed class ResourcesPageController : IDisposable
     }
 
     private string Draft(XsrUiEntityId entity) => _shell.Tree.GetComponent<XsrUiTextInput>(entity)!.ReadDraft().Trim();
+    private void ProjectSidecarCaptions()
+    {
+        if (_sidecarUi is null) return;
+        var snapshot = _store.Read<XsrUiPatchSnapshot>(_sidecarUi.State);
+        if (snapshot.Revision == _captionRevision) return;
+        _captionRevision = snapshot.Revision;
+        string? caption = snapshot.Value?.CaptionAt(_sidecarUi.SearchIndex);
+        var button = _entities["ResourceSearchButton"];
+        _shell.Tree.SetComponent(button, new XsrUiText(caption ?? "搜索") { Localize = caption is null });
+        _shell.Tree.SetComponent(button, new XsrUiSemantic(XsrUiSemanticRole.Button, caption ?? "搜索") { Localize = caption is null });
+        _shell.Tree.MarkDirty(button, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
+    }
     private void Search(int page)
     {
         Cancel(); CancelIcons(); ReleaseIcons(); CancelTranslations(); _result = null;

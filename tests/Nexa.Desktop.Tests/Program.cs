@@ -42,6 +42,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("resource caption patch reads state and restores text and accessibility", ResourceCaptionPatchReadsStateAndRestoresTextAndAccessibility),
         ("resource signal adapter catches only search and retires with session", ResourceSignalAdapterCatchesOnlySearchAndRetiresWithSession),
         ("soak idle driver coalesces invalidations and retires", SoakIdleDriverCoalescesInvalidationsAndRetires),
         ("soak state attribution excludes warmup bounds entries and retires", SoakStateAttributionExcludesWarmupBoundsEntriesAndRetires),
