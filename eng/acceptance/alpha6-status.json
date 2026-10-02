@@ -25,7 +25,7 @@
       "priority": "P0",
       "state": "pending",
       "summary": "Signed package admission exists, but the protected updater and persistent downgrade barrier do not.",
-      "evidence": ["docs/xsr/migrations/XSR-730-signed-release-manifest.md"],
+      "evidence": ["docs/xsr/migrations/XSR-730-signed-release-manifest.md", "docs/xsr/migrations/XSR-746-update-high-water-store.md"],
       "remaining": ["Implement preinstalled protected helper, independent verification, protected staging, atomic replacement, rollback, restart and protected high-water persistence.", "Exercise power-loss and replacement races on all three operating systems."]
     },
     {

@@ -215,3 +215,9 @@ scratch复用并随场景缩小回收容量，结构输入屏障改为索引扫�
 闭包。三组预热后查询在managed/Linux NativeAOT均为0线程分配；renderer各92项、
 Desktop各110项、backend9项、69项目架构与格式及独立产品AOT/linked trim验证通过。
 隐藏pager、叠加modal和退役handle语义保留；实际拖动、动画、OS/GPU帧及8h实机继续开放。
+
+受保护更新的持久防回退单元见 [XSR-746](migrations/XSR-746-update-high-water-store.md)：
+helper侧版本高水位仅接受规范公开版本，在独占锁内拒绝同版/降级，以同目录临时文件、
+write-through、落盘flush和原子替换提交；孤立临时文件不构成权威状态。三平台GitHub Actions
+矩阵验证竞争与重启语义。目录保护、安装身份、独立验签、对象绑定替换/回滚及真实断电仍开放，
+`UpdateStaging.ApplyPlan`继续拒绝；本单元不启用自动更新，也不将hosted runner称作实机验收。

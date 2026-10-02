@@ -351,6 +351,7 @@ internal static partial class Program
         ("plan building preserves unknown files", Sync(BuildPlanInventoriesManagedLeftovers)),
         ("applying a plan refuses unprotected mutation", Sync(ApplyPlanRefusesUnprotectedMutation)),
         ("unsafe paths are refused everywhere", Sync(UnsafePathsAreRefusedEverywhere)),
+        ("protected update high-water is monotonic and durable", UpdateHighWaterStoreIsMonotonicAndDurable),
         // XSR-706: product launch orchestration inputs.
         ("offline identity falls back to the vanilla uuid", Sync(OfflineIdentityFallsBackToVanillaUuid)),
         ("offline uuids match vanilla golden values", Sync(OfflineUuidsMatchVanillaGoldenValues)),
