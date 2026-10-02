@@ -29,6 +29,12 @@
 
 ## 证据工具
 
+`python eng/acceptance/audit_alpha6.py` 校验并打印本轮九个工作流的保守状态索引；
+`--require-accepted` 仅用于发布门禁，在任一项仍开放时返回非零。机器可读清单见
+`eng/acceptance/alpha6-status.json`，审计说明见
+[XSR-745](migrations/XSR-745-alpha6-acceptance-ledger.md)。清单有效不等于验收通过，
+也不能替代原始实机证据。
+
 `python eng/acceptance/verify.py --policy-only` 验证计划本身；`--evidence DIR --commit SHA` 验证指定代码版本的真实 Minecraft 记录及归档 hash，输出每个候选的 pending/verified/not-applicable 状态；加 `--require-all` 才是全矩阵门禁。没有记录时不能返回“已兼容”。测试 fixture 仅证明验证器会拒绝错误输入，不是 launch evidence。
 
 原始证据保存在测试者选择的目录，不提交游戏文件、账户和完整日志。记录中的 artifacts 是相对路径及 SHA-256。审核者应确认视频/截图确为该次运行；hash 只绑定证据内容，不能自动证明人工观察真实。跨提交复用证据必须重新运行或经明确复核，不接受旧 SHA 自动覆盖新版本。

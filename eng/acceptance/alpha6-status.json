@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "release": "2.0.0.alpha.6",
+  "reviewed_at": "2026-10-02",
+  "overall": "not-accepted",
+  "items": [
+    {
+      "id": "minecraft-real-client",
+      "priority": "P0",
+      "state": "pending",
+      "summary": "126 candidate combinations have no reviewed real-client launch evidence.",
+      "evidence": ["eng/acceptance/minecraft-matrix.json"],
+      "remaining": ["Run and review physical Windows, macOS and Linux client/world/exit cases across the candidate architecture, Java and Loader combinations."]
+    },
+    {
+      "id": "native-long-soak",
+      "priority": "P0",
+      "state": "pending",
+      "summary": "Retained 2h and 30min composition fixtures are not native-window or Minecraft-running acceptance.",
+      "evidence": ["docs/xsr/migrations/XSR-742-retained-idle-soak-evidence.md"],
+      "remaining": ["Run 8h native-window idle and 8h Minecraft-running sessions on controlled physical systems.", "Run navigation, search, switch, launch/cancel and install/cancel/resume stress while recording CPU, RAM, GPU, input latency and frame tails."]
+    },
+    {
+      "id": "protected-update-transaction",
+      "priority": "P0",
+      "state": "pending",
+      "summary": "Signed package admission exists, but the protected updater and persistent downgrade barrier do not.",
+      "evidence": ["docs/xsr/migrations/XSR-730-signed-release-manifest.md"],
+      "remaining": ["Implement preinstalled protected helper, independent verification, protected staging, atomic replacement, rollback, restart and protected high-water persistence.", "Exercise power-loss and replacement races on all three operating systems."]
+    },
+    {
+      "id": "native-release-trust",
+      "priority": "P0",
+      "state": "blocked-external",
+      "summary": "Repository GPG verification does not provide operating-system publisher trust.",
+      "evidence": ["docs/xsr/release-signatures.md"],
+      "remaining": ["Sign with production Authenticode and Developer ID identities, notarize macOS artifacts, and retain SmartScreen and Gatekeeper physical-device observations."]
+    },
+    {
+      "id": "sidecar-execution-platform",
+      "priority": "P1",
+      "state": "partial",
+      "summary": "Bounded Function ABI, compiler rewriting and one product patch point are present; the complete adapter surface is not.",
+      "evidence": ["docs/xsr/migrations/XSR-735-bounded-function-patch-execution.md", "docs/xsr/migrations/XSR-736-compile-time-function-patches.md"],
+      "remaining": ["Deliver and test UI Patch, Event, Intent, remaining Function ABI shapes and hook adapters, including cancellation and retired sessions."]
+    },
+    {
+      "id": "content-instance-management",
+      "priority": "P1",
+      "state": "partial",
+      "summary": "Read-only graphs and several instance operations exist, but the requested management workflows are incomplete.",
+      "evidence": ["docs/xsr/instance-content-transactions.md", "docs/xsr/migrations/instance-management.md"],
+      "remaining": ["Add selection/bulk update, changelog and transactional rollback.", "Add world/datapack/backup/lock workflows, server editing and Quick Join, screenshot metadata/crop, and modpack export."]
+    },
+    {
+      "id": "runtime-performance",
+      "priority": "P1",
+      "state": "partial",
+      "summary": "Several bounded hot paths are covered, but physical drag, animation, scroll, memory-pressure and GPU budgets remain unaccepted.",
+      "evidence": ["docs/xsr/runtime-performance.md", "docs/xsr/migrations/XSR-744-input-scratch-allocation.md"],
+      "remaining": ["Profile physical drag, animation and scroll tails; integrate memory pressure, measured GPU image budgeting and remaining background-work yielding."]
+    },
+    {
+      "id": "failure-corpus-recovery",
+      "priority": "P1",
+      "state": "pending",
+      "summary": "Deterministic contract tests do not constitute a reviewed real-failure corpus or long-running fault acceptance.",
+      "evidence": ["docs/xsr/launch-observation-and-preflight.md", "docs/xsr/instance-recovery.md"],
+      "remaining": ["Review real Preflight false positives and validate crash, power-loss and conflict recovery plus long-running plugin/download failures."]
+    },
+    {
+      "id": "migration-localization-accessibility",
+      "priority": "P2",
+      "state": "partial",
+      "summary": "The complete PCL N 1.x assistant and physical localization/accessibility matrix are not accepted.",
+      "evidence": ["docs/xsr/migrations/localization.md", "docs/xsr/migration-map.md"],
+      "remaining": ["Complete the 1.x migration assistant.", "Capture language by DPI by platform-font screenshots and test real screen readers, high contrast, touch, pen and controllers."]
+    }
+  ]
+}

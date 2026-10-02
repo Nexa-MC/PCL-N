@@ -1,5 +1,19 @@
 # Real Minecraft evidence
 
+## Alpha.6 status audit
+
+The conservative release ledger covers all Alpha.6 workstreams, including work
+which cannot be completed by CI or in a single-platform development container:
+
+```sh
+python eng/acceptance/audit_alpha6.py
+python eng/acceptance/audit_alpha6.py --require-accepted
+```
+
+The first command validates and prints the ledger. The second is a release gate
+and remains nonzero until every workstream has reviewed evidence and no remaining
+work. A valid ledger is not an acceptance result.
+
 ## Composition soak observations
 
 After a schema-3/4 `Nexa.Desktop.Tests --soak` run finishes:
