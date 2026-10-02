@@ -56,6 +56,10 @@ internal static partial class Program
             };
             await new UpdatePatchApplier(new FakeRunner()).ApplyScatterOpsAsync(manifest, zipPath, root, staged);
             if (!OperatingSystem.IsWindows()) AssertEqual((UnixFileMode)493, File.GetUnixFileMode(Path.Combine(staged, "app")));
+
+            // This entry point is exercised by the existing Windows/macOS/Linux account-security
+            // matrix, so the helper persistence primitive receives native filesystem coverage too.
+            await UpdateHighWaterStoreIsMonotonicAndDurable();
         }
         finally { Directory.Delete(root, true); }
     }

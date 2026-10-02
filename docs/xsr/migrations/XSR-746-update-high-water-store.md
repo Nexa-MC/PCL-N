@@ -14,7 +14,7 @@ does not claim that a user-writable directory is protected, does not enable
 `UpdateStaging.ApplyPlan`, and does not grant replacement authority to Desktop.
 
 Contract tests cover first commit, restart persistence, downgrade rejection, corrupt state,
-orphan recovery and competing writers. The dedicated GitHub Actions matrix executes those
-tests on Windows, macOS and Linux. Hosted-runner results verify filesystem semantics only;
+orphan recovery and competing writers. The existing native account-security GitHub Actions
+matrix executes the update-mode entry point on Windows, macOS and Linux; that entry point also
+executes this contract. Hosted-runner results verify filesystem semantics only;
 they do not replace administrator-installed helper, power-loss or physical-device evidence.
-

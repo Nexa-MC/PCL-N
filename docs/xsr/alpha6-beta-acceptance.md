@@ -218,6 +218,6 @@ Desktop各110项、backend9项、69项目架构与格式及独立产品AOT/linke
 
 受保护更新的持久防回退单元见 [XSR-746](migrations/XSR-746-update-high-water-store.md)：
 helper侧版本高水位仅接受规范公开版本，在独占锁内拒绝同版/降级，以同目录临时文件、
-write-through、落盘flush和原子替换提交；孤立临时文件不构成权威状态。三平台GitHub Actions
-矩阵验证竞争与重启语义。目录保护、安装身份、独立验签、对象绑定替换/回滚及真实断电仍开放，
+write-through、落盘flush和原子替换提交；孤立临时文件不构成权威状态。既有三平台native
+account-security GitHub Actions矩阵通过update-mode入口验证竞争与重启语义。目录保护、安装身份、独立验签、对象绑定替换/回滚及真实断电仍开放，
 `UpdateStaging.ApplyPlan`继续拒绝；本单元不启用自动更新，也不将hosted runner称作实机验收。
