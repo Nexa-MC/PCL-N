@@ -7,17 +7,17 @@
     {
       "id": "minecraft-real-client",
       "priority": "P0",
-      "state": "pending",
-      "summary": "126 candidate combinations have no reviewed real-client launch evidence.",
-      "evidence": ["eng/acceptance/minecraft-matrix.json"],
+      "state": "blocked-external",
+      "summary": "126 candidate combinations have no reviewed real-client evidence; the user has no available devices and assigns physical acceptance to Dots.",
+      "evidence": ["eng/acceptance/minecraft-matrix.json", "docs/xsr/alpha6-physical-handoff-dots.md"],
       "remaining": ["Run and review physical Windows, macOS and Linux client/world/exit cases across the candidate architecture, Java and Loader combinations."]
     },
     {
       "id": "native-long-soak",
       "priority": "P0",
-      "state": "pending",
-      "summary": "Retained 2h and 30min composition fixtures are not native-window or Minecraft-running acceptance.",
-      "evidence": ["docs/xsr/migrations/XSR-742-retained-idle-soak-evidence.md"],
+      "state": "blocked-external",
+      "summary": "Physical sessions are assigned to Dots; retained composition fixtures do not substitute for unavailable device acceptance.",
+      "evidence": ["docs/xsr/migrations/XSR-742-retained-idle-soak-evidence.md", "docs/xsr/alpha6-physical-handoff-dots.md"],
       "remaining": ["Run 8h native-window idle and 8h Minecraft-running sessions on controlled physical systems.", "Run navigation, search, switch, launch/cancel and install/cancel/resume stress while recording CPU, RAM, GPU, input latency and frame tails."]
     },
     {
@@ -32,8 +32,8 @@
       "id": "native-release-trust",
       "priority": "P0",
       "state": "blocked-external",
-      "summary": "Repository GPG verification does not provide operating-system publisher trust.",
-      "evidence": ["docs/xsr/release-signatures.md"],
+      "summary": "The user has no Apple Developer account and supplied no Windows publisher identity; repository GPG verification does not provide OS publisher trust.",
+      "evidence": ["docs/xsr/release-signatures.md", "docs/xsr/alpha6-physical-handoff-dots.md"],
       "remaining": ["Sign with production Authenticode and Developer ID identities, notarize macOS artifacts, and retain SmartScreen and Gatekeeper physical-device observations."]
     },
     {
