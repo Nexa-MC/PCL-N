@@ -25,6 +25,8 @@ internal static partial class Program
         ("unchanged nodes skip apply and retain clip geometry", UnchangedNodesSkipApplyAndRetainClipGeometry),
         ("automation invoke and focus route through the renderer", AutomationInvokeAndFocusRouteThroughRenderer),
         ("navigation peers expose selection and route selection through invoke", NavigationPeersExposeSelectionAndRouteSelection),
+        ("settings toggles expose confirmed state and reject disabled activation", SettingsTogglePeersUseConfirmedStateAndDisabledInput),
+        ("radio peers expose exclusive group selection", RadioPeersExposeExclusiveGroupSelection),
         ("selection and hover facts present under reduced motion", SelectionAndHoverFactsPresentUnderReducedMotion),
         ("capsules respond to focus press and disabled state", CapsulesRespondToFocusPressAndDisabledState),
         ("capsule spring is no bounce and preserves reversal velocity", CapsuleSpringPreservesReversalVelocity),
@@ -413,6 +415,7 @@ internal static partial class Program
             await VerifyPlatformClipboard(window).ConfigureAwait(true);
             await VerifyConfigurableMotionFrameClock().ConfigureAwait(true);
             VerifyNativeTextEditing(window, shell, surface);
+            await VerifyNativeSettingsControls(shell, surface);
             VerifyReentrantRemovalCommit(shell, surface);
             await VerifyTransitionGroupsAndMedia(shell, surface);
             VerifySharedRasterBudget();

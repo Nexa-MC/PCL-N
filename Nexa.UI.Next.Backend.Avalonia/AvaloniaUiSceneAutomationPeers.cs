@@ -1,3 +1,4 @@
+using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 
@@ -34,6 +35,15 @@ internal sealed class AvaloniaUiSceneInvokeAutomationPeer : AvaloniaUiSceneNodeA
     public void Invoke() => SceneOwner.InvokeFromAutomation();
 }
 
+/// <summary>A confirmed switch/check box; requests route through the renderer intent boundary.</summary>
+internal sealed class AvaloniaUiSceneToggleAutomationPeer(AvaloniaUiSceneNodeControl owner)
+    : AvaloniaUiSceneNodeAutomationPeer(owner), IToggleProvider
+{
+    public ToggleState ToggleState => SceneOwner.Node.IsChecked == true ? ToggleState.On : ToggleState.Off;
+
+    public void Toggle() => SceneOwner.InvokeFromAutomation();
+}
+
 /// <summary>Automation peer for a scene navigation container.</summary>
 internal sealed class AvaloniaUiSceneNavigationAutomationPeer : AvaloniaUiSceneNodeAutomationPeer, ISelectionProvider
 {
@@ -44,7 +54,7 @@ internal sealed class AvaloniaUiSceneNavigationAutomationPeer : AvaloniaUiSceneN
 
     public bool CanSelectMultiple => false;
 
-    public bool IsSelectionRequired => true;
+    public bool IsSelectionRequired => SceneOwner.Node.IsSelectionRequired;
 
     public IReadOnlyList<AutomationPeer> GetSelection() =>
         [.. SceneOwner.SelectionItems

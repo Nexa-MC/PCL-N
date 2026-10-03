@@ -83,6 +83,8 @@ public readonly record struct XsrUiSceneNode(
     public bool HasRole => Role != XsrUiSemanticRole.None;
     public XsrUiGraphSnapshot? Graph { get; init; }
     public XsrUiSegmentScrollSnapshot? SegmentScroll { get; init; }
+    public bool? IsChecked { get; init; }
+    public bool IsSelectionRequired { get; init; } = true;
 }
 
 /// <summary>

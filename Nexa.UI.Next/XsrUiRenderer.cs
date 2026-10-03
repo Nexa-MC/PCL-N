@@ -1478,6 +1478,8 @@ public sealed partial class XsrUiRenderer
             IsStableContent(entity), text?.Runs)
         {
             Graph = components.Get<XsrUiGraph>()?.Snapshot(),
+            IsChecked = components.Get<XsrUiToggle>()?.IsChecked,
+            IsSelectionRequired = components.Get<XsrUiSelectionGroup>()?.IsSelectionRequired ?? true,
             SegmentScroll = components.Get<XsrUiSegmentedTrack>() is { Dragging: false, ScrollTargetX: { } targetX } segmentTrack
                 ? new(segmentTrack.ScrollMotionRevision, targetX) : null,
         });

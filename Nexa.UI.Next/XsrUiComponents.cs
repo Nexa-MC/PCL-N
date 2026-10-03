@@ -151,6 +151,22 @@ public enum XsrUiSemanticRole
     TextInput = 13,
     /// <summary>A non-modal status announcement that remains independently dismissible.</summary>
     Status = 14,
+    Switch = 15,
+    CheckBox = 16,
+    RadioGroup = 17,
+    RadioButton = 18,
+}
+
+/// <summary>Confirmed toggle state. Activation emits an intent; it never mutates this value.</summary>
+public sealed class XsrUiToggle(bool isChecked = false)
+{
+    public bool IsChecked { get; set; } = isChecked;
+}
+
+/// <summary>Whether an exclusive selection container permits no selected item.</summary>
+public sealed class XsrUiSelectionGroup(bool isSelectionRequired = true)
+{
+    public bool IsSelectionRequired { get; set; } = isSelectionRequired;
 }
 
 /// <summary>Backend-neutral live-region urgency for accessibility announcements.</summary>

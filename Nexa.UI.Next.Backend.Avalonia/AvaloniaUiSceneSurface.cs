@@ -677,12 +677,12 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
                 _ = ancestors.Pop();
             }
 
-            if (node.Role == XsrUiSemanticRole.NavigationItem
+            if (node.Role is XsrUiSemanticRole.NavigationItem or XsrUiSemanticRole.RadioButton
                 && _controls.TryGetValue(node.Entity, out AvaloniaUiSceneNodeControl? item))
             {
                 foreach (XsrUiSceneNode ancestor in ancestors)
                 {
-                    if (ancestor.Role != XsrUiSemanticRole.Navigation
+                    if (ancestor.Role != (node.Role == XsrUiSemanticRole.RadioButton ? XsrUiSemanticRole.RadioGroup : XsrUiSemanticRole.Navigation)
                         || !_controls.TryGetValue(ancestor.Entity, out AvaloniaUiSceneNodeControl? navigation))
                     {
                         continue;
@@ -883,6 +883,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         _rasterViewport = viewport;
         XsrUiSceneNode previous = _node;
         _node = node;
+        ApplyToggle(previous, node);
         Opacity = node.PresentationOpacity;
         UpdateRaster(node.RasterImage, node.Rect.Width, node.Rect.Height);
         UpdateTextInput(previous.TextInput, node.TextInput);
@@ -1010,7 +1011,10 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
 
     internal void FocusFromAutomation() => _focusFromAutomation(Node.Entity);
 
-    internal void InvokeFromAutomation() => _invokeFromAutomation(Node.Entity);
+    internal void InvokeFromAutomation()
+    {
+        if (Node.IsEnabled && Node.IsClickable) _invokeFromAutomation(Node.Entity);
+    }
 
     /// <summary>
     /// Fades one member of a transition group without translating/clipping its text.
@@ -1202,6 +1206,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         base.OnPropertyChanged(e);
         if (e.Property == HoverOpacityProperty
             || e.Property == PillScaleProperty
+            || e.Property == ToggleProgressProperty
             || e.Property == EnterProgressProperty
             || e.Property == OverlayProgressProperty)
         {
@@ -1224,12 +1229,14 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
     protected override AutomationPeer OnCreateAutomationPeer()
     {
         if (_node.TextInput is not null) return new AvaloniaUiSceneTextAutomationPeer(this);
-        if (_node.Role == XsrUiSemanticRole.Navigation)
+        if (_node.Role is XsrUiSemanticRole.Switch or XsrUiSemanticRole.CheckBox)
+            return new AvaloniaUiSceneToggleAutomationPeer(this);
+        if (_node.Role is XsrUiSemanticRole.Navigation or XsrUiSemanticRole.RadioGroup)
         {
             return new AvaloniaUiSceneNavigationAutomationPeer(this);
         }
 
-        if (_node.Role == XsrUiSemanticRole.NavigationItem
+        if (_node.Role is XsrUiSemanticRole.NavigationItem or XsrUiSemanticRole.RadioButton
             && _node.IsClickable
             && _selectionContainer is not null)
         {
@@ -1292,6 +1299,11 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
 
     private void DrawContent(DrawingContext context, Rect rect, XsrUiVisualStyleSnapshot style)
     {
+        if (_node.Role is XsrUiSemanticRole.Switch or XsrUiSemanticRole.CheckBox)
+        {
+            DrawToggle(context, rect, style);
+            return;
+        }
         if (style.HoverExpand)
         {
             DrawHoverPill(context, rect, style);
@@ -1625,6 +1637,9 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
     private static AutomationControlType ControlTypeFor(XsrUiSemanticRole role, bool clickable) => role switch
     {
         XsrUiSemanticRole.Button => AutomationControlType.Button,
+        XsrUiSemanticRole.Switch or XsrUiSemanticRole.CheckBox => AutomationControlType.CheckBox,
+        XsrUiSemanticRole.RadioGroup => AutomationControlType.Group,
+        XsrUiSemanticRole.RadioButton => AutomationControlType.RadioButton,
         XsrUiSemanticRole.NavigationItem => AutomationControlType.ListItem,
         XsrUiSemanticRole.Navigation => AutomationControlType.List,
         XsrUiSemanticRole.TitleBar => AutomationControlType.TitleBar,
