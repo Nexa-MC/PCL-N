@@ -13,6 +13,10 @@ public sealed class AutomaticUpdateControl(IUpdateHost host) : IAutomaticUpdateC
         string[]? status = ReadOptional(root, AutomaticUpdateTransaction.StatusName);
         string[]? active = ReadOptional(root, AutomaticUpdateTransaction.ActivationName);
         using FileStream helper = root.OpenRead("Nexa.Update.Helper" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+        // A process exit after rollback activation but before status publication must not
+        // advertise the superseded update. Activation is the authoritative selected version.
+        if (status is { Length: 3 } && status[2] == "complete" && active is { Length: 4 } && active[0] != status[0])
+            return new AutomaticUpdateStatus(active[0], null, "rolledback", true, active[2].Length != 0);
         return new AutomaticUpdateStatus(status is { Length: 3 } ? status[0] : null,
             status is { Length: 3 } ? status[1] : null, status is { Length: 3 } ? status[2] : "idle", true,
             active is { Length: 4 } && active[2].Length != 0);

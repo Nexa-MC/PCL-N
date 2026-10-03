@@ -31,6 +31,12 @@ internal static partial class Program
                 using (FileStream image = payload.OpenRead("Nexa.Desktop.exe")) AssertEqual(3L, image.Length);
                 recovered.Rollback();
                 using (FileStream state = directory.OpenRead(AutomaticUpdateTransaction.ActivationName)) AssertEqual("", UpdateTransactionJournal.Read(state)![1]);
+                using (FileStream state = directory.OpenRead(AutomaticUpdateTransaction.StatusName))
+                {
+                    string[] selected = UpdateTransactionJournal.Read(state)!;
+                    AssertEqual("2.0.0.alpha.5", selected[0]);
+                    AssertEqual("rolledback", selected[2]);
+                }
                 using (FileStream highWater = directory.OpenRead("highest-accepted-version.journal")) AssertEqual("2.0.0.alpha.6", UpdateHighWaterJournal.Read(highWater).Version);
                 await ExpectReleaseRejection(() => recovered.InstallAsync("2.0.0.alpha.6", "alpha"));
             }
@@ -97,7 +103,22 @@ internal static partial class Program
         recovered.Rollback();
         using FileStream active = directory.OpenRead(AutomaticUpdateTransaction.ActivationName);
         AssertEqual("", UpdateTransactionJournal.Read(active)![1]);
+        using (FileStream helper = directory.CreateFile("Nexa.Update.Helper" + (OperatingSystem.IsWindows() ? ".exe" : ""), publicRead: true))
+        { helper.Write([1, 2, 3]); helper.Flush(true); }
+        using (FileStream status = directory.OpenState(AutomaticUpdateTransaction.StatusName, publicRead: true, exclusive: false))
+            UpdateTransactionJournal.Append(status, "2.0.0.alpha.6", "alpha", "complete"); // Exit before rollback status flush.
+        var projected = await new AutomaticUpdateControl(new AutomaticUpdateProjectionHost(directory.Path)).ReadAsync(default);
+        AssertEqual("2.0.0.alpha.5", projected.Version);
+        AssertEqual("rolledback", projected.Phase);
         // Fixture remains in a disposable hosted runner; no path-recursive privileged cleanup.
+    }
+
+    private sealed class AutomaticUpdateProjectionHost(string path) : IUpdateHost
+    {
+        public string InstallationPath => path;
+        public bool IsSystemInstallation => true;
+        public Task<int> RunHelperAsync(string version, string channel, CancellationToken token) => throw new InvalidOperationException();
+        public void RestartLauncher() => throw new InvalidOperationException();
     }
 
     private static (UpdateBuildIdentity Identity, UpdateGpgVerifier Verifier, AutomaticUpdateFixtureSource Source) CreateAutomaticUpdateFixture(string rid = "win-x64")

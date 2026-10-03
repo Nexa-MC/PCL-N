@@ -117,5 +117,7 @@ public sealed class AutomaticUpdateTransaction(IUpdateDirectory installation, Up
             UpdateTransactionJournal.Append(pending, current[0], "", "", "", "", "", "rolledback");
         UpdateTransactionJournal.Append(active, current[2], current[3], "", "");
         installation.Flush();
+        using FileStream status = installation.OpenState(StatusName, publicRead: true, exclusive: false);
+        UpdateTransactionJournal.Append(status, current[2], "", "rolledback");
     }
 }

@@ -45,6 +45,12 @@ under the original user identity. Failure to admit the helper or installation re
 need for a trusted system installation/administrator authorization; it never falls back
 to privileged user-writable code.
 
+Rollback publishes the selected previous version with phase `rolledback`; it must not
+leave a completed-new-version status after selecting old bytes. The UI offers restart
+only when the selected complete/rolled-back version differs from the running version.
+If exit occurs between rollback activation and status publication, projection uses the
+activation version instead of advertising the superseded completed update.
+
 ## Validation
 
 Deterministic tests interrupt reception, extraction, durable preparation, high-water and
@@ -54,3 +60,5 @@ links, special files and same-account mutation rights. Native CI runs real files
 admission and installer layouts on six RIDs, plus helper AOT smoke and Desktop trim/shell
 checks. Native signing/notarization and physical power-loss testing remain separate external
 acceptance; a green managed test is not evidence for either.
+Installer smoke runs the installed helper's non-mutating `--validate-installation` mode,
+which admits its exact fixed executable path and the entire real installation namespace.

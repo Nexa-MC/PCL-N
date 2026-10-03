@@ -42,6 +42,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("automatic update restart follows selected version and rollback", AutomaticUpdateRestartFollowsSelectedVersionAndRollback),
         ("resource module renders literal text without actions and retires without space", ResourceModuleRendersLiteralTextWithoutActionsAndRetiresWithoutSpace),
         ("resource caption patch reads state and restores text and accessibility", ResourceCaptionPatchReadsStateAndRestoresTextAndAccessibility),
         ("resource signal adapter catches only search and retires with session", ResourceSignalAdapterCatchesOnlySearchAndRetiresWithSession),

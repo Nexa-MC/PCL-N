@@ -20,6 +20,9 @@ internal sealed partial class SettingsPageController
     private Action? _restartForUpdate;
     private long _automaticLastRead;
     private bool _automaticRecoveryAttempted;
+    private bool _automaticDiscardReading;
+    private bool UpdateNeedsRestart => _automaticStatus?.Phase is "complete" or "rolledback"
+        && _automaticStatus.Version != _updateQuery?.CurrentVersion;
     private XsrQueryRouter? _updateQueries;
     private NexaUpdateQuery? _updateQuery;
     private Action<Uri>? _openUpdateLink;
@@ -40,7 +43,7 @@ internal sealed partial class SettingsPageController
         || id == InstallUpdate || id == RestartUpdate || id == RollbackUpdate;
     private void HandleUpdateIntent(XsrSemanticId id)
     {
-        if (id == RestartUpdate && _automaticStatus?.Phase == "complete") { _restartForUpdate?.Invoke(); return; }
+        if (id == RestartUpdate && UpdateNeedsRestart) { _restartForUpdate?.Invoke(); return; }
         if (id == InstallUpdate && _automaticInstalling is null && _automaticStatus?.CanInstall == true && _automaticUpdates is not null && _updateQuery is not null)
         {
             string? version = _updateOffer?.Version ?? _automaticStatus.Version;
@@ -83,14 +86,24 @@ internal sealed partial class SettingsPageController
         if (_automaticInstalling is { IsCompleted: true } operation)
         {
             _automaticInstalling = null;
-            if (operation.IsCompletedSuccessfully) { _automaticStatus = operation.Result; _updateStatus = "更新完成，重新启动后使用新版本。"; }
+            // A progress read started before terminal publication must not replace the
+            // operation's final status after it completes, including rollback.
+            _automaticDiscardReading = _automaticReading is not null;
+            if (operation.IsCompletedSuccessfully)
+            {
+                _automaticStatus = operation.Result;
+                _updateStatus = _automaticStatus.Phase == "rolledback"
+                    ? "已回滚更新。" : "更新完成。";
+                if (UpdateNeedsRestart) _updateStatus += "重新启动后生效。";
+            }
             else { _ = operation.Exception; _updateStatus = "更新未完成。可以继续更新，或下载安装包。"; }
             changed = true;
         }
         if (_automaticReading is { IsCompleted: true } reading)
         {
             _automaticReading = null;
-            if (reading.IsCompletedSuccessfully)
+            if (_automaticDiscardReading) { _ = reading.Exception; _automaticDiscardReading = false; }
+            else if (reading.IsCompletedSuccessfully)
             {
                 changed |= _automaticStatus != reading.Result;
                 _automaticStatus = reading.Result;
@@ -128,9 +141,10 @@ internal sealed partial class SettingsPageController
             ActionButton(actions, "SettingsPortableUpdate", "便携包", PortableUpdate, 80);
             ActionButton(actions, "SettingsUpdateNotes", "GitHub / 更新日志", UpdateNotes, 144);
         }
-        if (_automaticStatus?.Phase == "complete" && _automaticInstalling is null)
+        if (UpdateNeedsRestart && _automaticInstalling is null)
             ActionButton(actions, "SettingsRestartUpdate", "重新启动", RestartUpdate, 100);
-        else if (_updateOffer is null && _automaticStatus?.Version is not null && _automaticStatus.CanInstall && _automaticInstalling is null)
+        else if (_updateOffer is null && _automaticStatus?.Version is not null && _automaticStatus.CanInstall
+            && _automaticStatus.Phase is not ("complete" or "rolledback") && _automaticInstalling is null)
             ActionButton(actions, "SettingsResumeUpdate", "继续更新", InstallUpdate, 100);
         if (_automaticStatus?.CanRollback == true && _automaticInstalling is null)
             ActionButton(actions, "SettingsRollbackUpdate", "回滚更新", RollbackUpdate, 100);
