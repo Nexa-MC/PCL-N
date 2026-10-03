@@ -1,4 +1,10 @@
 [
+  {"source":"下次启动生效；留空保留游戏标题。","zh-Hant":"下次啟動生效；留空保留遊戲標題。","en":"Applies to the next launch. Leave empty to keep the game title."},
+  {"source":"启动完成后生效；游戏异常退出时恢复启动器。","zh-Hant":"啟動完成後生效；遊戲異常退出時恢復啟動器。","en":"Applies after launch completes. Restore the launcher if the game exits unexpectedly."},
+  {"source":"隐藏后恢复","zh-Hant":"隱藏後恢復","en":"Hide and reopen"},
+  {"source":"游戏退出后关闭","zh-Hant":"遊戲退出後關閉","en":"Close after the game exits"},
+  {"source":"保持显示","zh-Hant":"保持顯示","en":"Keep visible"},
+  {"source":"启动器窗口","zh-Hant":"啟動器視窗","en":"Launcher window"},
   {"source":"详细跟踪","en":"Detailed tracing","zh-Hant":"詳細追蹤"},
   {"source":"仅错误","en":"Errors only","zh-Hant":"僅錯誤"},
   {"source":"界面保留的日志条数，50–2000；不会删除磁盘日志。","en":"Keep 50–2000 log entries in the interface. Log files are kept separately.","zh-Hant":"介面保留的日誌筆數，50–2000；不會刪除磁碟日誌。"},

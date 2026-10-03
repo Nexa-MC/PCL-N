@@ -21,7 +21,8 @@ public sealed class MinecraftProcessSession : IAsyncDisposable
     private readonly Task _errorDrain;
     private int _disposed;
 
-    internal MinecraftProcessSession(System.Diagnostics.Process process, string instanceId, Guid sessionId, DateTimeOffset startedAt, string instanceDirectory, string gameDirectory)
+    internal MinecraftProcessSession(System.Diagnostics.Process process, string instanceId, Guid sessionId, DateTimeOffset startedAt, string instanceDirectory, string gameDirectory,
+        string windowTitle = "", Launch.MinecraftLauncherVisibility launcherVisibility = Launch.MinecraftLauncherVisibility.Keep)
     {
         ArgumentNullException.ThrowIfNull(process);
         ArgumentException.ThrowIfNullOrWhiteSpace(instanceId);
@@ -30,6 +31,8 @@ public sealed class MinecraftProcessSession : IAsyncDisposable
         {
             InstanceDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(instanceDirectory)),
             GameDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(gameDirectory)),
+            WindowTitle = windowTitle,
+            LauncherVisibility = launcherVisibility,
         };
         _createdSnapshot = _snapshot;
         _outputDrain = process.StartInfo.RedirectStandardOutput ? Task.Run(() => DrainAsync(process.StandardOutput, _evidence)) : Task.CompletedTask;
@@ -261,7 +264,8 @@ public sealed class MinecraftProcessService : IAsyncDisposable
             operation?.Stage("os_start", $"executable={startInfo.FileName} working_directory={startInfo.WorkingDirectory} argument_count={startInfo.ArgumentList.Count}");
             System.Diagnostics.Process process = await _port.StartAsync(startInfo, cancellationToken).ConfigureAwait(false);
             Guid sessionId = Guid.NewGuid();
-            MinecraftProcessSession session = new(process, instanceId, sessionId, DateTimeOffset.UtcNow, plan.InstanceDirectory, plan.GameDirectory);
+            MinecraftProcessSession session = new(process, instanceId, sessionId, DateTimeOffset.UtcNow, plan.InstanceDirectory, plan.GameDirectory,
+                plan.WindowTitle, plan.LauncherVisibility);
             startedSession = session;
             session.Changed += OnSessionChanged;
             _sessions[sessionId] = session;

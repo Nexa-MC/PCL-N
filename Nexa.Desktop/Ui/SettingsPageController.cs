@@ -429,6 +429,8 @@ internal sealed partial class SettingsPageController : IDisposable
         "diagnostics.log-level" => "立即生效；自动沿用当前构建的日志等级。",
         "diagnostics.log-lines" => "界面保留的日志条数，50–2000；不会删除磁盘日志。",
         "game.process-priority" => "下次启动生效；系统可能拒绝提高优先级。",
+        "game.title" => "下次启动生效；留空保留游戏标题。",
+        "game.launcher-visibility" => "启动完成后生效；游戏异常退出时恢复启动器。",
         "game.jvm" => "每行一个参数，应用后用于下次启动。",
         "install.inherit-vanilla" => "关闭时安装独立版本；开启后依赖原版。下次安装生效。",
         "game.arguments" => "传递给 Minecraft 的额外启动参数。",

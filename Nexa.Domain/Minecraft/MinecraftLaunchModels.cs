@@ -12,6 +12,8 @@ public enum MinecraftLaunchIdentityMode
     ThirdParty,
 }
 
+public enum MinecraftLauncherVisibility { Keep, Minimize, Hide, HideAndClose }
+
 /// <summary>The resolved identity a launch pipeline runs the game with.</summary>
 public sealed record MinecraftLaunchIdentity(
     string PlayerName,
@@ -42,6 +44,8 @@ public sealed record MinecraftLaunchRequest
     public int Height { get; init; } = 480;
     public bool Fullscreen { get; init; }
     public ProcessPriorityClass? ProcessPriority { get; init; }
+    public string WindowTitle { get; init; } = string.Empty;
+    public MinecraftLauncherVisibility LauncherVisibility { get; init; }
     public bool IsolatedGameDirectory { get; init; }
     public string? CustomJvmArguments { get; init; }
     public string? CustomGameArguments { get; init; }
@@ -183,6 +187,8 @@ public sealed record MinecraftLaunchPlan(
     public int JavaMajorVersion { get; init; }
     /// <summary>Captured next-launch preference. Null preserves OS defaults for hand-built plans.</summary>
     public ProcessPriorityClass? ProcessPriority { get; init; }
+    public string WindowTitle { get; init; } = string.Empty;
+    public MinecraftLauncherVisibility LauncherVisibility { get; init; }
 
     /// <summary>Configured heap request; -1 when custom arguments override the planner's value.</summary>
     public int HeapLimitMiB { get; init; } = -1;

@@ -94,6 +94,9 @@ public sealed partial class SettingsPolicyService
             }
             if (inherited is null && definition.Key == "game.window-mode" && raw.GetValueOrDefault("LaunchArgumentWindowType") == "0")
                 inherited = new(SettingsOverrideMode.Custom, "fullscreen");
+            if (inherited is null && definition.Key == "game.launcher-visibility" && raw.GetValueOrDefault("LaunchArgumentVisible") is "0" or "2" or "3" or "4")
+                inherited = new(SettingsOverrideMode.Custom, raw["LaunchArgumentVisible"] switch
+                { "0" or "2" => "hide-and-close", "3" => "hide", _ => "minimize" });
             if (inherited is null && definition.Key == "updates.auto-check" && raw.GetValueOrDefault("SystemUpdateMode") == "3")
                 inherited = new(SettingsOverrideMode.Custom, "false");
             if (inherited is null && definition.Key == "diagnostics.log-level" && raw.GetValueOrDefault("SystemLogLevel") is { } level && level != "2")
@@ -168,6 +171,9 @@ public sealed partial class SettingsPolicyService
                 writes[key] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? definition.DefaultValue : mutation.Value.Value!;
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.window-mode")
                 writes["LaunchArgumentWindowType"] = mutation.Value.Value == "fullscreen" ? "0" : "1";
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.launcher-visibility")
+                writes["LaunchArgumentVisible"] = mutation.Value.Value switch
+                { "hide-and-close" => "2", "hide" => "3", "minimize" => "4", _ => "5" };
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.process-priority")
                 writes["LaunchArgumentPriority"] = mutation.Value.Value switch
                 { "above-normal" => "0", "below-normal" => "2", "high" => "3", "real-time" => "4", _ => "1" };

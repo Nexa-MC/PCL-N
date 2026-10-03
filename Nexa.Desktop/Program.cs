@@ -227,10 +227,16 @@ internal static partial class Program
             observer: operationLog.Dispatch,
             launcherVersion: buildInfo.ProductVersion,
             jvmHostExecutable: jvmHostPath,
-            gameWindowAppeared: pid => MinecraftWindowIntegration.DetachGameWindows(
-                pid,
-                "Nexa.Minecraft." + pid.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                message => host.Logging.Warn("Launch", message)));
+            gameWindowAppeared: pid =>
+            {
+                MinecraftWindowIntegration.DetachGameWindows(pid,
+                    "Nexa.Minecraft." + pid.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    message => host.Logging.Warn("Launch", message));
+                var process = host.StateStore.ReadCollection<Nexa.Services.Minecraft.Process.MinecraftProcessSnapshot>(
+                    host.StateStore.Resolve(Nexa.Services.Minecraft.Process.MinecraftProcessStateComposition.SessionsKey))
+                    .Items.FirstOrDefault(item => item.ProcessId == pid && item.State is Nexa.Services.Minecraft.Process.MinecraftProcessState.Created or Nexa.Services.Minecraft.Process.MinecraftProcessState.Running);
+                MinecraftWindowIntegration.ApplyGameWindowTitle(pid, process?.WindowTitle, message => host.Logging.Warn("Launch", message));
+            });
         host.Logging.Debug(
             "Launcher",
             $"Runtime composition completed services={runtime.Host.Services.Count} "
@@ -263,6 +269,9 @@ internal static partial class Program
         // pages inside the shell content host and dispatches the real launch command.
         setStage("attach_product_controllers");
         AvaloniaUiPlatformActions platformActions = new();
+        using var gameWindows = new DesktopGameWindowSession(host.StateStore, action => Avalonia.Threading.Dispatcher.UIThread.Post(action),
+            platformActions.HideWindow, platformActions.MinimizeWindow, platformActions.RestoreWindow, platformActions.RequestClose,
+            message => host.Logging.Warn("Launch", message));
         using var presentationSession = new DesktopPresentationSession(shell, host.StateStore,
             platformActions.SetWindowResizeEnabled, platformActions.SetAnimationFrameRate);
         platformActions.InputObserved += kind => host.InputUsage.Record(kind switch

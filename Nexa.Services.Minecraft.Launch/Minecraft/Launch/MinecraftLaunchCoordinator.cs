@@ -931,6 +931,7 @@ public sealed class MinecraftLaunchCoordinator
             Width = Math.Max(1, width),
             Height = Math.Max(1, height),
             Fullscreen = GetSetting("LaunchArgumentWindowType", 1) == 0,
+            WindowTitle = metadata.UseGlobalWindowTitle ? "" : metadata.WindowTitle,
             IsolatedGameDirectory = metadata.InstanceIsolation,
             CustomJvmArguments = string.IsNullOrWhiteSpace(customJvm) ? null : customJvm,
             CustomGameArguments = string.IsNullOrWhiteSpace(customGame) ? null : customGame,
@@ -980,6 +981,28 @@ public sealed class MinecraftLaunchCoordinator
     {
         foreach (var setting in snapshot.Values)
         {
+            if (setting.Key == "game.title")
+            {
+                if (setting.ValidationError is not null) throw new InvalidDataException("窗口标题设置无效。");
+                if (setting.Source == SettingsLayer.Instance || string.IsNullOrEmpty(request.WindowTitle))
+                    request = request with { WindowTitle = setting.Value.Value ?? "" };
+                continue;
+            }
+            if (setting.Key == "game.launcher-visibility")
+            {
+                if (setting.ValidationError is not null) throw new InvalidDataException("启动器窗口行为设置无效。");
+                request = request with
+                {
+                    LauncherVisibility = setting.Value.Value switch
+                    {
+                        "minimize" => MinecraftLauncherVisibility.Minimize,
+                        "hide" => MinecraftLauncherVisibility.Hide,
+                        "hide-and-close" => MinecraftLauncherVisibility.HideAndClose,
+                        _ => MinecraftLauncherVisibility.Keep
+                    }
+                };
+                continue;
+            }
             if (setting.Key == "game.process-priority")
             {
                 if (setting.ValidationError is not null) throw new InvalidDataException("进程优先级设置无效。");

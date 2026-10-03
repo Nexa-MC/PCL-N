@@ -811,7 +811,7 @@
     "section": "启动行为",
     "label": "Minecraft 启动后 Nexa 行为",
     "kind": "Setting",
-    "key": null,
+    "key": "game.launcher-visibility",
     "developer": false,
     "availability": "NotImplemented"
   },
@@ -4949,9 +4949,9 @@
     "scope": "instance-settings",
     "page": "window",
     "section": "启动时",
-    "label": "隐藏",
+    "label": "启动器窗口",
     "kind": "Setting",
-    "key": null,
+    "key": "game.launcher-visibility",
     "developer": false,
     "availability": "NotImplemented"
   },

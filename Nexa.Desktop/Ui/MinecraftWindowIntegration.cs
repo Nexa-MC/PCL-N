@@ -12,6 +12,22 @@ namespace Nexa.Desktop.Ui;
 /// </summary>
 internal static partial class MinecraftWindowIntegration
 {
+    public static void ApplyGameWindowTitle(int processId, string? title, Action<string>? warn = null)
+    {
+        if (!OperatingSystem.IsWindows() || string.IsNullOrEmpty(title) || title.Length > 512 || title.Any(char.IsControl)) return;
+        List<string> failures = [];
+        bool enumerated = EnumWindows((window, lParam) =>
+        {
+            _ = GameWindowOwnerPid(window, out uint owner);
+            if (owner == (uint)processId && IsWindowVisible(window) && GetWindowTextLength(window) > 0
+                && SendMessageTimeout(window, 0x000C, 0, title, 0x0003, 200, out _) == 0)
+                failures.Add($"Game window title write failed pid={processId} win32={Marshal.GetLastWin32Error()}");
+            return true;
+        }, 0);
+        if (!enumerated) failures.Add($"Game window title enumeration failed pid={processId}");
+        foreach (string failure in failures) warn?.Invoke(failure);
+    }
+
     /// <summary>
     /// Assigns a per-launch AppUserModelID to the game's top-level windows so the taskbar
     /// never groups them with the launcher. The property is written through the shell
@@ -150,4 +166,8 @@ internal static partial class MinecraftWindowIntegration
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowTextLength(nint window);
+
+    [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern nint SendMessageTimeout(nint window, uint message, nuint wParam, string lParam,
+        uint flags, uint timeout, out nuint result);
 }

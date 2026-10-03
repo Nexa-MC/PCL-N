@@ -18,6 +18,7 @@ public sealed class AvaloniaUiPlatformActions
     private int _animationFrameRate = 60;
     private readonly PostNavigationDoubleClick _doubleClick = new();
     private IPointer? _consumedPointer;
+    private WindowState? _stateBeforeMinimize;
     internal void Attach(TopLevel owner)
     {
         _owner = owner;
@@ -63,6 +64,22 @@ public sealed class AvaloniaUiPlatformActions
     {
         if (_owner is AvaloniaUiShellWindow shellWindow) Dispatcher.UIThread.Post(shellWindow.RequestClose);
         else if (_owner is Window window) Dispatcher.UIThread.Post(window.Close);
+    }
+
+    public void HideWindow() { if (_owner is Window window) window.Hide(); }
+    public void MinimizeWindow()
+    {
+        if (_owner is not Window window || window.WindowState == WindowState.Minimized) return;
+        _stateBeforeMinimize = window.WindowState;
+        window.WindowState = WindowState.Minimized;
+    }
+    public void RestoreWindow()
+    {
+        if (_owner is not Window window) return;
+        if (!window.IsVisible) window.Show();
+        if (window.WindowState == WindowState.Minimized) window.WindowState = _stateBeforeMinimize ?? WindowState.Normal;
+        _stateBeforeMinimize = null;
+        window.Activate();
     }
 
     private void OnDragOver(object? sender, DragEventArgs args)

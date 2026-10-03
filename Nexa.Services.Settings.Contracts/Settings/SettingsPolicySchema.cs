@@ -30,6 +30,8 @@ public sealed record SettingsPolicyDefinition(string Key, SettingsValueKind Kind
         if (Key == "game.server" && (raw.Length > 512 || raw.Any(char.IsWhiteSpace)
             || raw.Any(char.IsControl) || raw.Contains("://", StringComparison.Ordinal)))
             return "Expected a server host with an optional port, without spaces or a URI scheme.";
+        if (Key == "game.title" && (raw.Length > 512 || raw.Any(char.IsControl)))
+            return "Window title must be at most 512 characters without controls.";
         return Kind switch
         {
             SettingsValueKind.Boolean when raw is not ("true" or "false") => "Expected true or false.",
@@ -65,6 +67,8 @@ public static class SettingsPolicySchema
         new("game.width", SettingsValueKind.Number, "854", true, false, "LaunchArgumentWindowWidth", SettingsApplyTiming.NextLaunch, "px", 1, 32768),
         new("game.height", SettingsValueKind.Number, "480", true, false, "LaunchArgumentWindowHeight", SettingsApplyTiming.NextLaunch, "px", 1, 32768),
         new("game.title", SettingsValueKind.Text, "", true, false, "LaunchArgumentTitle", SettingsApplyTiming.NextLaunch),
+        new("game.launcher-visibility", SettingsValueKind.Enum, "keep", true, false, null, SettingsApplyTiming.NextLaunch,
+            Choices: "keep|minimize|hide|hide-and-close"),
         new("game.jvm", SettingsValueKind.Text, LauncherDefaults.TextDefaults["LaunchAdvanceJvm"], true, false, "LaunchAdvanceJvm", SettingsApplyTiming.NextLaunch, Exportable: false),
         new("game.arguments", SettingsValueKind.Text, "", true, false, "LaunchAdvanceGame", SettingsApplyTiming.NextLaunch, Exportable: false),
         new("game.wrapper", SettingsValueKind.Text, "", true, false, "LaunchWrapperCommand", SettingsApplyTiming.NextLaunch, Exportable: false),

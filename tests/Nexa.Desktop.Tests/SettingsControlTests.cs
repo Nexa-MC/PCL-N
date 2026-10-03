@@ -50,7 +50,8 @@ internal static partial class Program
             scene = fixture.Shell.Render(new(900, 1500));
             return FindByKey(fixture.Shell, scene, "SettingsOption.game.auto-repair.true").IsSelected == true;
         }, TimeSpan.FromSeconds(5)));
-        scene = fixture.Shell.Render(new(700, 650));
+        // Keep the width narrow while including all newly migrated window rows.
+        scene = fixture.Shell.Render(new(700, 1500));
         var binary = FindByKey(fixture.Shell, scene, "SettingsSelector.game.auto-repair");
         AssertTrue(binary.Rect.X + binary.Rect.Width <= 700);
         AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiSegmentedTrack>(binary.Entity) is not null);

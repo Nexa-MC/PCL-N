@@ -29,4 +29,6 @@ public sealed record MinecraftProcessSnapshot(
     public string InstanceDirectory { get; init; } = string.Empty;
     public string GameDirectory { get; init; } = string.Empty;
     public bool GameWindowConfirmed { get; init; }
+    public string WindowTitle { get; init; } = string.Empty;
+    public Nexa.Services.Minecraft.Launch.MinecraftLauncherVisibility LauncherVisibility { get; init; }
 }

@@ -85,10 +85,15 @@ XSR-779 makes installed-content enrichment and update checks one incremental ref
 
 XSR-780 applies local log verbosity and bounded UI history immediately from committed settings, without visiting Settings. Disk logs are retained independently; this slice does not implement disk log deletion.
 
+XSR-781 captures scoped game window titles and launcher visibility in each immutable
+launch plan and process snapshot. Windows title writes are bounded and best-effort;
+hidden/minimized launchers restore after exit or failure, and overlapping sessions
+cannot close each other's launcher supervision.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Managed-runtime deletion; compatibility checks remain mandatory until a separate safe policy exists |
-| Game | Title, isolation, launch visibility and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
+| Game | Isolation and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Disk log retention/export; existing telemetry policy and update actions retain their security boundaries |

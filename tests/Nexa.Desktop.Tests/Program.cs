@@ -43,6 +43,8 @@ internal static partial class Program
     private static readonly (string Name, Action Body)[] TestCases =
     [
         ("log preferences use settings controls and apply immediately", LogPreferencesUseSettingsControlsAndApplyImmediately),
+        ("game window preferences supervise hidden and overlapping sessions", GameWindowPreferencesSuperviseHiddenAndOverlappingSessions),
+        ("game window preferences use settings selectors", GameWindowPreferencesUseSettingsSelectors),
         ("content refresh publishes small batches and combines update checks", ContentRefreshPublishesSmallBatchesAndCombinesUpdateChecks),
         ("updates check outside settings and retire old channels", UpdatePreferencesCheckOutsideSettingsAndRetireOldChannels),
         ("disabled startup updates keep manual check", DisabledStartupUpdatesKeepManualCheck),
