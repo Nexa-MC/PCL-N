@@ -9,6 +9,8 @@ internal static partial class Program
         ("launch completion uses captured download retry policy", LaunchCompletionUsesDownloadRetryPolicy),
         ("scoped repair setting controls actual preparation and validates server", ScopedRepairSettingControlsActualPreparation),
         ("Java vendor preference remains compatible scoped and durable", JavaVendorPreferenceStaysWithinCompatibility),
+        ("game source settings keep authority region and legacy boundaries", Sync(GameSourceSettingsKeepAuthorityAndRegionBoundaries)),
+        ("game source settings reach install and launch transfers", GameSourceSettingsReachInstallAndLaunchTransfers),
         ("instance path probes preserve files and isolate concurrent calls", InstancePathProbesPreserveExistingFilesAndIsolateConcurrentCalls),
         ("instance server lists preserve tags and reject stale writes", InstanceServersPreserveUnknownTagsAndRejectStaleWrites),
         ("instance server status uses bounded protocol and admitted revisions", InstanceServerStatusUsesBoundedProtocolAndAdmittedRevision),

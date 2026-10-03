@@ -71,6 +71,8 @@ public static class SettingsPolicySchema
         new("network.doh", SettingsValueKind.Boolean, "true", false, false, "SystemNetEnableDoH", SettingsApplyTiming.NextTask),
         new("network.file-concurrency", SettingsValueKind.Number, "8", false, false, null, SettingsApplyTiming.NextTask, "files", 1, 64),
         new("network.file-retry", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
+        new("network.game-source", SettingsValueKind.Enum, "official-first", false, false, null, SettingsApplyTiming.NextTask,
+            Choices: "official-first|mirrors-first|official-only"),
         new("install.inherit-vanilla", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.NextTask),
         new("diagnostics.telemetry", SettingsValueKind.Boolean, "false", false, false, "TelemetryExperienceProgram", SettingsApplyTiming.Immediate),
         new("updates.channel", SettingsValueKind.Enum, "alpha", false, false, null, SettingsApplyTiming.NextTask, Choices: "stable|alpha|beta|ci"),

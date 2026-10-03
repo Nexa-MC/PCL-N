@@ -94,6 +94,9 @@ public sealed partial class SettingsPolicyService
             }
             if (inherited is null && definition.Key == "game.window-mode" && raw.GetValueOrDefault("LaunchArgumentWindowType") == "0")
                 inherited = new(SettingsOverrideMode.Custom, "fullscreen");
+            if (inherited is null && definition.Key == "network.game-source"
+                && raw.GetValueOrDefault("ToolDownloadSource") is "0" or "2")
+                inherited = new(SettingsOverrideMode.Custom, raw["ToolDownloadSource"] == "0" ? "mirrors-first" : "official-only");
             if (inherited is null && definition.Key == "network.file-concurrency"
                 && raw.GetValueOrDefault("ToolDownloadThread") is { } threadSlider && threadSlider != "63"
                 && int.TryParse(threadSlider, out int threads))
@@ -148,6 +151,8 @@ public sealed partial class SettingsPolicyService
                 writes[key] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? definition.DefaultValue : mutation.Value.Value!;
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.window-mode")
                 writes["LaunchArgumentWindowType"] = mutation.Value.Value == "fullscreen" ? "0" : "1";
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.game-source")
+                writes["ToolDownloadSource"] = mutation.Value.Value switch { "mirrors-first" => "0", "official-only" => "2", _ => "1" };
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.file-concurrency")
                 writes["ToolDownloadThread"] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? "63"
                     : (int.Parse(mutation.Value.Value!, System.Globalization.CultureInfo.InvariantCulture) - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);

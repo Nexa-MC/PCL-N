@@ -51,6 +51,8 @@ internal sealed partial class SettingsPageController
         {
             string label = value switch { "true" => "开启", "false" => "关闭", "fullscreen" => "全屏", "windowed" => "窗口", "auto" => "跟随系统", "zh-Hans" => "简体中文", "zh-Hant" => "繁體中文", "en" => "English", _ => value };
             if (entry.InvertBoolean) label = value == "true" ? "关闭" : "开启";
+            if (entry.SettingKey == "network.game-source") label = value switch
+            { "official-first" => "官方优先", "mirrors-first" => "镜像优先", "official-only" => "仅官方", _ => value };
             if (entry.SettingKey == "java.vendor") label = value switch
             { "" => "自动", "EclipseTemurin" => "Temurin", "IbmSemeru" => "IBM Semeru", "GraalVmCommunity" => "GraalVM", "OpenJdk" => "OpenJDK", "TencentKona" => "腾讯 Kona", "Dragonwell" => "龙井 Java", "Unknown" => "其他", _ => value };
             bool nativeName = entry.SettingKey == "general.language" && value != "auto";

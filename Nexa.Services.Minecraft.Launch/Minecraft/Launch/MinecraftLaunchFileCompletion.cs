@@ -70,7 +70,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
         if (clientPlan.File is { } client && !await HasVerifiedCorePatchAsync(instance, client.LocalPath, cancellationToken).ConfigureAwait(false))
         {
             AddIfMissing(candidates,
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true, client.Sha1),
+                downloadPolicy.SelectSources(client.Url, MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true, client.Sha1)),
                 client.LocalPath, client.ActualSize, client.Sha1);
         }
 
@@ -114,7 +114,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                 sources = [.. sources, url];
             }
 
-            AddIfMissing(candidates, sources, localPath, size > 0 ? size : null, sha1);
+            AddIfMissing(candidates, downloadPolicy.SelectSources(url, sources), localPath, size > 0 ? size : null, sha1);
         }
 
         // Assets are planned from the index document, so fetch the index first when missing,
@@ -144,8 +144,8 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                 foreach (MinecraftAssetToken asset in assets)
                 {
                     AddIfMissing(candidates,
-                        MinecraftDownloadSourcePlanner.GetAssetSources(
-                            MinecraftAssetListResolver.GetObjectUrl(asset.Hash), true),
+                        downloadPolicy.SelectSources(MinecraftAssetListResolver.GetObjectUrl(asset.Hash), MinecraftDownloadSourcePlanner.GetAssetSources(
+                            MinecraftAssetListResolver.GetObjectUrl(asset.Hash), true)),
                         asset.LocalPath,
                         asset.Size > 0 ? asset.Size : null,
                         asset.Hash, contentAddressed: true);
@@ -257,7 +257,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(indexDiskPath)!);
-        string[] sources = MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(plan.Url!, true, plan.Sha1);
+        string[] sources = downloadPolicy.SelectSources(plan.Url!, MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(plan.Url!, true, plan.Sha1));
         int attempts = downloadPolicy.Retry ? 2 : 1;
         for (int attempt = 0; attempt < attempts; attempt++)
         {

@@ -1529,9 +1529,9 @@
     "scope": "global",
     "page": "network",
     "section": "下载",
-    "label": "下载源策略",
+    "label": "游戏文件下载源",
     "kind": "Setting",
-    "key": null,
+    "key": "network.game-source",
     "developer": false,
     "availability": "NotImplemented"
   },

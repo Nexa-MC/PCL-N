@@ -212,7 +212,7 @@ public sealed partial class MinecraftInstallService : IDisposable
         if (clientPlan.File is { } client)
         {
             gameFiles.Add(new PlannedFile(
-                MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true, client.Sha1),
+                downloadPolicy.SelectSources(client.Url, MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(client.Url, true, client.Sha1)),
                 client.LocalPath, client.Sha1, client.ActualSize));
         }
 
@@ -225,7 +225,7 @@ public sealed partial class MinecraftInstallService : IDisposable
                 Is64BitArchitecture = platform.Is64BitArchitecture,
                 IsArm64Architecture = platform.IsArm64Architecture,
                 OperatingSystemVersion = platform.OperatingSystemVersion,
-            }), root));
+            }), root, downloadPolicy));
         loaderFiles.AddRange(loaderJson is null
             ? []
             : LibraryFiles(MinecraftLibraryResolver.Resolve(
@@ -237,7 +237,7 @@ public sealed partial class MinecraftInstallService : IDisposable
                     Is64BitArchitecture = platform.Is64BitArchitecture,
                     IsArm64Architecture = platform.IsArm64Architecture,
                     OperatingSystemVersion = platform.OperatingSystemVersion,
-                }), root));
+                }), root, downloadPolicy));
 
         // Assets are planned after the index document exists on disk.
         JsonObject assetIndexJson;
@@ -293,8 +293,8 @@ public sealed partial class MinecraftInstallService : IDisposable
         foreach (MinecraftAssetDownloadFile file in assetPlan.Files)
         {
             gameFiles.Add(new PlannedFile(
-                MinecraftDownloadSourcePlanner.GetAssetSources(
-                    MinecraftAssetListResolver.GetObjectUrl(file.Hash), true),
+                downloadPolicy.SelectSources(MinecraftAssetListResolver.GetObjectUrl(file.Hash), MinecraftDownloadSourcePlanner.GetAssetSources(
+                    MinecraftAssetListResolver.GetObjectUrl(file.Hash), true)),
                 file.LocalPath, file.Hash, file.ActualSize));
         }
 
@@ -507,7 +507,7 @@ public sealed partial class MinecraftInstallService : IDisposable
     }
 
     private static readonly TimeSpan FileRetryDelay = TimeSpan.FromSeconds(3);
-    private static IEnumerable<PlannedFile> LibraryFiles(IReadOnlyList<MinecraftLibraryToken> libraries, string root)
+    private static IEnumerable<PlannedFile> LibraryFiles(IReadOnlyList<MinecraftLibraryToken> libraries, string root, MinecraftDownloadPolicy downloadPolicy)
     {
         foreach (MinecraftLibraryToken library in libraries)
         {
@@ -524,7 +524,7 @@ public sealed partial class MinecraftInstallService : IDisposable
                 sources = [.. sources, library.Url];
             }
 
-            yield return new PlannedFile(sources, library.LocalPath, library.Sha1, library.Size);
+            yield return new PlannedFile(downloadPolicy.SelectSources(library.Url, sources), library.LocalPath, library.Sha1, library.Size);
         }
     }
 

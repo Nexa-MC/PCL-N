@@ -35,11 +35,15 @@ XSR-765 delivers a scoped Java distribution preference as a soft tie-break among
 compatible installed runtimes. Explicit Java paths remain authoritative. Long setting
 selectors now fit a flexible right-aligned control slot and retain horizontal scrolling.
 
+XSR-766 delivers official-first, mirrors-first and official-only source policy for game
+files. Installation and launch repair share it; metadata authority, digest requirements
+and foreign regional original-source policy remain unchanged.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions; compatibility checks remain mandatory until a separate safe policy exists |
 | Game | Title, isolation, launch visibility, process priority and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
-| Download and network | Source selection, bandwidth, proxy and DNS; other download kinds need their own budget policies |
+| Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Frame-rate policy, low power, theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |
 | Storage | Supported export/import, migration preview and cleanup; use existing service commands and transaction contracts |

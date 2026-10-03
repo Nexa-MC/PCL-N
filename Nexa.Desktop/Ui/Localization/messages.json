@@ -8700,6 +8700,21 @@
     "zh-Hant": "龍井 Java"
   },
   {
+    "source": "游戏文件下载源",
+    "en": "Game file sources",
+    "zh-Hant": "遊戲檔案下載來源"
+  },
+  {
+    "source": "游戏文件与运行库的下载顺序；海外使用原始来源。",
+    "en": "Download order for game files and libraries. Original sources are used outside mainland China.",
+    "zh-Hant": "遊戲檔案與執行庫的下載順序；海外使用原始來源。"
+  },
+  {
+    "source": "仅官方",
+    "en": "Official only",
+    "zh-Hant": "僅官方"
+  },
+  {
     "source": "游戏文件并发数",
     "en": "Concurrent game files",
     "zh-Hant": "遊戲檔案並行數"

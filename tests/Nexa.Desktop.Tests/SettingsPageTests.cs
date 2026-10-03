@@ -194,6 +194,9 @@ internal static partial class Program
         scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.network").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
+        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsOption.network.game-source.official-only").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("network.game-source").Value.Value == "official-only"; }, TimeSpan.FromSeconds(5)));
+        scene = fixture.Shell.Render(new(1000, 650));
         fixture.Shell.Renderer.SetTextInputValue(FindByKey(fixture.Shell, scene, "SettingsInput.network.file-concurrency").Entity, "3");
         Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.network.file-concurrency").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("network.file-concurrency").Value.Value == "3"; }, TimeSpan.FromSeconds(5)));
