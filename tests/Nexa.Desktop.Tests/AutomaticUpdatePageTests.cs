@@ -6,6 +6,40 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void AutomaticUpdateRetryRetainsProtectedChannel()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
+            fixture.Foundation.Commands, fixture.Store, fixture.Feedback);
+        fixture.Shell.Renderer.ReducedMotion = true;
+        fixture.Controller.SettingsPage = settings.Page;
+        var update = new AutomaticUpdateRetryFixture();
+        settings.ConfigureUpdates(fixture.Foundation.Queries, new("2.0.0.alpha.5", "win-x64", "ci"), _ => { }, update);
+        Emit(fixture.Intents, "ui.navigation.settings");
+        var scene = fixture.Shell.Render(new(1000, 650));
+        Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.advanced").Entity);
+        scene = fixture.Shell.Render(new(1000, 650));
+        AssertEqual(0, update.InstallCount); // A failed operation waits for an explicit retry.
+        Emit(fixture.Intents, "ui.settings.update.install", FindByKey(fixture.Shell, scene, "SettingsResumeUpdate").Entity);
+        fixture.Shell.Render(new(1000, 650));
+        AssertEqual(1, update.InstallCount);
+        AssertEqual("alpha", update.Channel);
+    }
+
+    private sealed class AutomaticUpdateRetryFixture : IAutomaticUpdateControl
+    {
+        internal int InstallCount { get; private set; }
+        internal string? Channel { get; private set; }
+        public Task<AutomaticUpdateStatus> ReadAsync(CancellationToken token) => Task.FromResult(new AutomaticUpdateStatus("2.0.0.alpha.6", "alpha", "failed", true, false));
+        public Task<AutomaticUpdateStatus> InstallAsync(string version, string channel, CancellationToken token)
+        {
+            InstallCount++; Channel = channel;
+            return Task.FromResult(new AutomaticUpdateStatus(version, channel, "complete", true, true));
+        }
+        public Task<AutomaticUpdateStatus> RollbackAsync(CancellationToken token) => throw new InvalidOperationException();
+        public void Restart() => throw new InvalidOperationException();
+    }
+
     private static void AutomaticUpdateResumesOnStartupWithoutOpeningSettings()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));

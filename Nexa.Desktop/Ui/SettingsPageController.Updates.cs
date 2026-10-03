@@ -49,9 +49,10 @@ internal sealed partial class SettingsPageController
         if (id == InstallUpdate && !AutomaticUpdateInProgress && _automaticStatus?.CanInstall == true && _automaticUpdates is not null && _updateQuery is not null)
         {
             string? version = _updateOffer?.Version ?? _automaticStatus.Version;
-            if (version is null) return;
+            string? channel = _updateOffer is null ? _automaticStatus.Channel : _updateQuery.Channel;
+            if (version is null || channel is not ("alpha" or "beta" or "stable")) return;
             _automaticRecoveryAttempted = true;
-            _automaticInstalling = _automaticUpdates.InstallAsync(version, _updateQuery.Channel, _updateStop.Token);
+            _automaticInstalling = _automaticUpdates.InstallAsync(version, channel, _updateStop.Token);
             WakeOnPlatformCompletion(_automaticInstalling); _updateStatus = "正在更新…"; BuildSections(); return;
         }
         if (id == RollbackUpdate && !AutomaticUpdateInProgress && _automaticStatus?.CanRollback == true && _automaticUpdates is not null)
@@ -148,7 +149,7 @@ internal sealed partial class SettingsPageController
         _shell.Tree.GetComponent<XsrUiInput>(check)!.Enabled = _updateReading is null;
         if (_updateOffer is not null)
         {
-            if (_automaticStatus?.CanInstall == true && !AutomaticUpdateInProgress)
+            if (_automaticStatus?.CanInstall == true && !AutomaticUpdateInProgress && _updateQuery.Channel is "alpha" or "beta" or "stable")
                 ActionButton(actions, "SettingsInstallUpdate", "立即更新", InstallUpdate, 100);
             ActionButton(actions, "SettingsDownloadUpdate", "下载安装包", DownloadUpdate, 112);
             ActionButton(actions, "SettingsPortableUpdate", "便携包", PortableUpdate, 80);
@@ -157,6 +158,7 @@ internal sealed partial class SettingsPageController
         if (UpdateNeedsRestart && _automaticInstalling is null)
             ActionButton(actions, "SettingsRestartUpdate", "重新启动", RestartUpdate, 100);
         else if (_updateOffer is null && _automaticStatus?.Version is not null && _automaticStatus.CanInstall
+            && _automaticStatus.Channel is "alpha" or "beta" or "stable"
             && _automaticStatus.Phase is not ("complete" or "rolledback") && _automaticInstalling is null)
             ActionButton(actions, "SettingsResumeUpdate", "继续更新", InstallUpdate, 100);
         if (_automaticStatus?.CanRollback == true && !AutomaticUpdateInProgress)
