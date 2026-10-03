@@ -61,3 +61,25 @@ This stream primitive does not prove directory protection: the future helper sti
 ancestor/ACL admission, exclusive handles, durable publication and transaction recovery.
 It must discard a failed destination even if truncation fails, and cannot treat it as verified.
 
+### Windows object admission
+
+The Windows platform adapter walks a local fixed-drive path one component at a time,
+opening children relative to the retained parent handle. Every object must have a trusted
+owner (SYSTEM, Administrators or TrustedInstaller), a present non-null DACL, and no effective
+write/ownership/delete grants to other principals. Unknown or conditional ACE shapes are
+not proof of isolation and are rejected. Deny ACEs are not used to rescue an unsafe allow.
+Inherit-only ACEs are ignored for the current object, but every descendant is checked anew.
+
+An ancestor may allow creating unrelated children (the standard system-drive ACL does),
+provided it cannot be changed or delete/replace existing children. The selected install or
+staging root must also deny untrusted child creation. Reparse points, remote roots and
+ambiguous leaf names are refused. Handles exclude write/delete sharing while held.
+
+Fresh staging is created relative to the admitted directory with an explicit protected
+SYSTEM/Administrators DACL and Administrators owner, at creation time. It never adopts or
+repairs permissions on an existing user-owned directory. Leaf files use create-new semantics,
+explicit protected security and retained handles; an existing name is a conflict. The adapter
+does not accept arbitrary paths for mutation. Cleanup of an owned empty staging directory is
+by handle, after owned child files are closed/deleted. This does not implement the updater
+process, installation identity, recovery journal or Linux/macOS descriptor adapters.
+

@@ -104,6 +104,11 @@ jobs:
           $binary = if ($IsWindows) { './native-account-tests/Nexa.Services.Tests.exe' } else { './native-account-tests/Nexa.Services.Tests' }
           & $binary "update modes" "protected update"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify elevated Windows update objects
+        if: runner.os == 'Windows'
+        env:
+          NEXA_TEST_PROTECTED_UPDATES: '1'
+        run: ./native-account-tests/Nexa.Services.Tests.exe "Windows protected update"
       - name: Run macOS native protection
         if: runner.os == 'macOS'
         run: ./native-account-tests/Nexa.Services.Tests "native profile protection"

@@ -4,6 +4,9 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("Windows protected update descriptor policy", Sync(WindowsUpdateDescriptorPolicy)),
+        ("Windows protected update read admission", Sync(WindowsUpdateReadAdmission)),
+        ("Windows protected update elevated objects", WindowsUpdateElevatedObjects),
         ("signed release authenticates owned identity and actual package", SignedReleaseAuthenticatesOwnedIdentityAndActualPackage),
         ("signed release rejects routing replay and unordered CI", SignedReleaseRejectsRoutingReplayAndUnorderedCi),
         ("signed release rejects schema aliases and bounds input", SignedReleaseRejectsSchemaAliasesAndBoundsInput),
