@@ -17,8 +17,18 @@ because scrolling moved the labels. Leftward selection reveals preceding content
 Re-selecting an unchanged option does not drift. Active thumb drags continue to own
 scrolling, and do not run this activation projection for every emitted intent.
 
+Activation publishes a horizontal scroll target and motion revision in the immutable
+scene, without changing the presented offset. The backend advances that offset with
+the shared critically damped spring (.34 s response), retaining velocity on retarget.
+Renderer hit testing, labels, clipping and the thumb all use the presented viewport.
+Drag and wheel input cancel the target and retain the live offset; revision-checked
+frame writes cannot override newer input. Reduced motion settles immediately. Resize
+clamps both the presented offset and target to the current content extent.
+
 Contract tests cover clipping, viewport shrink/grow, proportional scroll, repeated pointer
 coordinates, reversing, cancellation, keyboard reachability, fully visible and partially
-clipped pointer selection, and actual settings-page mouse input. UI.Next owns geometry and
+clipped pointer selection, actual settings-page mouse input, stale-frame rejection,
+and native clock intermediate frames, reversal, wheel interruption and reduced motion.
+UI.Next owns geometry and
 gesture state; Desktop retains only selection intents. Existing reduced-motion behavior
 and scroll/transition clocks remain unchanged.

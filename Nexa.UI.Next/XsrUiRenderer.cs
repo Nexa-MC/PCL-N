@@ -567,6 +567,8 @@ public sealed partial class XsrUiRenderer
                 && (scroll.OffsetY >= scroll.MaximumOffsetY - .5
                     || double.IsPositiveInfinity(scroll.OffsetY));
             scroll.OffsetX = Math.Clamp(scroll.OffsetX, 0, maxOffsetX);
+            if (_tree.GetComponent<XsrUiSegmentedTrack>(entity) is { ScrollTargetX: { } segmentTarget } segmentTrack)
+                segmentTrack.ScrollTargetX = Math.Clamp(segmentTarget, 0, maxOffsetX);
             scroll.OffsetY = wasAtEnd
                 ? maxOffsetY
                 : Math.Clamp(scroll.OffsetY, 0, maxOffsetY);
@@ -1153,6 +1155,7 @@ public sealed partial class XsrUiRenderer
                 if (_tree.GetComponent<XsrUiScroll>(entity) is { } scroll)
                 {
                     StopScrollMotion(entity);
+                    StopSegmentScroll(entity);
                     double targetX = Math.Max(0, scroll.OffsetX + deltaX);
                     double targetY = Math.Clamp(scroll.OffsetY + deltaY, 0, scroll.MaximumOffsetY);
                     if (Math.Abs(targetX - scroll.OffsetX) > .001
@@ -1473,7 +1476,11 @@ public sealed partial class XsrUiRenderer
             components.Get<XsrUiSegmentReveal>() is { } reveal ? new(reveal.Expanded, reveal.Progress) : null,
             components.Get<XsrUiScrollGesture>() is { } motion ? new(motion.Revision, motion.Dragging, motion.Velocity) : null,
             IsStableContent(entity), text?.Runs)
-        { Graph = components.Get<XsrUiGraph>()?.Snapshot() });
+        {
+            Graph = components.Get<XsrUiGraph>()?.Snapshot(),
+            SegmentScroll = components.Get<XsrUiSegmentedTrack>() is { Dragging: false, ScrollTargetX: { } targetX } segmentTrack
+                ? new(segmentTrack.ScrollMotionRevision, targetX) : null,
+        });
 
         if (components.Get<XsrUiSegmentedTrack>() is { } track
             && _tree.IsAlive(track.Thumb) && _paintRects.TryGetValue(track.Selected.Index, out XsrUiRect segment))

@@ -60,6 +60,7 @@ internal static class AvaloniaMotionTokens
     public const double NavigationSpringResponseSeconds = .36;
     public const double ContentSpringResponseSeconds = .32;
     public const double PagerSpringResponseSeconds = .34;
+    public const double SegmentScrollSpringResponseSeconds = .34;
 
     /// <summary>Window-internal notices lift without overshoot and remain interruptible.</summary>
     public const double NotificationSpringResponseSeconds = .3;

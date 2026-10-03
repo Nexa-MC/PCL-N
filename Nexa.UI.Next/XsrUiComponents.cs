@@ -464,7 +464,12 @@ public sealed class XsrUiSegmentedTrack(XsrUiEntityId thumb)
     internal double ScrollStartOffset { get; set; }
     internal double ScrollThumbWidth { get; set; }
     internal long GestureRevision { get; set; }
+    internal double? ScrollTargetX { get; set; }
+    internal long ScrollMotionRevision { get; set; }
 }
+
+/// <summary>Horizontal selector target, advanced from the presented viewport by the host clock.</summary>
+public readonly record struct XsrUiSegmentScrollSnapshot(long Revision, double Target);
 
 /// <summary>Width reveal for dynamically available segments, advanced by the host's shared clock.</summary>
 public sealed class XsrUiSegmentReveal(double width)

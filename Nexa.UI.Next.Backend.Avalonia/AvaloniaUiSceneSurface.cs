@@ -387,10 +387,12 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
             _pagerRevisions.Remove(entity);
             _progressTargets.Remove(entity);
             _segmentTargets.Remove(entity);
+            _segmentScrollTargets.Remove(entity);
             _scrollRevisions.Remove(entity);
             _shell.Renderer.FinishScrollInertia(entity);
             AvaloniaUiMotion.Cancel(this, ("scroll-inertia", entity));
             AvaloniaUiMotion.Cancel(this, ("segment-reveal", entity));
+            AvaloniaUiMotion.Cancel(this, ("segment-scroll", entity));
             AvaloniaUiMotion.Cancel(this, ("capsule", entity));
             AvaloniaUiMotion.Cancel(this, ("progress", entity));
             AvaloniaUiMotion.Cancel(this, ("pager", entity));
@@ -423,6 +425,7 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
             control.SetRasterPresentationEnabled(_rasterPresentationEnabled);
             control.Apply(node, new XsrUiSize(Bounds.Width, Bounds.Height));
             DriveSegmentReveal(node);
+            DriveSegmentScroll(node);
             DriveScrollInertia(node);
             DriveCapsuleGeometry(node);
             DrivePagerGeometry(node);
@@ -482,6 +485,22 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     }
 
     private readonly Dictionary<XsrUiEntityId, bool> _segmentTargets = [];
+    private readonly Dictionary<XsrUiEntityId, XsrUiSegmentScrollSnapshot> _segmentScrollTargets = [];
+    private void DriveSegmentScroll(XsrUiSceneNode node)
+    {
+        if (node.SegmentScroll is not { } target)
+        {
+            if (_segmentScrollTargets.Remove(node.Entity)) AvaloniaUiMotion.Cancel(this, ("segment-scroll", node.Entity));
+            return;
+        }
+        if (_segmentScrollTargets.TryGetValue(node.Entity, out var previous) && previous == target) return;
+        _segmentScrollTargets[node.Entity] = target;
+        AvaloniaUiMotion.AnimateSpring(this, ("segment-scroll", node.Entity),
+            () => _shell.Renderer.GetSegmentScrollPresentationOffset(node.Entity),
+            value => _shell.Renderer.SetSegmentScrollPresentationOffset(node.Entity, value, target.Revision),
+            target.Target, AvaloniaMotionTokens.SegmentScrollSpringResponseSeconds,
+            () => _shell.Renderer.EffectiveReducedMotion, readCurrentPosition: true);
+    }
     private void DriveSegmentReveal(XsrUiSceneNode node)
     {
         if (node.SegmentReveal is not { } reveal) return;

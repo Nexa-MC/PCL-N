@@ -18,6 +18,7 @@ internal static partial class Program
         ("steady pointer queries allocate no managed memory", Sync(SteadyPointerQueriesAllocateNoManagedMemory)),
         ("segmented track supports drag snap keyboard and cancellation", Sync(SegmentedTrackSupportsDragSnapKeyboardAndCancellation)),
         ("segment activation scrolls visible and clipped selections", Sync(SegmentActivationScrollsVisibleAndClippedSelection)),
+        ("segment scroll presentation retargets and rejects interrupted frame writes", Sync(SegmentScrollPresentationRetargetsAndRejectsStaleWrites)),
         ("segmented overflow clips resizes and scrolls proportionally", Sync(SegmentOverflowClipsAndScrollsByDragProgress)),
         ("list drag keeps clicks separate and publishes inertia", Sync(ListDragKeepsClicksSeparateAndPublishesInertia)),
         // XSR-201: ECS kernel.

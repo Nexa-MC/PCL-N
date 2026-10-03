@@ -3,6 +3,26 @@ namespace Nexa.UI.Next;
 public sealed partial class XsrUiRenderer
 {
     private XsrUiEntityId _segmentDrag;
+    public double GetSegmentScrollPresentationOffset(XsrUiEntityId entity) =>
+        _tree.IsAlive(entity) ? _tree.GetComponent<XsrUiScroll>(entity)?.OffsetX ?? 0 : 0;
+    public void SetSegmentScrollPresentationOffset(XsrUiEntityId entity, double offset, long revision)
+    {
+        if (!double.IsFinite(offset) || !_tree.IsAlive(entity) || !IsInVisibleTree(entity)
+            || _tree.GetComponent<XsrUiSegmentedTrack>(entity) is not { Dragging: false, ScrollTargetX: { } target } track
+            || track.ScrollMotionRevision != revision || _tree.GetComponent<XsrUiScroll>(entity) is not { } scroll
+            || !_paintRects.TryGetValue(entity.Index, out XsrUiRect viewport)) return;
+        double overflow = Math.Max(0, _stackContentSizes.GetValueOrDefault(entity.Index).Width - viewport.Width);
+        double presented = Math.Clamp(EffectiveReducedMotion ? target : offset, 0, overflow);
+        if (presented == scroll.OffsetX) return;
+        scroll.OffsetX = presented;
+        _tree.MarkDirty(entity, XsrUiDirtyKinds.Layout);
+    }
+    private void StopSegmentScroll(XsrUiEntityId entity)
+    {
+        if (_tree.GetComponent<XsrUiSegmentedTrack>(entity) is not { } track) return;
+        track.ScrollTargetX = null; track.ScrollMotionRevision++;
+        _tree.MarkDirty(entity, XsrUiDirtyKinds.Paint);
+    }
     public void SetSegmentExpanded(XsrUiEntityId entity, bool expanded, bool immediate = false)
     {
         if (_tree.GetComponent<XsrUiSegmentReveal>(entity) is not { } reveal) return;
@@ -61,9 +81,11 @@ public sealed partial class XsrUiRenderer
         // A click keeps its admitted target, even when the drag projection would travel
         // far enough to bring a different item under the pointer.
         offset = minimum <= maximum ? Math.Clamp(offset, minimum, maximum) : maximum;
-        if (offset == scroll.OffsetX) return;
-        scroll.OffsetX = offset;
-        _tree.MarkDirty(parent, XsrUiDirtyKinds.Layout);
+        XsrUiSegmentedTrack motion = _tree.GetComponent<XsrUiSegmentedTrack>(parent)!;
+        if (motion.Selected == child && motion.ScrollTargetX is not null) return;
+        motion.ScrollTargetX = offset; motion.ScrollMotionRevision++;
+        if (EffectiveReducedMotion) scroll.OffsetX = offset;
+        _tree.MarkDirty(parent, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
     }
     private static double ProjectSegmentScroll(double startOffset, double startProgress, double progress, double overflow)
     {
@@ -85,6 +107,7 @@ public sealed partial class XsrUiRenderer
             if (_tree.GetComponent<XsrUiSegmentedTrack>(node.Entity) is not { } track || !node.Rect.Contains(point)) continue;
             XsrUiSceneNode thumb = _scene.Nodes.FirstOrDefault(n => n.Entity == track.Thumb);
             if (!thumb.Entity.IsAssigned || !thumb.Rect.Contains(point)) return false;
+            StopSegmentScroll(node.Entity);
             _segmentDrag = node.Entity; track.Dragging = true;
             Focus(track.Selected, showIndicator: false);
             track.GrabOffset = point.X - thumb.Rect.X; track.DragX = thumb.Rect.X;

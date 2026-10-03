@@ -417,6 +417,7 @@ internal static partial class Program
             VerifyWindowActionFeedback(window, surface);
             await VerifySpringIgnoresStaleSceneReads().ConfigureAwait(true);
             await VerifyCapsuleGeometryClock(shell, surface).ConfigureAwait(true);
+            await VerifySegmentScrollClock(shell, surface).ConfigureAwait(true);
             await VerifyPagerNativeDragAndClock(window, shell, surface).ConfigureAwait(true);
             await VerifyNativeFileDragThreshold(window, shell, surface).ConfigureAwait(true);
             // ReducedMotionCancelsRunningRailMotion: start the expansion normally, flip the
@@ -771,6 +772,51 @@ internal static partial class Program
             await Task.Delay(16).ConfigureAwait(true);
         AssertEqual(36d, Node(surface.Scene!, capsule).Rect.Width);
         Console.WriteLine("PASS: capsule clock commits actual layout width and reduced-motion reversal");
+    }
+
+    private static async Task VerifySegmentScrollClock(XsrUiShell shell, AvaloniaUiSceneSurface surface)
+    {
+        var page = shell.Tree.Create("segment-clock-page"); var root = shell.Tree.Create("segment-clock-track");
+        shell.Tree.SetComponent(page, new XsrUiStackPanel(XsrUiOrientation.Vertical)); shell.Tree.Attach(root, page);
+        shell.Tree.SetComponent(root, new XsrUiElement { Width = 240, Height = 40, HorizontalAlignment = XsrUiAlignment.Start });
+        shell.Tree.SetComponent(root, new XsrUiStackPanel(XsrUiOrientation.Horizontal));
+        var scroll = new XsrUiScroll(); shell.Tree.SetComponent(root, scroll);
+        var thumb = shell.Tree.Create("segment-clock-thumb"); shell.Tree.Attach(thumb, root);
+        shell.Tree.SetComponent(thumb, new XsrUiElement { IsVisible = false }); shell.Tree.SetComponent(thumb, new XsrUiTransition());
+        var track = new XsrUiSegmentedTrack(thumb); shell.Tree.SetComponent(root, track);
+        var options = new List<XsrUiEntityId>();
+        for (int i = 0; i < 10; i++)
+        {
+            var option = shell.Tree.Create("segment-clock-option-" + i); options.Add(option); shell.Tree.Attach(option, root);
+            shell.Tree.SetComponent(option, new XsrUiElement { Width = 100, Height = 40 });
+            shell.Tree.SetComponent(option, new XsrUiInput { Clickable = true, Focusable = true });
+            shell.Tree.SetComponent(option, new XsrUiCommandBinding(XsrSemanticId.Parse("test.segment")));
+        }
+        track.Selected = options[0]; shell.Renderer.ReducedMotion = false; shell.Stage.Navigation.Replace(page); surface.CommitScene();
+        AssertTrue(shell.Renderer.Activate(options[1])); track.Selected = options[1]; surface.CommitScene();
+        AssertEqual(0d, scroll.OffsetX);
+        DateTime deadline = DateTime.UtcNow.AddSeconds(2);
+        while (scroll.OffsetX == 0 && DateTime.UtcNow < deadline) await Task.Delay(16).ConfigureAwait(true);
+        AssertTrue(scroll.OffsetX > 0 && scroll.OffsetX < 100);
+        surface.CommitScene();
+        AssertTrue(Math.Abs(Node(surface.Scene!, options[1]).Rect.X - Node(surface.Scene!, root).Rect.X - 100 + scroll.OffsetX) < .01);
+        double presented = scroll.OffsetX;
+        AssertTrue(shell.Renderer.Activate(options[0])); track.Selected = options[0]; surface.CommitScene();
+        AssertEqual(presented, scroll.OffsetX); // Retarget from the live offset, without a jump.
+        deadline = DateTime.UtcNow.AddSeconds(2);
+        while (scroll.OffsetX != 0 && DateTime.UtcNow < deadline) await Task.Delay(16).ConfigureAwait(true);
+        AssertEqual(0d, scroll.OffsetX);
+        AssertTrue(shell.Renderer.Activate(options[2])); track.Selected = options[2]; surface.CommitScene();
+        await Task.Delay(32).ConfigureAwait(true); AssertTrue(scroll.OffsetX > 0);
+        XsrUiRect viewport = Node(surface.Scene!, root).Rect;
+        AssertTrue(shell.Renderer.PointerScroll(new(viewport.X + 150, viewport.Y + 20), 0, 10)); surface.CommitScene();
+        double held = scroll.OffsetX; await Task.Delay(100).ConfigureAwait(true); AssertEqual(held, scroll.OffsetX);
+        AssertTrue(shell.Renderer.Activate(options[1])); track.Selected = options[1]; surface.CommitScene();
+        double target = Node(surface.Scene!, root).SegmentScroll!.Value.Target;
+        shell.Renderer.ReducedMotion = true; deadline = DateTime.UtcNow.AddSeconds(2);
+        while (scroll.OffsetX != target && DateTime.UtcNow < deadline) await Task.Delay(16).ConfigureAwait(true);
+        AssertEqual(target, scroll.OffsetX);
+        Console.WriteLine("PASS: selector viewport clock moves through intermediate frames and supports reversal, wheel interruption and reduced motion");
     }
 
     private static async Task VerifyPagerNativeDragAndClock(
