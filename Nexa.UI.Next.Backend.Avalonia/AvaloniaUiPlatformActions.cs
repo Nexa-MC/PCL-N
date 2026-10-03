@@ -14,11 +14,13 @@ public enum AvaloniaUiInputKind { Keyboard, Mouse, Touch, Controller }
 public sealed class AvaloniaUiPlatformActions
 {
     private TopLevel? _owner;
+    private bool _resizeEnabled = true;
     private readonly PostNavigationDoubleClick _doubleClick = new();
     private IPointer? _consumedPointer;
     internal void Attach(TopLevel owner)
     {
         _owner = owner;
+        if (owner is Window attachedWindow) attachedWindow.CanResize = _resizeEnabled;
         if (owner is AvaloniaUiShellWindow shellWindow) shellWindow.CloseGuard = () => CloseRequested?.Invoke() ?? true;
         owner.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         owner.AddHandler(InputElement.PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -31,6 +33,15 @@ public sealed class AvaloniaUiPlatformActions
 
     /// <summary>Returns false to defer closing while the product resolves pending work.</summary>
     public Func<bool>? CloseRequested { get; set; }
+
+    /// <summary>Applies a persisted window-size preference, including before native attachment.</summary>
+    public void SetWindowResizeEnabled(bool enabled)
+    {
+        _resizeEnabled = enabled;
+        if (_owner is not Window window) return;
+        if (Dispatcher.UIThread.CheckAccess()) window.CanResize = enabled;
+        else Dispatcher.UIThread.Post(() => window.CanResize = _resizeEnabled);
+    }
 
     public event Action<AvaloniaUiInputKind>? InputObserved;
     public event Action<IReadOnlyList<string>>? FilesDropped;

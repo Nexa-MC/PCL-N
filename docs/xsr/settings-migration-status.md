@@ -16,12 +16,16 @@ restart, overrides, invalid input, and the Desktop intent routes.
 
 ## Next consumer slices
 
+XSR-762 also delivers live animation preference and window-size lock. Both apply from
+committed state without opening Settings. The positive animation selector has correct
+disable-flag polarity; native maximize/resize observes the lock.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions, vendor preference; compatibility checks remain mandatory until a separate safe policy exists |
 | Game | Title, isolation, launch visibility, process priority, wrapper/hooks and default server; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Source selection, concurrency, bandwidth, retry, proxy and DNS; apply to new work without changing active transactions unexpectedly |
-| Appearance/general | Live animation preference, window lock, theme and supported system integration; platform actions belong to Host |
+| Appearance/general | Frame-rate policy, low power, theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |
 | Storage | Supported export/import, migration preview and cleanup; use existing service commands and transaction contracts |
 

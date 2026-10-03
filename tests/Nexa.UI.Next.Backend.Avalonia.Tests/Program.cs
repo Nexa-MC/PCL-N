@@ -709,7 +709,14 @@ internal static partial class Program
     private static async Task VerifyPlatformClipboard(AvaloniaUiShellWindow window)
     {
         AvaloniaUiPlatformActions actions = new();
+        actions.SetWindowResizeEnabled(false);
         actions.Attach(window);
+        AssertFalse(window.CanResize);
+        var maximize = window.GetVisualDescendants().OfType<AvaloniaNativeWindowActions.WindowActionButton>().ElementAt(1);
+        AssertFalse(maximize.IsEnabled);
+        actions.SetWindowResizeEnabled(true);
+        AssertTrue(window.CanResize);
+        AssertTrue(maximize.IsEnabled);
         const string code = "ABCD-EFGH";
         await actions.CopyTextAsync(code).ConfigureAwait(true);
         AssertEqual(code, await window.Clipboard!.TryGetTextAsync().ConfigureAwait(true));

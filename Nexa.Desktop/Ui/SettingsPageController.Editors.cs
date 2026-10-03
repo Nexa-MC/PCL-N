@@ -49,6 +49,7 @@ internal sealed partial class SettingsPageController
         foreach (string value in values)
         {
             string label = value switch { "true" => "开启", "false" => "关闭", "fullscreen" => "全屏", "windowed" => "窗口", "auto" => "跟随系统", "zh-Hans" => "简体中文", "zh-Hant" => "繁體中文", "en" => "English", _ => value };
+            if (entry.InvertBoolean) label = value == "true" ? "关闭" : "开启";
             bool nativeName = entry.SettingKey == "general.language" && value != "auto";
             double optionWidth = Math.Max(48, (nativeName ? label : _shell.Renderer.LocalizeText(label)).Sum(character => character > 127 ? 12 : 7) + 24);
             var option = ActionButton(track, "SettingsOption." + entry.SettingKey + "." + value, label, Choice, optionWidth);

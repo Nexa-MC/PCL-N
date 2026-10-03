@@ -542,6 +542,7 @@ public sealed class AvaloniaUiShellWindow : Window
 
     private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
+        if (e.Property == CanResizeProperty) _windowActions.SetResizeEnabled(CanResize);
         if (e.Property == WindowStateProperty)
             _surface.SetRasterPresentationEnabled(WindowState != WindowState.Minimized);
         if (e.Property == IsActiveProperty || e.Property == WindowStateProperty)
@@ -652,8 +653,10 @@ public sealed class AvaloniaUiShellWindow : Window
 
     private void OnMaximizeRequested(object? sender, EventArgs e) => ToggleMaximized();
 
-    private void ToggleMaximized() =>
-        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    private void ToggleMaximized()
+    {
+        if (CanResize) WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
 
     private void OnSceneCommitted(object? sender, AvaloniaUiSceneCommittedEventArgs e)
     {

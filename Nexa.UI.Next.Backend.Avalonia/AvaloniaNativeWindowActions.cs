@@ -61,6 +61,8 @@ internal sealed class AvaloniaNativeWindowActions : StackPanel, IDisposable
 
     public void SetMaximized(bool maximized) => _maximizeIcon.Source = maximized ? "pcl/window-restore" : "lucide/square";
 
+    public void SetResizeEnabled(bool enabled) => _buttons[1].IsEnabled = enabled;
+
     public void Dispose()
     {
         if (_disposed)
