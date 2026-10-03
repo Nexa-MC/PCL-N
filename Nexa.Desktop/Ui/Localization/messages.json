@@ -8733,5 +8733,30 @@
     "source": "失败后额外重试一次；不影响来源切换与文件校验。",
     "en": "Retry a failed file once. Source failover and file verification stay enabled.",
     "zh-Hant": "失敗後額外重試一次；不影響來源切換與檔案驗證。"
+  },
+  {
+    "source": "系统区域",
+    "zh-Hant": "系統區域",
+    "en": "System region"
+  },
+  {
+    "source": "中国大陆",
+    "zh-Hant": "中國大陸",
+    "en": "China mainland"
+  },
+  {
+    "source": "中国台湾",
+    "zh-Hant": "中國台灣",
+    "en": "Taiwan"
+  },
+  {
+    "source": "美国",
+    "zh-Hant": "美國",
+    "en": "United States"
+  },
+  {
+    "source": "用于日期和数字；更改后重启生效。",
+    "zh-Hant": "用於日期和數字；變更後重新啟動生效。",
+    "en": "Formats dates and numbers. Restart to apply changes."
   }
 ]

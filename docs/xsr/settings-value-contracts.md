@@ -10,7 +10,7 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 | Key | Type / domain | Builtin | Scope | Legacy source | Applies | Export |
 |---|---|---|---|---|---|---|
 | general.language | Enum (auto, zh-Hans, zh-Hant, en) | auto | G | UiLanguage | Immediate | Yes |
-| general.region | Text | auto | G | UiFormatCulture | Restart | Yes |
+| general.region | Named formatting culture / auto / follow-language (legacy ui-language accepted) | auto | G | UiFormatCulture | Restart | Yes |
 | appearance.animations-disabled | Bool | false | G | SystemDisableUiAnimations | Immediate | Yes |
 | appearance.animation-fps | Number, 1–240 fps | 59 | G | UiAniFPS | Immediate | Yes |
 | appearance.lock-window | Bool | false | G | UiLockWindowSize | Immediate | Yes |
@@ -46,10 +46,10 @@ The animation row is positive UI wording backed by a negative legacy flag; catal
 
 Legacy memory uses the existing piecewise slider-to-MiB conversion. A custom new MiB value is stored exactly; it is not rounded back into a lossy slider coordinate. Global Auto/reset clears the old manual policy. Stage 4 consumers must read the effective contract before exposing the new editor. Window mode maps fullscreen to legacy 0 and windowed to 1. Existing unchanged legacy keys remain byte-compatible.
 
-Apply timing is not a claim that a setting has a working consumer. The launch-policy
+Apply timing is not a claim that a setting has a working consumer.
 Consumers now include memory/Java acquisition, animation/window lock, game-file batch
 and source policy, default servers/automatic repair, and preferred Java distributions;
-see XSR-761 through XSR-766 and the current migration ledger. Other unconnected entries
+and startup region formatting; see XSR-761 through XSR-767 and the current migration ledger. Other unconnected entries
 remain unavailable. Profile and Temporary have resolution
 semantics but reject public mutation.
 

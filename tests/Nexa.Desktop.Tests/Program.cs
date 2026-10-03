@@ -59,6 +59,8 @@ internal static partial class Program
         ("language catalog covers locales templates and fallbacks", LanguageCatalogCoversLocalesTemplatesAndFallbacks),
         ("language settings switch live without rebuilding controls", LanguageSettingSwitchesLiveAndPreservesControls),
         ("first run uses system language without settings state", FirstRunUsesSystemLanguageWithoutSettingsState),
+        ("region formatting uses startup policy and restores culture", RegionFormattingUsesStartupPolicyAndRestoresCulture),
+        ("region selector preserves custom cultures and saves presets", RegionSelectorPreservesCustomCulturesAndSavesPresets),
         ("installed content online info preserves local details and rejects stale results", InstalledContentOnlineInfoKeepsLocalDetailsAndDiscardsStaleResults),
         ("resource optional dependencies wait for user choice", ResourceOptionalDependenciesWaitForUserChoice),
         ("resources page downloads by identity and projects Chinese text", ResourcesPageDownloadsByIdentityAndProjectsChineseText),

@@ -45,12 +45,15 @@ internal sealed partial class SettingsPageController
         _shell.Tree.SetComponent(track, new XsrUiScroll());
         _shell.Tree.SetComponent(track, new XsrUiScrollGesture());
         Dictionary<XsrUiEntityId, string> options = [];
-        string[] values = entry.Definition!.Kind == SettingsValueKind.Boolean ? ["false", "true"] : entry.Definition.Choices.Split('|');
+        string[] values = entry.SettingKey == "general.region" ? ["auto", "follow-language", "zh-CN", "zh-TW", "en-US"]
+            : entry.Definition!.Kind == SettingsValueKind.Boolean ? ["false", "true"] : entry.Definition.Choices.Split('|');
         double width = 0;
         foreach (string value in values)
         {
             string label = value switch { "true" => "开启", "false" => "关闭", "fullscreen" => "全屏", "windowed" => "窗口", "auto" => "跟随系统", "zh-Hans" => "简体中文", "zh-Hant" => "繁體中文", "en" => "English", _ => value };
             if (entry.InvertBoolean) label = value == "true" ? "关闭" : "开启";
+            if (entry.SettingKey == "general.region") label = value switch
+            { "auto" => "系统区域", "follow-language" => "界面语言", "zh-CN" => "中国大陆", "zh-TW" => "中国台湾", "en-US" => "美国", _ => value };
             if (entry.SettingKey == "network.game-source") label = value switch
             { "official-first" => "官方优先", "mirrors-first" => "镜像优先", "official-only" => "仅官方", _ => value };
             if (entry.SettingKey == "java.vendor") label = value switch
@@ -73,6 +76,24 @@ internal sealed partial class SettingsPageController
         foreach (var selector in _selectors.Values)
         {
             string raw = _values?.Values.FirstOrDefault(item => item.Key == selector.Editor.Entry.SettingKey)?.Value.Value ?? selector.Options.Values.First();
+            if (selector.Editor.Entry.SettingKey == "general.region")
+            {
+                if (raw == "ui-language") raw = "follow-language";
+                if (!selector.Options.Values.Contains(raw, StringComparer.Ordinal))
+                {
+                    // Existing custom cultures stay reachable; the form never substitutes a preset.
+                    try
+                    {
+                        string name = System.Globalization.CultureInfo.GetCultureInfo(raw).NativeName;
+                        var custom = ActionButton(selector.Track, "SettingsOption.general.region." + raw, name, Choice, 48);
+                        DesktopLiteralText.Preserve(_shell.Tree, custom);
+                        _shell.Tree.SetComponent(custom, new XsrUiSelection());
+                        selector.Options[custom] = raw;
+                        _shell.Tree.MarkDirty(selector.Track, XsrUiDirtyKinds.Layout);
+                    }
+                    catch (System.Globalization.CultureNotFoundException) { }
+                }
+            }
             foreach (var option in selector.Options)
             {
                 bool selected = option.Value == raw;

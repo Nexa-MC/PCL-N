@@ -39,6 +39,11 @@ XSR-766 delivers official-first, mirrors-first and official-only source policy f
 files. Installation and launch repair share it; metadata authority, digest requirements
 and foreign regional original-source policy remain unchanged.
 
+XSR-767 delivers region formatting independently of interface language and regional
+network/authorization policy. System, follow-language and named cultures persist through
+the same Service contract. New format preferences apply at the next Desktop session;
+the form preserves existing custom cultures in its draggable selector.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions; compatibility checks remain mandatory until a separate safe policy exists |

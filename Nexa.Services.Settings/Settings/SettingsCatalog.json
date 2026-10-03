@@ -57,7 +57,7 @@
     "kind": "Setting",
     "key": "general.region",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.7abc4abe665d",

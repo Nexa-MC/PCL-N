@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Xml.Linq;
 using Nexa.Desktop.Ui;
 using Nexa.Services.Settings;
@@ -8,6 +9,63 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void RegionFormattingUsesStartupPolicyAndRestoresCulture()
+    {
+        CultureInfo original = CultureInfo.CurrentCulture;
+        CultureInfo? originalDefault = CultureInfo.DefaultThreadCurrentCulture;
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        var policy = fixture.Foundation.Host.SettingsPolicy;
+        void Set(string key, string value) => AssertTrue(policy.Set(new(key, SettingsLayer.Global, new(SettingsOverrideMode.Custom, value))).IsSuccess);
+        Set("general.language", "en");
+        using (var session = new DesktopLanguageSession(fixture.Shell, fixture.Store, "zh-CN", CultureInfo.GetCultureInfo("fr-FR")))
+        {
+            AssertEqual("fr-FR", CultureInfo.CurrentCulture.Name); // UI language and system format are independent.
+            AssertEqual("Settings", fixture.Shell.Renderer.LocalizeText("设置"));
+            Set("general.region", "zh-TW"); fixture.Shell.Render(new(1000, 650));
+            AssertEqual("fr-FR", CultureInfo.CurrentCulture.Name); // Restart preference, not a live mutation.
+        }
+        AssertEqual(original, CultureInfo.CurrentCulture);
+        AssertEqual(originalDefault, CultureInfo.DefaultThreadCurrentCulture);
+        using (var session = new DesktopLanguageSession(fixture.Shell, fixture.Store, "zh-CN", CultureInfo.GetCultureInfo("fr-FR")))
+        {
+            AssertEqual("zh-TW", CultureInfo.CurrentCulture.Name);
+            DateTime date = new(2026, 10, 3);
+            AssertEqual(date.ToString("d", CultureInfo.GetCultureInfo("zh-TW")), date.ToString("d", CultureInfo.CurrentCulture));
+        }
+        foreach (string preference in new[] { "follow-language", "ui-language" })
+        {
+            Set("general.region", preference); Set("general.language", "zh-Hant");
+            using var session = new DesktopLanguageSession(fixture.Shell, fixture.Store, "zh-CN", CultureInfo.GetCultureInfo("fr-FR"));
+            AssertEqual("zh-TW", CultureInfo.CurrentCulture.Name);
+            Set("general.language", "en"); fixture.Shell.Render(new(1000, 650));
+            AssertEqual("en-US", CultureInfo.CurrentCulture.Name);
+        }
+        AssertEqual(original, CultureInfo.CurrentCulture);
+        AssertEqual(originalDefault, CultureInfo.DefaultThreadCurrentCulture);
+    }
+
+    private static void RegionSelectorPreservesCustomCulturesAndSavesPresets()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.region", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "fr-FR"))).IsSuccess);
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
+            fixture.Foundation.Commands, fixture.Store, fixture.Feedback);
+        fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(settings.Page);
+        var scene = fixture.Shell.Render(new(1200, 650));
+        var track = FindByKey(fixture.Shell, scene, "SettingsSelector.general.region");
+        AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiScrollGesture>(track.Entity) is not null);
+        var custom = FindByKey(fixture.Shell, scene, "SettingsOption.general.region.fr-FR");
+        AssertEqual(CultureInfo.GetCultureInfo("fr-FR").NativeName, custom.Text);
+        AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiSelection>(custom.Entity)!.IsSelected);
+        AssertFalse(fixture.Shell.Tree.GetComponent<XsrUiText>(custom.Entity)!.Localize);
+        var option = FindByKey(fixture.Shell, scene, "SettingsOption.general.region.en-US");
+        Emit(fixture.Intents, "ui.settings.choice", option.Entity); fixture.Shell.Render(new(1200, 650));
+        AssertTrue(SpinWait.SpinUntil(() => fixture.Foundation.Host.Settings.GetValue<string>("UiFormatCulture").Value == "en-US", TimeSpan.FromSeconds(5)));
+        scene = fixture.Shell.Render(new(760, 650));
+        var constrained = FindByKey(fixture.Shell, scene, "SettingsSelector.general.region");
+        AssertTrue(constrained.Rect.Width < track.Rect.Width);
+    }
+
     private static void LanguageCatalogCoversLocalesTemplatesAndFallbacks()
     {
         UiLocalizationCatalog catalog = new();

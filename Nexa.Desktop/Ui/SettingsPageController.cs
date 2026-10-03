@@ -374,7 +374,7 @@ internal sealed partial class SettingsPageController : IDisposable
             _shell.Tree.GetComponent<XsrUiElement>(label)!.VerticalAlignment = XsrUiAlignment.Start;
             BuildArgumentEditor(row, entry); return;
         }
-        if (definition.Kind is SettingsValueKind.Enum or SettingsValueKind.Boolean)
+        if (definition.Kind is SettingsValueKind.Enum or SettingsValueKind.Boolean || entry.SettingKey == "general.region")
         {
             var slot = Element(row, "SettingsControlSlot", XsrUiSemanticRole.None, null, height: 40);
             _shell.Tree.GetComponent<XsrUiElement>(slot)!.Weight = 1;
@@ -405,6 +405,7 @@ internal sealed partial class SettingsPageController : IDisposable
 
     private static string? SettingHint(string? key) => key switch
     {
+        "general.region" => "用于日期和数字；更改后重启生效。",
         "game.jvm" => "每行一个参数，应用后用于下次启动。",
         "install.inherit-vanilla" => "关闭时安装独立版本；开启后依赖原版。下次安装生效。",
         "game.arguments" => "传递给 Minecraft 的额外启动参数。",

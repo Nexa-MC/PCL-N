@@ -10,6 +10,30 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
+    private static void RegionFormattingSettingIsValidatedAndDurable()
+    {
+        var port = new InMemorySettingsPort();
+        var (_, policy) = PolicyFixture(port);
+        AssertEqual(SettingsApplyTiming.Restart, SettingsPolicySchema.ByKey["general.region"].Timing);
+        AssertEqual("auto", Effective(policy, "general.region").Value.Value);
+        foreach (string culture in new[] { "auto", "follow-language", "ui-language", "zh-CN", "zh-TW", "en-US", "fr-FR", "de-DE" })
+        {
+            AssertTrue(policy.Set(new("general.region", SettingsLayer.Global, new(SettingsOverrideMode.Custom, culture))).IsSuccess);
+            var (_, reopened) = PolicyFixture(port);
+            AssertEqual(culture, Effective(reopened, "general.region").Value.Value);
+        }
+        foreach (string invalid in new[] { "", " ", "en/US", "en-US\0", new string('x', 86) })
+            AssertFalse(policy.Set(new("general.region", SettingsLayer.Global, new(SettingsOverrideMode.Custom, invalid))).IsSuccess);
+        AssertEqual("de-DE", Effective(policy, "general.region").Value.Value);
+        AssertFalse(policy.Set(new("general.region", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "en-US"), Path.GetFullPath("instance"))).IsSuccess);
+        AssertEqual(SettingsCapabilityAvailability.Available, SettingsCatalog.Read(new()).Entries.Single(entry => entry.SettingKey == "general.region").Availability);
+        AssertTrue(policy.Set(new("general.region", SettingsLayer.Global, new(SettingsOverrideMode.Inherit))).IsSuccess);
+        AssertEqual("auto", Effective(policy, "general.region").Value.Value);
+        port.Save(new Dictionary<string, string> { ["UiFormatCulture"] = "ui-language" });
+        var (_, legacy) = PolicyFixture(port);
+        AssertEqual("ui-language", Effective(legacy, "general.region").Value.Value);
+    }
+
     private static void LanguageSettingIsImmediateValidatedAndDurable()
     {
         var port = new InMemorySettingsPort();
