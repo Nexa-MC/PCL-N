@@ -84,7 +84,8 @@ public static class SettingsPolicySchema
             Choices: "official-first|mirrors-first|official-only"),
         new("install.inherit-vanilla", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.NextTask),
         new("diagnostics.telemetry", SettingsValueKind.Boolean, "false", false, false, "TelemetryExperienceProgram", SettingsApplyTiming.Immediate),
-        new("updates.channel", SettingsValueKind.Enum, "alpha", false, false, null, SettingsApplyTiming.NextTask, Choices: "stable|alpha|beta|ci"),
+        new("updates.channel", SettingsValueKind.Enum, "build", false, false, null, SettingsApplyTiming.NextTask, Choices: "build|stable|alpha|beta|ci"),
+        new("updates.auto-check", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
         new("developer.enabled", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
     ]);
     public static FrozenDictionary<string, SettingsPolicyDefinition> ByKey { get; } = Definitions.ToFrozenDictionary(item => item.Key, StringComparer.Ordinal);

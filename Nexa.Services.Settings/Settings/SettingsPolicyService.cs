@@ -94,6 +94,8 @@ public sealed partial class SettingsPolicyService
             }
             if (inherited is null && definition.Key == "game.window-mode" && raw.GetValueOrDefault("LaunchArgumentWindowType") == "0")
                 inherited = new(SettingsOverrideMode.Custom, "fullscreen");
+            if (inherited is null && definition.Key == "updates.auto-check" && raw.GetValueOrDefault("SystemUpdateMode") == "3")
+                inherited = new(SettingsOverrideMode.Custom, "false");
             if (inherited is null && definition.Key == "game.process-priority" && raw.GetValueOrDefault("LaunchArgumentPriority") is "0" or "2" or "3" or "4")
                 inherited = new(SettingsOverrideMode.Custom, raw["LaunchArgumentPriority"] switch
                 { "0" => "above-normal", "2" => "below-normal", "3" => "high", _ => "real-time" });

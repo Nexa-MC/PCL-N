@@ -2899,7 +2899,7 @@
     "section": "Nexa 更新",
     "label": "自动检查更新",
     "kind": "Setting",
-    "key": null,
+    "key": "updates.auto-check",
     "developer": false,
     "availability": "NotImplemented"
   },

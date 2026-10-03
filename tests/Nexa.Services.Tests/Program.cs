@@ -6,6 +6,7 @@ internal static partial class Program
     [
         ("installed batches reuse partial identity and refresh caches", InstalledBatchReusesPartialIdentityAndRefreshesCaches),
         ("explicit resource refresh bypasses merged detail cache", ExplicitResourceRefreshBypassesMergedDetailCache),
+        ("update preferences follow build and persist explicit choices", Sync(UpdatePreferencesFollowBuildAndPersistExplicitChoices)),
         ("low power setting retains legacy scope and durability", Sync(LowPowerSettingRetainsLegacyScopeAndDurability)),
         ("Java registration persists and removal keeps files", JavaRegistrationPersistsAndRemovalKeepsFiles),
         ("Java registration failure and late probe never commit", JavaRegistrationFailureAndLateProbeNeverCommit),

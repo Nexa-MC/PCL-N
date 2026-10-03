@@ -1,4 +1,7 @@
 [
+  {"en":"Applies to the next check. CI uses Alpha updates. Updates already in progress keep their original channel.","zh-Hant":"用於下次檢查；CI 使用 Alpha 更新。已開始的更新保持原通道。","source":"用于下次检查；CI 使用 Alpha 更新。已开始的更新保持原通道。"},
+  {"en":"Check once at startup. Manual checks remain available when off. Installing an update requires confirmation.","zh-Hant":"啟動時檢查一次；關閉後仍可手動檢查。安裝更新前需要確認。","source":"启动时检查一次；关闭后仍可手动检查。安装更新前需要确认。"},
+  {"en":"Follow current build","zh-Hant":"跟隨目前版本","source":"跟随当前版本"},
   {"en":"Matching online information","zh-Hant":"正在關聯線上資訊","source":"正在关联在线信息"},
   {"en":"Online information is unavailable","zh-Hant":"線上資訊尚不可用","source":"在线信息尚不可用"},
   {"en":"Online information refreshed. Some files could not be fully identified","zh-Hant":"線上資訊已重新整理，部分檔案未能完整識別","source":"在线信息已刷新，部分文件未能完整识别"},

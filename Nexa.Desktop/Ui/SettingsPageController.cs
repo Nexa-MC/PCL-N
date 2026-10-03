@@ -424,6 +424,8 @@ internal sealed partial class SettingsPageController : IDisposable
     private static string? SettingHint(string? key) => key switch
     {
         "general.region" => "用于日期和数字；更改后重启生效。",
+        "updates.channel" => "用于下次检查；CI 使用 Alpha 更新。已开始的更新保持原通道。",
+        "updates.auto-check" => "启动时检查一次；关闭后仍可手动检查。安装更新前需要确认。",
         "game.process-priority" => "下次启动生效；系统可能拒绝提高优先级。",
         "game.jvm" => "每行一个参数，应用后用于下次启动。",
         "install.inherit-vanilla" => "关闭时安装独立版本；开启后依赖原版。下次安装生效。",
@@ -568,6 +570,6 @@ internal sealed partial class SettingsPageController : IDisposable
     };
     public void Dispose()
     {
-        _disposed = true; CancelSettingsTransfer(); CancelJavaInventory(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
+        _disposed = true; CancelSettingsTransfer(); CancelJavaInventory(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _updateCheckStop?.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }
 }

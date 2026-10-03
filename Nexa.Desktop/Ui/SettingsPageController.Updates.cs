@@ -1,3 +1,4 @@
+using Nexa.Services.Settings;
 using Nexa.Services.Updates;
 using Nexa.UI.Next;
 using Nexa.Xsr;
@@ -27,6 +28,12 @@ internal sealed partial class SettingsPageController
         || _automaticStatus?.Phase is "verifying" or "downloading" or "preparing" or "activating";
     private XsrQueryRouter? _updateQueries;
     private NexaUpdateQuery? _updateQuery;
+    private NexaUpdateQuery? _buildUpdateQuery, _updateReadingQuery;
+    private Task<XsrResult<SettingsEffectiveSnapshot>>? _updatePolicyReading;
+    private long _updatePolicyRevision = -1;
+    private bool _startupUpdateChecked;
+    private CancellationTokenSource? _updateCheckStop;
+    private string? _updateOfferChannel;
     private Action<Uri>? _openUpdateLink;
     private Task<XsrResult<NexaUpdateStatus>>? _updateReading;
     private NexaUpdateOffer? _updateOffer;
@@ -36,7 +43,7 @@ internal sealed partial class SettingsPageController
     internal void ConfigureUpdates(XsrQueryRouter queries, NexaUpdateQuery query, Action<Uri> open,
         IAutomaticUpdateControl? automatic = null, Action? restart = null)
     {
-        _updateQueries = queries; _updateQuery = query; _openUpdateLink = open;
+        _updateQueries = queries; _updateQuery = _buildUpdateQuery = query; _openUpdateLink = open;
         _automaticUpdates = automatic; _restartForUpdate = restart;
         if (automatic is not null) { _automaticReading = automatic.ReadAsync(_updateStop.Token); WakeOnPlatformCompletion(_automaticReading); }
     }
@@ -49,7 +56,7 @@ internal sealed partial class SettingsPageController
         if (id == InstallUpdate && !AutomaticUpdateInProgress && _automaticStatus?.CanInstall == true && _automaticUpdates is not null && _updateQuery is not null)
         {
             string? version = _updateOffer?.Version ?? _automaticStatus.Version;
-            string? channel = _updateOffer is null ? _automaticStatus.Channel : _updateQuery.Channel;
+            string? channel = _updateOffer is null ? _automaticStatus.Channel : _updateOfferChannel;
             if (version is null || channel is not ("alpha" or "beta" or "stable")) return;
             _automaticRecoveryAttempted = true;
             _automaticInstalling = _automaticUpdates.InstallAsync(version, channel, _updateStop.Token);
@@ -57,11 +64,8 @@ internal sealed partial class SettingsPageController
         }
         if (id == RollbackUpdate && !AutomaticUpdateInProgress && _automaticStatus?.CanRollback == true && _automaticUpdates is not null)
         { _automaticRecoveryAttempted = true; _automaticInstalling = _automaticUpdates.RollbackAsync(_updateStop.Token); WakeOnPlatformCompletion(_automaticInstalling); return; }
-        if (id == CheckUpdate && _updateReading is null && _updateQuery is not null && _updateQueries?.TryResolve(NexaUpdateContract.Check, out var route) == true)
+        if (id == CheckUpdate && _updateReading is null && StartUpdateCheck())
         {
-            _updateStatus = "正在检查更新…";
-            _updateReading = _updateQueries.QueryAsync<NexaUpdateQuery, NexaUpdateStatus>(route, _updateQuery, cancellationToken: _updateStop.Token).AsTask();
-            WakeOnPlatformCompletion(_updateReading);
             BuildSections();
         }
         else if (_updateOffer is { } offer && id != CheckUpdate)
@@ -75,13 +79,64 @@ internal sealed partial class SettingsPageController
 
     private void UpdateReleaseCheck()
     {
+        UpdateDiscoveryPreferences();
         UpdateAutomaticState();
         if (_updateReading is not { IsCompleted: true } task) return;
         _updateReading = null;
+        _updateCheckStop?.Dispose(); _updateCheckStop = null;
+        if (_updateReadingQuery != _updateQuery) { _ = task.Exception; return; }
         _updateOffer = PendingQuery.Succeeded(task) ? task.Result.Value!.Offer : null;
+        _updateOfferChannel = _updateOffer is null ? null : _updateReadingQuery?.Channel;
         _updateStatus = !PendingQuery.Succeeded(task) ? "暂时无法检查更新，请重试。"
             : _updateOffer is null ? "此通道没有可用的新版本。" : "新版本 " + _updateOffer.Version + " 已可下载。";
         if (_selected == "advanced") BuildSections();
+    }
+
+    private bool StartUpdateCheck()
+    {
+        if (_updateQuery is null || _updateQueries?.TryResolve(NexaUpdateContract.Check, out var route) != true) return false;
+        _updateCheckStop = CancellationTokenSource.CreateLinkedTokenSource(_updateStop.Token);
+        _updateReadingQuery = _updateQuery;
+        _updateStatus = "正在检查更新…";
+        _updateReading = _updateQueries.QueryAsync<NexaUpdateQuery, NexaUpdateStatus>(route, _updateReadingQuery, cancellationToken: _updateCheckStop.Token).AsTask();
+        WakeOnPlatformCompletion(_updateReading);
+        return true;
+    }
+
+    private void UpdateDiscoveryPreferences()
+    {
+        if (_buildUpdateQuery is null || _instanceDirectory is not null) return;
+        long revision = _store.Read<long>(_revisionId).Value;
+        if (_updatePolicyReading is null && _updatePolicyRevision != revision && _queries.TryResolve(SettingsPolicyContract.EffectiveQuery, out var route))
+        {
+            _updatePolicyReading = _queries.QueryAsync<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(route, new()).AsTask();
+            WakeOnPlatformCompletion(_updatePolicyReading);
+        }
+        if (_updatePolicyReading is not { IsCompleted: true } reading) return;
+        _updatePolicyReading = null;
+        if (!PendingQuery.Succeeded(reading)) { _ = reading.Exception; _updatePolicyRevision = revision; return; }
+        var snapshot = reading.Result.Value!;
+        if (snapshot.Revision != revision) return;
+        _updatePolicyRevision = snapshot.Revision;
+        var policy = SettingsUpdatePolicy.FromSnapshot(snapshot, _buildUpdateQuery.Channel);
+        var query = _buildUpdateQuery with { Channel = policy.Channel };
+        bool changed = query != _updateQuery;
+        if (changed)
+        {
+            _updateCheckStop?.Cancel(); _updateCheckStop?.Dispose(); _updateCheckStop = null;
+            if (_updateReading is { } retired)
+                _ = retired.ContinueWith(task => { _ = task.Exception; }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            _updateReading = null; _updateReadingQuery = null;
+            _updateQuery = query; _updateOffer = null; _updateOfferChannel = null;
+            if (!AutomaticUpdateInProgress && !UpdateNeedsRestart)
+                _updateStatus = "通过 Cloudflare 检查当前平台的新版本。";
+        }
+        if (!_startupUpdateChecked)
+        {
+            _startupUpdateChecked = true;
+            if (policy.AutomaticCheck) StartUpdateCheck();
+        }
+        if (changed && _visible && _selected == "advanced" && _catalog is not null) BuildSections();
     }
 
     private void UpdateAutomaticState()
@@ -140,13 +195,15 @@ internal sealed partial class SettingsPageController
     {
         if (_updateQuery is null) return;
         var card = SettingsCard("SettingsUpdateCard", new(20, 18, 20, 18), spacing: 10, radius: 18);
-        Text(card, "NexaCL " + _updateQuery.CurrentVersion, 19, Ink, 28, 600);
+        var header = Stack(card, "SettingsUpdateHeader", XsrUiOrientation.Horizontal, 12);
+        var title = Text(header, "NexaCL " + _updateQuery.CurrentVersion, 19, Ink, 28, 600);
+        _shell.Tree.GetComponent<XsrUiElement>(title)!.Weight = 1;
+        var check = RefreshIcon(header, "SettingsCheckUpdate", CheckUpdate);
+        _shell.Tree.GetComponent<XsrUiInput>(check)!.Enabled = _updateReading is null;
         Text(card, _updateStatus, 13, Muted, 22);
         if (AutomaticUpdateInProgress)
             Text(card, _automaticStatus?.Phase switch { "downloading" => "正在下载并校验", "preparing" => "正在准备新版本", "activating" => "正在切换版本", _ => "正在验证发布信息" }, 13, Muted, 22);
         var actions = Stack(card, "SettingsUpdateActions", XsrUiOrientation.Horizontal, 10);
-        var check = ActionButton(actions, "SettingsCheckUpdate", _updateReading is null ? "检查更新" : "正在检查", CheckUpdate, 100);
-        _shell.Tree.GetComponent<XsrUiInput>(check)!.Enabled = _updateReading is null;
         if (_updateOffer is not null)
         {
             if (_automaticStatus?.CanInstall == true && !AutomaticUpdateInProgress && _updateQuery.Channel is "alpha" or "beta" or "stable")
