@@ -95,8 +95,13 @@ class InstallScopeTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     package.validate_payload(root, platform)
                 host.write_bytes(b"host")
+                helper = root / ("Nexa.Update.Helper" + suffix)
+                with self.assertRaises(ValueError):
+                    package.validate_payload(root, platform)
+                helper.write_bytes(b"helper")
                 package.validate_payload(root, platform)
                 host.unlink()
+                helper.unlink()
 
     def test_windows_installers_require_machine_scope(self):
         root = Path(__file__).parent
@@ -123,15 +128,18 @@ class InstallScopeTests(unittest.TestCase):
             for folder in (payload, work, output):
                 folder.mkdir()
             (payload / "Nexa.Desktop").write_bytes(b"runtime")
+            (payload / "Nexa.Update.Helper").write_bytes(b"helper")
             with patch.object(package, "run") as run, patch.object(package, "archive"):
                 package.macos(payload, output, work, "Nexa-test", "2.0.0.alpha.1", "2.0.0", "arm64")
             commands = [[str(arg) for arg in call.args] for call in run.call_args_list]
             build = next(command for command in commands if command[0] == "pkgbuild")
-            self.assertEqual("/Applications", build[build.index("--install-location") + 1])
+            self.assertEqual("/", build[build.index("--install-location") + 1])
             self.assertEqual("recommended", build[build.index("--ownership") + 1])
             with (work / "components.plist").open("rb") as stream:
                 component = plistlib.load(stream)[0]
             self.assertFalse(component["BundleIsRelocatable"])
             self.assertTrue(component["BundleHasStrictIdentifier"])
-            self.assertTrue((work / "macos-root/Nexa.app/Contents/MacOS/Nexa.Desktop").exists())
+            self.assertTrue((work / "macos-root/Library/Application Support/NexaCL/Nexa.app/Contents/MacOS/Nexa.Desktop").exists())
+            self.assertTrue((work / "macos-root/Library/Application Support/NexaCL/Nexa.Update.Helper").exists())
+            self.assertIn("--scripts", build)
             self.assertTrue(any(command[0] == "productbuild" and command[-1].endswith("NexaCL.pkg") for command in commands))

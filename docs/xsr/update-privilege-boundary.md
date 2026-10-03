@@ -36,12 +36,12 @@ not a guarantee that a same-user process cannot directly change those files.
 
 ## Current implementation status
 
-The production settings UI currently only discovers updates and opens installer,
-portable download and release-note URLs. No privileged automatic update helper or
-authenticated handoff is wired. Machine-wide packages and release signatures are
-prerequisites; they do not complete this boundary. Existing path-based staging and
-restart utilities must not be connected to an elevated host before this contract is
-implemented and deterministic replacement-race tests pass. SEC-07 remains open.
+XSR-754 adds a preinstalled helper, independent publisher verification, protected immutable
+slots, monotonic high-water, journal activation/recovery, rollback and unprivileged restart.
+Settings retains manual download links and enables automatic requests only for admitted
+system installations. See automatic-update-transaction.md and the XSR-754 migration note.
+Native CI and physical replacement/power-loss evidence remain acceptance gates; SEC-07 is
+not declared closed by managed tests alone. Legacy path-based utilities stay disabled.
 
 ### Audit enforcement
 UpdateStaging.ApplyPlan is now an explicit fail-closed compatibility entry point: it throws NotSupportedException before inspecting or mutating any install/staging path. There is no trusted object-bound privileged helper yet. Verified planning, download and manual installer flows remain usable; calling the legacy path-based apply API is not an authorization to replace files. A future helper must meet the same-account attacker contract before this capability is enabled.

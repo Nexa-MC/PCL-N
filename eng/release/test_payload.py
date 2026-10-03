@@ -12,7 +12,7 @@ import package
 class RuntimePayloadTests(unittest.TestCase):
     def seed(self, source, platform):
         suffix = ".exe" if platform == "win" else ""
-        keep = ["Nexa.Desktop" + suffix, "Nexa.Jvm.Host" + suffix,
+        keep = ["Nexa.Desktop" + suffix, "Nexa.Jvm.Host" + suffix, "Nexa.Update.Helper" + suffix,
                 "runtime/SkiaSharp.dll", "runtime/libSkiaSharp.so", "runtime/libHarfBuzzSharp.dylib",
                 "Nexa.Desktop.runtimeconfig.json", "Nexa.Desktop.deps.json",
                 "resources/zh-CN/Nexa.resources.dll", "assets/test.png", "licenses/library.xml"]

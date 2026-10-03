@@ -24,9 +24,9 @@
       "id": "protected-update-transaction",
       "priority": "P0",
       "state": "pending",
-      "summary": "Signed package reception and Windows handle-bound protected staging/high-water journaling primitives exist; the protected helper and end-to-end update transaction remain incomplete. Caller-controlled staged helpers are refused.",
+      "summary": "XSR-754 implements a preinstalled protected helper, independent signature/hash verification, descriptor-relative Windows/Unix slots, offline recovery, activation, rollback and restart. Six-RID native transaction evidence and physical acceptance remain pending; legacy staged helpers stay refused.",
       "evidence": ["docs/xsr/migrations/XSR-730-signed-release-manifest.md", "docs/xsr/migrations/XSR-746-update-high-water-store.md", "docs/xsr/migrations/XSR-751-update-reception-boundary.md", "docs/xsr/migrations/XSR-752-windows-update-object-admission.md", "docs/xsr/migrations/XSR-753-windows-update-high-water-journal.md"],
-      "remaining": ["Implement preinstalled protected helper, independent verification, Unix protected staging/high-water, atomic replacement, rollback and restart.", "Exercise power-loss and replacement races on all three operating systems."]
+      "remaining": ["Review six-RID protected native update and installer CI results.", "Exercise physical power-loss and replacement races on all three operating systems."]
     },
     {
       "id": "native-release-trust",

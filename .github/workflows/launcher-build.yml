@@ -140,6 +140,18 @@ jobs:
       - name: Smoke-run published executable
         shell: bash
         run: |
+          dotnet publish Nexa.Update.Helper/Nexa.Update.Helper.csproj --configuration Release \
+            -r '${{ matrix.rid }}' --self-contained true -m:1 -nodeReuse:false \
+            -p:PublishAot=true -p:StripSymbols=true \
+            -p:XsrVersionPrefix="$VERSION_PREFIX" -p:XsrVersionChannel="$VERSION_CHANNEL" \
+            -p:XsrVersionSequence="$VERSION_SEQUENCE" -p:XsrCommitShort="$COMMIT_SHORT" \
+            --output "$RUNNER_TEMP/launcher"
+          helper="$RUNNER_TEMP/launcher/Nexa.Update.Helper"
+          if [[ '${{ matrix.rid }}' == win-* ]]; then helper="${helper}.exe"; fi
+          "$helper" --validate-helper
+      - name: Smoke-run published launcher
+        shell: bash
+        run: |
           binary="$RUNNER_TEMP/launcher/Nexa.Desktop"
           if [[ '${{ matrix.rid }}' == win-* ]]; then binary="${binary}.exe"; fi
           "$binary" --validate-shell
@@ -158,6 +170,21 @@ jobs:
       - name: Verify machine-wide installation on disposable runner
         shell: bash
         run: python eng/release/smoke_install.py artifacts "$PRODUCT_VERSION" '${{ matrix.rid }}'
+      - name: Publish native update transaction regression
+        shell: bash
+        run: |
+          dotnet publish tests/Nexa.Services.Tests -c Release -r '${{ matrix.rid }}' \
+            --self-contained true -p:PublishAot=true -p:StripSymbols=true \
+            -m:1 -nodeReuse:false --output "$RUNNER_TEMP/update-transaction-tests"
+      - name: Execute protected native update and offline recovery
+        shell: bash
+        run: |
+          binary="$RUNNER_TEMP/update-transaction-tests/Nexa.Services.Tests"
+          if [[ '${{ matrix.rid }}' == win-* ]]; then
+            NEXA_TEST_PROTECTED_TRANSACTION=1 "${binary}.exe" 'automatic update native'
+          else
+            sudo env NEXA_TEST_PROTECTED_TRANSACTION=1 "$binary" 'automatic update native'
+          fi
       - name: Preserve installer diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

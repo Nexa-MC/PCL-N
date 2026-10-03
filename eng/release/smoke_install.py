@@ -44,6 +44,7 @@ def windows(root, base):
         for path in (executable, desktop, menu):
             require(path)
         check_jvm_host(host)
+        run(executable.parent / "Nexa.Update.Helper.exe", "--validate-helper", timeout=30)
         validate_runtime_contents(executable.parent)
         run(executable, "--validate-shell", timeout=30)
     run(root / (base + ".setup.exe"), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/TASKS=desktopicon",
@@ -70,6 +71,8 @@ def macos(root, base):
         try:
             run("sudo", "installer", "-pkg", mount / "NexaCL.pkg", "-target", "/")
             app = Path("/Applications/Nexa.app")
+            if not app.is_symlink() or app.resolve() != Path("/Library/Application Support/NexaCL/Nexa.app"):
+                raise RuntimeError("macOS entry must point to the protected system bundle")
             executable = app / "Contents/MacOS/Nexa.Desktop"
             require(executable)
             validate_runtime_contents(app)
@@ -80,6 +83,7 @@ def macos(root, base):
             if app.stat().st_uid != 0 or executable.stat().st_uid != 0:
                 raise RuntimeError("macOS system payload must be root owned")
             run(executable, "--validate-shell")
+            run("/Library/Application Support/NexaCL/Nexa.Update.Helper", "--validate-helper")
         finally:
             run("hdiutil", "detach", mount)
 
@@ -97,6 +101,7 @@ def linux(root, base):
             raise RuntimeError("Linux system payload must be root owned and not user writable")
         host = executable.parent / "Nexa.Jvm.Host"
         check_jvm_host(host)
+        run(executable.parent / "Nexa.Update.Helper", "--validate-helper")
         if host.stat().st_uid != 0 or host.stat().st_mode & 0o022 or not os.access(host, os.X_OK):
             raise RuntimeError("Installed JVM host has invalid ownership or permissions")
         run(executable, "--validate-shell")

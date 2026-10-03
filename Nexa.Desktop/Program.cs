@@ -94,6 +94,7 @@ internal static partial class Program
     [STAThread]
     private static async Task<int> Main(string[] args)
     {
+        if (RedirectUpdatedLauncher(args)) return 0;
         if (args is [Nexa.Services.Processes.OwnedInstallerProcess.WorkerArgument])
             return await Nexa.Services.Processes.OwnedInstallerProcess.RunWorkerAsync().ConfigureAwait(false);
         LogService? log = null;
@@ -305,7 +306,10 @@ internal static partial class Program
         var rollouts = networking.Rollouts;
         var updateService = networking.Updates;
         var updateQueries = networking.Queries;
-        settingsPage.ConfigureUpdates(updateQueries, new(buildInfo.ProductVersion, updateRid, updateChannel), platformActions.OpenHttpsUri);
+        var automaticUpdate = new Nexa.Services.Updates.AutomaticUpdateControl(new Nexa.Platform.Updates.AutomaticUpdateHost());
+        bool restartAfterUpdate = false;
+        settingsPage.ConfigureUpdates(updateQueries, new(buildInfo.ProductVersion, updateRid, updateChannel), platformActions.OpenHttpsUri,
+            automaticUpdate, () => { restartAfterUpdate = true; platformActions.RequestClose(); });
         launchPage.SettingsPage = settingsPage.Page;
         using var resourcesRuntime = ResourceCatalogRuntimeComposer.Compose(host: host, favoritesPath: Path.Combine(settingsFolder, "resources-favorites.json"), installer: installRun.Service);
         using var resourcesPage = new ResourcesPageController(shell, uiIntents, resourcesRuntime.Queries,
@@ -398,6 +402,7 @@ internal static partial class Program
         host.Logging.Info("Launcher", $"GUI lifetime completed exit_code={exitCode}; releasing session resources.");
         session.Enter(XsrLifecyclePhase.Stopping);
         session.Enter(XsrLifecyclePhase.Stopped);
+        if (restartAfterUpdate && exitCode == 0) automaticUpdate.Restart();
         return exitCode;
     }
 

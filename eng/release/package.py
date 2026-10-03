@@ -99,15 +99,34 @@ def macos(payload, output, work, base, version, prefix, arch):
     dmg_source.mkdir()
     package_root = work / "macos-root"
     package_root.mkdir()
-    shutil.copytree(app, package_root / app.name)
+    installed = package_root / "Library/Application Support/NexaCL"
+    installed.mkdir(parents=True)
+    shutil.copytree(app, installed / app.name)
+    shutil.copy2(payload / "Nexa.Update.Helper", installed / "Nexa.Update.Helper")
+    (installed / "Nexa.Update.Helper").chmod(0o755)
+    scripts = work / "macos-scripts"
+    scripts.mkdir()
+    postinstall = scripts / "postinstall"
+    postinstall.write_text('''#!/bin/sh
+set -eu
+target='/Library/Application Support/NexaCL/Nexa.app'
+link='/Applications/Nexa.app'
+if [ -L "$link" ] && [ "$(/usr/bin/readlink "$link")" = "$target" ]; then exit 0; fi
+if [ -e "$link" ] || [ -L "$link" ]; then
+  echo 'Please remove the previous /Applications/Nexa.app before installing the protected system edition.' >&2
+  exit 1
+fi
+/bin/ln -s "$target" "$link"
+''', encoding="utf-8")
+    postinstall.chmod(0o755)
     component_plist = work / "components.plist"
     with component_plist.open("wb") as stream:
-        plistlib.dump([dict(RootRelativeBundlePath=app.name, BundleIsRelocatable=False,
+        plistlib.dump([dict(RootRelativeBundlePath="Library/Application Support/NexaCL/" + app.name, BundleIsRelocatable=False,
                            BundleIsVersionChecked=False, BundleHasStrictIdentifier=True,
                            BundleOverwriteAction="upgrade")], stream)
     run("pkgbuild", "--root", package_root, "--component-plist", component_plist,
         "--identifier", "org.nexacl.launcher", "--version", prefix,
-        "--install-location", "/Applications", "--ownership", "recommended", work / "Nexa-component.pkg")
+        "--install-location", "/", "--ownership", "recommended", "--scripts", scripts, work / "Nexa-component.pkg")
     run("productbuild", "--distribution", ROOT / "eng/release/macos-distribution.xml",
         "--package-path", work, dmg_source / "NexaCL.pkg")
     run("hdiutil", "create", "-volname", "NexaCL", "-srcfolder", dmg_source, "-format", "UDZO", output / f"{base}.dmg")
@@ -155,7 +174,7 @@ def linux(payload, output, work, base, version, prefix, arch):
 
 def validate_payload(payload, platform):
     suffix = ".exe" if platform == "win" else ""
-    required = ["Nexa.Desktop" + suffix, "Nexa.Jvm.Host" + suffix]
+    required = ["Nexa.Desktop" + suffix, "Nexa.Jvm.Host" + suffix, "Nexa.Update.Helper" + suffix]
     for name in required:
         path = payload / name
         if not path.is_file() or path.stat().st_size == 0:
