@@ -185,6 +185,13 @@ jobs:
           else
             sudo env NEXA_TEST_PROTECTED_TRANSACTION=1 "$binary" 'automatic update native'
           fi
+      - name: Consume publisher-generated differential bundles under NativeAOT
+        shell: bash
+        run: |
+          python eng/release/delta_smoke_fixture.py "$RUNNER_TEMP/publisher-delta-fixture"
+          binary="$RUNNER_TEMP/update-transaction-tests/Nexa.Services.Tests"
+          if [[ '${{ matrix.rid }}' == win-* ]]; then binary="${binary}.exe"; fi
+          "$binary" --delta-publisher-smoke "$RUNNER_TEMP/publisher-delta-fixture"
       - name: Preserve installer diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -218,6 +225,14 @@ jobs:
           path: release-metadata
       - name: Require every package and calculate checksums
         run: python3 eng/release/verify.py artifacts "$PRODUCT_VERSION"
+      - name: Generate and round-trip publisher-authenticated differential packages
+        if: needs.metadata.outputs.release == 'true' && needs.metadata.outputs.channel != 'ci'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 eng/release/delta_history.py "$RUNNER_TEMP/update-history" "$PRODUCT_VERSION"
+          python3 eng/release/delta.py artifacts "$PRODUCT_VERSION" "$RUNNER_TEMP/update-history"
+          python3 eng/release/verify.py artifacts "$PRODUCT_VERSION"
       - name: Sign and independently verify the complete distribution
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}

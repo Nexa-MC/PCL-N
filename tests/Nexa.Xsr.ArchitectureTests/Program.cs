@@ -58,6 +58,7 @@ internal static partial class Program
         ValidateSemanticBoundaries(repositoryRoot, projectPaths, failures);
 
         ValidateNativeHostInterop(repositoryRoot, failures);
+        ValidateProtectedDifferentialUpdates(repositoryRoot, failures);
         ValidatePxmlControlCatalog(repositoryRoot, projectPaths, failures);
         ValidateFunctionPatchCompiler(repositoryRoot, projectPaths, failures);
         ValidateWave3Ci(repositoryRoot, failures);
@@ -89,6 +90,26 @@ internal static partial class Program
                 || source.Contains("Marshal.GetTypedObjectForIUnknown", StringComparison.Ordinal))
                 failures.Add($"{Path.GetRelativePath(repositoryRoot, file)} uses built-in COM, unsupported by NativeAOT; use generated COM wrappers.");
         }
+    }
+
+    private static void ValidateProtectedDifferentialUpdates(string root, List<string> failures)
+    {
+        foreach (string name in new[] { "AutomaticUpdateTransaction.cs", "ProtectedDeltaExtractor.cs" })
+        {
+            string file = Path.Combine(root, "Nexa.Services.Updates", "Updates", name);
+            string source = File.ReadAllText(file);
+            foreach (string forbidden in new[] { "File.Open", "File.Create", "File.Delete", "Directory.", "Path.Combine", "ExtractToDirectory", "Process.Start" })
+                if (source.Contains(forbidden, StringComparison.Ordinal))
+                    failures.Add($"{name} bypasses retained update namespace authority with {forbidden}.");
+        }
+        string transport = File.ReadAllText(Path.Combine(root, "Nexa.Services.Updates", "Updates", "GitHubUpdateReleaseSource.cs"));
+        if (!transport.Contains("IUpdateDeltaSource.ReadDeltaIndexAsync", StringComparison.Ordinal)
+            || !transport.Contains("Nexa-Delta.json.asc", StringComparison.Ordinal))
+            failures.Add("Differential discovery must use the independent fixed-repository publisher transport.");
+        string workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "launcher-build.yml"));
+        foreach (string required in new[] { "delta_history.py", "delta.py", "'automatic update native'", "eng/release/sign.py" })
+            if (!workflow.Contains(required, StringComparison.Ordinal))
+                failures.Add($"Differential publishing/native transaction validation is missing {required}.");
     }
 
     private static string ResolveRepositoryRoot(string[] args)

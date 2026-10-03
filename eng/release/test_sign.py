@@ -74,3 +74,31 @@ class SigningTests(unittest.TestCase):
         self.assertIn('ReleaseKeyFingerprint = "' + FINGERPRINT + '"', runtime)
         with keyring() as home:
             import_public(home, (repo / "GPG-PUBLIC-KEY.asc").read_bytes(), FINGERPRINT)
+
+    def test_differential_assets_join_signing_and_tampering_is_rejected(self):
+        import json
+        from delta import INDEX_NAME, delta_name, digest
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            version = "2.0.0.alpha.6"
+            for name in expected_names(version):
+                (root / name).write_bytes(b"full package" * 1024)
+            name = delta_name(version, "win-x64", "2.0.0.alpha.5")
+            (root / name).write_bytes(b"small signed delta fixture")
+            index = dict(schemaVersion=1, product="nexacl", version=version, runtimeVariant="nativeaot-self-contained",
+                         configuration="Release", patches=[dict(fromVersion="2.0.0.alpha.5", rid="win-x64", name=name,
+                            size=(root / name).stat().st_size, sha256=digest(root / name),
+                            targetSha256=digest(root / f"Nexa-{version}-win-x64.portable.zip"))])
+            (root / INDEX_NAME).write_text(json.dumps(index))
+            sign_distribution(root, version, self.public, self.private, "", self.fingerprint)
+            verify_signatures(root, version, self.public, self.fingerprint)
+            self.assertTrue((root / (INDEX_NAME + ".asc")).is_file())
+            self.assertTrue((root / (name + ".asc")).is_file())
+            original = (root / name).read_bytes()
+            (root / name).write_bytes(b"tampered")
+            with self.assertRaises(ValueError):
+                verify_signatures(root, version, self.public, self.fingerprint)
+            (root / name).write_bytes(original)
+            (root / (INDEX_NAME + ".asc")).write_bytes(b"wrong signature")
+            with self.assertRaises(ValueError):
+                verify_signatures(root, version, self.public, self.fingerprint)
