@@ -582,6 +582,13 @@ internal static partial class Program
                 is MinecraftLaunchProgressSnapshot snapshot && !snapshot.Active && snapshot.SessionId is not null,
             TimeSpan.FromSeconds(5)));
         AssertFalse(ReadProgressFlag(store, MinecraftLaunchProgressState.LaunchedKey));
+        // Launch narration finishes before background JVM metadata collection. Do not
+        // delete the fixture's manifest while that real collector is still reading it.
+        Guid sessionId = processes.ListSessions().Single().SessionId;
+        AssertTrue(SpinWait.SpinUntil(
+            () => store.ReadCollection<JvmRunContext>(store.Resolve(JvmHostStateContract.ContextsKey))
+                .Items.Any(context => context.SessionId == sessionId), TimeSpan.FromSeconds(5)));
+        await processes.DisposeAsync();
         Directory.Delete(root, recursive: true);
     }
 

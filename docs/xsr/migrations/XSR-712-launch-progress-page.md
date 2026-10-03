@@ -148,5 +148,9 @@ flow reads better as a dedicated page.
 
 ## Notes
 
+- Immediate-exit regression cleanup waits for the session's published JVM context,
+  then disposes its process service before deleting the fixture. Launch narration
+  completion is not the completion signal for asynchronous metadata collection.
+
 - Deferred polish (documented, not blocking): card box shadow, animated loader glyph, and
   the localized trivia box title reuse the existing widget hint store.
