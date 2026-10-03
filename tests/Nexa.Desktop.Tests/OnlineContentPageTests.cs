@@ -1,5 +1,6 @@
 using Nexa.Desktop.Ui;
 using Nexa.Services.Resources;
+using Nexa.Services.Settings;
 using Nexa.UI.Next;
 using Nexa.Xsr;
 using Nexa.Xsr.Runtime;
@@ -18,6 +19,7 @@ internal static partial class Program
         try
         {
             using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+            AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "zh-Hans"))).IsSuccess);
             using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries, fixture.Foundation.Commands, fixture.Store, fixture.Feedback, () => instance);
             var reads = new List<(ResourceContentOnlineQuery Query, CancellationToken Token, TaskCompletionSource<ResourceContentOnline> Completion)>();
             var queries = new XsrQueryRouterBuilder();

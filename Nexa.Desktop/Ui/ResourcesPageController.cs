@@ -78,6 +78,7 @@ internal sealed class ResourcesPageController : IDisposable
     private bool _started, _disposed, _visible;
     private long _wake;
     private XsrUiThickness _previousPadding;
+    private string? _resourcePresentationLanguage;
     internal XsrUiEntityId Page { get; }
     internal XsrUiEntityId DetailPage { get; }
 
@@ -156,6 +157,15 @@ internal sealed class ResourcesPageController : IDisposable
         }
         SyncIcons(visible ? _shell.Stage.Navigation.Current : default);
         if (!visible) return;
+        string language = DesktopResourceText.Language(_store);
+        if (_resourcePresentationLanguage is { } previous && previous != language)
+        {
+            CancelTranslations();
+            if (_shell.Stage.Navigation.Current == Page && _result is not null)
+            { if (_favoriteMode) ShowFavorites(); else ShowResults(); }
+            else if (_shell.Stage.Navigation.Current == DetailPage && _detail is not null && !_optionalVisible) ShowDetail();
+        }
+        _resourcePresentationLanguage = language;
         ProjectSidecarCaptions();
         ProjectSidecarModules();
         UpdateSegmentWidths();
@@ -200,7 +210,7 @@ internal sealed class ResourcesPageController : IDisposable
             var (entity, read) = _translations[i];
             if (!read.IsCompleted) continue;
             _translations.RemoveAt(i);
-            if (PendingQuery.Succeeded(read) && read.Result.Value?.Description is { } description)
+            if (DesktopResourceText.UsesChinese(_store) && PendingQuery.Succeeded(read) && read.Result.Value?.Description is { } description)
             {
                 var text = _shell.Tree.GetComponent<XsrUiText>(entity);
                 if (text is null) continue;
@@ -328,8 +338,8 @@ internal sealed class ResourcesPageController : IDisposable
             }));
             TrackIcon(icon, project, Page);
             var copy = Stack(row, "ResourceProjectCopy"); E(copy).Weight = 1;
-            LiteralText(copy, ProjectTitle(project.DisplayName), 15, Ink, 22, 600);
-            Translate(LiteralText(copy, project.DisplayDescription, 12, Muted, 20), project);
+            LiteralText(copy, ProjectTitle(DesktopResourceText.Name(project, _store)), 15, Ink, 22, 600);
+            Translate(LiteralText(copy, DesktopResourceText.Description(project, _store), 12, Muted, 20), project);
             Text(copy, $"{project.SourceLabel}  ·  {project.Author}  ·  {FormatDownloads(project.Downloads)} 次下载", 11, Muted, 18);
             _listActions.Add(IconButton(row, "ResourceDetails." + project.Id, "详情", "lucide/info", () =>
             {
@@ -359,10 +369,10 @@ internal sealed class ResourcesPageController : IDisposable
         var heading = Stack(_detailBody, "ResourceDetailHeading", true);
         ProjectIcon(heading, "ResourceDetailIcon", detail.Project, 64);
         var headingCopy = Stack(heading, "ResourceDetailHeadingCopy"); E(headingCopy).Weight = 1;
-        LiteralText(headingCopy, ProjectTitle(detail.Project.DisplayName), 25, Ink, 36, 650);
+        LiteralText(headingCopy, ProjectTitle(DesktopResourceText.Name(detail.Project, _store)), 25, Ink, 36, 650);
         LiteralText(headingCopy, detail.Project.Author + " · " + detail.Project.SourceLabel, 12, Muted, 24);
         _detailActions.Add(IconButton(heading, "ResourceFavorite", IsSaved(detail.Project) ? "取消收藏" : "收藏", "lucide/star", () => ToggleFavorite(detail.Project)));
-        Translate(LiteralText(_detailBody, detail.Project.DisplayDescription, 14, Muted, 68, lines: 3), detail.Project);
+        Translate(LiteralText(_detailBody, DesktopResourceText.Description(detail.Project, _store), 14, Muted, 68, lines: 3), detail.Project);
         if (!string.IsNullOrEmpty(detail.Notice)) Text(_detailBody, detail.Notice, 12, Muted, 24);
         var tools = Stack(_detailBody, "ResourceDetailTools", horizontal: true);
         var info = Text(tools, $"{detail.Project.SourceLabel}  ·  {FormatDownloads(detail.Project.Downloads)} 次下载  ·  {detail.License}", 12, Muted, 34); E(info).Weight = 1;
@@ -436,7 +446,7 @@ internal sealed class ResourcesPageController : IDisposable
     }
     private void Translate(XsrUiEntityId entity, ResourceProject project)
     {
-        if (project.Sources.Count == 0 || !_queries.TryResolve(ResourceCatalogContract.Translate, out var route)) return;
+        if (!DesktopResourceText.UsesChinese(_store) || project.Sources.Count == 0 || !_queries.TryResolve(ResourceCatalogContract.Translate, out var route)) return;
         var source = project.Sources[0];
         var read = _queries.QueryAsync<ResourceTranslationQuery, ResourceTranslation>(route, new(source, project.Description), cancellationToken: _translationStop.Token).AsTask();
         _translations.Add((entity, read)); Wake(read, _translationStop.Token);
@@ -583,7 +593,7 @@ internal sealed class ResourcesPageController : IDisposable
     }
     private XsrUiEntityId ProjectIcon(XsrUiEntityId parent, string name, ResourceProject project, double size)
     {
-        var icon = Element(parent, name, XsrUiSemanticRole.Image, project.DisplayName); E(icon).Width = size; E(icon).Height = size;
+        var icon = Element(parent, name, XsrUiSemanticRole.Image, DesktopResourceText.Name(project, _store)); E(icon).Width = size; E(icon).Height = size;
         Style(icon, Tint, Muted, 14); _shell.Tree.SetComponent(icon, new XsrUiImage("lucide/blocks"));
         TrackIcon(icon, project, DetailPage);
         return icon;

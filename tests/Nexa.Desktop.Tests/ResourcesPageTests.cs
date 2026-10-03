@@ -2,6 +2,7 @@ using Nexa.Desktop.Ui;
 using Nexa.Services.Composition;
 using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Resources;
+using Nexa.Services.Settings;
 using Nexa.UI.Next;
 using Nexa.Xsr;
 using Nexa.Xsr.Runtime;
@@ -10,9 +11,56 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void ResourceLanguageUsesOriginalMetadataAndRejectsLateChineseTranslations()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        void Language(string value) => AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, value))).IsSuccess);
+        Language("en");
+        var project = new ResourceProject("Language", "Original name", "Original summary", "Author", 1, "https://modrinth.com/project/Language")
+        { ChineseName = "中文项目名", ChineseDescription = "中文项目简介", Sources = [new(ResourceProvider.Modrinth, "Language")] };
+        int searches = 0;
+        List<(CancellationToken Token, TaskCompletionSource<ResourceTranslation> Completion)> translations = [];
+        var queries = new XsrQueryRouterBuilder();
+        queries.Register<ResourceSearchQuery, ResourceSearchResult>(ResourceCatalogContract.Search,
+            (_, _) => { searches++; return ValueTask.FromResult(XsrResult.Success(new ResourceSearchResult([project], 1, 0))); });
+        queries.Register<ResourceDetailQuery, ResourceDetail>(ResourceCatalogContract.Detail,
+            (_, _) => ValueTask.FromResult(XsrResult.Success(new ResourceDetail(project, "MIT", []))));
+        queries.Register<ResourceTranslationQuery, ResourceTranslation>(ResourceCatalogContract.Translate, async (_, token) =>
+        {
+            var reply = new TaskCompletionSource<ResourceTranslation>(TaskCreationOptions.RunContinuationsAsynchronously);
+            translations.Add((token, reply)); return XsrResult.Success(await reply.Task);
+        });
+        using var page = new ResourcesPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()), fixture.Store, _ => { });
+        fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(page.Page);
+        var scene = fixture.Shell.Render(new(1000, 800));
+        void Pump(Func<bool> condition) => AssertTrue(SpinWait.SpinUntil(() =>
+        { scene = fixture.Shell.Render(new(1000, 800)); return condition(); }, TimeSpan.FromSeconds(5)));
+        Pump(() => scene.Nodes.Any(n => n.Text == "Original name"));
+        AssertTrue(scene.Nodes.Any(n => n.Text == "Original summary")); AssertEqual(0, translations.Count);
+        var search = FindByKey(fixture.Shell, scene, "ResourceSearch").Entity;
+        fixture.Shell.Renderer.Focus(search); fixture.Shell.Renderer.SetTextInputValue(search, "keep draft");
+        Language("zh-Hans"); Pump(() => scene.Nodes.Any(n => n.Text == "中文项目名"));
+        AssertEqual(1, translations.Count); AssertEqual(search, fixture.Shell.Renderer.Focused);
+        Language("en"); Pump(() => scene.Nodes.Any(n => n.Text == "Original name"));
+        AssertTrue(translations[0].Token.IsCancellationRequested); translations[0].Completion.SetResult(new("迟到的中文翻译"));
+        scene = fixture.Shell.Render(new(1000, 800));
+        AssertFalse(scene.Nodes.Any(n => n.Text is "中文项目名" or "中文项目简介" or "迟到的中文翻译"));
+        AssertEqual("keep draft", fixture.Shell.Tree.GetComponent<XsrUiTextInput>(search)!.ReadDraft());
+        AssertEqual(1, searches);
+        Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDetails.Language"));
+        Pump(() => scene.Nodes.Any(n => n.Text == "Original summary")); AssertEqual(1, translations.Count);
+        Language("zh-Hant"); Pump(() => scene.Nodes.Any(n => n.Text == "中文项目名"));
+        AssertEqual(2, translations.Count);
+        Language("en"); Pump(() => scene.Nodes.Any(n => n.Text == "Original name"));
+        AssertTrue(translations[1].Token.IsCancellationRequested);
+        translations[1].Completion.SetResult(new("迟到的详情翻译")); scene = fixture.Shell.Render(new(1000, 800));
+        AssertTrue(scene.Nodes.Any(n => n.Text == "Original summary")); AssertFalse(scene.Nodes.Any(n => n.Text == "迟到的详情翻译"));
+    }
+
     private static void ResourcesPageDownloadsByIdentityAndProjectsChineseText()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "zh-Hans"))).IsSuccess);
         using var feedback = new DesktopFeedbackService();
         var project = new ResourceProject("Project", "Original", "Summary", "Author", 1, "https://modrinth.com/project/Project")
         { ChineseName = "中文名称", Sources = [new(ResourceProvider.Modrinth, "Project"), new(ResourceProvider.CurseForge, "123")] };

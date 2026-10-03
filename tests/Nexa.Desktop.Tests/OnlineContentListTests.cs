@@ -15,6 +15,7 @@ internal static partial class Program
         foreach (string page in new[] { "mods", "resourcepacks", "shaderpacks" })
         {
             using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+            AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "zh-Hans"))).IsSuccess);
             string instance = "instance-A", filename = page == "mods" ? "local.jar" : "local.zip";
             var queries = new XsrQueryRouterBuilder();
             fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.CatalogQuery, out var catalog);
@@ -32,7 +33,7 @@ internal static partial class Program
                 { Contents = [new(page, [new(filename, false, 10) { ModifiedUtcTicks = 1, DisplayName = "Local", Description = "本地描述", Version = "34", Enabled = page == "mods" ? true : null }], true, null)] }));
             });
             var project = new ResourceProject("A", "Online", "Summary", "Author", 1, "https://modrinth.com/project/A")
-            { ChineseName = "在线中文名称", IconUrl = "https://cdn.modrinth.com/data/A/icon.png", Sources = [new(ResourceProvider.Modrinth, "A")] };
+            { ChineseName = "在线中文名称", ChineseDescription = "在线中文简介", IconUrl = "https://cdn.modrinth.com/data/A/icon.png", Sources = [new(ResourceProvider.Modrinth, "A")] };
             var next = new ResourceVersion("New", "New", "2.0", "正式版", ["1.21.1"], [], "2026-02-01T00:00:00Z", "")
             { ProjectId = "A", File = new("new.zip", "https://cdn.modrinth.com/data/A/new.zip", 10, null, null) };
             var online = new ResourceContentOnline(project, "1.0", [next], null)
@@ -69,10 +70,21 @@ internal static partial class Program
             AssertTrue(scene.Nodes.Any(n => n.Text == "1.0"));
             if (page == "resourcepacks") { AssertTrue(scene.Nodes.Any(n => n.Text == "local")); AssertTrue(scene.Nodes.Any(n => n.Text == "本地描述")); }
             else AssertTrue(scene.Nodes.Any(n => n.Text == "在线中文名称"));
-            for (int i = 0; i < 10; i++) fixture.Shell.Render(new(1000, 900));
+            AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "en"))).IsSuccess);
+            scene = fixture.Shell.Render(new(1000, 900));
+            if (page != "resourcepacks") AssertTrue(scene.Nodes.Any(n => n.Text == "Online"));
+            AssertFalse(scene.Nodes.Any(n => n.Text == "在线中文名称"));
+            AssertEqual(search, fixture.Shell.Renderer.Focused); AssertEqual(1, batches);
+            AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "zh-Hant"))).IsSuccess);
+            scene = fixture.Shell.Render(new(1000, 900));
+            for (int i = 0; i < 10; i++) scene = fixture.Shell.Render(new(1000, 900));
             AssertEqual(1, batches); AssertEqual(1, icons);
             Emit(fixture.Intents, "ui.settings.management.action", FindByKey(fixture.Shell, scene, "ManagementContentDetails." + filename).Entity);
             Pump(() => scene.Nodes.Any(n => n.Text == "在线中文名称"));
+            AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "en"))).IsSuccess);
+            Pump(() => scene.Nodes.Any(n => n.Text == "Online") && scene.Nodes.Any(n => n.Text == "Summary"));
+            AssertFalse(scene.Nodes.Any(n => n.Text == "在线中文名称" || n.Text == "在线中文简介"));
+            AssertEqual(1, batches);
             if (page == "mods") { AssertFalse(scene.Nodes.Any(n => fixture.Shell.Tree.Name(n.Entity) == "ManagementOnlineUpdate")); continue; }
             AssertTrue(scene.Nodes.Any(n => n.Text == "34")); // Local pack-format metadata is not replaced by an online release.
             var detail = FindByKey(fixture.Shell, scene, "ManagementContentDetail").Entity;

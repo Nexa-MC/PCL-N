@@ -42,6 +42,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("resource language uses original metadata and rejects late Chinese translations", ResourceLanguageUsesOriginalMetadataAndRejectsLateChineseTranslations),
         ("low power presentation yields to work and restores preference", LowPowerPresentationYieldsToWorkAndRestoresPreference),
         ("Java registration picker retires on navigation and dispatches captured revision", JavaRegistrationPickerRetiresOnNavigationAndDispatchesCapturedRevision),
         ("Presentation settings apply outside navigation and preserve activity policy", PresentationSettingsApplyWithoutNavigation),

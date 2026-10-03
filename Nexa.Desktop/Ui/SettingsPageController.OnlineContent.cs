@@ -27,6 +27,7 @@ internal sealed partial class SettingsPageController
     private readonly Dictionary<string, Nexa.Core.Media.PngImage?> _onlineListIcons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Task<XsrResult<ResourceIconResult>>> _onlineListIconReads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, XsrUiEntityId> _contentIconEntities = new(StringComparer.Ordinal);
+    private string? _onlinePresentationLanguage;
 
     internal void ConfigureOnlineContent(XsrQueryRouter queries, Action<Uri> open, XsrCommandRouter? commands = null)
     { _resourceQueries = queries; _openResourceLink = open; _resourceCommands = commands; }
@@ -46,7 +47,7 @@ internal sealed partial class SettingsPageController
         var icon = online.Project.IconUrl is { } url ? _onlineListIcons.GetValueOrDefault(url) : null;
         return item with
         {
-            DisplayName = online.Project.DisplayName,
+            DisplayName = DesktopResourceText.Name(online.Project, _store),
             Version = _selected == "mods" ? online.InstalledVersion ?? item.Version : item.Version,
             Icon = item.Icon ?? icon,
             UpdateAvailable = online.UpdateAvailable ?? item.UpdateAvailable,
@@ -149,6 +150,19 @@ internal sealed partial class SettingsPageController
 
     private void UpdateOnlineContent()
     {
+        string language = DesktopResourceText.Language(_store);
+        if (_onlinePresentationLanguage is { } previous && previous != language)
+        {
+            ApplyContentFilter(); _contentWindowStart = -1;
+            if (_contentDetail is { } selected && _management?.Contents.FirstOrDefault(page => page.PageId == _selected)?.Entries.FirstOrDefault(item => item.Name == selected.Name) is { } original)
+            { _contentDetail = LinkedContent(original); BuildSections(); }
+            else
+            {
+                UpdateContentWindow();
+                if (_onlineSection.IsAssigned && _shell.Tree.IsAlive(_onlineSection)) RenderOnlineContent();
+            }
+        }
+        _onlinePresentationLanguage = language;
         UpdateOnlineList();
         if (_onlineQuery is not { } query) return;
         if (_contentDetail is not { } item || query.InstanceDirectory != _instance || query.PageId != _selected
@@ -189,8 +203,9 @@ internal sealed partial class SettingsPageController
             if (_onlineIcon is not null) ContentImage(identity, _contentDetail! with { Icon = _onlineIcon }, 48, 48);
             var titles = Stack(identity, "ManagementOnlineTitles", XsrUiOrientation.Vertical, 2);
             _shell.Tree.GetComponent<XsrUiElement>(titles)!.Weight = 1;
-            ContentName(titles, project.DisplayName, 19, 30);
-            if (project.DisplayDescription.Length > 0) ContentName(_onlineSection, project.DisplayDescription, 13, null, maxLines: 0, foreground: Muted);
+            ContentName(titles, DesktopResourceText.Name(project, _store), 19, 30);
+            string description = DesktopResourceText.Description(project, _store);
+            if (description.Length > 0) ContentName(_onlineSection, description, 13, null, maxLines: 0, foreground: Muted);
             ManagementFactIn(_onlineSection, "来源", project.SourceLabel);
             ManagementFactIn(_onlineSection, "作者", project.Author.Length > 0 ? project.Author : "未提供", literal: project.Author.Length > 0);
             ManagementFactIn(_onlineSection, "下载次数", ResourcesPageController.FormatDownloads(project.Downloads));
