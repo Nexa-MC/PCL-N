@@ -14,6 +14,8 @@ internal static partial class Program
             using var fixture = new InstallFixture(metadata, loaderInstaller: new FixtureLoaderInstaller());
             AssertTrue((await fixture.Install.InstallAsync(new(root, "1.20.1"))).IsSuccess);
             string instance = Path.Combine(root, "versions", "1.20.1");
+            var instanceMetadata = new Nexa.Services.Minecraft.MinecraftInstanceMetadataStore();
+            await instanceMetadata.SaveAsync(instance, new Nexa.Services.Minecraft.MinecraftInstanceMetadata { InstanceIsolation = false, Description = "Keep settings" });
             Directory.CreateDirectory(Path.Combine(instance, "config"));
             Directory.CreateDirectory(Path.Combine(instance, "saves", "world"));
             await File.WriteAllTextAsync(Path.Combine(instance, "config", "options.cfg"), "user settings");
@@ -28,6 +30,8 @@ internal static partial class Program
             AssertEqual("bootstrap.Main", updated["mainClass"]!.ToString());
             AssertEqual("user settings", await File.ReadAllTextAsync(Path.Combine(instance, "config", "options.cfg")));
             AssertEqual("world", await File.ReadAllTextAsync(Path.Combine(instance, "saves", "world", "level.dat")));
+            AssertFalse((await instanceMetadata.LoadAsync(instance)).InstanceIsolation);
+            AssertEqual("Keep settings", (await instanceMetadata.LoadAsync(instance)).Description);
             var next = await MinecraftInstallEditService.ReadAsync(new(root, "1.20.1"));
             AssertEqual(InstallLoader.Forge, next.Selection[0].Loader);
             AssertFalse((await fixture.Install.InstallAsync(new(root, "1.20.1", InstanceName: "1.20.1", EditFingerprint: original.Fingerprint))).IsSuccess);
@@ -47,9 +51,9 @@ internal static partial class Program
             {
                 using var fixture = new InstallFixture(new() { VanillaJson = VanillaJson(), AssetIndexJson = AssetIndexJson() }, new FakeCatalog("https://example.invalid/fabricapi.jar"));
                 AssertTrue((await fixture.Install.InstallAsync(new(root, "1.20.1", InstallLoader.Fabric, "0.16.9", [new(InstallLoader.FabricApi, "1.0.0")], "custom"))).IsSuccess);
-                string managed = Path.Combine(root, "mods", "FabricApi.jar");
+                string managed = Path.Combine(root, "versions", "custom", "mods", "FabricApi.jar");
                 if (userChangedMod) await File.WriteAllTextAsync(managed, "user replacement");
-                string unmanaged = Path.Combine(root, "mods", "user-mod.jar");
+                string unmanaged = Path.Combine(root, "versions", "custom", "mods", "user-mod.jar");
                 await File.WriteAllTextAsync(unmanaged, "user mod");
                 var before = await MinecraftInstallEditService.ReadAsync(new(root, "custom"));
                 AssertEqual(1, before.ManagedMods.Count);
@@ -81,10 +85,10 @@ internal static partial class Program
             AssertEqual("附加安装", added.ActionLabel);
             AssertTrue((await fixture.Install.InstallAsync(new(root, "1.20.1", InstallLoader.Fabric, "0.16.9", [new(InstallLoader.FabricApi, "1.0.0")], "custom", original.Fingerprint))).IsSuccess);
             AssertEqual(reads, metadata.VanillaReads);
-            AssertTrue(File.Exists(Path.Combine(root, "mods", "FabricApi.jar")));
+            AssertTrue(File.Exists(Path.Combine(root, "versions", "custom", "mods", "FabricApi.jar")));
             var current = await MinecraftInstallEditService.ReadAsync(new(root, "custom"));
             AssertTrue((await fixture.Install.InstallAsync(new(root, "1.20.1", InstallLoader.Fabric, "0.16.9", [], "custom", current.Fingerprint))).IsSuccess);
-            AssertFalse(File.Exists(Path.Combine(root, "mods", "FabricApi.jar")));
+            AssertFalse(File.Exists(Path.Combine(root, "versions", "custom", "mods", "FabricApi.jar")));
             AssertEqual(reads, metadata.VanillaReads);
             AssertEqual(MinecraftInstallEditKind.Reinstall, MinecraftInstallEditPlanner.Evaluate(new(original, [new(InstallLoader.Fabric, "0.17.0")])).Kind);
             current = await MinecraftInstallEditService.ReadAsync(new(root, "custom"));

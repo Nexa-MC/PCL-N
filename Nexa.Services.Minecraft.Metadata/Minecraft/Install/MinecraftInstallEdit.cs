@@ -96,7 +96,11 @@ public static class MinecraftInstallEditService
             .Select(file => new MinecraftInstallManagedFile(file["path"]!.ToString(), file["sha256"]!.ToString(),
                 Enum.TryParse<InstallLoader>(file["loader"]?.ToString(), out var kind) ? kind : null)).ToList();
         string localMods = Nexa.Core.PathIdentity.Contained(root, $"versions/{query.InstanceId}/mods");
-        string modsRelative = Directory.Exists(localMods) ? $"versions/{query.InstanceId}/mods" : "mods";
+        var metadataStore = new MinecraftInstanceMetadataStore();
+        string instanceDirectory = Nexa.Core.PathIdentity.Contained(root, $"versions/{query.InstanceId}");
+        string modsRelative = File.Exists(metadataStore.GetMetadataPath(instanceDirectory))
+            ? (await metadataStore.LoadAsync(instanceDirectory, token).ConfigureAwait(false)).InstanceIsolation ? $"versions/{query.InstanceId}/mods" : "mods"
+            : Directory.Exists(localMods) ? $"versions/{query.InstanceId}/mods" : "mods";
         string mods = Nexa.Core.PathIdentity.Contained(root, modsRelative);
         if (Directory.Exists(mods))
             foreach (string file in Directory.EnumerateFiles(mods, "*.jar"))

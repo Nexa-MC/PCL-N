@@ -33,13 +33,14 @@ internal static partial class Program
             string stage = Path.Combine(root, ".nexa-modify", Guid.NewGuid().ToString("N"));
             List<MinecraftInstallAddon> addons = [new(InstallLoader.FabricApi, "api-build", [new("Modrinth", "api.jar", new("https://cdn.modrinth.com/api.jar"), new('A', 40), 123)])];
             var command = new MinecraftInstallCommand(root, "1.21.1", InstallLoader.Fabric, "0.16.0", addons, "my-game", new('B', 64))
-            { InheritVanilla = false, NewInstanceName = "renamed-game" };
+            { InheritVanilla = false, NewInstanceName = "renamed-game", DefaultIsolationMode = "none" };
             var saved = await InstallTaskJournal.CreateAsync(stage, command, default);
             addons.Clear();
             AssertEqual(1, saved.Command.Addons!.Count);
             var read = await InstallTaskJournal.ReadAsync(root, stage, default);
             AssertEqual("my-game", read.Command.InstanceName); AssertEqual("renamed-game", read.Command.NewInstanceName);
             AssertEqual("0.16.0", read.Command.LoaderBuild); AssertEqual(false, read.Command.InheritVanilla);
+            AssertEqual("none", read.Command.DefaultIsolationMode);
             AssertEqual("api-build", read.Command.Addons!.Single().Version);
             AssertEqual("api.jar", read.Command.Addons!.Single().Downloads!.Single().FileName);
             try { await InstallTaskJournal.CreateAsync(stage, command, default); throw new InvalidOperationException("Immutable plan replaced."); } catch (IOException) { }

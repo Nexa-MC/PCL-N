@@ -430,6 +430,7 @@ internal sealed partial class SettingsPageController : IDisposable
         "diagnostics.log-lines" => "界面保留的日志条数，50–2000；不会删除磁盘日志。",
         "game.process-priority" => "下次启动生效；系统可能拒绝提高优先级。",
         "game.title" => "下次启动生效；留空保留游戏标题。",
+        "game.default-isolation" => "只影响新安装版本；不移动已有存档、模组等内容。",
         "game.launcher-visibility" => "启动完成后生效；游戏异常退出时恢复启动器。",
         "game.jvm" => "每行一个参数，应用后用于下次启动。",
         "install.inherit-vanilla" => "关闭时安装独立版本；开启后依赖原版。下次安装生效。",

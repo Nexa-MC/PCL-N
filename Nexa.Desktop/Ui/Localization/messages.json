@@ -1,4 +1,10 @@
 [
+  {"source":"只影响新安装版本；不移动已有存档、模组等内容。","zh-Hant":"只影響新安裝版本；不移動既有存檔、模組等內容。","en":"Applies to new installations only. Existing saves and mods stay in place."},
+  {"source":"加载器与非正式版","zh-Hant":"載入器與非正式版","en":"Loaders or non-release"},
+  {"source":"加载器版本","zh-Hant":"載入器版本","en":"Loader versions"},
+  {"source":"非正式版","zh-Hant":"非正式版","en":"Non-release versions"},
+  {"source":"不隔离","zh-Hant":"不隔離","en":"Shared directory"},
+  {"source":"全部版本","zh-Hant":"全部版本","en":"All versions"},
   {"source":"下次启动生效；留空保留游戏标题。","zh-Hant":"下次啟動生效；留空保留遊戲標題。","en":"Applies to the next launch. Leave empty to keep the game title."},
   {"source":"启动完成后生效；游戏异常退出时恢复启动器。","zh-Hant":"啟動完成後生效；遊戲異常退出時恢復啟動器。","en":"Applies after launch completes. Restore the launcher if the game exits unexpectedly."},
   {"source":"隐藏后恢复","zh-Hant":"隱藏後恢復","en":"Hide and reopen"},

@@ -97,6 +97,9 @@ public sealed partial class SettingsPolicyService
             if (inherited is null && definition.Key == "game.launcher-visibility" && raw.GetValueOrDefault("LaunchArgumentVisible") is "0" or "2" or "3" or "4")
                 inherited = new(SettingsOverrideMode.Custom, raw["LaunchArgumentVisible"] switch
                 { "0" or "2" => "hide-and-close", "3" => "hide", _ => "minimize" });
+            if (inherited is null && definition.Key == "game.default-isolation" && raw.GetValueOrDefault("LaunchArgumentIndieV2") is "0" or "1" or "2" or "3")
+                inherited = new(SettingsOverrideMode.Custom, raw["LaunchArgumentIndieV2"] switch
+                { "0" => "none", "1" => "loaders", "2" => "non-release", _ => "loaders-or-non-release" });
             if (inherited is null && definition.Key == "updates.auto-check" && raw.GetValueOrDefault("SystemUpdateMode") == "3")
                 inherited = new(SettingsOverrideMode.Custom, "false");
             if (inherited is null && definition.Key == "diagnostics.log-level" && raw.GetValueOrDefault("SystemLogLevel") is { } level && level != "2")
@@ -174,6 +177,9 @@ public sealed partial class SettingsPolicyService
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.launcher-visibility")
                 writes["LaunchArgumentVisible"] = mutation.Value.Value switch
                 { "hide-and-close" => "2", "hide" => "3", "minimize" => "4", _ => "5" };
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.default-isolation")
+                writes["LaunchArgumentIndieV2"] = mutation.Value.Value switch
+                { "none" => "0", "loaders" => "1", "non-release" => "2", "loaders-or-non-release" => "3", _ => "4" };
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.process-priority")
                 writes["LaunchArgumentPriority"] = mutation.Value.Value switch
                 { "above-normal" => "0", "below-normal" => "2", "high" => "3", "real-time" => "4", _ => "1" };

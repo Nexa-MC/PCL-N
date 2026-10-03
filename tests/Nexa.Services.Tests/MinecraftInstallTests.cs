@@ -182,7 +182,8 @@ internal static partial class Program
             var result = await fixture.Install.InstallAsync(new MinecraftInstallCommand(root, "1.20.1", InstallLoader.Fabric, "0.16.9",
                 [new MinecraftInstallAddon(InstallLoader.FabricApi, "selected-build", [artifact])], "My Fabric"));
             AssertTrue(result.IsSuccess);
-            AssertTrue(File.Exists(Path.Combine(root, "mods", "fabric-api.jar")));
+            AssertTrue(File.Exists(Path.Combine(root, "versions", "My Fabric", "mods", "fabric-api.jar")));
+            AssertTrue((await new MinecraftInstanceMetadataStore().LoadAsync(Path.Combine(root, "versions", "My Fabric"))).InstanceIsolation);
             string json = await File.ReadAllTextAsync(Path.Combine(root, "versions", "My Fabric", "My Fabric.json"));
             AssertTrue(json.Contains("1.20.1", StringComparison.Ordinal));
         }
@@ -221,7 +222,7 @@ internal static partial class Program
             string assetHash = Sha1Hex("ASSET!");
             AssertTrue(File.Exists(Path.Combine(root, "assets", "objects", assetHash[..2], assetHash)));
             AssertTrue(File.Exists(Path.Combine(root, "assets", "indexes", "5.json")));
-            AssertTrue(File.Exists(Path.Combine(root, "mods", "FabricApi.jar")));
+            AssertTrue(File.Exists(Path.Combine(root, "versions", "1.20.1-fabric0.16.9", "mods", "FabricApi.jar")));
 
             AssertEqual(1, fixture.InstalledRoots.Count);
             AssertTrue(MinecraftLibraryService.PathComparer.Equals(fixture.InstalledRoots[0], root));

@@ -229,6 +229,8 @@ internal static partial class Program
         ("settings reset is scoped previewed and preserves reserved values", Sync(SettingsResetIsScopedPreviewedAndPreservesReservedValues)),
         ("game priority captures scoped preference and legacy meaning", Sync(GamePriorityCapturesScopedPreferenceAndLegacyMeaning)),
         ("game window preferences capture scopes and legacy values", Sync(GameWindowPreferencesCaptureScopesAndLegacyValues)),
+        ("default isolation preserves legacy scope and unknown facts", Sync(DefaultIsolationPolicyPreservesLegacyScopeAndUnknownFacts)),
+        ("default isolation controls addons and protects orphan metadata", DefaultIsolationControlsAddonDestinationAndRejectsOrphanMetadata),
         ("game window preferences reach tracked process", GameWindowPreferencesReachTrackedProcess),
         ("game priority control failure cannot fail started session", GamePriorityControlFailureCannotFailStartedSession),
         ("Java inventory runs on worker and refreshes without state writes", JavaInventoryRunsOnWorkerAndRefreshesWithoutStateWrites),

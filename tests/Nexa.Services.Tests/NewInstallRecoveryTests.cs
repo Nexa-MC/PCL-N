@@ -21,7 +21,7 @@ internal static partial class Program
                 { Console.WriteLine(Volatile.Read(ref firstSource)); Console.Out.Flush(); }
             });
         });
-        await fixture.Install.InstallAsync(new(root, "1.20.1", InstanceName: "resumable"));
+        await fixture.Install.InstallAsync(new(root, "1.20.1", InstanceName: "resumable") { DefaultIsolationMode = "none" });
         return 0;
     }
 
@@ -50,10 +50,12 @@ internal static partial class Program
             File.WriteAllText(injected, "untrusted leftover");
             var plan = await InstallTaskJournal.ReadAsync(root, stage, default);
             AssertTrue(plan.Command.EditFingerprint is null);
+            AssertEqual("none", plan.Command.DefaultIsolationMode);
             List<string> downloaded = []; var metadata = new FakeMetadata();
             using var recovery = new InstallFixture(metadata, connectionFactory: source => { lock (downloaded) downloaded.Add(source); return new ServingConnection(PayloadFor(source)); });
             AssertTrue((await recovery.Install.RecoverPendingAsync(new([root]))).IsSuccess);
             AssertTrue(File.Exists(manifest)); AssertEqual(0, metadata.VanillaReads);
+            AssertFalse((await new Nexa.Services.Minecraft.MinecraftInstanceMetadataStore().LoadAsync(Path.GetDirectoryName(manifest)!)).InstanceIsolation);
             AssertFalse(File.Exists(Path.Combine(root, "libraries", "attacker.jar")));
             if (downloaded.Contains(completedSource!)) throw new InvalidOperationException("Repeated: " + completedSource + " transfers: " + string.Join(",", downloaded)); AssertTrue(downloaded.Count > 0);
             AssertEqual(InstallTaskStatus.Completed, await InstallTaskJournal.ReadStatusAsync(stage, plan, default));

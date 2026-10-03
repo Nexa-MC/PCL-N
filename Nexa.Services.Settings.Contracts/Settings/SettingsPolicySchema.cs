@@ -67,6 +67,8 @@ public static class SettingsPolicySchema
         new("game.width", SettingsValueKind.Number, "854", true, false, "LaunchArgumentWindowWidth", SettingsApplyTiming.NextLaunch, "px", 1, 32768),
         new("game.height", SettingsValueKind.Number, "480", true, false, "LaunchArgumentWindowHeight", SettingsApplyTiming.NextLaunch, "px", 1, 32768),
         new("game.title", SettingsValueKind.Text, "", true, false, "LaunchArgumentTitle", SettingsApplyTiming.NextLaunch),
+        new("game.default-isolation", SettingsValueKind.Enum, "all", false, false, null, SettingsApplyTiming.NextTask,
+            Choices: "none|loaders|non-release|loaders-or-non-release|all"),
         new("game.launcher-visibility", SettingsValueKind.Enum, "keep", true, false, null, SettingsApplyTiming.NextLaunch,
             Choices: "keep|minimize|hide|hide-and-close"),
         new("game.jvm", SettingsValueKind.Text, LauncherDefaults.TextDefaults["LaunchAdvanceJvm"], true, false, "LaunchAdvanceJvm", SettingsApplyTiming.NextLaunch, Exportable: false),

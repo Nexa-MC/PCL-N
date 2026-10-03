@@ -31,6 +31,7 @@ public sealed record MinecraftInstallCommand(
     internal bool PreparingEdit { get; init; }
     internal string? ModsRelativeDirectory { get; init; }
     public bool? InheritVanilla { get; init; }
+    public string? DefaultIsolationMode { get; init; }
     public string? NewInstanceName { get; init; }
     public bool ForceReinstall { get; init; }
 }

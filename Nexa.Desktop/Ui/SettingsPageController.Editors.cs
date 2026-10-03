@@ -62,6 +62,8 @@ internal sealed partial class SettingsPageController
             { "normal" => "正常", "below-normal" => "较低", "above-normal" => "较高", "high" => "高", "real-time" => "实时", _ => value };
             if (entry.SettingKey == "game.launcher-visibility") label = value switch
             { "keep" => "保持显示", "minimize" => "最小化", "hide" => "隐藏后恢复", "hide-and-close" => "游戏退出后关闭", _ => value };
+            if (entry.SettingKey == "game.default-isolation") label = value switch
+            { "none" => "不隔离", "loaders" => "加载器版本", "non-release" => "非正式版", "loaders-or-non-release" => "加载器与非正式版", "all" => "全部版本", _ => value };
             if (entry.SettingKey == "updates.channel") label = value switch
             { "build" => "跟随当前版本", "stable" => "正式版", "alpha" => "Alpha", "beta" => "Beta", "ci" => "CI", _ => value };
             if (entry.SettingKey == "diagnostics.log-level") label = value switch

@@ -111,6 +111,7 @@ internal static class InstallTaskJournal
             || command.EditFingerprint is { } fingerprint && (fingerprint.Length != 64 || !fingerprint.All(char.IsAsciiHexDigit))
             || Directory.GetParent(stage)!.Name != (command.EditFingerprint is null ? ".nexa-install-jobs" : ".nexa-modify")
             || command.InheritVanilla is null || command.PreparingEdit || command.ReuseRoot is not null || command.ModsRelativeDirectory is not null
+            || command.DefaultIsolationMode is { } isolation && !Nexa.Services.Settings.SettingsInstanceIsolationPolicy.IsValidMode(isolation)
             || command.Loader is { } loader && !Enum.IsDefined(loader)
             || command.Loader is not null && !ValidText(command.LoaderBuild, 256)
             || command.Loader is null && command.LoaderBuild is not null)

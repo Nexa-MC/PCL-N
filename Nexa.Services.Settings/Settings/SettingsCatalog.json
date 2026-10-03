@@ -895,7 +895,7 @@
     "section": "实例",
     "label": "默认实例隔离",
     "kind": "Setting",
-    "key": null,
+    "key": "game.default-isolation",
     "developer": false,
     "availability": "NotImplemented"
   },

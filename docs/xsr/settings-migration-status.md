@@ -90,10 +90,15 @@ launch plan and process snapshot. Windows title writes are bounded and best-effo
 hidden/minimized launchers restore after exit or failure, and overlapping sessions
 cannot close each other's launcher supervision.
 
+XSR-782 captures the new-instance isolation policy in durable installation plans.
+Managed addons and instance metadata are published together into the selected
+shared or isolated directory; edits, packs and existing instances keep their own
+layout. Killed-downloader recovery reuses the captured policy.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Managed-runtime deletion; compatibility checks remain mandatory until a separate safe policy exists |
-| Game | Isolation and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
+| Game | Wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Disk log retention/export; existing telemetry policy and update actions retain their security boundaries |

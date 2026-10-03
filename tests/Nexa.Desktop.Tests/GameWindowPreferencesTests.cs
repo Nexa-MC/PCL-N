@@ -52,9 +52,13 @@ internal static partial class Program
         using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
             fixture.Foundation.Commands, fixture.Store, fixture.Feedback);
         fixture.Shell.Stage.Navigation.Replace(settings.Page); fixture.Shell.Renderer.ReducedMotion = true;
-        var scene = fixture.Shell.Render(new(1000, 900));
+        var scene = fixture.Shell.Render(new(1000, 1500));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
-        scene = fixture.Shell.Render(new(1000, 900));
+        scene = fixture.Shell.Render(new(1000, 1500));
+        var isolation = FindByKey(fixture.Shell, scene, "SettingsOption.game.default-isolation.none");
+        AssertTrue(fixture.Shell.Renderer.Activate(isolation.Entity)); fixture.Shell.Render(new(1000, 1500));
+        AssertTrue(SpinWait.SpinUntil(() => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values
+            .Single(value => value.Key == "game.default-isolation").Value.Value == "none", 5000));
         var option = FindByKey(fixture.Shell, scene, "SettingsOption.game.launcher-visibility.hide");
         AssertTrue(fixture.Shell.Renderer.Activate(option.Entity)); fixture.Shell.Render(new(1000, 900));
         AssertTrue(SpinWait.SpinUntil(() => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values

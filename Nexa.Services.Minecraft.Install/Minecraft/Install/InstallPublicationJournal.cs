@@ -49,6 +49,8 @@ internal sealed class InstallPublicationJournal
             var before = files.TryGetValue(relative, out var existing) ? existing.Before
                 : await ObserveAsync(target, budget, token).ConfigureAwait(false);
             if (before == after) { files.Remove(relative); continue; }
+            if (IsInstanceMetadata(relative, instance) && before is not null)
+                throw new IOException("已有实例配置，不能由新安装覆盖。");
             if (IsMod(relative, instance) && before is not null && !files.ContainsKey(relative))
                 throw new IOException("已有同名 Mod 未受此安装管理或已被修改：" + Path.GetFileName(relative));
             files[relative] = new(relative, before, after);
@@ -183,11 +185,12 @@ internal sealed class InstallPublicationJournal
         return new(hash, length);
     }
     private static bool IsMod(string path, string instance) => path.StartsWith("mods/", StringComparison.Ordinal) || path.StartsWith($"versions/{instance}/mods/", StringComparison.Ordinal);
+    private static bool IsInstanceMetadata(string path, string instance) => path == $"versions/{instance}/{MinecraftInstanceMetadataStore.MetadataDirectoryName}/{MinecraftInstanceMetadataStore.MetadataFileName}";
     private static string Target(string root, string instance, string relative)
     {
         if (relative.Contains('\\') || relative.Split('/').Any(part => part is "" or "." or "..")
             || !(relative.StartsWith("libraries/", StringComparison.Ordinal) || relative.StartsWith("assets/", StringComparison.Ordinal)
-                || relative.StartsWith("runtime/", StringComparison.Ordinal) || IsMod(relative, instance)
+                || relative.StartsWith("runtime/", StringComparison.Ordinal) || IsMod(relative, instance) || IsInstanceMetadata(relative, instance)
                 || relative.Split('/') is ["versions", var id, var file] && MinecraftVersionPaths.IsSafeReference(id)
                     && (file == id + ".json" || file == id + ".jar"))) throw new InvalidDataException("安装发布路径超出范围。");
         string path = Nexa.Core.PathIdentity.Contained(root, relative); RecoveryBlobStore.CheckLinks(path); return path;

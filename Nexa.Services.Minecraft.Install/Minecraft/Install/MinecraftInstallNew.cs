@@ -30,6 +30,10 @@ public sealed partial class MinecraftInstallService
         string destination = Nexa.Core.PathIdentity.Contained(root, manifest);
         RecoveryBlobStore.CheckLinks(destination);
         if (File.Exists(destination)) throw new IOException("已有同名版本，请使用修改版本功能。");
+        string metadata = $"versions/{instance}/{MinecraftInstanceMetadataStore.MetadataDirectoryName}/{MinecraftInstanceMetadataStore.MetadataFileName}";
+        string metadataTarget = Nexa.Core.PathIdentity.Contained(root, metadata);
+        RecoveryBlobStore.CheckLinks(metadataTarget);
+        if (File.Exists(metadataTarget)) throw new IOException("已有同名实例配置，请更换版本名称或使用修改版本功能。");
         command = command with { RootDirectory = root, InstanceName = instance };
         string stage = resumeStage ?? Nexa.Core.PathIdentity.Contained(root, ".nexa-install-jobs/" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(stage);
@@ -55,7 +59,7 @@ public sealed partial class MinecraftInstallService
                 .Where(relative => !relative.StartsWith(InstallTaskJournal.DirectoryName + "/", StringComparison.Ordinal)
                     && !relative.StartsWith(".nexa-install/", StringComparison.Ordinal)
                     && !relative.Split('/').Any(segment => segment is ".nexa-java-jobs" or ".nexa-java.lock"))
-                .Where(relative => relative == manifest || !(relative.StartsWith("versions/", StringComparison.Ordinal)
+                .Where(relative => relative == manifest || relative == metadata || !(relative.StartsWith("versions/", StringComparison.Ordinal)
                     && relative.EndsWith(".json", StringComparison.Ordinal) && File.Exists(Nexa.Core.PathIdentity.Contained(root, relative))))
                 .ToArray();
             var journal = await InstallPublicationJournal.PrepareAsync(root, stage, instance, files, new Dictionary<string, string>(), token).ConfigureAwait(false);

@@ -93,6 +93,13 @@ public sealed partial class MinecraftInstallService : IDisposable
             using var recoveryOperation = await InstanceRecoveryOperationGate.EnterOperationAsync(
                 Path.GetFullPath(command.RootDirectory), linked.Token).ConfigureAwait(false);
             command = command with { InheritVanilla = command.InheritVanilla ?? _inheritVanilla?.Invoke() ?? false };
+            if (command.DefaultIsolationMode is null)
+            {
+                var settings = _settingsPolicy?.Read(new());
+                if (settings is { IsSuccess: false }) throw new InvalidDataException("无法读取默认实例隔离设置。");
+                command = command with { DefaultIsolationMode = SettingsInstanceIsolationPolicy.FromSnapshot(settings?.Value).Mode };
+            }
+            if (!SettingsInstanceIsolationPolicy.IsValidMode(command.DefaultIsolationMode)) throw new InvalidDataException("默认实例隔离设置无效。");
             bool renaming = command.NewInstanceName is { } requested && requested != command.InstanceName;
             if (renaming && (command.EditFingerprint is null || _settingsPolicy is null || _hostStore is null
                 || !MinecraftVersionPaths.IsSafeReference(command.NewInstanceName)
@@ -174,6 +181,8 @@ public sealed partial class MinecraftInstallService : IDisposable
         // half-install whose missing libraries would kill the JVM before its window appears.
         task.Report(StagePlan[0], "正在获取版本清单", 0.02, 0, 0, 0);
         JsonObject vanillaJson = await metadata.FetchVanillaVersionJsonAsync(game, token).ConfigureAwait(false);
+        bool isolated = !command.PreparingEdit && new SettingsInstanceIsolationPolicy(command.DefaultIsolationMode ?? "all")
+            .Isolate(command.Loader is not null, vanillaJson["type"] is JsonValue type && type.TryGetValue<string>(out var releaseType) ? releaseType : null);
         JsonObject? loaderJson = !processorLoader && command.Loader is { } profileLoader && command.LoaderBuild is { } build
             ? await metadata.FetchLoaderProfileJsonAsync(profileLoader, game, build, token).ConfigureAwait(false)
             : null;
@@ -309,7 +318,8 @@ public sealed partial class MinecraftInstallService : IDisposable
         Dictionary<string, InstallLoader> managedModKinds = [];
         if (command.Addons is { Count: > 0 })
         {
-            string modsDirectory = Nexa.Core.PathIdentity.Contained(root, command.ModsRelativeDirectory ?? "mods");
+            string modsDirectory = Nexa.Core.PathIdentity.Contained(root, command.ModsRelativeDirectory
+                ?? (isolated ? $"versions/{instanceId}/mods" : "mods"));
             foreach (MinecraftInstallAddon addon in command.Addons)
             {
                 IReadOnlyList<InstallDownload> downloads = await ResolveAddonDownloadsAsync(
@@ -468,6 +478,9 @@ public sealed partial class MinecraftInstallService : IDisposable
         }
         receipt["managedMods"] = managedMods;
         (loaderJson ?? vanillaJson)["_nexaInstall"] = receipt;
+        if (!command.PreparingEdit)
+            await new MinecraftInstanceMetadataStore().SaveAsync(instanceDirectory,
+                new MinecraftInstanceMetadata { InstanceIsolation = isolated }, token).ConfigureAwait(false);
 
         // The documents land only now: the instance becomes discoverable exactly when its
         // files are complete. Re-runs skip existing files, so this commit is cheap.
