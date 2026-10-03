@@ -93,7 +93,8 @@ so interruptions stay continuous.
 ## Motion (fluid-interface rules)
 
 `AvaloniaMotionTokens` is the vocabulary; the backend presents every scene fact through one
-shared 16 ms frame clock (`AvaloniaUiMotion`) instead of the Avalonia animation stack — the
+shared frame clock (`AvaloniaUiMotion`, now configured by XSR-768 with a 60 fps default)
+instead of the Avalonia animation stack — the
 latter's `TransformAnimator` crashed under NativeAOT on transform keyframes, and the shared
 clock keeps every rule testable and allocation-bounded:
 

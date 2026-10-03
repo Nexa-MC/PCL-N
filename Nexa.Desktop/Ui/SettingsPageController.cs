@@ -418,6 +418,7 @@ internal sealed partial class SettingsPageController : IDisposable
         "game.server" => "默认地址，可带端口；版本单独设置与临时加入优先。",
         "game.auto-repair" => "启动前补全缺失或损坏的游戏文件；不关闭预检。",
         "appearance.animations-disabled" => "减少界面切换和展开时的动态效果。",
+        "appearance.animation-fps" => "动画时钟的目标帧率，1–240 fps；不改变动画时长。",
         _ => null,
     };
 

@@ -263,7 +263,8 @@ internal static partial class Program
         // pages inside the shell content host and dispatches the real launch command.
         setStage("attach_product_controllers");
         AvaloniaUiPlatformActions platformActions = new();
-        using var presentationSession = new DesktopPresentationSession(shell, host.StateStore, platformActions.SetWindowResizeEnabled);
+        using var presentationSession = new DesktopPresentationSession(shell, host.StateStore,
+            platformActions.SetWindowResizeEnabled, platformActions.SetAnimationFrameRate);
         platformActions.InputObserved += kind => host.InputUsage.Record(kind switch
         {
             AvaloniaUiInputKind.Keyboard => InputUsageKind.Keyboard,

@@ -51,7 +51,7 @@ public static class SettingsPolicySchema
         new("general.language", SettingsValueKind.Enum, "auto", false, false, "UiLanguage", SettingsApplyTiming.Immediate, Choices: "auto|zh-Hans|zh-Hant|en"),
         new("general.region", SettingsValueKind.Text, "auto", false, false, "UiFormatCulture", SettingsApplyTiming.Restart),
         new("appearance.animations-disabled", SettingsValueKind.Boolean, "false", false, false, "SystemDisableUiAnimations", SettingsApplyTiming.Immediate),
-        new("appearance.animation-fps", SettingsValueKind.Number, "59", false, false, "UiAniFPS", SettingsApplyTiming.Immediate, "fps", 1, 240),
+        new("appearance.animation-fps", SettingsValueKind.Number, "60", false, false, null, SettingsApplyTiming.Immediate, "fps", 1, 240),
         new("appearance.lock-window", SettingsValueKind.Boolean, "false", false, false, "UiLockWindowSize", SettingsApplyTiming.Immediate),
         new("appearance.low-power", SettingsValueKind.Boolean, "false", false, false, "UiUltraLowPowerMode", SettingsApplyTiming.Immediate),
         new("java.runtime", SettingsValueKind.Path, "", true, true, null, SettingsApplyTiming.NextLaunch, Exportable: false),

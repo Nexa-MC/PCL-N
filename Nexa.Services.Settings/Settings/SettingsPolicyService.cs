@@ -94,6 +94,10 @@ public sealed partial class SettingsPolicyService
             }
             if (inherited is null && definition.Key == "game.window-mode" && raw.GetValueOrDefault("LaunchArgumentWindowType") == "0")
                 inherited = new(SettingsOverrideMode.Custom, "fullscreen");
+            if (inherited is null && definition.Key == "appearance.animation-fps"
+                && raw.GetValueOrDefault("UiAniFPS") is { } frameSlider && frameSlider != "59"
+                && int.TryParse(frameSlider, out int frames))
+                inherited = new(SettingsOverrideMode.Custom, Math.Clamp((long)frames + 1, 1, 240).ToString(System.Globalization.CultureInfo.InvariantCulture));
             if (inherited is null && definition.Key == "network.game-source"
                 && raw.GetValueOrDefault("ToolDownloadSource") is "0" or "2")
                 inherited = new(SettingsOverrideMode.Custom, raw["ToolDownloadSource"] == "0" ? "mirrors-first" : "official-only");
@@ -151,6 +155,9 @@ public sealed partial class SettingsPolicyService
                 writes[key] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? definition.DefaultValue : mutation.Value.Value!;
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.window-mode")
                 writes["LaunchArgumentWindowType"] = mutation.Value.Value == "fullscreen" ? "0" : "1";
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "appearance.animation-fps")
+                writes["UiAniFPS"] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? "59"
+                    : (int.Parse(mutation.Value.Value!, System.Globalization.CultureInfo.InvariantCulture) - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.game-source")
                 writes["ToolDownloadSource"] = mutation.Value.Value switch { "mirrors-first" => "0", "official-only" => "2", _ => "1" };
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.file-concurrency")

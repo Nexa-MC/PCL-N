@@ -21,6 +21,19 @@ internal static class AvaloniaUiMotion
     private static readonly Dictionary<(object Owner, object Value), Track> Active = [];
     private static readonly Stopwatch Clock = new();
     private static DispatcherTimer? _timer;
+    private static int _framesPerSecond = 60;
+    internal static TimeSpan FrameInterval => _timer?.Interval ?? TimeSpan.FromSeconds(1d / _framesPerSecond);
+
+    internal static void SetFrameRate(int framesPerSecond)
+    {
+        Dispatcher.UIThread.VerifyAccess();
+        if (framesPerSecond is < 1 or > 240) throw new ArgumentOutOfRangeException(nameof(framesPerSecond));
+        lock (Gate)
+        {
+            _framesPerSecond = framesPerSecond;
+            if (_timer is not null) _timer.Interval = TimeSpan.FromSeconds(1d / framesPerSecond);
+        }
+    }
 
     /// <summary>
     /// Animates one double value from its current presented value to the target. A repeat call
@@ -180,7 +193,7 @@ internal static class AvaloniaUiMotion
         {
             _timer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(AvaloniaMotionTokens.FrameMilliseconds),
+                Interval = TimeSpan.FromSeconds(1d / _framesPerSecond),
             };
             _timer.Tick += OnTick;
         }

@@ -10,6 +10,33 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
+    private static void AnimationFrameRateUsesActualFpsAndLegacySliderEncoding()
+    {
+        var port = new InMemorySettingsPort();
+        var (store, policy) = PolicyFixture(port);
+        AssertEqual("60", Effective(policy, "appearance.animation-fps").Value.Value);
+        foreach (int fps in new[] { 1, 24, 60, 144, 240 })
+        {
+            AssertTrue(policy.Set(new("appearance.animation-fps", SettingsLayer.Global,
+                new(SettingsOverrideMode.Custom, fps.ToString(System.Globalization.CultureInfo.InvariantCulture)))).IsSuccess);
+            AssertEqual(fps - 1, store.GetValue<int>("UiAniFPS").Value);
+            var (_, reopened) = PolicyFixture(port);
+            AssertEqual(fps.ToString(System.Globalization.CultureInfo.InvariantCulture), Effective(reopened, "appearance.animation-fps").Value.Value);
+        }
+        foreach (string invalid in new[] { "0", "241", "12.5" })
+            AssertFalse(policy.Set(new("appearance.animation-fps", SettingsLayer.Global, new(SettingsOverrideMode.Custom, invalid))).IsSuccess);
+        AssertTrue(policy.Set(new("appearance.animation-fps", SettingsLayer.Global, new(SettingsOverrideMode.Inherit))).IsSuccess);
+        AssertEqual(59, store.GetValue<int>("UiAniFPS").Value);
+        AssertEqual("60", Effective(policy, "appearance.animation-fps").Value.Value);
+        foreach (var pair in new[] { ("0", "1"), ("29", "30"), ("59", "60"), ("143", "144"), ("239", "240") })
+        {
+            port.Save(new Dictionary<string, string> { ["UiAniFPS"] = pair.Item1 });
+            var (_, legacy) = PolicyFixture(port);
+            AssertEqual(pair.Item2, Effective(legacy, "appearance.animation-fps").Value.Value);
+        }
+        AssertEqual(SettingsCapabilityAvailability.Available, SettingsCatalog.Read(new()).Entries.Single(entry => entry.SettingKey == "appearance.animation-fps").Availability);
+    }
+
     private static void RegionFormattingSettingIsValidatedAndDurable()
     {
         var port = new InMemorySettingsPort();

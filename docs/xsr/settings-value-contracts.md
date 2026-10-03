@@ -12,7 +12,7 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 | general.language | Enum (auto, zh-Hans, zh-Hant, en) | auto | G | UiLanguage | Immediate | Yes |
 | general.region | Named formatting culture / auto / follow-language (legacy ui-language accepted) | auto | G | UiFormatCulture | Restart | Yes |
 | appearance.animations-disabled | Bool | false | G | SystemDisableUiAnimations | Immediate | Yes |
-| appearance.animation-fps | Number, 1–240 fps | 59 | G | UiAniFPS | Immediate | Yes |
+| appearance.animation-fps | Number, 1–240 actual fps | 60 | G | UiAniFPS + 1 (write fps - 1) | Immediate | Yes |
 | appearance.lock-window | Bool | false | G | UiLockWindowSize | Immediate | Yes |
 | appearance.low-power | Bool | false | G | UiUltraLowPowerMode | Immediate | Yes |
 | java.runtime | Fully qualified path / Auto | Auto | G/I | New | Next launch | No |
@@ -49,7 +49,8 @@ Legacy memory uses the existing piecewise slider-to-MiB conversion. A custom new
 Apply timing is not a claim that a setting has a working consumer.
 Consumers now include memory/Java acquisition, animation/window lock, game-file batch
 and source policy, default servers/automatic repair, and preferred Java distributions;
-and startup region formatting; see XSR-761 through XSR-767 and the current migration ledger. Other unconnected entries
+startup region formatting and the live animation tick rate; see XSR-761 through XSR-768
+and the current migration ledger. Other unconnected entries
 remain unavailable. Profile and Temporary have resolution
 semantics but reject public mutation.
 

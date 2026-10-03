@@ -44,12 +44,16 @@ network/authorization policy. System, follow-language and named cultures persist
 the same Service contract. New format preferences apply at the next Desktop session;
 the form preserves existing custom cultures in its draggable selector.
 
+XSR-768 delivers the live animation tick rate (1–240 fps, default 60), with explicit
+legacy fps-minus-one conversion. The Host applies it before attachment and to active
+motion without changing durations, reduced motion, native OS animation or idle work.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions; compatibility checks remain mandatory until a separate safe policy exists |
 | Game | Title, isolation, launch visibility, process priority and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
-| Appearance/general | Frame-rate policy, low power, theme and supported system integration; platform actions belong to Host |
+| Appearance/general | Low power, theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |
 | Storage | Supported export/import, migration preview and cleanup; use existing service commands and transaction contracts |
 

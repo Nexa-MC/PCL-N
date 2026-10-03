@@ -8758,5 +8758,10 @@
     "source": "用于日期和数字；更改后重启生效。",
     "zh-Hant": "用於日期和數字；變更後重新啟動生效。",
     "en": "Formats dates and numbers. Restart to apply changes."
+  },
+  {
+    "source": "动画时钟的目标帧率，1–240 fps；不改变动画时长。",
+    "zh-Hant": "動畫時鐘的目標幀率，1–240 fps；不改變動畫時長。",
+    "en": "Requested animation rate, 1–240 fps. Animation durations stay unchanged."
   }
 ]

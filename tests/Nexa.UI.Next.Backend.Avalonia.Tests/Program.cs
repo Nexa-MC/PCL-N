@@ -410,6 +410,7 @@ internal static partial class Program
             VerifyPostNavigationDoubleClickRouting(window);
             await VerifyOverlayReorderAndReentry(shell, surface);
             await VerifyPlatformClipboard(window).ConfigureAwait(true);
+            await VerifyConfigurableMotionFrameClock().ConfigureAwait(true);
             VerifyNativeTextEditing(window, shell, surface);
             VerifyReentrantRemovalCommit(shell, surface);
             await VerifyTransitionGroupsAndMedia(shell, surface);
@@ -710,17 +711,41 @@ internal static partial class Program
     {
         AvaloniaUiPlatformActions actions = new();
         actions.SetWindowResizeEnabled(false);
+        actions.SetAnimationFrameRate(24);
         actions.Attach(window);
+        AssertEqual(TimeSpan.FromSeconds(1d / 24), AvaloniaUiMotion.FrameInterval);
         AssertFalse(window.CanResize);
         var maximize = window.GetVisualDescendants().OfType<AvaloniaNativeWindowActions.WindowActionButton>().ElementAt(1);
         AssertFalse(maximize.IsEnabled);
         actions.SetWindowResizeEnabled(true);
         AssertTrue(window.CanResize);
         AssertTrue(maximize.IsEnabled);
+        actions.SetAnimationFrameRate(60);
         const string code = "ABCD-EFGH";
         await actions.CopyTextAsync(code).ConfigureAwait(true);
         AssertEqual(code, await window.Clipboard!.TryGetTextAsync().ConfigureAwait(true));
         Console.WriteLine("PASS: platform copy marshals to the UI thread and persists text");
+    }
+
+    private static async Task VerifyConfigurableMotionFrameClock()
+    {
+        object owner = new(); double presented = 0; bool completed = false;
+        try
+        {
+            AvaloniaUiMotion.SetFrameRate(24);
+            AvaloniaUiMotion.Animate(owner, "rate-test", () => presented, value => presented = value,
+                1, 120, reducedMotion: () => false, completed: () => completed = true);
+            AssertEqual(TimeSpan.FromSeconds(1d / 24), AvaloniaUiMotion.FrameInterval);
+            AvaloniaUiMotion.SetFrameRate(120);
+            AssertEqual(0d, presented); // Retiming the dispatcher must not jump or complete a live track.
+            AssertFalse(completed);
+            AssertEqual(TimeSpan.FromSeconds(1d / 120), AvaloniaUiMotion.FrameInterval);
+            DateTime deadline = DateTime.UtcNow.AddSeconds(2);
+            while (!completed && DateTime.UtcNow < deadline) await Task.Delay(16).ConfigureAwait(true);
+            AssertTrue(completed); AssertEqual(1d, presented);
+        }
+        finally { AvaloniaUiMotion.CancelAll(owner); AvaloniaUiMotion.SetFrameRate(60); }
+        Console.WriteLine("PASS: configured frame interval changes while active timelines retain their completion");
     }
 
     private static void VerifyWindowActionFeedback(AvaloniaUiShellWindow window, AvaloniaUiSceneSurface surface)

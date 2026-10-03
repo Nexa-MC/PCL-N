@@ -513,7 +513,7 @@
     "kind": "Setting",
     "key": "appearance.animation-fps",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.8acdc9767f4b",

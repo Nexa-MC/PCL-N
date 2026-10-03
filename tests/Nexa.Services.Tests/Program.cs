@@ -78,6 +78,7 @@ internal static partial class Program
         ("regional policy disables mirrors outside mainland", Sync(RegionalPolicyDisablesMirrorsOutsideMainland)),
         ("language settings are immediate validated and durable", Sync(LanguageSettingIsImmediateValidatedAndDurable)),
         ("region formatting settings validate persist and preserve legacy aliases", Sync(RegionFormattingSettingIsValidatedAndDurable)),
+        ("animation frame rate uses actual fps and legacy slider encoding", Sync(AnimationFrameRateUsesActualFpsAndLegacySliderEncoding)),
         ("resource identity malformed providers preserve healthy source and cancellation", ResourceIdentityMalformedProviderPreservesHealthySource),
         ("resource provided aliases retain versions and reject incomplete declarations", ResourceProvidedAliasesKeepVersionsAndRejectIncompleteDeclarations),
         ("resource installed content identifies hashes and rejects stale identity", ResourceInstalledContentUsesHashesAndRejectsStaleIdentity),

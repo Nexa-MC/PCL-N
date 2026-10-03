@@ -23,7 +23,7 @@ public static class SettingsCatalog
             row.GetProperty("page").GetString()!, row.GetProperty("section").GetString()!, row.GetProperty("label").GetString()!,
             Enum.Parse<SettingsCatalogEntryKind>(row.GetProperty("kind").GetString()!), row.GetProperty("key").GetString(),
             row.GetProperty("developer").GetBoolean(), row.GetProperty("key").GetString() is
-                "general.language" or "general.region" or "appearance.animations-disabled" or "appearance.lock-window" or "network.file-concurrency" or "network.file-retry" or "network.game-source" or "recovery.keep-history" or "diagnostics.telemetry" or "game.width" or "game.height" or "game.window-mode" or "game.jvm" or "game.arguments" or "game.memory" or "game.server" or "game.auto-repair" or "java.runtime" or "java.auto-install" or "java.vendor" or "developer.enabled" or "install.inherit-vanilla"
+                "general.language" or "general.region" or "appearance.animations-disabled" or "appearance.animation-fps" or "appearance.lock-window" or "network.file-concurrency" or "network.file-retry" or "network.game-source" or "recovery.keep-history" or "diagnostics.telemetry" or "game.width" or "game.height" or "game.window-mode" or "game.jvm" or "game.arguments" or "game.memory" or "game.server" or "game.auto-repair" or "java.runtime" or "java.auto-install" or "java.vendor" or "developer.enabled" or "install.inherit-vanilla"
                     ? SettingsCapabilityAvailability.Available : SettingsCapabilityAvailability.NotImplemented)).ToArray();
         if (result.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != result.Length)
             throw new InvalidOperationException("Settings catalog identifiers must be unique.");

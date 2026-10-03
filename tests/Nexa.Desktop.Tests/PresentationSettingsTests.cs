@@ -14,10 +14,13 @@ internal static partial class Program
             new(SettingsOverrideMode.Custom, value ? "true" : "false"))).IsSuccess);
         Set("appearance.animations-disabled", true);
         Set("appearance.lock-window", true);
+        AssertTrue(policy.Set(new("appearance.animation-fps", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "30"))).IsSuccess);
         List<bool> resizeCalls = [];
-        using var presentation = new DesktopPresentationSession(fixture.Shell, fixture.Store, resizeCalls.Add);
+        List<int> frameRates = [];
+        using var presentation = new DesktopPresentationSession(fixture.Shell, fixture.Store, resizeCalls.Add, frameRates.Add);
         AssertTrue(fixture.Shell.Renderer.ReducedMotion);
         AssertEqual(false, resizeCalls.Single());
+        AssertEqual(30, frameRates.Single());
         fixture.Shell.Renderer.OptionalMotionSuspended = true;
         Set("appearance.animations-disabled", false);
         Set("appearance.lock-window", false);
@@ -25,9 +28,14 @@ internal static partial class Program
         AssertFalse(fixture.Shell.Renderer.ReducedMotion);
         AssertTrue(fixture.Shell.Renderer.OptionalMotionSuspended);
         AssertEqual(true, resizeCalls.Last());
+        AssertTrue(policy.Set(new("appearance.animation-fps", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "120"))).IsSuccess);
+        fixture.Shell.Render(new(1000, 650));
+        AssertEqual(120, frameRates.Last());
+        AssertEqual(2, frameRates.Count);
         int calls = resizeCalls.Count;
         for (int i = 0; i < 10; i++) fixture.Shell.Render(new(1000, 650));
         AssertEqual(calls, resizeCalls.Count);
+        AssertEqual(2, frameRates.Count);
 
         using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
             fixture.Foundation.Commands, fixture.Store, fixture.Feedback);

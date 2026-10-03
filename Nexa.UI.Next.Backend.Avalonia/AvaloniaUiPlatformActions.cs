@@ -15,11 +15,13 @@ public sealed class AvaloniaUiPlatformActions
 {
     private TopLevel? _owner;
     private bool _resizeEnabled = true;
+    private int _animationFrameRate = 60;
     private readonly PostNavigationDoubleClick _doubleClick = new();
     private IPointer? _consumedPointer;
     internal void Attach(TopLevel owner)
     {
         _owner = owner;
+        AvaloniaUiMotion.SetFrameRate(_animationFrameRate);
         if (owner is Window attachedWindow) attachedWindow.CanResize = _resizeEnabled;
         if (owner is AvaloniaUiShellWindow shellWindow) shellWindow.CloseGuard = () => CloseRequested?.Invoke() ?? true;
         owner.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -41,6 +43,16 @@ public sealed class AvaloniaUiPlatformActions
         if (_owner is not Window window) return;
         if (Dispatcher.UIThread.CheckAccess()) window.CanResize = enabled;
         else Dispatcher.UIThread.Post(() => window.CanResize = _resizeEnabled);
+    }
+
+    /// <summary>Sets the shared presentation clock's requested rate, without altering durations or OS animations.</summary>
+    public void SetAnimationFrameRate(int framesPerSecond)
+    {
+        if (framesPerSecond is < 1 or > 240) throw new ArgumentOutOfRangeException(nameof(framesPerSecond));
+        _animationFrameRate = framesPerSecond;
+        if (_owner is null) return;
+        if (Dispatcher.UIThread.CheckAccess()) AvaloniaUiMotion.SetFrameRate(framesPerSecond);
+        else Dispatcher.UIThread.Post(() => AvaloniaUiMotion.SetFrameRate(_animationFrameRate));
     }
 
     public event Action<AvaloniaUiInputKind>? InputObserved;
