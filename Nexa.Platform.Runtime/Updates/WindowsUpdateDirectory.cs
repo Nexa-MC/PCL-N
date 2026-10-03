@@ -67,7 +67,9 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
     }
 
     /// <summary>Creates a fresh protected directory. Its lease independently retains all ancestors.</summary>
-    public WindowsUpdateDirectory CreateStagingDirectory()
+    public WindowsUpdateDirectory CreateStagingDirectory() => CreateDirectory(".nexa-update-" + Guid.NewGuid().ToString("N"), publicRead: false);
+
+    public WindowsUpdateDirectory CreateDirectory(string name, bool publicRead)
     {
         lock (_gate)
         {
@@ -86,7 +88,7 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
                     }
                     chain.Add(copy);
                 }
-                child = OpenRelative(_chain[^1], ".nexa-update-" + Guid.NewGuid().ToString("N"), directory: true, create: true);
+                child = OpenRelative(_chain[^1], name, directory: true, create: true, publicRead: publicRead);
                 Admit(child, directory: true, ancestor: false);
                 chain.Add(child);
                 return new(chain, created: true);
@@ -106,12 +108,12 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
     }
 
     /// <summary>Opens one protected leaf by parent handle, refusing reparse points and shared hardlinks.</summary>
-    public FileStream OpenReadFile(string name)
+    public FileStream OpenReadFile(string name, bool concurrentState = false)
     {
         lock (_gate)
         {
             ThrowIfDisposed();
-            SafeFileHandle handle = OpenRelative(_chain[^1], name, directory: false, create: false);
+            SafeFileHandle handle = OpenRelative(_chain[^1], name, directory: false, create: false, concurrentRead: concurrentState);
             try
             {
                 Admit(handle, directory: false, ancestor: false);
@@ -123,16 +125,54 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
 
     /// <summary>Opens or creates an admitted protected state leaf without truncation, with exclusive sharing.</summary>
     public FileStream OpenExclusiveStateFile(string name)
+        => OpenStateFile(name, publicRead: false, exclusive: true);
+
+    public FileStream OpenStateFile(string name, bool publicRead, bool exclusive)
     {
         lock (_gate)
         {
             ThrowIfDisposed();
-            SafeFileHandle handle = OpenRelative(_chain[^1], name, directory: false, create: false, state: true);
+            SafeFileHandle handle = OpenRelative(_chain[^1], name, directory: false, create: false, state: true, publicRead: publicRead, exclusive: exclusive);
             try
             {
                 Admit(handle, directory: false, ancestor: false);
                 return new FileStream(handle, FileAccess.ReadWrite, 4096, isAsync: false);
             }
+            catch { handle.Dispose(); throw; }
+        }
+    }
+
+    public WindowsUpdateDirectory OpenDirectory(string name)
+    {
+        lock (_gate)
+        {
+            ThrowIfDisposed();
+            var chain = new List<SafeFileHandle>();
+            try
+            {
+                foreach (SafeFileHandle ancestor in _chain)
+                {
+                    if (!DuplicateHandle(GetCurrentProcess(), ancestor, GetCurrentProcess(), out SafeFileHandle copy, 0, false, 2))
+                    { copy.Dispose(); ThrowNative("保留更新目录", Marshal.GetLastPInvokeError()); }
+                    chain.Add(copy);
+                }
+                SafeFileHandle child = OpenRelative(_chain[^1], name, directory: true, create: false);
+                chain.Add(child);
+                Admit(child, directory: true, ancestor: false);
+                return new(chain, created: false);
+            }
+            catch { foreach (SafeFileHandle item in chain) item.Dispose(); throw; }
+        }
+    }
+
+    public FileStream CreatePayloadFile(string name, bool publicRead)
+    {
+        lock (_gate)
+        {
+            ThrowIfDisposed();
+            if (!_created) throw new InvalidOperationException("仅允许在新目录内创建更新文件。");
+            SafeFileHandle handle = OpenRelative(_chain[^1], name, directory: false, create: true, publicRead: publicRead);
+            try { Admit(handle, directory: false, ancestor: false); return new FileStream(handle, FileAccess.ReadWrite, 65536, isAsync: false); }
             catch { handle.Dispose(); throw; }
         }
     }
@@ -238,13 +278,14 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
         finally { LocalFree(descriptor); }
     }
 
-    private static unsafe SafeFileHandle OpenRelative(SafeFileHandle parent, string name, bool directory, bool create, bool state = false)
+    private static unsafe SafeFileHandle OpenRelative(SafeFileHandle parent, string name, bool directory, bool create, bool state = false,
+        bool publicRead = false, bool exclusive = true, bool concurrentRead = false)
     {
         ValidateLeaf(name);
         byte[]? security = null;
         if (create || state)
         {
-            var descriptor = new RawSecurityDescriptor("O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)");
+            var descriptor = new RawSecurityDescriptor("O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)" + (publicRead ? "(A;OICI;GRGX;;;BU)" : ""));
             security = new byte[descriptor.BinaryLength];
             descriptor.GetBinaryForm(security, 0);
         }
@@ -263,7 +304,7 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
             uint access = directory ? DirectoryAccess : ReadControl | Synchronize | ReadAttributes | 1;
             if (create || state) access |= DeleteAccess | (directory ? 0u : 2u);
             uint options = 0x200020u | (directory ? 1u : 0x40u) | (create || state ? 2u : 0u);
-            int status = NtCreateFile(out SafeFileHandle handle, access, &attributes, out _, 0, 0, state ? 0u : 1u,
+            int status = NtCreateFile(out SafeFileHandle handle, access, &attributes, out _, 0, 0, state ? exclusive ? 0u : 1u : concurrentRead ? 3u : 1u,
                 state ? 3u : create ? 2u : 1u, options, 0, 0);
             if (status < 0)
             {
