@@ -196,7 +196,7 @@ internal static partial class Program
         AssertTrue(catalog.InstanceSettingsSections.Any(page => page.Id == "backup"));
         var ids = catalog.Entries.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
         AssertEqual(catalog.Entries.Count, ids.Count);
-        foreach (string id in new[] { "global.advanced.0a2a572d1179", "global.advanced.f629377e6bbc" })
+        foreach (string id in new[] { "global.advanced.0a2a572d1179", "global.advanced.f629377e6bbc", "global.advanced.c9b13355b1bc" })
         {
             var transfer = catalog.Entries.Single(entry => entry.Id == id);
             AssertEqual("storage", transfer.Page);
@@ -276,6 +276,13 @@ internal static partial class Program
             AssertEqual(1L, host.StateStore.Read<long>(host.StateStore.Resolve(SettingsPolicyContract.RevisionKey)).Value);
             var content = await runtime.Queries.QueryAsync<SettingsCatalogQuery, SettingsCatalogSnapshot>(catalog, new(true));
             AssertTrue(content.IsSuccess); AssertEqual(535, content.Value!.Entries.Count);
+            AssertTrue(runtime.Queries.TryResolve(SettingsPolicyContract.ResetPreviewQuery, out var resetPreview));
+            AssertTrue(runtime.Commands.TryResolve(SettingsPolicyContract.ResetCommand, out var reset));
+            var proposal = await runtime.Queries.QueryAsync<SettingsResetQuery, SettingsResetPreview>(resetPreview, new());
+            AssertTrue(proposal.IsSuccess); AssertEqual(1, proposal.Value!.Changes.Count);
+            AssertTrue((await runtime.Commands.Dispatch(reset, new SettingsResetCommand(proposal.Value.Revision)).Completion).IsSuccess);
+            AssertEqual("854", Effective(host.SettingsPolicy, "game.width").Value.Value);
+
         }
         finally { Directory.Delete(directory, true); }
     }

@@ -65,3 +65,10 @@ Import/export format: `{ "version": 1, "scope": "global" | "instance", "values":
 ## Nonblocking effective reads
 Effective queries read one immutable committed revision and values snapshot. They never acquire the persistence gate. While Save is pending, readers retain the previous snapshot; failed saves do not publish a new snapshot. The durable writer publishes the complete snapshot before revision notifications.
 
+
+## Scoped reset
+A sealed reset preview captures the committed revision and proposes Inherit mutations
+only for available catalog-backed definitions overridden in the requested layer. Global
+reset preserves reserved keys and all instances; instance reset preserves global and
+other-instance values. Apply recomputes, checks the expected revision and commits once.
+No-op previews do not write. Persistence failure leaves the complete prior snapshot.

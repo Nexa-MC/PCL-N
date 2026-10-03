@@ -8851,5 +8851,47 @@
     "source": "无法导出设置，原文件未被替换。",
     "zh-Hant": "無法匯出設定，原檔案未被取代。",
     "en": "Could not export settings. The previous file was not replaced."
+  },
+  {
+    "source": "仅重置已接入的设置，不删除版本或文件。",
+    "zh-Hant": "僅重設已接入的設定，不刪除版本或檔案。",
+    "en": "Restore implemented settings only. Version files are kept."
+  },
+  {
+    "source": "无法生成设置预览，请重试。",
+    "zh-Hant": "無法產生設定預覽，請重試。",
+    "en": "Could not preview settings. Try again."
+  },
+  {
+    "source": "无法恢复设置，现有设置未作更改。",
+    "zh-Hant": "無法恢復設定，現有設定未作變更。",
+    "en": "Could not restore settings. No settings were changed."
+  },
+  {
+    "source": "没有需要恢复的设置。",
+    "zh-Hant": "沒有需要恢復的設定。",
+    "en": "No settings need to be restored."
+  },
+  {
+    "source": "暂时无法应用设置。",
+    "zh-Hant": "暫時無法套用設定。",
+    "en": "Settings cannot be applied right now."
+  },
+  {
+    "source": "设置已恢复。",
+    "zh-Hant": "設定已恢復。",
+    "en": "Settings restored."
+  },
+  {
+    "source": "设置未恢复；可能已发生更改，请重新预览。",
+    "zh-Hant": "設定未恢復；可能已發生變更，請重新預覽。",
+    "en": "Settings were not restored. They may have changed. Preview again."
+  },
+  {
+    "source": "将恢复 {0} 项设置。",
+    "zh-Hant": "將恢復 {0} 項設定。",
+    "en": "Restore {0} settings.",
+    "en-one": "Restore {0} setting.",
+    "template": true
   }
 ]

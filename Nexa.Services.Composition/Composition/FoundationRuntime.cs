@@ -93,6 +93,8 @@ public static class FoundationRuntimeComposer
             (command, token) => new(Task.Run(() => host.SettingsPolicy.SetBatch(command), token)));
         commands.Register<SettingsImportCommand>(SettingsPolicyContract.ImportCommand,
             (command, token) => new(Task.Run(() => host.SettingsPolicy.ApplyImport(command), token)));
+        commands.Register<SettingsResetCommand>(SettingsPolicyContract.ResetCommand,
+            (command, token) => new(Task.Run(() => host.SettingsPolicy.ApplyReset(command), token)));
         commands.Register<MachineCapabilityRefresh>(MachineCapabilityStateContract.RefreshCommand, async (command, token) =>
         {
             await host.MachineCapabilities.ReadAsync(refresh: true, cancellationToken: token).ConfigureAwait(false);
@@ -154,6 +156,8 @@ public static class FoundationRuntimeComposer
             (query, token) => ValueTask.FromResult(host.SettingsPolicy.Export(query)));
         queries.Register<SettingsImportQuery, SettingsImportPreview>(SettingsPolicyContract.ImportPreviewQuery,
             (query, token) => ValueTask.FromResult(Nexa.Xsr.XsrResult.Success(host.SettingsPolicy.PreviewImport(query))));
+        queries.Register<SettingsResetQuery, SettingsResetPreview>(SettingsPolicyContract.ResetPreviewQuery,
+            (query, token) => ValueTask.FromResult(Nexa.Xsr.XsrResult.Success(host.SettingsPolicy.PreviewReset(query))));
         queries.Register<MachineCapabilityQuery, MachineCapabilitySnapshot>(MachineCapabilityStateContract.SnapshotQuery,
             async (query, token) => Nexa.Xsr.XsrResult.Success(await host.MachineCapabilities.ReadAsync(query, cancellationToken: token).ConfigureAwait(false)));
         queries.Register<LaunchPreflightQuery, CapabilityPreflightReport>(MachineCapabilityStateContract.PreflightQuery,

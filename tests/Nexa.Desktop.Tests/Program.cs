@@ -62,6 +62,8 @@ internal static partial class Program
         ("region formatting uses startup policy and restores culture", RegionFormattingUsesStartupPolicyAndRestoresCulture),
         ("region selector preserves custom cultures and saves presets", RegionSelectorPreservesCustomCulturesAndSavesPresets),
         ("settings transfer previews cancels applies and filters export", SettingsTransferPreviewsCancelsAppliesAndFiltersExport),
+        ("settings reset requires confirmation and retires late decisions", SettingsResetRequiresConfirmationAndRetiresLateDecisions),
+        ("settings instance reset restores inheritance without native file callbacks", SettingsInstanceResetRestoresInheritanceWithoutNativeFileCallbacks),
         ("settings import rejects stale revision and late confirmation", SettingsImportRejectsStaleRevisionAndLateConfirmation),
         ("settings import discards late read and rejects wrong scope", SettingsImportDiscardsLateReadAndRejectsWrongScope),
         ("settings transfer uses instance scope and discards changed identity", SettingsTransferUsesInstanceScopeAndDiscardsChangedIdentity),

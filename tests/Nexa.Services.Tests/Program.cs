@@ -215,6 +215,8 @@ internal static partial class Program
         ("settings overlays resolve in order without enabling mutation", Sync(SettingsOverlayPrecedenceIsPreviewOnly)),
         ("settings batch failures publish nothing and cross validate", Sync(SettingsBatchFailurePublishesNothing)),
         ("settings import is previewed atomic and private", Sync(SettingsImportIsPreviewedAtomicAndPrivate)),
+        ("settings reset is scoped previewed and preserves reserved values", Sync(SettingsResetIsScopedPreviewedAndPreservesReservedValues)),
+        ("settings reset rejects stale revision and rolls back save failure", Sync(SettingsResetRejectsStaleRevisionAndRollsBackSaveFailure)),
         ("settings layers survive restart and preserve unknown data", Sync(SettingsLayersSurviveRestartAndPreserveUnknowns)),
         ("Java major choices select installed runtimes or acquire missing ones", JavaMajorChoiceUsesInstalledOrDownloads),
         ("process output drains and abnormal exit is analyzed", ProcessOutputDrainsAndAbnormalExitIsAnalyzed),

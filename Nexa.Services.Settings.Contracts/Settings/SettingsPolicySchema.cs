@@ -122,3 +122,6 @@ public sealed record SettingsImportCommand(string Document, long ExpectedRevisio
 public sealed record SettingsExportQuery(string? InstanceId = null);
 public sealed record SettingsBatchCommand(IReadOnlyList<SettingsMutation> Changes, long ExpectedRevision);
 public sealed record SettingsPreviewQuery(IReadOnlyList<SettingsMutation> Changes, string? InstanceId = null);
+public sealed record SettingsResetQuery(string? InstanceId = null);
+public sealed record SettingsResetPreview(long Revision, IReadOnlyList<SettingsMutation> Changes, IReadOnlyList<string> Errors);
+public sealed record SettingsResetCommand(long ExpectedRevision, string? InstanceId = null);

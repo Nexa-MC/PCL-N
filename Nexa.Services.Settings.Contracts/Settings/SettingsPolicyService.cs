@@ -16,5 +16,7 @@ public static class SettingsPolicyContract
     public static readonly XsrSemanticId ExportQuery = XsrSemanticId.Parse("settings.policy.export");
     public static readonly XsrSemanticId ImportPreviewQuery = XsrSemanticId.Parse("settings.policy.import.preview");
     public static readonly XsrSemanticId ImportCommand = XsrSemanticId.Parse("settings.policy.import.apply");
+    public static readonly XsrSemanticId ResetPreviewQuery = XsrSemanticId.Parse("settings.policy.reset.preview");
+    public static readonly XsrSemanticId ResetCommand = XsrSemanticId.Parse("settings.policy.reset.apply");
     public static void DeclareState(XsrStateStoreBuilder builder) => builder.Cell<long>(RevisionKey, "Nexa.Services.Settings");
 }

@@ -53,6 +53,10 @@ and Migration, plus scoped transfers in instance Game settings. Sealed Service
 routes own filtering, validation and revision-checked apply; Host owns bounded file
 IO and atomic export. Navigation and instance changes retire pending results.
 
+XSR-770 delivers revision-checked reset previews for working global settings and
+current-instance overrides. Reserved settings and files are retained; instance reset
+restores inheritance without changing other instances.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions; compatibility checks remain mandatory until a separate safe policy exists |
@@ -60,7 +64,7 @@ IO and atomic export. Navigation and instance changes retire pending results.
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Low power, theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |
-| Storage | Storage-location migration preview, reset and cleanup; use existing service commands and transaction contracts |
+| Storage | Storage-location migration preview and cleanup; use existing service commands and transaction contracts |
 
 Reserved IA positions are not a statement that dev already implements every capability.
 Each next slice must first define its value and application timing, then connect a real
