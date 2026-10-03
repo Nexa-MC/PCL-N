@@ -132,9 +132,10 @@ public static class MachineInstanceCatalog
             bool writable;
             try
             {
-                string probe = Path.Combine(full, ".nexa-write-probe");
-                File.WriteAllText(probe, string.Empty);
-                File.Delete(probe);
+                string probe = Path.Combine(full, ".nexa-write-probe-" + Guid.NewGuid().ToString("N"));
+                using var stream = new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.Delete,
+                    1, FileOptions.DeleteOnClose);
+                stream.WriteByte(0);
                 writable = true;
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

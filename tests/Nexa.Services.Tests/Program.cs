@@ -4,6 +4,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("instance path probes preserve files and isolate concurrent calls", InstancePathProbesPreserveExistingFilesAndIsolateConcurrentCalls),
         ("instance server lists preserve tags and reject stale writes", InstanceServersPreserveUnknownTagsAndRejectStaleWrites),
         ("instance server status uses bounded protocol and admitted revisions", InstanceServerStatusUsesBoundedProtocolAndAdmittedRevision),
         ("instance server lists reject malformed and expanded NBT", InstanceServersRejectMalformedAndExpandedNbtWithoutModification),
