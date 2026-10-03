@@ -6,6 +6,20 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void AutomaticUpdateResumesOnStartupWithoutOpeningSettings()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
+            fixture.Foundation.Commands, fixture.Store, fixture.Feedback);
+        var update = new AutomaticUpdateRecoveryFixture();
+        settings.ConfigureUpdates(fixture.Foundation.Queries, new("2.0.0.alpha.5", "win-x64", "alpha"), _ => { }, update);
+        AssertTrue(fixture.Shell.Stage.Navigation.Current != settings.Page);
+        fixture.Shell.Render(new(1000, 650));
+        AssertEqual(1, update.InstallCount);
+        fixture.Shell.Render(new(1000, 650));
+        AssertEqual(1, update.InstallCount);
+    }
+
     private static void AutomaticUpdateRestartFollowsSelectedVersionAndRollback()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
@@ -78,5 +92,20 @@ internal static partial class Program
         internal void CompleteStaleRead() => _staleRead.SetResult(new("2.0.0.alpha.6", "alpha", "complete", true, true));
         internal void CompleteProgressRead() => _progressRead.SetResult(new("2.0.0.alpha.6", "alpha", "preparing", true, false));
         public void Restart() => throw new InvalidOperationException("Restart must use the host close lifecycle.");
+    }
+
+    private sealed class AutomaticUpdateRecoveryFixture : IAutomaticUpdateControl
+    {
+        private readonly TaskCompletionSource<AutomaticUpdateStatus> _pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal int InstallCount { get; private set; }
+        public Task<AutomaticUpdateStatus> ReadAsync(CancellationToken token)
+            => Task.FromResult(new AutomaticUpdateStatus("2.0.0.alpha.6", "alpha", "paused", true, false));
+        public Task<AutomaticUpdateStatus> InstallAsync(string version, string channel, CancellationToken token)
+        {
+            AssertEqual("2.0.0.alpha.6", version); AssertEqual("alpha", channel); InstallCount++;
+            return _pending.Task;
+        }
+        public Task<AutomaticUpdateStatus> RollbackAsync(CancellationToken token) => throw new InvalidOperationException();
+        public void Restart() => throw new InvalidOperationException();
     }
 }

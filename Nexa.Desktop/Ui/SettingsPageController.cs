@@ -100,8 +100,8 @@ internal sealed partial class SettingsPageController : IDisposable
             _visible = visible;
             _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
         }
-        if (!visible) return;
         UpdateReleaseCheck();
+        if (!visible) return;
         string? instance = _instanceDirectory?.Invoke();
         if (_instanceDirectory is not null && string.IsNullOrWhiteSpace(instance)) return;
         if (instance != _instance)

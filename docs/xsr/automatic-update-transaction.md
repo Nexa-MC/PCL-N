@@ -57,6 +57,8 @@ if a redundant recovery request encounters the exclusive transaction lock.
 The helper has a 20-minute cancellation budget covering response bodies and preparation,
 not just HTTP headers. Timeout records a recoverable pause before the short activation
 commit. DEB/RPM metadata requires the fixed system pkexec tool used for Linux authorization.
+Startup recovery and progress consumption run while the settings page is hidden as well;
+opening settings is not a prerequisite for continuing an interrupted authorized update.
 
 ## Validation
 

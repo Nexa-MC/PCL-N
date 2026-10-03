@@ -55,6 +55,8 @@ An already-running elevated helper remains observable after GUI exit/recovery lo
 The helper bounds the complete response-body/preparation operation, and cancellation tests
 verify paused-state offline recovery. Linux packages require pkexec instead of assuming a
 desktop image already provides authorization tooling.
+Recovery is consumed on startup without visiting Settings; a regression keeps the launch
+page visible and verifies the protected pending target is resumed exactly once.
 release CI executes a real protected transaction/rollback on each of six RIDs and smoke-runs
 the helper, alongside installer, Desktop NativeAOT and trim checks. Native CI results must be
 reviewed before acceptance; fixtures are not physical power-loss or OS signing acceptance.
