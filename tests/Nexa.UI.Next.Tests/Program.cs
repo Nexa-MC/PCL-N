@@ -104,6 +104,7 @@ internal static partial class Program
         ("pager clips pages and excludes inactive input and accessibility", Sync(PagerClipsPagesAndExcludesInactiveInput)),
         ("pager supports wheel keyboard drag cancellation and reduced motion", Sync(PagerSupportsAllInputPaths)),
         ("horizontal pager uses horizontal geometry and input", Sync(HorizontalPagerUsesHorizontalGeometryAndInput)),
+        ("graph projection sizes degrees and separates click from pan", Sync(GraphProjectionSizesDegreesAndSeparatesClickFromPan)),
         ("text editing owns gestures inside pager and scroll", Sync(TextEditingOwnsGesturesInsidePagerAndScroll)),
     ];
 

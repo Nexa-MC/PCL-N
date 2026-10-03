@@ -81,6 +81,7 @@ public readonly record struct XsrUiSceneNode(
     IReadOnlyList<XsrUiTextRun>? TextRuns = null)
 {
     public bool HasRole => Role != XsrUiSemanticRole.None;
+    public XsrUiGraphSnapshot? Graph { get; init; }
 }
 
 /// <summary>

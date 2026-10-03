@@ -59,7 +59,7 @@ internal static partial class Program
                 : [])).ToArray();
         nodes[12] = nodes[12] with { Consumers = [new(0, 0)] };
         pending[1].Completion.SetResult(Snapshot("instance-B", new(Array.AsReadOnly(nodes), 0, true, null)));
-        PumpUntil(() => scene.Nodes.Any(node => fixture.Shell.Tree.Name(node.Entity) == "ContentGraphNode.0"));
+        PumpUntil(() => scene.Nodes.Any(node => node.Graph is not null));
         XsrUiEntityId Find(string name)
         {
             XsrUiEntityId result = default;
@@ -67,50 +67,33 @@ internal static partial class Program
             { if (fixture.Shell.Tree.Name(entity) == name) result = entity; return true; });
             AssertTrue(result.IsAssigned); return result;
         }
-        int CountCards()
-        {
-            int count = 0;
-            fixture.Shell.Tree.Walk(settings.Page, entity =>
-            { if (fixture.Shell.Tree.Name(entity).StartsWith("ContentGraphNode.", StringComparison.Ordinal)) count++; return true; });
-            return count;
-        }
-        AssertEqual(12, CountCards());
-        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphDetails.0"));
+        var canvas = Find("ContentGraphCanvas");
+        var graphView = fixture.Shell.Tree.GetComponent<XsrUiGraph>(canvas)!;
+        AssertEqual(2000, graphView.Snapshot().Points.Count);
+        AssertEqual(17, graphView.Snapshot().Edges.Count);
+        AssertTrue(scene.Nodes.Count < 200); // No control per mod.
+        graphView.Selected = 0;
+        Emit(fixture.Intents, "ui.settings.management.action", canvas);
         scene = fixture.Shell.Render(new(1000, 900));
-        AssertTrue(scene.Nodes.Any(node => node.Text == "存在依赖循环，仅供排查。"));
-        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphProvider.12"));
+        AssertTrue(scene.Nodes.Any(node => node.Text == "存在依赖循环。"));
+        Emit(fixture.Intents, "ui.settings.management.action", Find("GraphProvider.12"));
         scene = fixture.Shell.Render(new(1000, 900));
         AssertTrue(scene.Nodes.Any(node => node.Text == "mod0012 · 1"));
-        AssertTrue(scene.Nodes.Any(node => node.Text == "mod0000 → mod0012"));
-        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphConsumer.0"));
+        Emit(fixture.Intents, "ui.settings.management.action", Find("GraphConsumer.0"));
         scene = fixture.Shell.Render(new(1000, 900));
         AssertTrue(scene.Nodes.Any(node => node.Text == "mod0000 · 1"));
-        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphProviders.ambiguous-alias"));
-        scene = fixture.Shell.Render(new(1000, 900));
-        AssertEqual(12, CountCards()); Find("ContentGraphNode.20");
-        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphNext.Nodes"));
-        scene = fixture.Shell.Render(new(1000, 900));
-        AssertEqual(4, CountCards()); Find("ContentGraphNode.35");
-        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphProvidersBack"));
-        scene = fixture.Shell.Render(new(1000, 900));
-        AssertTrue(scene.Nodes.Any(node => node.Text == "mod0000 · 1"));
-        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphBack"));
-        scene = fixture.Shell.Render(new(1000, 900));
-        Emit(fixture.Intents, "ui.settings.management.action", Find("ContentGraphNext.Nodes"));
-        scene = fixture.Shell.Render(new(1000, 900));
-        AssertEqual(12, CountCards()); Find("ContentGraphNode.12");
         var search = Find("ContentGraphSearch");
         fixture.Shell.Renderer.Focus(search);
         fixture.Shell.Renderer.SetTextInputValue(search, "mod1999");
         scene = fixture.Shell.Render(new(1000, 900));
         AssertEqual(search, fixture.Shell.Renderer.Focused);
-        AssertEqual(1, CountCards()); Find("ContentGraphNode.1999");
+        AssertEqual("mod1999", scene.Nodes.Single(node => node.Entity == canvas).Graph!.Filter);
         AssertEqual(2, pending.Count); // Rendering and searching never restart graph I/O.
         Emit(fixture.Intents, "ui.settings.management.action", Find("Management.刷新"));
         scene = fixture.Shell.Render(new(1000, 900)); PumpUntil(() => pending.Count == 3);
         instance = "instance-C";
         PumpUntil(() => pending[2].Token.IsCancellationRequested && settings.SelectedSection == "overview");
         pending[2].Completion.SetResult(Snapshot("instance-B", new(Array.AsReadOnly(nodes), 0, true, null)));
-        scene = fixture.Shell.Render(new(1000, 900)); AssertEqual(0, CountCards());
+        scene = fixture.Shell.Render(new(1000, 900)); AssertFalse(scene.Nodes.Any(node => node.Graph is not null));
     }
 }

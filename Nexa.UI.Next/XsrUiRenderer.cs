@@ -906,6 +906,7 @@ public sealed partial class XsrUiRenderer
             return Focus(entity, showIndicator: false);
         }
         if (BeginSegmentDrag(point)) return true;
+        if (entity.IsAssigned && IsEnabled(input) && BeginGraphGesture(entity, point)) return true;
         bool scrollGesture = BeginScrollGesture(point);
         bool pagerGesture = BeginPagerGesture(point);
         if (entity.IsAssigned && input is { Clickable: true } && IsEnabled(input))
@@ -935,6 +936,7 @@ public sealed partial class XsrUiRenderer
 
     public bool PointerReleased(XsrUiPoint point, XsrUiClickModifiers modifiers)
     {
+        if (EndGraphGesture(point)) return true;
         if (EndSegmentDrag()) return true;
         if (EndScrollGesture(cancelled: false)) return true;
         if (EndPagerGesture()) return true;
@@ -983,6 +985,7 @@ public sealed partial class XsrUiRenderer
     /// </summary>
     public bool PointerMoved(XsrUiPoint point)
     {
+        if (MoveGraphGesture(point)) return true;
         if (MoveSegmentDrag(point)) return true;
         if (MoveScrollGesture(point)) return true;
         if (MovePagerGesture(point)) { AbandonScrollGesture(); return true; }
@@ -1463,7 +1466,8 @@ public sealed partial class XsrUiRenderer
             scrollSnapshot,
             components.Get<XsrUiSegmentReveal>() is { } reveal ? new(reveal.Expanded, reveal.Progress) : null,
             components.Get<XsrUiScrollGesture>() is { } motion ? new(motion.Revision, motion.Dragging, motion.Velocity) : null,
-            IsStableContent(entity), text?.Runs));
+            IsStableContent(entity), text?.Runs)
+        { Graph = components.Get<XsrUiGraph>()?.Snapshot() });
 
         if (components.Get<XsrUiSegmentedTrack>() is { } track
             && _tree.IsAlive(track.Thumb) && _paintRects.TryGetValue(track.Selected.Index, out XsrUiRect segment))

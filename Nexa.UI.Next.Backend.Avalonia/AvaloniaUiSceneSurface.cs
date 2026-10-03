@@ -1294,6 +1294,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         }
 
         DrawHoverOverlay(context, rect, style);
+        if (_node.Graph is { } graph) { DrawGraph(context, rect, graph); return; }
         if (_node.TextInput is { } textInput)
         {
             DrawTextInput(context, rect, style, textInput);
