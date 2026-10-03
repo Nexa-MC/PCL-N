@@ -167,7 +167,10 @@ internal static partial class Program
                 progress: progress,
                 windowProbe: new ImmediateWindowProbe());
 
-            XsrResult result = await coordinator.StartAsync("1.20.1", accountIndex: 0);
+            XsrResult result = await coordinator.StartServerAsync("1.20.1", 0, null, "play.example.org:25566");
+            AssertTrue(port.LastStartInfo!.ArgumentList.Contains("--quickPlayMultiplayer"));
+            AssertTrue(port.LastStartInfo.ArgumentList.Contains("play.example.org:25566"));
+            AssertTrue(string.IsNullOrEmpty((await metadataStore.LoadAsync(baseDirectory)).ServerToEnter));
             if (!result.IsSuccess)
             {
                 Console.WriteLine("DIAG launch failed: " + result.Error?.Code.Value + " " + result.Error?.Message);
@@ -225,6 +228,10 @@ internal static partial class Program
             }
 
             AssertFalse(coordinator.CancelActiveLaunch());
+            var ordinary = await coordinator.PrepareAsync("1.20.1", 0);
+            AssertTrue(ordinary.IsSuccess);
+            AssertTrue(string.IsNullOrEmpty(ordinary.Value.Request.Server));
+            AssertFalse((await coordinator.StartServerAsync("1.20.1", 0, null, "https://invalid.example")).IsSuccess);
         }
         finally
         {
@@ -722,11 +729,13 @@ internal static partial class Program
         public bool UsesPrivateArgumentTransport => true;
 
         public System.Diagnostics.Process? LastProcess { get; private set; }
+        public System.Diagnostics.ProcessStartInfo? LastStartInfo { get; private set; }
 
         public ValueTask<System.Diagnostics.Process> StartAsync(
             System.Diagnostics.ProcessStartInfo startInfo,
             CancellationToken cancellationToken = default)
         {
+            LastStartInfo = startInfo;
             // `timeout` refuses redirected stdin and `sh -c sleep 30` parses "30" as $0 —
             // the platform primitives are the reliable wait: ping on Windows, /bin/sleep elsewhere.
             System.Diagnostics.ProcessStartInfo wait = OperatingSystem.IsWindows()

@@ -9,6 +9,7 @@ public sealed record MinecraftInstancesQuery(string MinecraftRootDirectory);
 public sealed record MinecraftStartCommand(string InstanceId, int AccountIndex)
 {
     public string? MinecraftRootDirectory { get; init; }
+    public string? ServerAddress { get; init; }
 }
 public sealed record MinecraftLaunchCommand(MinecraftLaunchRequest Request);
 public sealed record MinecraftCancelProcessCommand(Guid SessionId);

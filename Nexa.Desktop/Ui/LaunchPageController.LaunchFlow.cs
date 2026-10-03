@@ -17,7 +17,18 @@ namespace Nexa.Desktop.Ui;
 internal sealed partial class LaunchPageController
 {
 
-    private async Task StartLaunchAsync(string instanceId, XsrUiEntityId source)
+    internal void JoinServer(string instanceDirectory, string address)
+    {
+        if (LaunchBusy || _launchRequest is { IsCompleted: false }) return;
+        string? root = Path.GetDirectoryName(Path.GetDirectoryName(instanceDirectory));
+        if (!Nexa.Core.PathIdentity.Comparer.Equals(root, ReadCell(LaunchPageState.InstanceDirectoryKey))
+            || Path.GetFileName(instanceDirectory) != ReadCell(LaunchPageState.SelectedInstanceKey))
+        { _feedback.Warn("当前版本已变化，请重新打开服务器列表。"); return; }
+        _shell.Stage.Navigation.Replace(_launchPage);
+        _launchRequest = StartLaunchAsync(Path.GetFileName(instanceDirectory), _launchPage, address);
+    }
+
+    private async Task StartLaunchAsync(string instanceId, XsrUiEntityId source, string? serverAddress = null)
     {
         IReadOnlyList<LaunchProfileView> profiles = ReadProfiles();
         int selected = SelectedAccountIndex;
@@ -50,7 +61,7 @@ internal sealed partial class LaunchPageController
         XsrCommandDispatch dispatch = _minecraft.Commands.Dispatch(
             commandId,
             new MinecraftStartCommand(instanceId, selected)
-            { MinecraftRootDirectory = ReadCell(LaunchPageState.InstanceDirectoryKey) },
+            { MinecraftRootDirectory = ReadCell(LaunchPageState.InstanceDirectoryKey), ServerAddress = serverAddress },
             cancellationToken: _lifetimeCancellation.Token);
         XsrResult result = await dispatch.Completion.ConfigureAwait(false);
         if (_disposed)

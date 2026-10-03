@@ -35,7 +35,7 @@ internal sealed partial class SettingsPageController
 
     private void CancelManagementRead()
     {
-        CancelOnlineList();
+        CancelOnlineList(); CancelServers();
         _managementStop?.Cancel(); _managementStop?.Dispose(); _managementStop = null;
         _managementRead = null; _managementLoaded = false;
     }
@@ -189,7 +189,7 @@ internal sealed partial class SettingsPageController
             Text(_sections, "整合包导出功能尚未迁移。", 13, Muted, 28);
         }
         else if (_selected == "servers")
-            Text(_sections, "服务器列表管理尚未迁移。", 13, Muted, 28);
+            BuildServers();
         _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY = _scrollPositions.GetValueOrDefault(_selected);
         _shell.Tree.MarkDirty(_sections, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
     }

@@ -56,6 +56,8 @@ public static class FoundationRuntimeComposer
 
         XsrCommandRouterBuilder commands = new();
         var recovery = new InstanceRecoveryService(host.SettingsPolicy, host.StateStore, host.Logging);
+        commands.Register<InstanceServerListSaveCommand>(InstanceServerListContract.Save,
+            async (command, token) => await InstanceServerListService.SaveAsync(command, host.StateStore, token).ConfigureAwait(false));
         commands.Register<InstanceRecoveryRestoreCommand>(InstanceRecoveryContract.Restore,
             async (command, token) => await recovery.RestoreAsync(command, token).ConfigureAwait(false));
         commands.Register<InstanceRecoveryResumeCommand>(InstanceRecoveryContract.Recover,
@@ -110,6 +112,10 @@ public static class FoundationRuntimeComposer
         XsrCommandRouter commandRouter = commands.Build(dispatchObserver, timeProvider);
 
         XsrQueryRouterBuilder queries = new();
+        queries.Register<InstanceServerListQuery, InstanceServerList>(InstanceServerListContract.Read,
+            async (query, token) => Nexa.Xsr.XsrResult.Success(await InstanceServerListService.ReadAsync(query, token).ConfigureAwait(false)));
+        queries.Register<InstanceServerStatusQuery, InstanceServerStatus>(InstanceServerListContract.Status,
+            async (query, token) => Nexa.Xsr.XsrResult.Success(await InstanceServerStatusService.ReadAsync(query, token).ConfigureAwait(false)));
         queries.Register<InstanceModRemovalQuery, InstanceModRemovalPreview>(InstanceManagementContract.ModRemovalPreview,
             async (query, token) => Nexa.Xsr.XsrResult.Success(await InstanceModRemovalService.PreviewAsync(query, token).ConfigureAwait(false)));
         queries.Register<InstanceManagementQuery, InstanceManagementSnapshot>(InstanceManagementContract.Query,

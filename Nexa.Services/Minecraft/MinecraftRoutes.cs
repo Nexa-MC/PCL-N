@@ -12,6 +12,8 @@ public static class MinecraftCommands
         {
             ArgumentNullException.ThrowIfNull(command);
             ArgumentNullException.ThrowIfNull(coordinator);
+            if (command.ServerAddress is { } server)
+                return await coordinator.StartServerAsync(command.InstanceId, command.AccountIndex, command.MinecraftRootDirectory, server, cancellationToken).ConfigureAwait(false);
             return command.MinecraftRootDirectory is { } root
                 ? await coordinator.StartAsync(command.InstanceId, command.AccountIndex, root, cancellationToken).ConfigureAwait(false)
                 : await coordinator.StartAsync(command.InstanceId, command.AccountIndex, cancellationToken).ConfigureAwait(false);

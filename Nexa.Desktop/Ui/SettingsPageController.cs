@@ -172,7 +172,7 @@ internal sealed partial class SettingsPageController : IDisposable
         UpdateManagement();
         UpdateOnlineContent();
         UpdateModRemovalPreview();
-        UpdateContentGraph();
+        UpdateContentGraph(); UpdateServers();
         int index = _shell.Tree.GetComponent<XsrUiPager>(_pager)!.PageIndex;
         if (index >= 0 && index < Pages.Count && Pages[index].Id != _selected)
             SwitchPage(Pages[index].Id);

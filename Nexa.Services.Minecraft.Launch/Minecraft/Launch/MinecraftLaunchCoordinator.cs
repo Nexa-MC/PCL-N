@@ -393,9 +393,22 @@ public sealed class MinecraftLaunchCoordinator
         CancellationToken cancellationToken = default)
         => StartAsync(instanceId, accountIndex, _minecraftRootDirectory, cancellationToken);
 
-    public async ValueTask<XsrResult> StartAsync(
+    public ValueTask<XsrResult> StartServerAsync(string instanceId, int accountIndex, string? minecraftRootDirectory, string serverAddress,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(serverAddress) || serverAddress.Length > 512 || serverAddress.Any(char.IsWhiteSpace)
+            || serverAddress.Any(char.IsControl) || serverAddress.Contains("://", StringComparison.Ordinal))
+            return ValueTask.FromResult(XsrResult.Failure(MinecraftErrors.InvalidRequest("服务器地址无效。")));
+        return StartCoreAsync(instanceId, accountIndex, minecraftRootDirectory ?? _minecraftRootDirectory, serverAddress, cancellationToken);
+    }
+
+    public ValueTask<XsrResult> StartAsync(
         string instanceId, int accountIndex, string minecraftRootDirectory,
         CancellationToken cancellationToken = default)
+        => StartCoreAsync(instanceId, accountIndex, minecraftRootDirectory, null, cancellationToken);
+
+    private async ValueTask<XsrResult> StartCoreAsync(string instanceId, int accountIndex, string minecraftRootDirectory, string? serverAddress,
+        CancellationToken cancellationToken)
     {
         using LogOperation? operation = _log?.BeginOperation("Launch", "StartMinecraft", $"instance={instanceId} account_index={accountIndex}");
         CancellationTokenSource launchCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -417,7 +430,7 @@ public sealed class MinecraftLaunchCoordinator
         {
             priority = WorkScheduler?.UsePriority(WorkPriority.Critical);
             quiet = WorkScheduler?.EnterQuiet();
-            XsrResult result = await StartLockedAsync(instanceId, accountIndex, minecraftRootDirectory, launchCancellation, operation, quiet).ConfigureAwait(false);
+            XsrResult result = await StartLockedAsync(instanceId, accountIndex, minecraftRootDirectory, serverAddress, launchCancellation, operation, quiet).ConfigureAwait(false);
             if (result.IsSuccess) quiet = null; // Session termination / confirmed-window grace owns it now.
             return result;
         }
@@ -441,6 +454,7 @@ public sealed class MinecraftLaunchCoordinator
         string instanceId,
         int accountIndex,
         string minecraftRootDirectory,
+        string? serverAddress,
         CancellationTokenSource launchCancellation,
         LogOperation? operation,
         IWorkQuietLease? quiet)
@@ -463,6 +477,7 @@ public sealed class MinecraftLaunchCoordinator
                 return XsrResult.Failure(preparation.Error!);
             }
 
+            if (serverAddress is not null) preparation = XsrResult.Success(preparation.Value with { Request = preparation.Value.Request with { Server = serverAddress } });
             string method = preparation.Value.Request.IdentityMode.ToString().ToLowerInvariant();
             operation?.Stage("create_plan");
             MinecraftLaunchPlan plan = default!;
