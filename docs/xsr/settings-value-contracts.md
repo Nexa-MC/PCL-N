@@ -54,6 +54,12 @@ and the current migration ledger. Other unconnected entries
 remain unavailable. Profile and Temporary have resolution
 semantics but reject public mutation.
 
+XSR-769 exposes the existing import/export transaction in Storage and Migration and
+instance Game settings. Host-selected files are bounded by actual UTF-8 bytes;
+export replaces its destination only after successful staging. Import requires a
+preview and explicit confirmation, and navigation or scope loss retires the pending
+operation. The JSON contract and local-only filtering below remain unchanged.
+
 Import/export format: `{ "version": 1, "scope": "global" | "instance", "values": { "key": { "mode": "Custom" | "Auto" | "Inherit", "value": "..." } } }`. Auto/Inherit omit the payload. Instance imports use a directory identity supplied separately; exports do not carry machine-specific instance locations. Unknown keys, local-only keys, wrong scopes, invalid values and unsupported versions are rejected. Missing keys leave current values unchanged. Preview has no persistence or state effects; apply revalidates and checks its revision.
 
 ## Nonblocking effective reads

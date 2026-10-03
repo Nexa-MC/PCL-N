@@ -48,6 +48,11 @@ XSR-768 delivers the live animation tick rate (1–240 fps, default 60), with ex
 legacy fps-minus-one conversion. The Host applies it before attachment and to active
 motion without changing durations, reduced motion, native OS animation or idle work.
 
+XSR-769 delivers user-selected JSON export and preview-confirmed import in Storage
+and Migration, plus scoped transfers in instance Game settings. Sealed Service
+routes own filtering, validation and revision-checked apply; Host owns bounded file
+IO and atomic export. Navigation and instance changes retire pending results.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions; compatibility checks remain mandatory until a separate safe policy exists |
@@ -55,7 +60,7 @@ motion without changing durations, reduced motion, native OS animation or idle w
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Low power, theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |
-| Storage | Supported export/import, migration preview and cleanup; use existing service commands and transaction contracts |
+| Storage | Storage-location migration preview, reset and cleanup; use existing service commands and transaction contracts |
 
 Reserved IA positions are not a statement that dev already implements every capability.
 Each next slice must first define its value and application timing, then connect a real

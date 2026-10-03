@@ -81,7 +81,7 @@ internal sealed partial class SettingsPageController : IDisposable
     private void OnIntent(object? sender, DesktopUiIntentEventArgs args)
     {
         if (_shell.Stage.Navigation.Current != Page) return;
-        if (IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
+        if (args.Intent.Command == ImportSettings || args.Intent.Command == ExportSettings || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
         else if (args.Intent.Command == RemediationExecuted) OnPlatformRemediation(sender, args);
     }
     private void OnFrame(object? sender, EventArgs args)
@@ -94,7 +94,7 @@ internal sealed partial class SettingsPageController : IDisposable
             if (visible) { _previousContentPadding = content.Padding; content.Padding = default; }
             else
             {
-                content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview();
+                content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); CancelSettingsTransfer();
                 ReleaseContentGraph();
             }
             _visible = visible;
@@ -103,9 +103,14 @@ internal sealed partial class SettingsPageController : IDisposable
         UpdateReleaseCheck();
         if (!visible) return;
         string? instance = _instanceDirectory?.Invoke();
-        if (_instanceDirectory is not null && string.IsNullOrWhiteSpace(instance)) return;
+        if (_instanceDirectory is not null && string.IsNullOrWhiteSpace(instance))
+        {
+            CancelSettingsTransfer();
+            return;
+        }
         if (instance != _instance)
         {
+            CancelSettingsTransfer();
             _instance = instance; _reading = null; _values = null; _revision = -1;
             ResetManagement();
             if (_catalog is not null) BuildSections(navigating: true);
@@ -142,6 +147,7 @@ internal sealed partial class SettingsPageController : IDisposable
         }
         while (_pending.TryDequeue(out var intent))
         {
+            if (intent.Command == ImportSettings || intent.Command == ExportSettings) { HandleSettingsTransfer(intent.Command, intent.Source); continue; }
             if (intent.Command == ManagementAction && _managementActions.TryGetValue(intent.Source, out var action)) { action(); continue; }
             if (IsUpdateIntent(intent.Command)) { HandleUpdateIntent(intent.Command); continue; }
             if (intent.Command == Inherit && _inheritButtons.TryGetValue(intent.Source, out var inheritKey)
@@ -173,6 +179,7 @@ internal sealed partial class SettingsPageController : IDisposable
         UpdateOnlineContent();
         UpdateModRemovalPreview();
         UpdateContentGraph(); UpdateServers(); UpdateExport();
+        UpdateSettingsTransfer();
         int index = _shell.Tree.GetComponent<XsrUiPager>(_pager)!.PageIndex;
         if (index >= 0 && index < Pages.Count && Pages[index].Id != _selected)
             SwitchPage(Pages[index].Id);
@@ -186,6 +193,7 @@ internal sealed partial class SettingsPageController : IDisposable
 
     private void SwitchPage(string page)
     {
+        CancelSettingsTransfer();
         _scrollPositions[_selected] = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY;
         if (_selected == "contentgraph")
         {
@@ -281,6 +289,7 @@ internal sealed partial class SettingsPageController : IDisposable
         if (_selected == "platform") { BuildPlatformCapabilities(); return; }
         if (_selected == "about") { BuildAboutPage(); return; }
         if (_selected == "advanced") BuildUpdateCard();
+        bool transfer = _instanceDirectory is null && _selected == "storage" || _instanceDirectory is not null && _selected == "game";
         if (_selected == "privacy")
         {
             var notice = Text(_sections, "必要遥测始终启用，仅包含版本、系统、架构及分类运行结果。诊断信息包括脱敏错误堆栈、耗时、资源占用、算法指标、功能使用情况、模组清单、加载器版本和游戏设置变化；正式版可关闭，测试版必须启用。不上传账户、路径或日志正文。", 12, Muted, height: 72);
@@ -291,7 +300,7 @@ internal sealed partial class SettingsPageController : IDisposable
             && (_instanceDirectory is null || item.Definition?.InstanceOverride == true) && !item.IsRuntimeDetail && (_developer || !item.DeveloperOnly)).ToArray();
         var available = entries.Where(item => item.Kind == SettingsCatalogEntryKind.Setting
             && item.Availability == SettingsCapabilityAvailability.Available && item.Definition is not null).ToArray();
-        if (available.Length == 0 && _selected != "advanced")
+        if (available.Length == 0 && _selected != "advanced" && !transfer)
         {
             Text(_sections, Pages.First(page => page.Id == _selected).Label, 20, Ink, height: 30, weight: 600);
             Text(_sections, "此分类的设置正在准备中。", 13, Muted, height: 24);
@@ -309,6 +318,7 @@ internal sealed partial class SettingsPageController : IDisposable
                 BuildRow(cardContent, rows[i]);
             }
         }
+        if (transfer) BuildSettingsTransfer();
         var scroll = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!;
         scroll.OffsetY = _scrollPositions.GetValueOrDefault(_selected);
         _shell.Tree.GetComponent<XsrUiTransition>(_sections)!.Key = _selected + ":" + _developer;
@@ -539,6 +549,6 @@ internal sealed partial class SettingsPageController : IDisposable
     };
     public void Dispose()
     {
-        _disposed = true; _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
+        _disposed = true; CancelSettingsTransfer(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }
 }

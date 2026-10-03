@@ -33,6 +33,7 @@ internal static partial class Program
         ("typeface cache preserves usable platform defaults", TypefaceCachePreservesUsableDefault),
         ("typeface cache probes fallbacks and preserves weight and style", TypefaceCacheProbesFallbacks),
         ("typeface cache reports missing fonts without caching failure", TypefaceCacheDoesNotCacheFailure),
+        ("document transfers bound actual bytes and replace atomically", DocumentTransfersBoundActualBytesAndReplaceAtomically),
         ("lifetime: splash never owns the process and main window close terminates", LifetimeSplashNeverOwnsProcessAndMainWindowCloseTerminates),
     ];
 

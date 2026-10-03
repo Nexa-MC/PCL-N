@@ -333,6 +333,10 @@ internal static partial class Program
         versionSettings.ConfigureExport(platformActions.PickDownloadDirectoryAsync);
         versionSettings.PickRemediationJava = platformActions.PickJavaFileAsync;
         settingsPage.PickRemediationJava = platformActions.PickJavaFileAsync;
+        settingsPage.ConfigureSettingsTransfer(token => platformActions.ReadJsonDocumentAsync(1024 * 1024, () => shell.Renderer.LocalizeText("导入设置"), token),
+            (document, token) => platformActions.SaveJsonDocumentAsync(document, 1024 * 1024, () => shell.Renderer.LocalizeText("导出设置"), token));
+        versionSettings.ConfigureSettingsTransfer(token => platformActions.ReadJsonDocumentAsync(1024 * 1024, () => shell.Renderer.LocalizeText("导入设置"), token),
+            (document, token) => platformActions.SaveJsonDocumentAsync(document, 1024 * 1024, () => shell.Renderer.LocalizeText("导出设置"), token));
         versionSettings.ManagementChanged = () =>
         {
             if (library.Commands.TryResolve(MinecraftLibraryRoutes.Refresh, out var refresh))

@@ -196,6 +196,15 @@ internal static partial class Program
         AssertTrue(catalog.InstanceSettingsSections.Any(page => page.Id == "backup"));
         var ids = catalog.Entries.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
         AssertEqual(catalog.Entries.Count, ids.Count);
+        foreach (string id in new[] { "global.advanced.0a2a572d1179", "global.advanced.f629377e6bbc" })
+        {
+            var transfer = catalog.Entries.Single(entry => entry.Id == id);
+            AssertEqual("storage", transfer.Page);
+            AssertEqual(SettingsCatalogEntryKind.Action, transfer.Kind);
+            AssertEqual(SettingsCapabilityAvailability.Available, transfer.Availability);
+        }
+        AssertTrue(catalog.Entries.Where(entry => entry.Id == "global.advanced.b05e9746f990" || entry.Parent == "global.advanced.b05e9746f990")
+            .All(entry => entry.Page == "storage"));
         foreach (var item in catalog.Entries)
         {
             AssertTrue(XsrSemanticId.TryParse(item.Id, out _));

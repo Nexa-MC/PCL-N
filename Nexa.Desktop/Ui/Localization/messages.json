@@ -8763,5 +8763,93 @@
     "source": "动画时钟的目标帧率，1–240 fps；不改变动画时长。",
     "zh-Hant": "動畫時鐘的目標幀率，1–240 fps；不改變動畫時長。",
     "en": "Requested animation rate, 1–240 fps. Animation durations stay unchanged."
+  },
+  {
+    "source": "导出",
+    "zh-Hant": "匯出",
+    "en": "Export"
+  },
+  {
+    "source": "选择文件",
+    "zh-Hant": "選擇檔案",
+    "en": "Choose file"
+  },
+  {
+    "source": "应用更改",
+    "zh-Hant": "套用變更",
+    "en": "Apply changes"
+  },
+  {
+    "source": "其他设置",
+    "zh-Hant": "其他設定",
+    "en": "Other settings"
+  },
+  {
+    "source": "先预览更改，确认后应用。",
+    "zh-Hant": "先預覽變更，確認後套用。",
+    "en": "Preview changes before applying them."
+  },
+  {
+    "source": "不包含账户、凭据或本机路径。",
+    "zh-Hant": "不包含帳戶、憑證或本機路徑。",
+    "en": "Excludes accounts, credentials and local paths."
+  },
+  {
+    "source": "无法读取设置文件，请检查文件大小、编码与格式。",
+    "zh-Hant": "無法讀取設定檔案，請檢查檔案大小、編碼與格式。",
+    "en": "Could not read the settings file. Check its size, encoding and format."
+  },
+  {
+    "source": "设置文件的格式、值或作用域不符合要求，未作更改。",
+    "zh-Hant": "設定檔案的格式、值或範圍不符合要求，未作變更。",
+    "en": "The settings file has an unsupported format, value or scope. Nothing changed."
+  },
+  {
+    "source": "未发现可导入的更改。",
+    "zh-Hant": "未發現可匯入的變更。",
+    "en": "No changes to import."
+  },
+  {
+    "source": "将导入 {0} 项设置。",
+    "zh-Hant": "將匯入 {0} 項設定。",
+    "en": "Import {0} settings.",
+    "template": true,
+    "en-one": "Import {0} setting."
+  },
+  {
+    "source": "另有 {0} 项更改。",
+    "zh-Hant": "另有 {0} 項變更。",
+    "en": "And {0} more changes.",
+    "template": true
+  },
+  {
+    "source": "部分设置需要重启后生效。",
+    "zh-Hant": "部分設定需要重新啟動後生效。",
+    "en": "Some settings take effect after a restart."
+  },
+  {
+    "source": "暂时无法导入设置。",
+    "zh-Hant": "暫時無法匯入設定。",
+    "en": "Settings import is currently unavailable."
+  },
+  {
+    "source": "设置已导入。",
+    "zh-Hant": "設定已匯入。",
+    "en": "Settings imported."
+  },
+  {
+    "source": "设置未导入；可能已发生更改，请重新选择文件并预览。",
+    "zh-Hant": "設定未匯入；可能已發生變更，請重新選擇檔案並預覽。",
+    "en": "Settings were not imported. They may have changed. Choose the file again to preview it."
+  },
+  {
+    "source": "设置已导出。",
+    "zh-Hant": "設定已匯出。",
+    "en": "Settings exported."
+  },
+  {
+    "source": "无法导出设置，原文件未被替换。",
+    "zh-Hant": "無法匯出設定，原檔案未被取代。",
+    "en": "Could not export settings. The previous file was not replaced."
   }
 ]

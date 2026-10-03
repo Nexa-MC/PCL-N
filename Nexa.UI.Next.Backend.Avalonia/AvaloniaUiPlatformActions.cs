@@ -210,6 +210,52 @@ public sealed class AvaloniaUiPlatformActions
         return file?.TryGetLocalPath();
     }
 
+    public Task<string?> ReadJsonDocumentAsync(int maximumBytes, Func<string>? title = null, CancellationToken cancellationToken = default)
+        => Dispatcher.UIThread.CheckAccess() ? ReadJsonDocumentOnUiThreadAsync(maximumBytes, title, cancellationToken)
+            : Dispatcher.UIThread.InvokeAsync(() => ReadJsonDocumentOnUiThreadAsync(maximumBytes, title, cancellationToken));
+
+    private async Task<string?> ReadJsonDocumentOnUiThreadAsync(int maximumBytes, Func<string>? title, CancellationToken token)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        token.ThrowIfCancellationRequested();
+        if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native file picker is not ready.");
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title?.Invoke() ?? "导入设置",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("JSON") { Patterns = ["*.json"] }],
+        }).ConfigureAwait(true);
+        token.ThrowIfCancellationRequested();
+        if (files.Count == 0) return null;
+        using var file = files[0];
+        await using var stream = await file.OpenReadAsync().ConfigureAwait(false);
+        return await NativeDocumentTransfer.ReadAsync(stream, maximumBytes, token).ConfigureAwait(false);
+    }
+
+    public Task<bool> SaveJsonDocumentAsync(string document, int maximumBytes, Func<string>? title = null, CancellationToken cancellationToken = default)
+        => Dispatcher.UIThread.CheckAccess() ? SaveJsonDocumentOnUiThreadAsync(document, maximumBytes, title, cancellationToken)
+            : Dispatcher.UIThread.InvokeAsync(() => SaveJsonDocumentOnUiThreadAsync(document, maximumBytes, title, cancellationToken));
+
+    private async Task<bool> SaveJsonDocumentOnUiThreadAsync(string document, int maximumBytes, Func<string>? title, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (new System.Text.UTF8Encoding(false, true).GetByteCount(document) > maximumBytes)
+            throw new InvalidDataException("Document exceeds its byte budget.");
+        if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native file picker is not ready.");
+        using var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title?.Invoke() ?? "导出设置",
+            SuggestedFileName = "Nexa-settings.json",
+            DefaultExtension = "json",
+            FileTypeChoices = [new FilePickerFileType("JSON") { Patterns = ["*.json"] }],
+        }).ConfigureAwait(true);
+        token.ThrowIfCancellationRequested();
+        if (file is null) return false;
+        string destination = file.TryGetLocalPath() ?? throw new NotSupportedException("A local destination is required.");
+        await Task.Run(() => NativeDocumentTransfer.WriteAsync(destination, document, maximumBytes, token), token).ConfigureAwait(false);
+        return true;
+    }
+
     public Task<string?> PickDirectoryAsync() => PickDirectoryCoreAsync("选择游戏目录");
 
     public Task<string?> PickDownloadDirectoryAsync() => PickDirectoryCoreAsync("选择资源保存目录");
