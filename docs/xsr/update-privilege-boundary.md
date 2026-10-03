@@ -83,3 +83,22 @@ does not accept arbitrary paths for mutation. Cleanup of an owned empty staging 
 by handle, after owned child files are closed/deleted. This does not implement the updater
 process, installation identity, recovery journal or Linux/macOS descriptor adapters.
 
+### Windows high-water journal
+
+Windows high-water state is accessed through the admitted directory lease, never through
+a caller-supplied path. Open-or-create applies protected security only to a newly created
+leaf, without truncating or repairing an existing file. The opened file is independently
+admitted before use and exclusively held across read, monotonic comparison, append and
+durable flush. Competing writers wait only for a sharing violation, with a bounded timeout.
+
+The bounded append-only journal records canonical public versions with framing and a SHA-256
+checksum. Complete corrupt records or non-increasing versions reject the entire operation.
+Only an incomplete final record with a valid frame prefix is an interrupted append; it is
+discarded by handle before the next append. Successfully flushed records are never compacted
+or replaced by name. A full journal fails closed and requires a future protected maintenance
+operation. This is not physical power-loss acceptance, or a completed update transaction.
+
+The historical path-based UpdateHighWaterStore stays a test/compatibility primitive;
+production construction is forbidden. WindowsUpdateHighWaterStore consumes the sealed
+Windows directory lease. Neither store may authorize downloads, replacement or helper launch.
+

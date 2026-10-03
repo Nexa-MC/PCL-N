@@ -1,5 +1,10 @@
 # XSR-746: durable update high-water store
 
+Historical compatibility primitive: production construction of this path-based store is
+now forbidden. Windows protected persistence is superseded by
+`XSR-753-windows-update-high-water-journal.md`. The tests below preserve the old contract;
+they do not prove directory admission or authorize use in the privileged helper.
+
 The protected updater needs a durable monotonic version before automatic replacement can
 be enabled. `UpdateHighWaterStore` is the helper-side persistence primitive for that value.
 It accepts only canonical public release versions, serializes competing writers through a

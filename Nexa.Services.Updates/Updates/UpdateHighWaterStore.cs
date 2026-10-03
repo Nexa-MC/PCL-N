@@ -87,12 +87,5 @@ public sealed class UpdateHighWaterStore
         return version;
     }
 
-    private static UpdateVersion ParseCanonical(string value)
-    {
-        if (value is not { Length: > 0 and <= 128 } || !UpdateVersion.TryParse(value, out UpdateVersion parsed)
-            || parsed.ToString() != value || parsed.Stage == UpdateVersionStage.Ci
-            || ((parsed.Stage is UpdateVersionStage.Alpha or UpdateVersionStage.Beta) && parsed.Sequence <= 0))
-            throw new InvalidDataException("The update high-water version is not canonical.");
-        return parsed;
-    }
+    private static UpdateVersion ParseCanonical(string value) => UpdateHighWaterJournal.ParseVersion(value);
 }

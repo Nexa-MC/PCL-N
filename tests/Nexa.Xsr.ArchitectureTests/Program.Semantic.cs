@@ -33,6 +33,12 @@ internal static partial class Program
             {
                 var model = compilation.GetSemanticModel(tree);
                 bool presentation = projectName == "Nexa.Desktop" && tree.FilePath.Contains(Path.DirectorySeparatorChar + "Ui" + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+                foreach (var creation in tree.GetRoot().DescendantNodes().OfType<BaseObjectCreationExpressionSyntax>())
+                {
+                    if (model.GetSymbolInfo(creation).Symbol is IMethodSymbol constructor
+                        && constructor.ContainingType.ToDisplayString() == "Nexa.Services.Updates.UpdateHighWaterStore")
+                        failures.Add($"Production must not construct path-based update high-water state at {Path.GetRelativePath(root, tree.FilePath)}:{creation.GetLocation().GetLineSpan().StartLinePosition.Line + 1}.");
+                }
                 foreach (var node in tree.GetRoot().DescendantNodes().OfType<SimpleNameSyntax>())
                 {
                     ISymbol? symbol = model.GetSymbolInfo(node).Symbol;

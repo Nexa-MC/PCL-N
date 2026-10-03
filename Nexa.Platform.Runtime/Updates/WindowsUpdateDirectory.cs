@@ -121,6 +121,22 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
         }
     }
 
+    /// <summary>Opens or creates an admitted protected state leaf without truncation, with exclusive sharing.</summary>
+    public FileStream OpenExclusiveStateFile(string name)
+    {
+        lock (_gate)
+        {
+            ThrowIfDisposed();
+            SafeFileHandle handle = OpenRelative(_chain[^1], name, directory: false, create: false, state: true);
+            try
+            {
+                Admit(handle, directory: false, ancestor: false);
+                return new FileStream(handle, FileAccess.ReadWrite, 4096, isAsync: false);
+            }
+            catch { handle.Dispose(); throw; }
+        }
+    }
+
     /// <summary>Creates one new leaf with explicit protected security; never overwrites an existing name.</summary>
     public WindowsUpdateFile CreateFile(string name)
     {
@@ -222,11 +238,11 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
         finally { LocalFree(descriptor); }
     }
 
-    private static unsafe SafeFileHandle OpenRelative(SafeFileHandle parent, string name, bool directory, bool create)
+    private static unsafe SafeFileHandle OpenRelative(SafeFileHandle parent, string name, bool directory, bool create, bool state = false)
     {
         ValidateLeaf(name);
         byte[]? security = null;
-        if (create)
+        if (create || state)
         {
             var descriptor = new RawSecurityDescriptor("O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)");
             security = new byte[descriptor.BinaryLength];
@@ -245,10 +261,10 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
                 SecurityDescriptor = securityPointer
             };
             uint access = directory ? DirectoryAccess : ReadControl | Synchronize | ReadAttributes | 1;
-            if (create) access |= DeleteAccess | (directory ? 0u : 2u);
-            uint options = 0x200020u | (directory ? 1u : 0x40u) | (create ? 2u : 0u);
-            int status = NtCreateFile(out SafeFileHandle handle, access, &attributes, out _, 0, 0, 1,
-                create ? 2u : 1u, options, 0, 0);
+            if (create || state) access |= DeleteAccess | (directory ? 0u : 2u);
+            uint options = 0x200020u | (directory ? 1u : 0x40u) | (create || state ? 2u : 0u);
+            int status = NtCreateFile(out SafeFileHandle handle, access, &attributes, out _, 0, 0, state ? 0u : 1u,
+                state ? 3u : create ? 2u : 1u, options, 0, 0);
             if (status < 0)
             {
                 handle.Dispose();

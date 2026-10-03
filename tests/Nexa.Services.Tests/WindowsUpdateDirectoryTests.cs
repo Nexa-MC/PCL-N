@@ -5,6 +5,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using Microsoft.Win32.SafeHandles;
 using Nexa.Platform.Updates;
+using Nexa.Services.Updates;
 
 namespace Nexa.Services.Tests;
 
@@ -63,6 +64,67 @@ internal static partial class Program
             return;
         }
         await WindowsUpdateElevatedObjectsCore();
+    }
+
+    private static async ValueTask WindowsUpdateProtectedHighWater()
+    {
+        if (!OperatingSystem.IsWindows() || Environment.GetEnvironmentVariable("NEXA_TEST_PROTECTED_UPDATES") != "1")
+        {
+            Console.WriteLine("SKIP: protected high-water writes require the dedicated Windows CI fixture.");
+            return;
+        }
+        await WindowsUpdateProtectedHighWaterCore();
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static async ValueTask WindowsUpdateProtectedHighWaterCore()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        AssertTrue(new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator));
+        using var root = WindowsUpdateDirectory.Open(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles));
+        using var stage = root.CreateStagingDirectory();
+        var store = new WindowsUpdateHighWaterStore(stage);
+        try
+        {
+            AssertNull(store.Read());
+            store.Advance("2.0.0.alpha.5");
+            AssertEqual("2.0.0.alpha.5", new WindowsUpdateHighWaterStore(stage).Read());
+            AssertThrows<InvalidOperationException>(() => store.Advance("2.0.0.alpha.5"));
+            using (FileStream state = stage.OpenExclusiveStateFile(WindowsUpdateHighWaterStore.StateName))
+            {
+                WindowsUpdateRejectsSameAccountWrites(identity, state.SafeFileHandle);
+                ExpectUpdateFailure<IOException>(() => stage.OpenExclusiveStateFile(WindowsUpdateHighWaterStore.StateName));
+                state.Position = state.Length;
+                byte[] interrupted = UpdateHighWaterJournal.Encode("2.0.0.alpha.6");
+                state.Write(interrupted.AsSpan(0, interrupted.Length / 2));
+                state.Flush(true);
+            }
+            AssertEqual("2.0.0.alpha.5", store.Read());
+            store.Advance("2.0.0.alpha.7");
+            AssertEqual("2.0.0.alpha.7", store.Read());
+            await Task.WhenAll(Enumerable.Range(8, 16).Select(sequence => Task.Run(() =>
+            {
+                try { new WindowsUpdateHighWaterStore(stage).Advance($"2.0.0.alpha.{sequence}"); }
+                catch (InvalidOperationException) { }
+            })));
+            AssertEqual("2.0.0.alpha.23", store.Read());
+            using (FileStream state = stage.OpenExclusiveStateFile(WindowsUpdateHighWaterStore.StateName))
+            {
+                state.Position = state.Length - 5;
+                int original = state.ReadByte();
+                state.Position--;
+                state.WriteByte((byte)(original ^ 0xff));
+                state.Flush(true);
+            }
+            AssertThrows<InvalidDataException>(() => store.Read());
+            AssertThrows<InvalidDataException>(() => store.Advance("2.0.0.beta.1"));
+        }
+        finally
+        {
+            using (FileStream state = stage.OpenExclusiveStateFile(WindowsUpdateHighWaterStore.StateName))
+                WindowsUpdateDirectory.MarkDelete(state.SafeFileHandle);
+            stage.DeleteEmptyStagingDirectory();
+        }
     }
 
     [SupportedOSPlatform("windows")]
