@@ -8,6 +8,7 @@ internal static partial class Program
         ("automatic update rejects bytes before activation", AutomaticUpdateRejectsPackageBeforeActivation),
         ("automatic update journal preserves interrupted frames", Sync(AutomaticUpdateJournalPreservesEveryInterruptedFrame)),
         ("automatic update native protected transaction", AutomaticUpdateNativeProtectedTransaction),
+        ("automatic update loopback HTTP transaction", AutomaticUpdateLoopbackHttpTransaction),
         ("protected update journal rejects rollback and corruption", Sync(UpdateJournalRejectsRollbackAndCorruption)),
         ("protected update journal recovers every interrupted append", Sync(UpdateJournalRecoversEveryInterruptedAppend)),
         ("protected update journal capacity preserves committed records", Sync(UpdateJournalCapacityNeverDiscardsCommittedRecords)),
@@ -520,6 +521,8 @@ internal static partial class Program
 
     private static async Task<int> Main(string[] args)
     {
+        if (args is ["--update-server-smoke"]) { await AutomaticUpdateLoopbackHttpTransaction(); return 0; }
+        if (args is ["--serve-update-fixture"]) return await ServeAutomaticUpdateFixture();
         // Existing parity fixtures model the mainland product; international tests select US explicitly.
         if (Environment.GetEnvironmentVariable("NEXA_COUNTRY") is null) Environment.SetEnvironmentVariable("NEXA_COUNTRY", "CN");
         if (args is ["--owned-installer-child"]) return await RunOwnedInstallerChild();

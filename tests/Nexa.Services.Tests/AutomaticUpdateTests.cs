@@ -161,12 +161,15 @@ internal static partial class Program
         byte[] bytes = Encoding.UTF8.GetBytes(manifest.ToJsonString());
         var key = GenerateSigningKey();
         return (new("2.0.0.alpha.5", rid, "nativeaot-self-contained", "Release"),
-            new(key.ArmoredKey, key.Fingerprint), new(bytes, Encoding.ASCII.GetBytes(key.Sign(bytes)), package));
+            new(key.ArmoredKey, key.Fingerprint), new(bytes, Encoding.ASCII.GetBytes(key.Sign(bytes)), package) { PublicKey = key.ArmoredKey });
     }
 
     private sealed class AutomaticUpdateFixtureSource(byte[] manifest, byte[] signature, byte[] package) : IUpdateReleaseSource
     {
         internal bool Offline { get; set; }
+        internal string PublicKey { get; init; } = "";
+        internal byte[] Manifest => manifest;
+        internal byte[] Signature => signature;
         internal byte[] Package => package;
         public Task<(byte[] Manifest, byte[] Signature)> ReadReleaseAsync(string version, CancellationToken token)
             => Offline ? throw new IOException("Offline") : Task.FromResult((manifest, signature));

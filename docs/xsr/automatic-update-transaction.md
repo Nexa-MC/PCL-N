@@ -71,3 +71,12 @@ checks. Native signing/notarization and physical power-loss testing remain separ
 acceptance; a green managed test is not evidence for either.
 Installer smoke runs the installed helper's non-mutating `--validate-installation` mode,
 which admits its exact fixed executable path and the entire real installation namespace.
+
+Local HTTP validation belongs only to the Services test executable. A loopback-only fixture
+serves a freshly test-signed release; a test transport maps the fixed publisher requests
+onto that fixture. It exercises the production release source, verifier and transaction
+against an isolated temporary directory, without elevating or executing fixture payloads.
+The installed helper has no endpoint/key override and cannot consume this test authority.
+Interrupted bodies, invalid signatures/digests, tag fallback, offline recovery and rollback
+are checked through actual HTTP transfers. The optional standalone fixture listener binds
+only IPv4 loopback and never reads arbitrary files or accepts uploaded content.

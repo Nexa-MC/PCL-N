@@ -60,3 +60,18 @@ page visible and verifies the protected pending target is resumed exactly once.
 release CI executes a real protected transaction/rollback on each of six RIDs and smoke-runs
 the helper, alongside installer, Desktop NativeAOT and trim checks. Native CI results must be
 reviewed before acceptance; fixtures are not physical power-loss or OS signing acceptance.
+
+## Local update server
+
+Run `dotnet run --project tests/Nexa.Services.Tests -c Release -- --update-server-smoke`.
+The harness starts a real HTTP listener on `127.0.0.1` with an OS-assigned port, routes the
+production GitHub release source through a test-only handler, and uses a fresh test GPG key.
+It checks normal activation, `v` tag fallback, truncated transfers and retry, wrong package
+digest, wrong signer, cached offline recovery, rollback and retained anti-replay high-water.
+Temporary fixture payloads are never executed; production installation files are untouched.
+
+For manual inspection use `--serve-update-fixture` instead. It prints the listener address;
+`/test-key.asc` exposes only the public test key and the fixed release routes expose the
+test manifest, signature and Windows ZIP. Ctrl+C stops the listener. No test URL/key flag
+exists in the production helper. The HTTP smoke is also part of managed/NativeAOT Services
+regression, independent of the six-RID protected filesystem/installer acceptance.
