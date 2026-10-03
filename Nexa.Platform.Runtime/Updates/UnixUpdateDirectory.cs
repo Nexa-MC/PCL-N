@@ -57,7 +57,8 @@ internal sealed partial class UnixUpdateDirectory : IUpdateDirectory
             foreach (var fd in _chain)
             {
                 // F_DUPFD_CLOEXEC atomically excludes inheritance by child processes.
-                int copy = Fcntl(Fd(fd), Mac ? 67 : 1030, 0);
+                int copy = Mac && RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+                    ? FcntlMacArm64(Fd(fd), 67, 0, 0, 0, 0, 0, 0, 0) : Fcntl(Fd(fd), Mac ? 67 : 1030, 0);
                 if (copy < 0) Fail("保留更新目录");
                 chain.Add(new SafeFileHandle(copy, true));
             }
@@ -130,6 +131,10 @@ internal sealed partial class UnixUpdateDirectory : IUpdateDirectory
         if (fd < 0) Fail("打开受保护更新对象");
         return new SafeFileHandle(fd, true);
     }
+
+    private static int OpenAtNative(int fd, string path, int flags, uint mode)
+        => Mac && RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+            ? OpenAtMacArm64(fd, path, flags, 0, 0, 0, 0, 0, mode) : OpenAtFixed(fd, path, flags, mode);
 
     private static unsafe void Admit(SafeFileHandle fd, bool directory)
     {
@@ -216,9 +221,14 @@ internal sealed partial class UnixUpdateDirectory : IUpdateDirectory
         _chain.Clear();
     }
 
-    [LibraryImport("libc", EntryPoint = "openat", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)] private static partial int OpenAtNative(int fd, string path, int flags, uint mode);
+    // Apple ARM64 places variadic scalars on the stack even while argument registers remain.
+    // Occupy x0..x7 in these fixed P/Invoke signatures so the final scalar lands at sp+0.
+    // Other supported ABIs pass the first variadic integer in the next argument register.
+    [LibraryImport("libc", EntryPoint = "openat", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)] private static partial int OpenAtFixed(int fd, string path, int flags, uint mode);
+    [LibraryImport("libc", EntryPoint = "openat", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)] private static partial int OpenAtMacArm64(int fd, string path, int flags, nint x3, nint x4, nint x5, nint x6, nint x7, uint mode);
     [LibraryImport("libc", EntryPoint = "mkdirat", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)] private static partial int MkdirAt(int fd, string name, uint mode);
     [LibraryImport("libc", EntryPoint = "fcntl", SetLastError = true)] private static partial int Fcntl(int fd, int command, int argument);
+    [LibraryImport("libc", EntryPoint = "fcntl", SetLastError = true)] private static partial int FcntlMacArm64(int fd, int command, nint x2, nint x3, nint x4, nint x5, nint x6, nint x7, int argument);
     [LibraryImport("libc", EntryPoint = "flock", SetLastError = true)] private static partial int Flock(int fd, int operation);
     [LibraryImport("libc", EntryPoint = "fsync", SetLastError = true)] private static partial int Fsync(int fd);
     [LibraryImport("libc", EntryPoint = "fchmod", SetLastError = true)] private static partial int Fchmod(int fd, uint mode);

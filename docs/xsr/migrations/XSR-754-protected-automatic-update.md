@@ -41,6 +41,14 @@ the original one-argument read API remains available for binary compatibility.
 Native validation also exercises architecture-specific Linux ARM64 open flags and macOS
 descriptor security-property queries. An absent ACL property is distinguished from a failed
 filesystem query; permission/unsupported errors are never interpreted as absence.
+Darwin ARM64 variadic openat/fcntl arguments use stack slots, unlike fixed arguments.
+Dedicated bindings fill the eight argument-register positions before the trailing scalar;
+native tests exercise descriptor duplication and creation, not only opening existing files.
+Rollback status reports the selected previous version, including projection after exit
+between activation and status publication. Desktop tests verify restart is offered only
+when the selected version differs from the running one and completed updates never resume.
+Native installer smoke admits the actual installed helper and all installation ancestors
+without creating or changing state; a protected fixture elsewhere is not sufficient evidence.
 release CI executes a real protected transaction/rollback on each of six RIDs and smoke-runs
 the helper, alongside installer, Desktop NativeAOT and trim checks. Native CI results must be
 reviewed before acceptance; fixtures are not physical power-loss or OS signing acceptance.
