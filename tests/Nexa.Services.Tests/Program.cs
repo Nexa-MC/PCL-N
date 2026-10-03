@@ -4,6 +4,9 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("download settings capture bounded workers and migrate legacy sliders", DownloadSettingsCaptureBoundedWorkers),
+        ("download retry settings preserve integrity and commit last", DownloadRetrySettingPreservesIntegrityAndCommitLast),
+        ("launch completion uses captured download retry policy", LaunchCompletionUsesDownloadRetryPolicy),
         ("instance path probes preserve files and isolate concurrent calls", InstancePathProbesPreserveExistingFilesAndIsolateConcurrentCalls),
         ("instance server lists preserve tags and reject stale writes", InstanceServersPreserveUnknownTagsAndRejectStaleWrites),
         ("instance server status uses bounded protocol and admitted revisions", InstanceServerStatusUsesBoundedProtocolAndAdmittedRevision),

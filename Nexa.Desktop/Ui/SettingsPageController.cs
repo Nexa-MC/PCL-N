@@ -410,6 +410,8 @@ internal sealed partial class SettingsPageController : IDisposable
         "game.arguments" => "传递给 Minecraft 的额外启动参数。",
         "game.memory" => "使用 MiB；自动模式按现有内存策略分配。",
         "java.auto-install" => "缺少兼容 Java 时自动下载；关闭时先询问。",
+        "network.file-concurrency" => "同时处理的游戏文件数，1–64；新安装和启动前补全生效。",
+        "network.file-retry" => "失败后额外重试一次；不影响来源切换与文件校验。",
         "appearance.animations-disabled" => "减少界面切换和展开时的动态效果。",
         _ => null,
     };

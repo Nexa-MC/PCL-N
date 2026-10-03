@@ -20,11 +20,16 @@ XSR-762 also delivers live animation preference and window-size lock. Both apply
 committed state without opening Settings. The positive animation selector has correct
 disable-flag polarity; native maximize/resize observes the lock.
 
+XSR-763 delivers game-file batch concurrency (1–64, default 8) and one optional retry.
+Installation and launch completion capture the policy before work; failed integrity
+checks still reject publication. These controls explicitly cover game files, rather
+than claiming to change resource/Java/loader budgets or global HTTP admission.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions, vendor preference; compatibility checks remain mandatory until a separate safe policy exists |
 | Game | Title, isolation, launch visibility, process priority, wrapper/hooks and default server; each needs scope-correct consumers and failure/cancellation semantics |
-| Download and network | Source selection, concurrency, bandwidth, retry, proxy and DNS; apply to new work without changing active transactions unexpectedly |
+| Download and network | Source selection, bandwidth, proxy and DNS; other download kinds need their own budget policies |
 | Appearance/general | Frame-rate policy, low power, theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |
 | Storage | Supported export/import, migration preview and cleanup; use existing service commands and transaction contracts |

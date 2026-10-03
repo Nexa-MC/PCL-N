@@ -1529,9 +1529,9 @@
     "scope": "global",
     "page": "network",
     "section": "下载",
-    "label": "下载线程",
+    "label": "游戏文件并发数",
     "kind": "Setting",
-    "key": null,
+    "key": "network.file-concurrency",
     "developer": false,
     "availability": "NotImplemented"
   },
@@ -1565,9 +1565,9 @@
     "scope": "global",
     "page": "network",
     "section": "下载",
-    "label": "自动重试",
+    "label": "游戏文件失败重试",
     "kind": "Setting",
-    "key": null,
+    "key": "network.file-retry",
     "developer": false,
     "availability": "NotImplemented"
   },

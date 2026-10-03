@@ -8673,5 +8673,25 @@
     "source": "返回依赖关系",
     "en": "Back to relationships",
     "zh-Hant": "返回依賴關係"
+  },
+  {
+    "source": "游戏文件并发数",
+    "en": "Concurrent game files",
+    "zh-Hant": "遊戲檔案並行數"
+  },
+  {
+    "source": "游戏文件失败重试",
+    "en": "Retry failed game files",
+    "zh-Hant": "遊戲檔案失敗重試"
+  },
+  {
+    "source": "同时处理的游戏文件数，1–64；新安装和启动前补全生效。",
+    "en": "Process 1–64 game files at once. Applies to new installs and launch repairs.",
+    "zh-Hant": "同時處理的遊戲檔案數，1–64；新安裝和啟動前補全生效。"
+  },
+  {
+    "source": "失败后额外重试一次；不影响来源切换与文件校验。",
+    "en": "Retry a failed file once. Source failover and file verification stay enabled.",
+    "zh-Hant": "失敗後額外重試一次；不影響來源切換與檔案驗證。"
   }
 ]

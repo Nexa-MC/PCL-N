@@ -4,6 +4,7 @@ using Nexa.Services.Logging;
 using Nexa.Services.Minecraft.Assets;
 using Nexa.Services.Minecraft.Downloads;
 using Nexa.Services.Minecraft.Libraries;
+using Nexa.Services.Settings;
 
 namespace Nexa.Services.Minecraft.Launch;
 
@@ -24,15 +25,18 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
     private readonly HttpClient _http = PooledHttpClient.Create();
     private readonly MinecraftFileVerificationCache _verification = new();
     private readonly Func<string, IDownloadConnection>? _connectionFactory;
+    private readonly SettingsPolicyService? _settingsPolicy;
 
     public MinecraftLaunchFileCompletion(
         DownloadService downloads,
         LogService? log = null,
-        Func<string, IDownloadConnection>? connectionFactory = null)
+        Func<string, IDownloadConnection>? connectionFactory = null,
+        SettingsPolicyService? settingsPolicy = null)
     {
         _downloads = downloads ?? throw new ArgumentNullException(nameof(downloads));
         _log = log;
         _connectionFactory = connectionFactory;
+        _settingsPolicy = settingsPolicy;
     }
 
     public async ValueTask CompleteAsync(
@@ -46,6 +50,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
     {
         ArgumentNullException.ThrowIfNull(manifests);
         ArgumentException.ThrowIfNullOrWhiteSpace(minecraftRootDirectory);
+        MinecraftDownloadPolicy downloadPolicy = MinecraftDownloadPolicy.Read(_settingsPolicy);
 
         string root = Path.GetFullPath(minecraftRootDirectory);
         // The chain reads current → nearest parent → … → root; the base (vanilla) manifest
@@ -170,7 +175,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                 .ConfigureAwait(false);
             bool verified = transfer.Success
                 && await _verification.VerifyAsync(file.Expected, cancellationToken, forceHash: true).ConfigureAwait(false);
-            if (!verified)
+            if (!verified && downloadPolicy.Retry)
             {
                 // Bursty mirror rate limits and truncated commits: delete the bad artifact
                 // and retry once before failing the launch.
@@ -194,7 +199,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
             }
 
             batch.Complete(index);
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken, downloadPolicy.Concurrency).ConfigureAwait(false);
     }
 
     internal static async Task<bool> HasVerifiedCorePatchAsync(MinecraftInstanceDescriptor instance, string clientPath, CancellationToken token)

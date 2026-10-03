@@ -183,6 +183,15 @@ internal static partial class Program
         AssertEqual("false", Read("java.auto-install").Value.Value);
         Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsOption.java.auto-install.true").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("java.auto-install").Value.Value == "true"; }, TimeSpan.FromSeconds(5)));
+        scene = fixture.Shell.Render(new(1000, 650));
+        Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.network").Entity);
+        scene = fixture.Shell.Render(new(1000, 650));
+        fixture.Shell.Renderer.SetTextInputValue(FindByKey(fixture.Shell, scene, "SettingsInput.network.file-concurrency").Entity, "3");
+        Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.network.file-concurrency").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("network.file-concurrency").Value.Value == "3"; }, TimeSpan.FromSeconds(5)));
+        scene = fixture.Shell.Render(new(1000, 650));
+        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsOption.network.file-retry.false").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("network.file-retry").Value.Value == "false"; }, TimeSpan.FromSeconds(5)));
         SettingsEffectiveValue Read(string key) => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(value => value.Key == key);
     }
 

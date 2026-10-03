@@ -94,6 +94,10 @@ public sealed partial class SettingsPolicyService
             }
             if (inherited is null && definition.Key == "game.window-mode" && raw.GetValueOrDefault("LaunchArgumentWindowType") == "0")
                 inherited = new(SettingsOverrideMode.Custom, "fullscreen");
+            if (inherited is null && definition.Key == "network.file-concurrency"
+                && raw.GetValueOrDefault("ToolDownloadThread") is { } threadSlider && threadSlider != "63"
+                && int.TryParse(threadSlider, out int threads))
+                inherited = new(SettingsOverrideMode.Custom, Math.Clamp((long)threads + 1, 1, 64).ToString(System.Globalization.CultureInfo.InvariantCulture));
             if (inherited is null && definition.Key == "game.memory" && raw.GetValueOrDefault("LaunchRamType") == "1"
                 && int.TryParse(raw.GetValueOrDefault("LaunchRamCustom"), out int slider))
             {
@@ -144,6 +148,9 @@ public sealed partial class SettingsPolicyService
                 writes[key] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? definition.DefaultValue : mutation.Value.Value!;
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.window-mode")
                 writes["LaunchArgumentWindowType"] = mutation.Value.Value == "fullscreen" ? "0" : "1";
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.file-concurrency")
+                writes["ToolDownloadThread"] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? "63"
+                    : (int.Parse(mutation.Value.Value!, System.Globalization.CultureInfo.InvariantCulture) - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.memory" && mutation.Value.Mode != SettingsOverrideMode.Custom)
                 writes["LaunchRamType"] = "0";
         }

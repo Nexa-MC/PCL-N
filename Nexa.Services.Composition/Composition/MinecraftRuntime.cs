@@ -152,7 +152,7 @@ public static class MinecraftRuntimeComposer
             { WorkScheduler = host.Work }), host.Logging);
         // The legacy 补全文件 step: the launch pipeline repairs missing files before the JVM
         // starts, sharing the foundation download engine with installs.
-        MinecraftLaunchFileCompletion fileCompletion = new(host.Downloads, host.Logging);
+        MinecraftLaunchFileCompletion fileCompletion = new(host.Downloads, host.Logging, settingsPolicy: host.SettingsPolicy);
         owned.Add(fileCompletion);
         host.MinecraftRemediations.BindJava(locator, installer, runtimeRoot, fileCompletion);
         LaunchPreflightGate preflight = new(host.StateStore, async (root, instance, plan, token) =>

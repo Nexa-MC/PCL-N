@@ -31,7 +31,12 @@ internal sealed class FileBatchProgress(int count, Action<double, int, long> rep
         }
     }
 
-    internal static Task RunAsync(int count, Func<int, CancellationToken, ValueTask> worker, CancellationToken token) =>
-        Parallel.ForEachAsync(Enumerable.Range(0, count), new ParallelOptions
-        { MaxDegreeOfParallelism = Concurrency, CancellationToken = token }, worker);
+    internal static Task RunAsync(int count, Func<int, CancellationToken, ValueTask> worker, CancellationToken token,
+        int concurrency = Concurrency)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(concurrency, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(concurrency, 64);
+        return Parallel.ForEachAsync(Enumerable.Range(0, count), new ParallelOptions
+        { MaxDegreeOfParallelism = concurrency, CancellationToken = token }, worker);
+    }
 }

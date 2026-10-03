@@ -154,6 +154,7 @@ public sealed partial class MinecraftInstallService : IDisposable
         bool deferCompletion = false)
     {
         IMinecraftInstallMetadataSource metadata = metadataSource ?? _metadata;
+        MinecraftDownloadPolicy downloadPolicy = MinecraftDownloadPolicy.Read(_settingsPolicy);
         bool processorLoader = ValidatePrimaryLoader(command);
         string game = command.GameVersion;
         string gameName = SafeName(game);
@@ -385,7 +386,7 @@ public sealed partial class MinecraftInstallService : IDisposable
             DownloadTransferResult transfer = await _downloads.DownloadAsync(request, bytes => batch.Update(index, bytes), token).ConfigureAwait(false);
             bool verified = transfer.Success
                 && await _verification.VerifyAsync(file.Expected, token, forceHash: true).ConfigureAwait(false);
-            if (!verified)
+            if (!verified && downloadPolicy.Retry)
             {
                 // Mirror rate limits are bursty, and some mirrors commit truncated
                 // bodies: one delayed retry — deleting the bad artifact first — has
@@ -411,7 +412,7 @@ public sealed partial class MinecraftInstallService : IDisposable
             if (metadata is PersistentInstallMetadataSource)
                 await RecoveryRecordAuthority.AuthorizeFileAsync(file.Destination, token).ConfigureAwait(false);
             batch.Complete(index);
-        }, token).ConfigureAwait(false);
+        }, token, downloadPolicy.Concurrency).ConfigureAwait(false);
 
         // The last transfer's report lags one file (it fires mid-download); close the file
         // count before completion so the card never reads 3/4 at 100%.
