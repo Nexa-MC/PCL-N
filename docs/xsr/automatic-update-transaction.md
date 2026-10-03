@@ -54,6 +54,9 @@ Progress polling schedules a cancellation-bound 500 ms wake through presentation
 it does not depend on input or continuous render frames. A still-running authorized helper
 can finish after the GUI exits, and the next GUI continues observing protected status even
 if a redundant recovery request encounters the exclusive transaction lock.
+The helper has a 20-minute cancellation budget covering response bodies and preparation,
+not just HTTP headers. Timeout records a recoverable pause before the short activation
+commit. DEB/RPM metadata requires the fixed system pkexec tool used for Linux authorization.
 
 ## Validation
 

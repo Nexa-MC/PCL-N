@@ -95,6 +95,7 @@ def linux(root, base):
     run("sudo", "apt-get", "install", "-y", root / (base + ".deb"))
     try:
         require(Path("/usr/bin/secret-tool"))
+        require(Path("/usr/bin/pkexec"))
         executable = Path("/usr/lib/nexacl/Nexa.Desktop")
         require(executable)
         validate_runtime_contents(executable.parent)
@@ -116,6 +117,8 @@ def linux(root, base):
         requirements = subprocess.check_output(["rpm", "-qp", "--requires", str(root / (base + ".rpm"))], text=True)
         if "/usr/bin/secret-tool" not in requirements.splitlines():
             raise RuntimeError("RPM does not require the Secret Service client")
+        if "/usr/bin/pkexec" not in requirements.splitlines():
+            raise RuntimeError("RPM does not require update authorization")
     finally:
         run("sudo", "dpkg", "-r", "nexacl")
 

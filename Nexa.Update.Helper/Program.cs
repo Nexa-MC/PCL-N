@@ -35,7 +35,11 @@ internal static class Program
             var transaction = new AutomaticUpdateTransaction(installation, new(version, rid, "nativeaot-self-contained", "Release"),
                 verifier, new GitHubUpdateReleaseSource(client));
             if (args[1] == "rollback") transaction.Rollback();
-            else await transaction.InstallAsync(args[0], args[1]).ConfigureAwait(false);
+            else
+            {
+                using var budget = new CancellationTokenSource(TimeSpan.FromMinutes(20));
+                await transaction.InstallAsync(args[0], args[1], budget.Token).ConfigureAwait(false);
+            }
             return 0;
         }
         catch (Exception failure) when (failure is not OutOfMemoryException and not AccessViolationException)

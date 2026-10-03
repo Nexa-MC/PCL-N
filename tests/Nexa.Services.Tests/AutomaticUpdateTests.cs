@@ -11,17 +11,23 @@ internal static partial class Program
 {
     private static async ValueTask AutomaticUpdateRecoversEveryCommitBoundary()
     {
-        foreach (string boundary in new[] { "received", "prepared", "high-water", "accepted", "activated" })
+        foreach (string boundary in new[] { "received", "prepared", "high-water", "accepted", "activated", "cancelled" })
         {
             string path = CreateTempDirectory();
             try
             {
                 using var directory = new UpdateFixtureDirectory(path);
+                using var stop = new CancellationTokenSource();
                 var fixture = CreateAutomaticUpdateFixture();
                 var transaction = new AutomaticUpdateTransaction(directory, fixture.Identity, fixture.Verifier, fixture.Source)
-                { FaultBoundary = phase => { if (phase == boundary) throw new IOException("Simulated crash"); } };
-                try { await transaction.InstallAsync("2.0.0.alpha.6", "alpha"); throw new InvalidOperationException("Fault did not execute"); }
+                { FaultBoundary = phase => { if (boundary == "cancelled" && phase == "received") stop.Cancel(); else if (phase == boundary) throw new IOException("Simulated crash"); } };
+                try { await transaction.InstallAsync("2.0.0.alpha.6", "alpha", stop.Token); throw new InvalidOperationException("Fault did not execute"); }
                 catch (IOException) { }
+                catch (OperationCanceledException) when (boundary == "cancelled")
+                {
+                    using FileStream status = directory.OpenRead(AutomaticUpdateTransaction.StatusName);
+                    AssertEqual("paused", UpdateTransactionJournal.Read(status)![2]);
+                }
                 using (FileStream state = directory.OpenRead(AutomaticUpdateTransaction.ActivationName))
                     AssertEqual(boundary == "activated", UpdateTransactionJournal.Read(state) is not null);
                 fixture.Source.Offline = true;

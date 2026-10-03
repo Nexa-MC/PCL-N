@@ -26,6 +26,7 @@ class InstallScopeTests(unittest.TestCase):
                 command = next(args for args in commands if args[args.index("-t") + 1] == kind)
                 dependencies = [command[i + 1] for i, value in enumerate(command) if value == "--depends"]
                 self.assertIn(dependency, dependencies)
+                self.assertIn("pkexec" if kind == "deb" else "/usr/bin/pkexec", dependencies)
 
     def test_windows_smoke_rejects_leftovers_between_installers(self):
         for leftover in ("desktop", "menu", "host", "executable", None):

@@ -52,6 +52,9 @@ without creating or changing state; a protected fixture elsewhere is not suffici
 Desktop progress schedules an idle-safe presentation wake, ignores late reads after terminal
 completion, and never initiates recovery on top of its own active install/rollback request.
 An already-running elevated helper remains observable after GUI exit/recovery lock contention.
+The helper bounds the complete response-body/preparation operation, and cancellation tests
+verify paused-state offline recovery. Linux packages require pkexec instead of assuming a
+desktop image already provides authorization tooling.
 release CI executes a real protected transaction/rollback on each of six RIDs and smoke-runs
 the helper, alongside installer, Desktop NativeAOT and trim checks. Native CI results must be
 reviewed before acceptance; fixtures are not physical power-loss or OS signing acceptance.
