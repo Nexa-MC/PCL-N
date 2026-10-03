@@ -8,6 +8,7 @@ internal static partial class Program
         ("download retry settings preserve integrity and commit last", DownloadRetrySettingPreservesIntegrityAndCommitLast),
         ("launch completion uses captured download retry policy", LaunchCompletionUsesDownloadRetryPolicy),
         ("scoped repair setting controls actual preparation and validates server", ScopedRepairSettingControlsActualPreparation),
+        ("Java vendor preference remains compatible scoped and durable", JavaVendorPreferenceStaysWithinCompatibility),
         ("instance path probes preserve files and isolate concurrent calls", InstancePathProbesPreserveExistingFilesAndIsolateConcurrentCalls),
         ("instance server lists preserve tags and reject stale writes", InstanceServersPreserveUnknownTagsAndRejectStaleWrites),
         ("instance server status uses bounded protocol and admitted revisions", InstanceServerStatusUsesBoundedProtocolAndAdmittedRevision),

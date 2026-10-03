@@ -43,6 +43,7 @@ internal static partial class Program
     private static readonly (string Name, Action Body)[] TestCases =
     [
         ("Presentation settings apply outside navigation and preserve activity policy", PresentationSettingsApplyWithoutNavigation),
+        ("Java vendor selector fits and scrolls in a narrow window", JavaVendorSelectorFitsAndScrollsInNarrowWindow),
         ("Settings pointer selection scrolls fully visible options", SettingsPointerSelectionScrollsFullyVisibleOptions),
         ("automatic update restart follows selected version and rollback", AutomaticUpdateRestartFollowsSelectedVersionAndRollback),
         ("automatic update resumes on startup without opening settings", AutomaticUpdateResumesOnStartupWithoutOpeningSettings),

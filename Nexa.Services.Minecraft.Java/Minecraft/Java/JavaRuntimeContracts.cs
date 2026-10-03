@@ -317,6 +317,8 @@ public sealed class JavaSelectionService(IJavaRuntimeLocator locator)
             .Where(candidate => candidate.IsEnabled && candidate.IsAvailable && requirement.Range.Contains(candidate.Installation.Version))
             .OrderBy(candidate => candidate.Installation.MajorVersion)
             .ThenBy(candidate => candidate.Installation.IsJre ? 1 : 0)
+            .ThenBy(candidate => preference is AutoSelectJavaPreference { PreferredBrand: { } brand }
+                && candidate.Installation.Brand != brand ? 1 : 0)
             .ThenBy(candidate => BrandRank(candidate.Installation.Brand))
             .ThenBy(candidate => candidate.Installation.Version)
             .ThenBy(candidate => candidate.Installation.JavaHome, StringComparer.OrdinalIgnoreCase)

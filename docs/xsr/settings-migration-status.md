@@ -31,9 +31,13 @@ server intents retain priority over a global default; empty instance Custom disa
 Turning off automatic repair does not disable preflight or Java validation. The current
 catalog has 535 positions, including the new default-server form field.
 
+XSR-765 delivers a scoped Java distribution preference as a soft tie-break among
+compatible installed runtimes. Explicit Java paths remain authoritative. Long setting
+selectors now fit a flexible right-aligned control slot and retain horizontal scrolling.
+
 | Slice | Remaining integration |
 |---|---|
-| Java | Installed runtime inventory/actions, vendor preference; compatibility checks remain mandatory until a separate safe policy exists |
+| Java | Installed runtime inventory/actions; compatibility checks remain mandatory until a separate safe policy exists |
 | Game | Title, isolation, launch visibility, process priority and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Source selection, bandwidth, proxy and DNS; other download kinds need their own budget policies |
 | Appearance/general | Frame-rate policy, low power, theme and supported system integration; platform actions belong to Host |

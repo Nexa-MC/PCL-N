@@ -135,7 +135,11 @@ public interface IJavaRuntimeLocator
 }
 
 public abstract record JavaPreference;
-public sealed record AutoSelectJavaPreference : JavaPreference;
+public sealed record AutoSelectJavaPreference : JavaPreference
+{
+    /// <summary>Soft tie-break among compatible candidates; never relaxes the required range.</summary>
+    public JavaBrand? PreferredBrand { get; init; }
+}
 public sealed record ExistingJavaPreference(string JavaExecutablePath) : JavaPreference;
 public sealed record UseGlobalJavaPreference : JavaPreference;
 public sealed record UseRelativeJavaPreference(string RelativePath) : JavaPreference;

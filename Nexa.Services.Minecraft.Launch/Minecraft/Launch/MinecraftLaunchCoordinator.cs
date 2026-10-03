@@ -958,9 +958,20 @@ public sealed class MinecraftLaunchCoordinator
     {
         var setting = snapshot.Values.Single(value => value.Key == "java.runtime");
         if (setting.ValidationError is not null) throw new InvalidDataException("首选 Java 设置无效。");
-        if (setting.Source == SettingsLayer.Builtin) return fallback;
-        return setting.Value.Mode == SettingsOverrideMode.Auto ? new AutoSelectJavaPreference()
+        JavaPreference preference = setting.Source == SettingsLayer.Builtin ? fallback
+            : setting.Value.Mode == SettingsOverrideMode.Auto ? new AutoSelectJavaPreference()
             : new ExistingJavaPreference(setting.Value.Value!);
+        var vendor = snapshot.Values.Single(item => item.Key == "java.vendor");
+        if (preference is AutoSelectJavaPreference auto && vendor.Source != SettingsLayer.Builtin)
+        {
+            if (vendor.ValidationError is not null) throw new InvalidDataException("Java 发行版设置无效。");
+            preference = auto with
+            {
+                PreferredBrand = Enum.TryParse<JavaBrand>(vendor.Value.Value, out var brand)
+                && Enum.IsDefined(brand) ? brand : null
+            };
+        }
+        return preference;
     }
 
     internal static MinecraftLaunchRequest ApplySettings(MinecraftLaunchRequest request, SettingsEffectiveSnapshot snapshot, int? automaticMemoryMegabytes = null)

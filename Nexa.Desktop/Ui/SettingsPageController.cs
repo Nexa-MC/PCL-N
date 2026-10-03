@@ -376,9 +376,9 @@ internal sealed partial class SettingsPageController : IDisposable
         }
         if (definition.Kind is SettingsValueKind.Enum or SettingsValueKind.Boolean)
         {
-            var spacer = Element(row, "SettingsControlSpace", XsrUiSemanticRole.None, null);
-            _shell.Tree.GetComponent<XsrUiElement>(spacer)!.Weight = 1;
-            BuildShiftSelector(row, entry); return;
+            var slot = Element(row, "SettingsControlSlot", XsrUiSemanticRole.None, null, height: 40);
+            _shell.Tree.GetComponent<XsrUiElement>(slot)!.Weight = 1;
+            BuildShiftSelector(slot, entry); return;
         }
         XsrUiEntityId input = default;
         if (definition.Kind is SettingsValueKind.Number or SettingsValueKind.Text or SettingsValueKind.Path)
@@ -410,6 +410,7 @@ internal sealed partial class SettingsPageController : IDisposable
         "game.arguments" => "传递给 Minecraft 的额外启动参数。",
         "game.memory" => "使用 MiB；自动模式按现有内存策略分配。",
         "java.auto-install" => "缺少兼容 Java 时自动下载；关闭时先询问。",
+        "java.vendor" => "优先选择兼容的发行版；未找到时使用其他兼容 Java。",
         "network.file-concurrency" => "同时处理的游戏文件数，1–64；新安装和启动前补全生效。",
         "network.file-retry" => "失败后额外重试一次；不影响来源切换与文件校验。",
         "game.server" => "默认地址，可带端口；版本单独设置与临时加入优先。",

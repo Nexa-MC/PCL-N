@@ -36,6 +36,7 @@ internal sealed partial class SettingsPageController
         var track = Stack(parent, "SettingsSelector." + entry.SettingKey, XsrUiOrientation.Horizontal, 0);
         Style(track, new(241, 245, 250), Ink, 9);
         _shell.Tree.GetComponent<XsrUiElement>(track)!.Padding = new(3, 3, 3, 3);
+        _shell.Tree.GetComponent<XsrUiElement>(track)!.HorizontalAlignment = XsrUiAlignment.End;
         var thumb = Element(track, "SettingsSelectorThumb." + entry.SettingKey, XsrUiSemanticRole.None, null);
         _shell.Tree.GetComponent<XsrUiElement>(thumb)!.IsVisible = false;
         Style(thumb, White, Ink, 7);
@@ -45,11 +46,13 @@ internal sealed partial class SettingsPageController
         _shell.Tree.SetComponent(track, new XsrUiScrollGesture());
         Dictionary<XsrUiEntityId, string> options = [];
         string[] values = entry.Definition!.Kind == SettingsValueKind.Boolean ? ["false", "true"] : entry.Definition.Choices.Split('|');
-        double width = 6;
+        double width = 0;
         foreach (string value in values)
         {
             string label = value switch { "true" => "开启", "false" => "关闭", "fullscreen" => "全屏", "windowed" => "窗口", "auto" => "跟随系统", "zh-Hans" => "简体中文", "zh-Hant" => "繁體中文", "en" => "English", _ => value };
             if (entry.InvertBoolean) label = value == "true" ? "关闭" : "开启";
+            if (entry.SettingKey == "java.vendor") label = value switch
+            { "" => "自动", "EclipseTemurin" => "Temurin", "IbmSemeru" => "IBM Semeru", "GraalVmCommunity" => "GraalVM", "OpenJdk" => "OpenJDK", "TencentKona" => "腾讯 Kona", "Dragonwell" => "龙井 Java", "Unknown" => "其他", _ => value };
             bool nativeName = entry.SettingKey == "general.language" && value != "auto";
             double optionWidth = Math.Max(48, (nativeName ? label : _shell.Renderer.LocalizeText(label)).Sum(character => character > 127 ? 12 : 7) + 24);
             var option = ActionButton(track, "SettingsOption." + entry.SettingKey + "." + value, label, Choice, optionWidth);
@@ -77,7 +80,7 @@ internal sealed partial class SettingsPageController
                 _shell.Tree.GetComponent<XsrUiVisualStyle>(option.Key)!.TextAlignment = XsrUiTextAlignment.Center;
                 if (selected) _shell.Tree.GetComponent<XsrUiSegmentedTrack>(selector.Track)!.Selected = option.Key;
             }
-            double width = 6;
+            double width = 0;
             foreach (var option in selector.Options.Keys)
             {
                 var text = _shell.Tree.GetComponent<XsrUiText>(option)!;
