@@ -8913,5 +8913,45 @@
     "source": "下次启动生效；系统可能拒绝提高优先级。",
     "zh-Hant": "下次啟動生效；系統可能拒絕提高優先順序。",
     "en": "Applies on the next launch. The system may deny a higher priority."
+  },
+  {
+    "source": "重新扫描",
+    "zh-Hant": "重新掃描",
+    "en": "Scan again"
+  },
+  {
+    "source": "无法扫描 Java，请重试。",
+    "zh-Hant": "無法掃描 Java，請重試。",
+    "en": "Could not scan Java. Try again."
+  },
+  {
+    "source": "正在扫描 Java…",
+    "zh-Hant": "正在掃描 Java…",
+    "en": "Scanning Java…"
+  },
+  {
+    "source": "未找到可用的 Java。",
+    "zh-Hant": "未找到可用的 Java。",
+    "en": "No available Java runtimes found."
+  },
+  {
+    "source": "已选",
+    "zh-Hant": "已選",
+    "en": "Selected"
+  },
+  {
+    "source": "使用",
+    "zh-Hant": "使用",
+    "en": "Use"
+  },
+  {
+    "source": "未知发行方",
+    "zh-Hant": "未知發行者",
+    "en": "Unknown vendor"
+  },
+  {
+    "source": "未知架构",
+    "zh-Hant": "未知架構",
+    "en": "Unknown architecture"
   }
 ]

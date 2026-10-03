@@ -87,7 +87,7 @@ internal static partial class Program
         AssertTrue(runtime.Commands.TryResolve(Nexa.Services.Minecraft.Management.InstanceManagementContract.RemoveMod, out _));
         AssertTrue(runtime.Commands.TryResolve(Nexa.Services.Minecraft.Management.InstanceRecoveryContract.Restore, out _));
         AssertTrue(runtime.Commands.TryResolve(Nexa.Services.Minecraft.Management.InstanceRecoveryContract.Recover, out _));
-        AssertEqual(15, runtime.Queries.Count);
+        AssertEqual(16, runtime.Queries.Count);
         AssertTrue(runtime.Queries.TryResolve(Nexa.Services.Minecraft.Management.InstanceServerListContract.Read, out _));
         AssertTrue(runtime.Queries.TryResolve(Nexa.Services.Minecraft.Management.InstanceServerListContract.Status, out _));
         AssertTrue(runtime.Queries.TryResolve(Nexa.Services.Minecraft.Management.InstanceModpackExportContract.Preview, out _));

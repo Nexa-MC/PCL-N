@@ -81,7 +81,7 @@ internal sealed partial class SettingsPageController : IDisposable
     private void OnIntent(object? sender, DesktopUiIntentEventArgs args)
     {
         if (_shell.Stage.Navigation.Current != Page) return;
-        if (IsSettingsTransferIntent(args.Intent.Command) || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
+        if (IsJavaInventoryIntent(args.Intent.Command) || IsSettingsTransferIntent(args.Intent.Command) || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
         else if (args.Intent.Command == RemediationExecuted) OnPlatformRemediation(sender, args);
     }
     private void OnFrame(object? sender, EventArgs args)
@@ -94,7 +94,7 @@ internal sealed partial class SettingsPageController : IDisposable
             if (visible) { _previousContentPadding = content.Padding; content.Padding = default; }
             else
             {
-                content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); CancelSettingsTransfer();
+                content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); CancelSettingsTransfer(); CancelJavaInventory();
                 ReleaseContentGraph();
             }
             _visible = visible;
@@ -149,6 +149,7 @@ internal sealed partial class SettingsPageController : IDisposable
         }
         while (_pending.TryDequeue(out var intent))
         {
+            if (IsJavaInventoryIntent(intent.Command)) { HandleJavaInventory(intent.Command, intent.Source); continue; }
             if (IsSettingsTransferIntent(intent.Command)) { HandleSettingsTransfer(intent.Command, intent.Source); continue; }
             if (intent.Command == ManagementAction && _managementActions.TryGetValue(intent.Source, out var action)) { action(); continue; }
             if (IsUpdateIntent(intent.Command)) { HandleUpdateIntent(intent.Command); continue; }
@@ -181,7 +182,7 @@ internal sealed partial class SettingsPageController : IDisposable
         UpdateOnlineContent();
         UpdateModRemovalPreview();
         UpdateContentGraph(); UpdateServers(); UpdateExport();
-        UpdateSettingsTransfer();
+        UpdateSettingsTransfer(); UpdateJavaInventory();
         int index = _shell.Tree.GetComponent<XsrUiPager>(_pager)!.PageIndex;
         if (index >= 0 && index < Pages.Count && Pages[index].Id != _selected)
             SwitchPage(Pages[index].Id);
@@ -195,7 +196,7 @@ internal sealed partial class SettingsPageController : IDisposable
 
     private void SwitchPage(string page)
     {
-        CancelSettingsTransfer();
+        CancelSettingsTransfer(); CancelJavaInventory();
         _scrollPositions[_selected] = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY;
         if (_selected == "contentgraph")
         {
@@ -279,6 +280,8 @@ internal sealed partial class SettingsPageController : IDisposable
             item => _shell.Tree.GetComponent<XsrUiTextInput>(item.Input)!.ReadDraft()) : [];
         if (!navigating) _scrollPositions[_selected] = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY;
         foreach (var child in _shell.Tree.Children(_sections).ToArray()) _shell.Tree.Destroy(child);
+        _javaChoices.Clear();
+        _javaInventoryGroup = default;
         _editors.Clear(); _inheritButtons.Clear(); _selectors.Clear(); _argumentEditors.Clear(); _argumentActions.Clear(); _choices.Clear();
         _managementActions.Clear(); _contentSearch = default; _contentList = default; _contentWindowStart = -1;
         _graphSearch = _graphBody = default; _graphActions.Clear();
@@ -321,6 +324,7 @@ internal sealed partial class SettingsPageController : IDisposable
             }
         }
         if (transfer) BuildSettingsTransfer();
+        BuildJavaInventory();
         var scroll = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!;
         scroll.OffsetY = _scrollPositions.GetValueOrDefault(_selected);
         _shell.Tree.GetComponent<XsrUiTransition>(_sections)!.Key = _selected + ":" + _developer;
@@ -552,6 +556,6 @@ internal sealed partial class SettingsPageController : IDisposable
     };
     public void Dispose()
     {
-        _disposed = true; CancelSettingsTransfer(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
+        _disposed = true; CancelSettingsTransfer(); CancelJavaInventory(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }
 }

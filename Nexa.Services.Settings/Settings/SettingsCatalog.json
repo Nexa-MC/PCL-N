@@ -1197,7 +1197,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.083d3d8fb21c",
@@ -1209,7 +1209,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.10b4985ac691",
@@ -1221,7 +1221,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.a2b8901854e7",
@@ -1233,7 +1233,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.3c069c85eeed",
@@ -1245,7 +1245,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.ab5a57e0ac74",
@@ -1257,7 +1257,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.d0186e8f64ba",
@@ -1269,7 +1269,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.cfa054115fb1",
@@ -1293,7 +1293,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.c3e7c58d3f01",

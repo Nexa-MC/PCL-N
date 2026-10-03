@@ -218,6 +218,8 @@ internal static partial class Program
         ("settings reset is scoped previewed and preserves reserved values", Sync(SettingsResetIsScopedPreviewedAndPreservesReservedValues)),
         ("game priority captures scoped preference and legacy meaning", Sync(GamePriorityCapturesScopedPreferenceAndLegacyMeaning)),
         ("game priority control failure cannot fail started session", GamePriorityControlFailureCannotFailStartedSession),
+        ("Java inventory runs on worker and refreshes without state writes", JavaInventoryRunsOnWorkerAndRefreshesWithoutStateWrites),
+        ("Java inventory rejects late noncooperative discovery", JavaInventoryRejectsLateNoncooperativeDiscovery),
         ("settings reset rejects stale revision and rolls back save failure", Sync(SettingsResetRejectsStaleRevisionAndRollsBackSaveFailure)),
         ("settings layers survive restart and preserve unknown data", Sync(SettingsLayersSurviveRestartAndPreserveUnknowns)),
         ("Java major choices select installed runtimes or acquire missing ones", JavaMajorChoiceUsesInstalledOrDownloads),

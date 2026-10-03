@@ -64,6 +64,7 @@ internal static partial class Program
         ("settings transfer previews cancels applies and filters export", SettingsTransferPreviewsCancelsAppliesAndFiltersExport),
         ("settings reset requires confirmation and retires late decisions", SettingsResetRequiresConfirmationAndRetiresLateDecisions),
         ("settings priority selector uses readable choices and instance scope", SettingsPrioritySelectorUsesReadableChoicesAndInstanceScope),
+        ("Java inventory page retires late reads and persists default selection", JavaInventoryPageRetiresLateReadsAndPersistsDefaultSelection),
         ("settings instance reset restores inheritance without native file callbacks", SettingsInstanceResetRestoresInheritanceWithoutNativeFileCallbacks),
         ("settings import rejects stale revision and late confirmation", SettingsImportRejectsStaleRevisionAndLateConfirmation),
         ("settings import discards late read and rejects wrong scope", SettingsImportDiscardsLateReadAndRejectsWrongScope),

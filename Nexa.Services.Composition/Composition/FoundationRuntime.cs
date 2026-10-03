@@ -118,6 +118,9 @@ public static class FoundationRuntimeComposer
         XsrCommandRouter commandRouter = commands.Build(dispatchObserver, timeProvider);
 
         XsrQueryRouterBuilder queries = new();
+        var javaInventory = new Nexa.Services.Minecraft.Java.JavaRuntimeInventoryService(host.JavaLocator);
+        queries.Register<Nexa.Services.Minecraft.Java.JavaRuntimeInventoryQuery, Nexa.Services.Minecraft.Java.JavaRuntimeInventorySnapshot>(
+            Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.Query, javaInventory.ReadAsync);
         queries.Register<InstanceModpackExportQuery, InstanceModpackExportPreview>(InstanceModpackExportContract.Preview,
             async (query, token) => Nexa.Xsr.XsrResult.Success(await InstanceModpackExportService.PreviewAsync(query, token).ConfigureAwait(false)));
         queries.Register<InstanceServerListQuery, InstanceServerList>(InstanceServerListContract.Read,

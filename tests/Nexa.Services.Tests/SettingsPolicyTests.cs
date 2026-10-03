@@ -269,6 +269,7 @@ internal static partial class Program
             AssertTrue(runtime.Commands.TryResolve(SettingsPolicyContract.SetCommand, out var set));
             AssertTrue(runtime.Queries.TryResolve(SettingsPolicyContract.EffectiveQuery, out var read));
             AssertTrue(runtime.Queries.TryResolve(SettingsPolicyContract.CatalogQuery, out var catalog));
+            AssertTrue(runtime.Queries.TryResolve(Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.Query, out _));
             AssertTrue((await runtime.Commands.Dispatch(set, new SettingsMutation("game.width", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "1440"))).Completion).IsSuccess);
             var result = await runtime.Queries.QueryAsync<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(read, new());
             AssertTrue(result.IsSuccess);

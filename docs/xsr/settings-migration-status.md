@@ -61,9 +61,13 @@ XSR-771 captures scoped process priority for the next launch and applies it thro
 Jvm.Host. A denied scheduling change cannot fail a started game. Legacy priority
 encodings persist with their original meaning.
 
+XSR-772 delivers the installed Java inventory, explicit cache-invalidating scan and
+selection of a discovered runtime as the global Java preference. Discovery runs in
+Services outside rendering and late results are retired on navigation.
+
 | Slice | Remaining integration |
 |---|---|
-| Java | Installed runtime inventory/actions; compatibility checks remain mandatory until a separate safe policy exists |
+| Java | Managed-runtime deletion and custom runtime management; compatibility checks remain mandatory until a separate safe policy exists |
 | Game | Title, isolation, launch visibility and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Low power, theme and supported system integration; platform actions belong to Host |
