@@ -12,7 +12,10 @@ The global Settings destination now opens its real PXML page instead of the migr
 
 ## Active settings
 
-Only catalog entries with a verified consumer are enabled: global window width/height/mode, JVM/game arguments, and developer visibility. The first five preserve their existing launch-setting keys; developer visibility uses the new layered contract. Other stored legacy preferences are not enabled merely because their keys exist.
+Only catalog entries with a verified consumer are enabled. The launch-policy migration
+adds global/instance memory and Java automatic acquisition; memory and preferred Java
+offer an explicit Auto action. See [XSR-761](XSR-761-settings-launch-policies.md).
+Other stored legacy preferences are not enabled merely because their keys exist.
 
 Edits dispatch through Foundation settings commands. Text drafts are not overwritten while focused and are persisted only by Apply; failure reports through the shared feedback surface. Service state revisions update the presented values. The UI does not evaluate inheritance, import files, or call SettingsService directly.
 

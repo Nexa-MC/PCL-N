@@ -79,6 +79,7 @@ internal static partial class Program
         ("Online content lists retain search focus and reject retired instances", OnlineContentListRetainsFocusAndRejectsRetiredInstances),
         ("Settings page keeps the final navigation and compact layout", SettingsPageUsesFinalNavigationAndCompactLayout),
         ("Settings page saves through Services without losing draft focus", SettingsPageSavesThroughServicesAndPreservesDraftFocus),
+        ("Settings memory Auto and Java acquisition choices reach durable routes", SettingsMemoryAutoAndJavaAcquisitionReachRoutes),
         ("Settings developer toggle preserves scroll position and focus", SettingsDeveloperToggleKeepsPositionAndFocus),
         ("Settings argument rows support add remove and apply", SettingsArgumentRowsSupportAddRemoveAndApply),
         ("Settings platform reads and refreshes Service snapshots", SettingsPlatformReadsAndRefreshesServiceSnapshot),

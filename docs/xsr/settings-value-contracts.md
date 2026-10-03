@@ -40,7 +40,11 @@ The animation row is positive UI wording backed by a negative legacy flag; catal
 
 Legacy memory uses the existing piecewise slider-to-MiB conversion. A custom new MiB value is stored exactly; it is not rounded back into a lossy slider coordinate. Global Auto/reset clears the old manual policy. Stage 4 consumers must read the effective contract before exposing the new editor. Window mode maps fullscreen to legacy 0 and windowed to 1. Existing unchanged legacy keys remain byte-compatible.
 
-Apply timing is a contract for future consumers, not a claim that this stage has enabled a setting in the UI. The first settings page enables window width/height/mode, JVM/game arguments and developer visibility after connecting their consumers; remaining entries stay unavailable. Profile and Temporary have resolution semantics but reject public mutation.
+Apply timing is not a claim that a setting has a working consumer. The launch-policy
+slice additionally enables memory and automatic Java acquisition, including global and
+instance overrides and explicit Auto actions; see [XSR-761](migrations/XSR-761-settings-launch-policies.md).
+Other unconnected entries remain unavailable. Profile and Temporary have resolution
+semantics but reject public mutation.
 
 Import/export format: `{ "version": 1, "scope": "global" | "instance", "values": { "key": { "mode": "Custom" | "Auto" | "Inherit", "value": "..." } } }`. Auto/Inherit omit the payload. Instance imports use a directory identity supplied separately; exports do not carry machine-specific instance locations. Unknown keys, local-only keys, wrong scopes, invalid values and unsupported versions are rejected. Missing keys leave current values unchanged. Preview has no persistence or state effects; apply revalidates and checks its revision.
 

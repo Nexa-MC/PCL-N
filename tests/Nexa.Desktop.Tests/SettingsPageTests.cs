@@ -161,6 +161,31 @@ internal static partial class Program
         AssertFalse(fixture.Shell.Tree.Children(input.Entity).Any());
     }
 
+    private static void SettingsMemoryAutoAndJavaAcquisitionReachRoutes()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
+            fixture.Foundation.Commands, fixture.Store, fixture.Feedback);
+        fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(settings.Page);
+        var scene = fixture.Shell.Render(new(1000, 650));
+        Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
+        scene = fixture.Shell.Render(new(1000, 650));
+        var input = FindByKey(fixture.Shell, scene, "SettingsInput.game.memory").Entity;
+        fixture.Shell.Renderer.SetTextInputValue(input, "6145");
+        Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.game.memory").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.memory").Value.Value == "6145"; }, TimeSpan.FromSeconds(5)));
+        scene = fixture.Shell.Render(new(1000, 650));
+        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsAuto.game.memory").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.memory").Value.Mode == SettingsOverrideMode.Auto; }, TimeSpan.FromSeconds(5)));
+        scene = fixture.Shell.Render(new(1000, 650));
+        Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.java").Entity);
+        scene = fixture.Shell.Render(new(1000, 650));
+        AssertEqual("false", Read("java.auto-install").Value.Value);
+        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsOption.java.auto-install.true").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("java.auto-install").Value.Value == "true"; }, TimeSpan.FromSeconds(5)));
+        SettingsEffectiveValue Read(string key) => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(value => value.Key == key);
+    }
+
     private static void SettingsDeveloperToggleKeepsPositionAndFocus()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));

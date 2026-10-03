@@ -304,11 +304,13 @@ public sealed class MinecraftLaunchCoordinator
                 && !string.IsNullOrWhiteSpace(instance.Metadata.SelectedJavaPath)
                 ? new ExistingJavaPreference(instance.Metadata.SelectedJavaPath)
                 : new AutoSelectJavaPreference();
+            bool automaticallyInstallJava = false;
             if (_settingsPolicy is not null)
             {
                 var policy = _settingsPolicy.Read(new(instance.DirectoryPath));
                 if (!policy.IsSuccess) throw new InvalidOperationException("无法读取版本 Java 设置。");
                 preference = ApplyJavaPreference(preference, policy.Value!);
+                automaticallyInstallJava = policy.Value!.Values.Single(value => value.Key == "java.auto-install").Value.Value == "true";
             }
             operation?.Stage("select_java", $"os={_platform.OperatingSystem} os_version={_platform.OperatingSystemVersion} arm64={_platform.IsArm64Architecture} manifest_major={javaRequest.ManifestJavaMajorVersion}");
             JavaSelectionResult java = default!;
@@ -334,7 +336,7 @@ public sealed class MinecraftLaunchCoordinator
                         java,
                         preference,
                         loader.Kind is MinecraftModLoaderKind.Forge or MinecraftModLoaderKind.NeoForge,
-                        operation, javaRoot, token).ConfigureAwait(false);
+                        operation, javaRoot, automaticallyInstallJava, token).ConfigureAwait(false);
                 },
                 cancellationToken).ConfigureAwait(false);
             if (!resolvedJava.IsSuccess)
@@ -774,6 +776,7 @@ public sealed class MinecraftLaunchCoordinator
         bool hasForge,
         LogOperation? operation,
         string javaRuntimeRootDirectory,
+        bool automaticallyInstall,
         CancellationToken cancellationToken)
     {
         _log?.Info("Java", $"Java selection completed success={selection.Success} failure={selection.FailureReason} minimum={selection.Requirement.Range.Minimum} maximum={selection.Requirement.Range.Maximum}");
@@ -808,7 +811,7 @@ public sealed class MinecraftLaunchCoordinator
                 $"no compatible Java runtime is installed and automatic acquisition is blocked ({acquisition.BlockReason})."));
         }
 
-        JavaChoice choice = await RequestAcquisitionApprovalAsync(
+        JavaChoice choice = automaticallyInstall ? new(true) : await RequestAcquisitionApprovalAsync(
                 acquisition,
                 JavaMajor(selection.Requirement.Range.Minimum),
                 operation,
@@ -944,7 +947,7 @@ public sealed class MinecraftLaunchCoordinator
         if (_settingsPolicy is null) return request;
         var effective = _settingsPolicy.Read(new(instance.DirectoryPath));
         if (!effective.IsSuccess) throw new InvalidOperationException("无法读取版本设置：" + effective.Error?.Message);
-        return ApplySettings(request, effective.Value!);
+        return ApplySettings(request, effective.Value!, ResolveAutomaticMemoryMegabytes(loader.Kind));
     }
 
     internal static JavaPreference ApplyJavaPreference(JavaPreference fallback, SettingsEffectiveSnapshot snapshot)
@@ -956,10 +959,21 @@ public sealed class MinecraftLaunchCoordinator
             : new ExistingJavaPreference(setting.Value.Value!);
     }
 
-    internal static MinecraftLaunchRequest ApplySettings(MinecraftLaunchRequest request, SettingsEffectiveSnapshot snapshot)
+    internal static MinecraftLaunchRequest ApplySettings(MinecraftLaunchRequest request, SettingsEffectiveSnapshot snapshot, int? automaticMemoryMegabytes = null)
     {
         foreach (var setting in snapshot.Values)
         {
+            if (setting.Key == "game.memory" && setting.Source != SettingsLayer.Builtin)
+            {
+                if (setting.ValidationError is not null) throw new InvalidDataException("内存设置无效。");
+                request = request with
+                {
+                    MemoryMegabytes = setting.Value.Mode == SettingsOverrideMode.Auto
+                    ? automaticMemoryMegabytes ?? request.MemoryMegabytes
+                    : int.Parse(setting.Value.Value!, CultureInfo.InvariantCulture)
+                };
+                continue;
+            }
             if (setting.Value.Mode != SettingsOverrideMode.Custom
                 || (setting.Source != SettingsLayer.Instance && !(setting.Key == "game.window-mode" && setting.Source == SettingsLayer.Global))) continue;
             string value = setting.Value.Value ?? "";
@@ -1106,6 +1120,12 @@ public sealed class MinecraftLaunchCoordinator
         {
             return SliderValueToMemoryMegabytes(GetSetting("LaunchRamCustom", 15));
         }
+
+        return ResolveAutomaticMemoryMegabytes(loader);
+    }
+
+    private static int ResolveAutomaticMemoryMegabytes(MinecraftModLoaderKind loader)
+    {
 
         double availableGigabytes = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes > 0
             ? GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 1024d / 1024d / 1024d

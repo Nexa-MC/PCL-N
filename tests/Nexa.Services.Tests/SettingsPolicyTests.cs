@@ -89,6 +89,23 @@ internal static partial class Program
         AssertEqual(global, ((Nexa.Services.Minecraft.Java.ExistingJavaPreference)Read()).JavaExecutablePath);
     }
 
+    private static void MigratedJavaAndMemorySettingsSurviveRestartAndRejectInvalidValues()
+    {
+        var port = new InMemorySettingsPort(); var (_, policy) = PolicyFixture(port);
+        AssertTrue(policy.Set(new("java.auto-install", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
+        AssertTrue(policy.Set(new("game.memory", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "6145"))).IsSuccess);
+        var (_, restarted) = PolicyFixture(port);
+        AssertEqual("true", Effective(restarted, "java.auto-install").Value.Value);
+        AssertEqual("6145", Effective(restarted, "game.memory").Value.Value);
+        long revision = restarted.Read(new()).Value!.Revision;
+        AssertFalse(restarted.Set(new("game.memory", SettingsLayer.Global, new(SettingsOverrideMode.Custom, ""))).IsSuccess);
+        AssertEqual(revision, restarted.Read(new()).Value!.Revision);
+        AssertTrue(restarted.Set(new("game.memory", SettingsLayer.Global, new(SettingsOverrideMode.Auto))).IsSuccess);
+        var (_, automatic) = PolicyFixture(port); AssertEqual(SettingsOverrideMode.Auto, Effective(automatic, "game.memory").Value.Mode);
+        foreach (string key in new[] { "java.auto-install", "game.memory" })
+            AssertTrue(SettingsCatalog.Read(new()).Entries.Where(entry => entry.SettingKey == key).All(entry => entry.Availability == SettingsCapabilityAvailability.Available));
+    }
+
     private static (SettingsService Store, SettingsPolicyService Policy) PolicyFixture(ISettingsPort? port = null)
     {
         var schema = LauncherDefaults.CreateSchema();

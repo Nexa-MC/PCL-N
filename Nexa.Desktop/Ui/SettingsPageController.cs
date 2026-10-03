@@ -385,13 +385,22 @@ internal sealed partial class SettingsPageController : IDisposable
         {
             input = Element(row, "SettingsInput." + entry.SettingKey, XsrUiSemanticRole.TextInput, entry.Label, height: 34);
             _shell.Tree.GetComponent<XsrUiElement>(input)!.Weight = 1;
-            _shell.Tree.SetComponent(input, new XsrUiTextInput { Placeholder = entry.SettingKey == "java.runtime" ? "自动选择，或输入 Java 可执行文件路径" : entry.Label });
+            _shell.Tree.SetComponent(input, new XsrUiTextInput
+            {
+                Placeholder = entry.SettingKey switch
+                { "java.runtime" => "自动选择，或输入 Java 可执行文件路径", "game.memory" => "自动分配，或输入 MiB", _ => entry.Label }
+            });
             _shell.Tree.SetComponent(input, new XsrUiInput { Focusable = true, Clickable = true });
             Style(input, new(245, 246, 248), Ink, 9, 13);
             _shell.Tree.GetComponent<XsrUiElement>(input)!.Padding = new(10, 0, 10, 0);
         }
         var button = ActionButton(row, "SettingsEdit." + entry.SettingKey, "应用", Edit, 44);
         _editors[button] = new(entry, input, button, default);
+        if (definition.SupportsAuto)
+        {
+            var automatic = ActionButton(row, "SettingsAuto." + entry.SettingKey, "自动", Choice, 44);
+            _choices[automatic] = (_editors[button], "auto");
+        }
     }
 
     private static string? SettingHint(string? key) => key switch
@@ -399,6 +408,8 @@ internal sealed partial class SettingsPageController : IDisposable
         "game.jvm" => "每行一个参数，应用后用于下次启动。",
         "install.inherit-vanilla" => "关闭时安装独立版本；开启后依赖原版。下次安装生效。",
         "game.arguments" => "传递给 Minecraft 的额外启动参数。",
+        "game.memory" => "使用 MiB；自动模式按现有内存策略分配。",
+        "java.auto-install" => "缺少兼容 Java 时自动下载；关闭时先询问。",
         "appearance.animations-disabled" => "减少界面切换和展开时的动态效果。",
         _ => null,
     };
@@ -435,7 +446,8 @@ internal sealed partial class SettingsPageController : IDisposable
         var current = _values.Values.First(item => item.Key == editor.Entry.SettingKey).Value.Value;
         string raw = selectedValue ?? (editor.Input.IsAssigned ? _shell.Tree.GetComponent<XsrUiTextInput>(editor.Input)!.ReadDraft()
             : editor.Entry.Definition!.Kind == SettingsValueKind.Boolean ? (current == "true" ? "false" : "true") : (current == "fullscreen" ? "windowed" : "fullscreen"));
-        var value = editor.Entry.SettingKey == "java.runtime" && string.IsNullOrWhiteSpace(raw)
+        var value = editor.Entry.Definition!.SupportsAuto && selectedValue == "auto"
+            || editor.Entry.SettingKey == "java.runtime" && string.IsNullOrWhiteSpace(raw)
             ? new SettingsOverride(SettingsOverrideMode.Auto) : new(SettingsOverrideMode.Custom, raw);
         _writing = SaveAsync(route, new(editor.Entry.SettingKey!, (_instanceDirectory is null ? SettingsLayer.Global : SettingsLayer.Instance), value, _instance));
     }

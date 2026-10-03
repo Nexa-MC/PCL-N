@@ -156,7 +156,7 @@ internal static partial class Program
                     MinecraftLibraryOperatingSystem.Win32,
                     "10.0.26100",
                     Is64BitArchitecture: true,
-                    IsArm64Architecture: false));
+                    IsArm64Architecture: false), settingsPolicy: host.SettingsPolicy);
 
             XsrResult<MinecraftLaunchPreparation> result = await coordinator.PrepareAsync(
                 "fabric-loader",
@@ -185,6 +185,20 @@ internal static partial class Program
             AssertEqual("player-uuid", request.PlayerUuid);
             AssertEqual(MinecraftLaunchIdentityMode.Offline, request.IdentityMode);
             AssertEqual(0, installer.Calls);
+            AssertTrue(host.SettingsPolicy.Set(new("game.memory", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "6145"))).IsSuccess);
+            var customMemory = await coordinator.PrepareAsync("fabric-loader", 0);
+            AssertTrue(customMemory.IsSuccess); AssertEqual(6145, customMemory.Value.Request.MemoryMegabytes);
+            AssertTrue(host.SettingsPolicy.Set(new("game.memory", SettingsLayer.Instance, new(SettingsOverrideMode.Auto), loaderDirectory)).IsSuccess);
+            var automaticMemory = await coordinator.PrepareAsync("fabric-loader", 0);
+            AssertTrue(automaticMemory.IsSuccess); AssertTrue(automaticMemory.Value.Request.MemoryMegabytes > 0);
+            AssertFalse(automaticMemory.Value.Request.MemoryMegabytes == 6145);
+            AssertTrue(host.SettingsPolicy.Set(new("game.memory", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "3073"), loaderDirectory)).IsSuccess);
+            AssertTrue(host.SettingsPolicy.Set(new("game.memory", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "8192"))).IsSuccess);
+            var instanceMemory = await coordinator.PrepareAsync("fabric-loader", 0);
+            AssertTrue(instanceMemory.IsSuccess); AssertEqual(3073, instanceMemory.Value.Request.MemoryMegabytes);
+            AssertTrue(host.SettingsPolicy.Set(new("game.memory", SettingsLayer.Instance, new(SettingsOverrideMode.Inherit), loaderDirectory)).IsSuccess);
+            var inheritedMemory = await coordinator.PrepareAsync("fabric-loader", 0);
+            AssertTrue(inheritedMemory.IsSuccess); AssertEqual(8192, inheritedMemory.Value.Request.MemoryMegabytes);
             string anotherRoot = Path.Combine(root, "another-root");
             string anotherInstance = CreateVersionDirectory(anotherRoot, "fabric-loader", new JsonObject
             {

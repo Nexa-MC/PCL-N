@@ -250,6 +250,8 @@ internal static partial class Program
             ComposeAcquisitionCoordinator(new RecordingNeverInstaller());
         try
         {
+            AssertTrue(host.SettingsPolicy.Set(new("java.auto-install", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
+            AssertTrue(host.SettingsPolicy.Set(new("java.auto-install", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "false"), Path.Combine(root, "versions", "1.20.1"))).IsSuccess);
             Task<XsrResult> launchTask = Task.Run(
                 () => coordinator.StartAsync("1.20.1", accountIndex: 0).AsTask());
             XsrStateStore store = host.StateStore;
@@ -387,9 +389,27 @@ internal static partial class Program
                 Is64BitArchitecture: true,
                 IsArm64Architecture: false),
             progress: new MinecraftLaunchProgressPublisher(host.StateStore),
-            windowProbe: windowProbe ?? new ImmediateWindowProbe())
+            windowProbe: windowProbe ?? new ImmediateWindowProbe(), settingsPolicy: host.SettingsPolicy)
         { WorkScheduler = host.Work };
         return (coordinator, host, installer, root);
+    }
+
+    private static async ValueTask JavaAutoInstallUsesSettingsWithoutApprovalAndPreservesExplicitRuntime()
+    {
+        var (coordinator, host, installer, root) = ComposeAcquisitionCoordinator(new RecordingStubInstaller());
+        try
+        {
+            AssertTrue(host.SettingsPolicy.Set(new("java.auto-install", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var prepared = await coordinator.PrepareAsync("1.20.1", 0, cancellationToken: timeout.Token);
+            AssertTrue(prepared.IsSuccess); AssertEqual(1, installer.Calls);
+            AssertFalse(ReadProgressFlag(host.StateStore, MinecraftLaunchProgressState.AcquirePendingKey));
+            AssertTrue(host.SettingsPolicy.Set(new("java.runtime", SettingsLayer.Instance,
+                new(SettingsOverrideMode.Custom, Path.Combine(root, "missing-java")), Path.Combine(root, "versions", "1.20.1"))).IsSuccess);
+            var explicitRuntime = await coordinator.PrepareAsync("1.20.1", 0, cancellationToken: timeout.Token);
+            AssertFalse(explicitRuntime.IsSuccess); AssertEqual(1, installer.Calls);
+        }
+        finally { host.Dispose(); Directory.Delete(root, recursive: true); }
     }
 
     private sealed class RecordingNeverInstaller : IJavaRuntimeInstaller

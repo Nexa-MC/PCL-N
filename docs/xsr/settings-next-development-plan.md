@@ -1,6 +1,7 @@
 # Nexa 2.x 设置与实例详情：下一轮开发计划
 
-状态：阶段 1（S0）与阶段 2（S1）的设置基础已实现；其余阶段待开发。2026-09-12。
+本文保留 2026-09-12 的历史规划。当前完成情况、已启用消费者和后续迁移顺序以
+[设置迁移清单](settings-migration-status.md) 为准；下文早期节点数量及 Cloud 规划不代表当前产品范围。
 
 交付入口：[目录与继承契约](migrations/settings-catalog-and-inheritance.md)、[完整 IA 条目表](settings-entry-map.md)、[基础值契约表](settings-value-contracts.md)。566 个 IA 节点已保留最终位置；29 个基础值契约已声明。未来能力的设置仍显式保留为 reserved / NotImplemented，不伪造默认值或开启控件。当前阶段未实现设置页面，也未宣称新设置已接通所有运行消费者。
 

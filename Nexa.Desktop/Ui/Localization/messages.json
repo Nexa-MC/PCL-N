@@ -1,5 +1,20 @@
 [
   {
+    "source": "自动分配，或输入 MiB",
+    "en": "Automatic, or enter MiB",
+    "zh-Hant": "自動分配，或輸入 MiB"
+  },
+  {
+    "source": "使用 MiB；自动模式按现有内存策略分配。",
+    "en": "Values use MiB. Automatic uses the current memory policy.",
+    "zh-Hant": "使用 MiB；自動模式按現有記憶體策略分配。"
+  },
+  {
+    "source": "缺少兼容 Java 时自动下载；关闭时先询问。",
+    "en": "Download missing compatible Java automatically. When off, ask first.",
+    "zh-Hant": "缺少相容 Java 時自動下載；關閉時先詢問。"
+  },
+  {
     "source": "\n\n更改比较未完成。",
     "en": "\n\nCould not compare changes.",
     "zh-Hant": "\n\n更改比較未完成。"
