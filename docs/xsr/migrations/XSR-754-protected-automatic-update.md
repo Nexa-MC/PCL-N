@@ -49,6 +49,9 @@ between activation and status publication. Desktop tests verify restart is offer
 when the selected version differs from the running one and completed updates never resume.
 Native installer smoke admits the actual installed helper and all installation ancestors
 without creating or changing state; a protected fixture elsewhere is not sufficient evidence.
+Desktop progress schedules an idle-safe presentation wake, ignores late reads after terminal
+completion, and never initiates recovery on top of its own active install/rollback request.
+An already-running elevated helper remains observable after GUI exit/recovery lock contention.
 release CI executes a real protected transaction/rollback on each of six RIDs and smoke-runs
 the helper, alongside installer, Desktop NativeAOT and trim checks. Native CI results must be
 reviewed before acceptance; fixtures are not physical power-loss or OS signing acceptance.

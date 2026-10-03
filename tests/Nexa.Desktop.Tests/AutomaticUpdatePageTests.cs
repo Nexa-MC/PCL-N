@@ -28,6 +28,12 @@ internal static partial class Program
         fixture.Shell.Render(new(1000, 650));
         fixture.Shell.Render(new(1000, 650));
         AssertEqual(1, update.RollbackCount);
+        update.CompleteProgressRead();
+        fixture.Shell.Render(new(1000, 650));
+        var wake = fixture.Store.Resolve(SettingsPresentationState.WakeKey);
+        long revision = fixture.Store.Read<long>(wake).Value;
+        AssertTrue(SpinWait.SpinUntil(() => fixture.Store.Read<long>(wake).Value > revision, TimeSpan.FromSeconds(3)));
+        fixture.Shell.Render(new(1000, 650)); // The timer wakes the next read without pointer input.
         update.CompleteRollback();
         fixture.Shell.Render(new(1000, 650));
         update.CompleteStaleRead();
@@ -51,10 +57,12 @@ internal static partial class Program
     {
         private AutomaticUpdateStatus _status = new("2.0.0.alpha.6", "alpha", "complete", true, true);
         private readonly TaskCompletionSource<AutomaticUpdateStatus> _rollback = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<AutomaticUpdateStatus> _progressRead = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource<AutomaticUpdateStatus> _staleRead = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _reads;
         internal int RollbackCount { get; private set; }
-        public Task<AutomaticUpdateStatus> ReadAsync(CancellationToken token) => ++_reads == 1 ? Task.FromResult(_status) : _staleRead.Task;
+        public Task<AutomaticUpdateStatus> ReadAsync(CancellationToken token) => ++_reads switch
+        { 1 => Task.FromResult(_status), 2 => _progressRead.Task, _ => _staleRead.Task };
         public Task<AutomaticUpdateStatus> InstallAsync(string version, string channel, CancellationToken token)
             => throw new InvalidOperationException("Completed update must not resume.");
         public Task<AutomaticUpdateStatus> RollbackAsync(CancellationToken token)
@@ -68,6 +76,7 @@ internal static partial class Program
             _rollback.SetResult(_status);
         }
         internal void CompleteStaleRead() => _staleRead.SetResult(new("2.0.0.alpha.6", "alpha", "complete", true, true));
+        internal void CompleteProgressRead() => _progressRead.SetResult(new("2.0.0.alpha.6", "alpha", "preparing", true, false));
         public void Restart() => throw new InvalidOperationException("Restart must use the host close lifecycle.");
     }
 }

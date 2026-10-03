@@ -50,6 +50,10 @@ leave a completed-new-version status after selecting old bytes. The UI offers re
 only when the selected complete/rolled-back version differs from the running version.
 If exit occurs between rollback activation and status publication, projection uses the
 activation version instead of advertising the superseded completed update.
+Progress polling schedules a cancellation-bound 500 ms wake through presentation State;
+it does not depend on input or continuous render frames. A still-running authorized helper
+can finish after the GUI exits, and the next GUI continues observing protected status even
+if a redundant recovery request encounters the exclusive transaction lock.
 
 ## Validation
 

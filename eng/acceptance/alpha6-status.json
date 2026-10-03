@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "release": "2.0.0.alpha.6",
-  "reviewed_at": "2026-10-02",
+  "reviewed_at": "2026-10-03",
   "overall": "not-accepted",
   "items": [
     {
@@ -23,10 +23,10 @@
     {
       "id": "protected-update-transaction",
       "priority": "P0",
-      "state": "pending",
-      "summary": "XSR-754 implements a preinstalled protected helper, independent signature/hash verification, descriptor-relative Windows/Unix slots, offline recovery, activation, rollback and restart. Six-RID native transaction evidence and physical acceptance remain pending; legacy staged helpers stay refused.",
-      "evidence": ["docs/xsr/migrations/XSR-730-signed-release-manifest.md", "docs/xsr/migrations/XSR-746-update-high-water-store.md", "docs/xsr/migrations/XSR-751-update-reception-boundary.md", "docs/xsr/migrations/XSR-752-windows-update-object-admission.md", "docs/xsr/migrations/XSR-753-windows-update-high-water-journal.md"],
-      "remaining": ["Review six-RID protected native update and installer CI results.", "Exercise physical power-loss and replacement races on all three operating systems."]
+      "state": "partial",
+      "summary": "XSR-754 delivers the preinstalled protected helper, independent publisher verification, Windows/Unix immutable slots, offline recovery, activation, rollback, restart and idle-safe UI progress. Managed interruption/UI regressions pass; Launcher Build retains six-RID native transaction, installed-helper and installer evidence. Physical acceptance remains separate; legacy staged helpers stay refused.",
+      "evidence": ["docs/xsr/automatic-update-transaction.md", "docs/xsr/migrations/XSR-754-protected-automatic-update.md", ".github/workflows/launcher-build.yml", "docs/xsr/migrations/XSR-730-signed-release-manifest.md", "docs/xsr/migrations/XSR-746-update-high-water-store.md", "docs/xsr/migrations/XSR-751-update-reception-boundary.md", "docs/xsr/migrations/XSR-752-windows-update-object-admission.md", "docs/xsr/migrations/XSR-753-windows-update-high-water-journal.md"],
+      "remaining": ["Exercise physical power-loss and replacement races on all three operating systems; assigned to Dots because the user has no available devices."]
     },
     {
       "id": "native-release-trust",

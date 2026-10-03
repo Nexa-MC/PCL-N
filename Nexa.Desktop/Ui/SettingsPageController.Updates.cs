@@ -18,11 +18,13 @@ internal sealed partial class SettingsPageController
     private Task<AutomaticUpdateStatus>? _automaticReading, _automaticInstalling;
     private AutomaticUpdateStatus? _automaticStatus;
     private Action? _restartForUpdate;
-    private long _automaticLastRead;
+    private Task? _automaticRefreshDelay;
     private bool _automaticRecoveryAttempted;
     private bool _automaticDiscardReading;
     private bool UpdateNeedsRestart => _automaticStatus?.Phase is "complete" or "rolledback"
         && _automaticStatus.Version != _updateQuery?.CurrentVersion;
+    private bool AutomaticUpdateInProgress => _automaticInstalling is not null
+        || _automaticStatus?.Phase is "verifying" or "downloading" or "preparing" or "activating";
     private XsrQueryRouter? _updateQueries;
     private NexaUpdateQuery? _updateQuery;
     private Action<Uri>? _openUpdateLink;
@@ -44,15 +46,16 @@ internal sealed partial class SettingsPageController
     private void HandleUpdateIntent(XsrSemanticId id)
     {
         if (id == RestartUpdate && UpdateNeedsRestart) { _restartForUpdate?.Invoke(); return; }
-        if (id == InstallUpdate && _automaticInstalling is null && _automaticStatus?.CanInstall == true && _automaticUpdates is not null && _updateQuery is not null)
+        if (id == InstallUpdate && !AutomaticUpdateInProgress && _automaticStatus?.CanInstall == true && _automaticUpdates is not null && _updateQuery is not null)
         {
             string? version = _updateOffer?.Version ?? _automaticStatus.Version;
             if (version is null) return;
+            _automaticRecoveryAttempted = true;
             _automaticInstalling = _automaticUpdates.InstallAsync(version, _updateQuery.Channel, _updateStop.Token);
             WakeOnPlatformCompletion(_automaticInstalling); _updateStatus = "正在更新…"; BuildSections(); return;
         }
-        if (id == RollbackUpdate && _automaticInstalling is null && _automaticStatus?.CanRollback == true && _automaticUpdates is not null)
-        { _automaticInstalling = _automaticUpdates.RollbackAsync(_updateStop.Token); WakeOnPlatformCompletion(_automaticInstalling); return; }
+        if (id == RollbackUpdate && !AutomaticUpdateInProgress && _automaticStatus?.CanRollback == true && _automaticUpdates is not null)
+        { _automaticRecoveryAttempted = true; _automaticInstalling = _automaticUpdates.RollbackAsync(_updateStop.Token); WakeOnPlatformCompletion(_automaticInstalling); return; }
         if (id == CheckUpdate && _updateReading is null && _updateQuery is not null && _updateQueries?.TryResolve(NexaUpdateContract.Check, out var route) == true)
         {
             _updateStatus = "正在检查更新…";
@@ -107,7 +110,12 @@ internal sealed partial class SettingsPageController
             {
                 changed |= _automaticStatus != reading.Result;
                 _automaticStatus = reading.Result;
-                if (!_automaticRecoveryAttempted && _automaticStatus.CanInstall && _automaticStatus.Version is { } version
+                if (_automaticInstalling is null && _automaticStatus.Phase is "complete" or "rolledback")
+                {
+                    _updateStatus = _automaticStatus.Phase == "rolledback" ? "已回滚更新。" : "更新完成。";
+                    if (UpdateNeedsRestart) _updateStatus += "重新启动后生效。";
+                }
+                if (!_automaticRecoveryAttempted && _automaticInstalling is null && _automaticStatus.CanInstall && _automaticStatus.Version is { } version
                     && _automaticStatus.Channel is { } channel && _automaticStatus.Phase is "verifying" or "downloading" or "preparing" or "activating" or "paused")
                 {
                     _automaticRecoveryAttempted = true;
@@ -116,9 +124,14 @@ internal sealed partial class SettingsPageController
                 }
             }
             else { _ = reading.Exception; _updateStatus = "此安装位置无法自动更新，请使用系统安装包。"; changed = true; }
+            if (AutomaticUpdateInProgress)
+            {
+                _automaticRefreshDelay = Task.Delay(500, _updateStop.Token);
+                WakeOnPlatformCompletion(_automaticRefreshDelay);
+            }
         }
-        if (_automaticInstalling is not null && _automaticReading is null && Environment.TickCount64 - _automaticLastRead >= 500)
-        { _automaticLastRead = Environment.TickCount64; _automaticReading = _automaticUpdates!.ReadAsync(_updateStop.Token); WakeOnPlatformCompletion(_automaticReading); }
+        if (AutomaticUpdateInProgress && _automaticReading is null && _automaticRefreshDelay is not { IsCompleted: false })
+        { _automaticRefreshDelay = null; _automaticReading = _automaticUpdates!.ReadAsync(_updateStop.Token); WakeOnPlatformCompletion(_automaticReading); }
         if (changed && _selected == "advanced") BuildSections();
     }
 
@@ -128,14 +141,14 @@ internal sealed partial class SettingsPageController
         var card = SettingsCard("SettingsUpdateCard", new(20, 18, 20, 18), spacing: 10, radius: 18);
         Text(card, "NexaCL " + _updateQuery.CurrentVersion, 19, Ink, 28, 600);
         Text(card, _updateStatus, 13, Muted, 22);
-        if (_automaticInstalling is not null)
+        if (AutomaticUpdateInProgress)
             Text(card, _automaticStatus?.Phase switch { "downloading" => "正在下载并校验", "preparing" => "正在准备新版本", "activating" => "正在切换版本", _ => "正在验证发布信息" }, 13, Muted, 22);
         var actions = Stack(card, "SettingsUpdateActions", XsrUiOrientation.Horizontal, 10);
         var check = ActionButton(actions, "SettingsCheckUpdate", _updateReading is null ? "检查更新" : "正在检查", CheckUpdate, 100);
         _shell.Tree.GetComponent<XsrUiInput>(check)!.Enabled = _updateReading is null;
         if (_updateOffer is not null)
         {
-            if (_automaticStatus?.CanInstall == true && _automaticInstalling is null)
+            if (_automaticStatus?.CanInstall == true && !AutomaticUpdateInProgress)
                 ActionButton(actions, "SettingsInstallUpdate", "立即更新", InstallUpdate, 100);
             ActionButton(actions, "SettingsDownloadUpdate", "下载安装包", DownloadUpdate, 112);
             ActionButton(actions, "SettingsPortableUpdate", "便携包", PortableUpdate, 80);
@@ -146,7 +159,7 @@ internal sealed partial class SettingsPageController
         else if (_updateOffer is null && _automaticStatus?.Version is not null && _automaticStatus.CanInstall
             && _automaticStatus.Phase is not ("complete" or "rolledback") && _automaticInstalling is null)
             ActionButton(actions, "SettingsResumeUpdate", "继续更新", InstallUpdate, 100);
-        if (_automaticStatus?.CanRollback == true && _automaticInstalling is null)
+        if (_automaticStatus?.CanRollback == true && !AutomaticUpdateInProgress)
             ActionButton(actions, "SettingsRollbackUpdate", "回滚更新", RollbackUpdate, 100);
     }
 }
