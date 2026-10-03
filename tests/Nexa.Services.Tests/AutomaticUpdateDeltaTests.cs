@@ -223,27 +223,31 @@ internal static partial class Program
     private static string DeltaHash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
     private static void SeedDeltaSource(IUpdateDirectory directory, DeltaFixture fixture)
     {
-        foreach (var file in fixture.BaseFiles)
+        // Existing directories reopen read-only on Unix. Keep the creation leases until every
+        // sibling fixture file is written, just like the production slot extractor does.
+        var created = new Dictionary<string, IUpdateDirectory>(StringComparer.Ordinal) { [""] = directory };
+        try
         {
-            var leases = new List<IUpdateDirectory>(); IUpdateDirectory parent = directory;
-            string[] parts = file.Key.Split('/');
-            try
+            foreach (var file in fixture.BaseFiles)
             {
+                IUpdateDirectory parent = directory; string prefix = "";
+                string[] parts = file.Key.Split('/');
                 foreach (string part in parts[..^1])
                 {
-                    IUpdateDirectory child;
-                    try { child = parent.OpenDirectory(part); }
-                    catch (IOException) { child = parent.CreateDirectory(part, publicRead: true); }
-                    // Managed fixture OpenDirectory has no admission; create its test directory explicitly.
-                    if (directory is UpdateFixtureDirectory) Directory.CreateDirectory(child.Path);
-                    leases.Add(child); parent = child;
+                    prefix += "/" + part;
+                    if (!created.TryGetValue(prefix, out var child))
+                    {
+                        child = parent.CreateDirectory(part, publicRead: true);
+                        created.Add(prefix, child);
+                    }
+                    parent = child;
                 }
                 using FileStream output = parent.CreateFile(parts[^1], publicRead: true, executable: true);
                 output.Write(file.Value); output.Flush(true);
             }
-            finally { foreach (var lease in leases) lease.Dispose(); }
+            using FileStream obsolete = directory.CreateFile("obsolete.txt", publicRead: true); obsolete.Write([0]); obsolete.Flush(true);
         }
-        using FileStream obsolete = directory.CreateFile("obsolete.txt", publicRead: true); obsolete.Write([0]); obsolete.Flush(true);
+        finally { foreach (var lease in created.Where(pair => pair.Key.Length > 0).Reverse()) lease.Value.Dispose(); }
     }
 
     private static void AssertDeltaOutput(IUpdateDirectory directory, string slotName, DeltaFixture fixture)
