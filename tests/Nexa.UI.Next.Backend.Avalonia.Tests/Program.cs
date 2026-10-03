@@ -814,7 +814,11 @@ internal static partial class Program
         while (scroll.OffsetX != 0 && DateTime.UtcNow < deadline) await Task.Delay(16).ConfigureAwait(true);
         AssertEqual(0d, scroll.OffsetX);
         AssertTrue(shell.Renderer.Activate(options[2])); track.Selected = options[2]; surface.CommitScene();
-        await Task.Delay(32).ConfigureAwait(true); AssertTrue(scroll.OffsetX > 0);
+        // Wait for a presented frame, rather than assuming the dispatcher has ticked
+        // within 32 ms on a busy CI host. The earlier assertion still checks intermediate motion.
+        deadline = DateTime.UtcNow.AddSeconds(2);
+        while (scroll.OffsetX == 0 && DateTime.UtcNow < deadline) await Task.Delay(16).ConfigureAwait(true);
+        AssertTrue(scroll.OffsetX > 0);
         XsrUiRect viewport = Node(surface.Scene!, root).Rect;
         AssertTrue(shell.Renderer.PointerScroll(new(viewport.X + 150, viewport.Y + 20), 0, 10)); surface.CommitScene();
         double held = scroll.OffsetX; await Task.Delay(100).ConfigureAwait(true); AssertEqual(held, scroll.OffsetX);

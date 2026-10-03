@@ -32,3 +32,8 @@ and native clock intermediate frames, reversal, wheel interruption and reduced m
 UI.Next owns geometry and
 gesture state; Desktop retains only selection intents. Existing reduced-motion behavior
 and scroll/transition clocks remain unchanged.
+
+The native clock regression waits for a presented frame with a bounded deadline;
+it does not assume a dispatcher frame arrives within a fixed 32 ms. Intermediate
+motion, reversal without a jump, wheel cancellation and reduced-motion settling
+remain separate assertions.
