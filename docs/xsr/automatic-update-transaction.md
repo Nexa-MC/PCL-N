@@ -65,6 +65,12 @@ cannot authorize a public monotonic automatic update and must not display an ins
 
 ## Validation
 
+New Windows public directory leases request read/traverse rights without DELETE at creation.
+This permits concurrent protected projection without adding delete sharing or reopening by
+name. Such published directories are not eligible for the private empty-staging cleanup API;
+an unexpected creation/admission failure is reported without path-based deletion. Private
+staging retains its original object-bound deletion semantics.
+
 Deterministic tests interrupt reception, extraction, durable preparation, high-water and
 activation boundaries. They assert old-or-new complete activation, safe exact-version
 resume, monotonic anti-rollback, bounded archive output and rejection of malformed paths,

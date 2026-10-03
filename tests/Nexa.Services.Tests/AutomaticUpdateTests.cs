@@ -89,6 +89,9 @@ internal static partial class Program
             : OperatingSystem.IsMacOS() ? "/Library" : "/usr/lib";
         using IUpdateDirectory parent = ProtectedUpdateDirectory.Open(root);
         using IUpdateDirectory directory = parent.CreateDirectory(".nexa-ci-" + Guid.NewGuid().ToString("N"), publicRead: true);
+        // Projection reopens this same public namespace while the creator lease is held.
+        using (IUpdateDirectory observer = ProtectedUpdateDirectory.Open(directory.Path))
+            AssertEqual(directory.Path, observer.Path);
         using (FileStream writer = directory.OpenState("public-progress", publicRead: true, exclusive: false))
         {
             UpdateTransactionJournal.Append(writer, "progress");

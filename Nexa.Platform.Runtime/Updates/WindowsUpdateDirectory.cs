@@ -19,12 +19,14 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
     private readonly object _gate = new();
     private readonly List<SafeFileHandle> _chain;
     private readonly bool _created;
+    private readonly bool _published;
     private bool _disposed;
 
-    private WindowsUpdateDirectory(List<SafeFileHandle> chain, bool created)
+    private WindowsUpdateDirectory(List<SafeFileHandle> chain, bool created, bool published = false)
     {
         _chain = chain;
         _created = created;
+        _published = published;
     }
 
     /// <summary>Admits existing local directories only. No permissions are repaired or changed.</summary>
@@ -91,7 +93,7 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
                 child = OpenRelative(_chain[^1], name, directory: true, create: true, publicRead: publicRead);
                 Admit(child, directory: true, ancestor: false);
                 chain.Add(child);
-                return new(chain, created: true);
+                return new(chain, created: true, published: publicRead);
             }
             catch (Exception failure)
             {
@@ -208,7 +210,7 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
         lock (_gate)
         {
             ThrowIfDisposed();
-            if (!_created) throw new InvalidOperationException("不能删除既有安装目录。");
+            if (!_created || _published) throw new InvalidOperationException("只能删除私有的空暂存目录。");
             MarkDelete(_chain[^1]);
             Dispose();
         }
@@ -309,7 +311,9 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
                 access |= directory ? 0u : 2u;
                 // Concurrent public journals need no deletion authority. Giving their writer
                 // DELETE access would prevent readers that intentionally exclude delete sharing.
-                if (create || exclusive) access |= DeleteAccess;
+                // Public directories are immutable publications, not deletion-capable
+                // staging leases. DELETE would conflict with a second protected reader.
+                if ((create || exclusive) && !(directory && publicRead)) access |= DeleteAccess;
             }
             uint options = 0x200020u | (directory ? 1u : 0x40u) | (create || state ? 2u : 0u);
             int status = NtCreateFile(out SafeFileHandle handle, access, &attributes, out _, 0, 0, state ? exclusive ? 0u : 1u : concurrentRead ? 3u : 1u,
