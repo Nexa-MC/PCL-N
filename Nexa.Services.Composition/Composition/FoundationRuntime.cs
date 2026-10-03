@@ -2,6 +2,7 @@ using Nexa.Services.Accounts;
 using Nexa.Services.Capabilities;
 using Nexa.Services.Foundation;
 using Nexa.Services.Minecraft.Management;
+using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Settings;
 using Nexa.Services.Telemetry;
 using Nexa.Xsr.Runtime;
@@ -56,6 +57,9 @@ public static class FoundationRuntimeComposer
 
         XsrCommandRouterBuilder commands = new();
         var recovery = new InstanceRecoveryService(host.SettingsPolicy, host.StateStore, host.Logging);
+        var exporter = new InstanceModpackExportService(host.Tasks, host.StateStore);
+        commands.Register<InstanceModpackExportCommand>(InstanceModpackExportContract.Export,
+            async (command, token) => await exporter.ExportAsync(command, token).ConfigureAwait(false));
         commands.Register<InstanceServerListSaveCommand>(InstanceServerListContract.Save,
             async (command, token) => await InstanceServerListService.SaveAsync(command, host.StateStore, token).ConfigureAwait(false));
         commands.Register<InstanceRecoveryRestoreCommand>(InstanceRecoveryContract.Restore,
@@ -112,6 +116,8 @@ public static class FoundationRuntimeComposer
         XsrCommandRouter commandRouter = commands.Build(dispatchObserver, timeProvider);
 
         XsrQueryRouterBuilder queries = new();
+        queries.Register<InstanceModpackExportQuery, InstanceModpackExportPreview>(InstanceModpackExportContract.Preview,
+            async (query, token) => Nexa.Xsr.XsrResult.Success(await InstanceModpackExportService.PreviewAsync(query, token).ConfigureAwait(false)));
         queries.Register<InstanceServerListQuery, InstanceServerList>(InstanceServerListContract.Read,
             async (query, token) => Nexa.Xsr.XsrResult.Success(await InstanceServerListService.ReadAsync(query, token).ConfigureAwait(false)));
         queries.Register<InstanceServerStatusQuery, InstanceServerStatus>(InstanceServerListContract.Status,

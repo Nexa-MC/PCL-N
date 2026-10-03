@@ -328,6 +328,7 @@ internal static partial class Program
         versionSettings.OpenManagementDirectory = platformActions.OpenDirectory;
         versionSettings.JoinManagementServer = launchPage.JoinServer;
         versionSettings.ConfigureOnlineContent(resourcesRuntime.Queries, platformActions.OpenHttpsUri, resourcesRuntime.Commands);
+        versionSettings.ConfigureExport(platformActions.PickDownloadDirectoryAsync);
         versionSettings.PickRemediationJava = platformActions.PickJavaFileAsync;
         settingsPage.PickRemediationJava = platformActions.PickJavaFileAsync;
         versionSettings.ManagementChanged = () =>

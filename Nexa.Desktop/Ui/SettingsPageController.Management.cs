@@ -35,7 +35,7 @@ internal sealed partial class SettingsPageController
 
     private void CancelManagementRead()
     {
-        CancelOnlineList(); CancelServers();
+        CancelOnlineList(); CancelServers(); CancelExport();
         _managementStop?.Cancel(); _managementStop?.Dispose(); _managementStop = null;
         _managementRead = null; _managementLoaded = false;
     }
@@ -185,8 +185,7 @@ internal sealed partial class SettingsPageController
         else if (_selected == "contentgraph") BuildContentGraph(snapshot);
         else if (_selected == "modpack")
         {
-            ManagementFact("整合包版本", string.IsNullOrEmpty(snapshot.ModpackVersion) ? "未记录" : snapshot.ModpackVersion);
-            Text(_sections, "整合包导出功能尚未迁移。", 13, Muted, 28);
+            BuildModpackExport(snapshot);
         }
         else if (_selected == "servers")
             BuildServers();
