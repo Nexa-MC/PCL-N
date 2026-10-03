@@ -89,16 +89,41 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
             var translated = await translations.ReadAsync(new(sources[0], project.Description), token).ConfigureAwait(false);
             project = project with { ChineseDescription = translated.Description };
         }
-        var installed = detail.Versions.FirstOrDefault(version => identified.Files.Any(match => match.VersionId == version.Id && match.Source.Provider == version.Provider));
-        string installedName = installed?.Number ?? "已识别，版本信息暂不可用";
-        if (installed is null && catalog is IResourceFileSource files)
+        List<ResourceVersion> installed = [];
+        foreach (var match in identified.Files)
         {
-            var match = identified.Files[0];
-            installedName = (await files.ReadVersionAsync(new(match.Source.Provider, match.Source.ProjectId, match.VersionId, "", query.MirrorFirst), token).ConfigureAwait(false))?.Number ?? "已识别，版本信息暂不可用";
+            var version = detail.Versions.FirstOrDefault(v => v.Id == match.VersionId && v.Provider == match.Source.Provider && v.ProjectId == match.Source.ProjectId);
+            if (version is null && catalog is IResourceFileSource files)
+                version = await files.ReadVersionAsync(new(match.Source.Provider, match.Source.ProjectId, match.VersionId, "", query.MirrorFirst), token).ConfigureAwait(false);
+            if (version is not null && version.Id == match.VersionId && version.Provider == match.Source.Provider && version.ProjectId == match.Source.ProjectId)
+                installed.Add(version);
+        }
+        string? installedName = installed.FirstOrDefault()?.Number;
+        ResourceVersion? update = null;
+        bool? updateAvailable = null;
+        // Display numbers and filenames are not ordered version identities. Unknown chronology
+        // remains unknown; identical bytes on a second provider are never offered as an update.
+        if (edit.GameVersion.Length > 0 && (kind != ResourceKind.Mod || loader.Length > 0)
+            && installed.Count == identified.Files.Length && installed.All(v => Publication(v) is not null))
+        {
+            var latestInstalled = installed.Max(v => Publication(v)!.Value);
+            update = detail.Versions.Where(v => v.File is not null && sources.Contains(new(v.Provider, v.ProjectId))
+                && v.Games.Contains(edit.GameVersion, StringComparer.OrdinalIgnoreCase)
+                && (kind != ResourceKind.Mod || loader.Length > 0 && v.Loaders.Contains(loader, StringComparer.OrdinalIgnoreCase))
+                && !identified.Files.Any(f => f.Source.Provider == v.Provider && f.Source.ProjectId == v.ProjectId && f.VersionId == v.Id)
+                && !string.Equals(v.File.Sha512, fingerprint.Sha512, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(v.File.Sha1, fingerprint.Sha1, StringComparison.OrdinalIgnoreCase)
+                && Publication(v) is { } published && published > latestInstalled)
+                .OrderByDescending(v => Publication(v)).FirstOrDefault();
+            updateAvailable = update is not null ? true : identified.Complete && string.IsNullOrWhiteSpace(detail.Notice) ? false : null;
         }
         file.Refresh(); CheckIdentity(file, query); CheckLinks(file.FullName);
-        return new ResourceContentOnline(project, installedName, detail.Versions, detail.Notice ?? (identified.Complete ? null : "部分来源暂时无法连接。"));
+        return new ResourceContentOnline(project, installedName, detail.Versions, detail.Notice ?? (identified.Complete ? null : "部分来源暂时无法连接。"))
+        { InstalledFiles = Array.AsReadOnly(identified.Files), UpdateVersion = update, UpdateAvailable = updateAvailable };
     }, token);
+
+    private static DateTimeOffset? Publication(ResourceVersion version) => DateTimeOffset.TryParse(version.Published,
+        System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var value) ? value : null;
 
     private static void CheckIdentity(FileInfo file, ResourceContentOnlineQuery query)
     {

@@ -91,6 +91,7 @@ internal static partial class Program
         ("Modpack export preserves fields and dispatches selected scope", ModpackExportPagePreservesFieldsAndDispatchesSelectedScope),
         ("Server pages edit through sealed commands and join transiently", ServerPageEditsThroughSealedCommandsAndJoinsTransiently),
         ("Online content lists retain search focus and reject retired instances", OnlineContentListRetainsFocusAndRejectsRetiredInstances),
+        ("Installed content lists associate icons versions and pack updates", InstalledContentListsAssociateIconsVersionsAndPackUpdates),
         ("Settings page keeps the final navigation and compact layout", SettingsPageUsesFinalNavigationAndCompactLayout),
         ("Settings page saves through Services without losing draft focus", SettingsPageSavesThroughServicesAndPreservesDraftFocus),
         ("Settings memory Auto and Java acquisition choices reach durable routes", SettingsMemoryAutoAndJavaAcquisitionReachRoutes),

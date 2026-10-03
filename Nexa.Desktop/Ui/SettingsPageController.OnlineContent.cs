@@ -24,6 +24,9 @@ internal sealed partial class SettingsPageController
     private Task<XsrResult<ResourceContentOnlineBatch>>? _onlineListRead;
     private bool _onlineListFailed;
     private readonly Dictionary<ResourceContentOnlineQuery, ResourceContentOnline> _onlineList = [];
+    private readonly Dictionary<string, Nexa.Core.Media.PngImage?> _onlineListIcons = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Task<XsrResult<ResourceIconResult>>> _onlineListIconReads = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, XsrUiEntityId> _contentIconEntities = new(StringComparer.Ordinal);
 
     internal void ConfigureOnlineContent(XsrQueryRouter queries, Action<Uri> open, XsrCommandRouter? commands = null)
     { _resourceQueries = queries; _openResourceLink = open; _resourceCommands = commands; }
@@ -32,18 +35,28 @@ internal sealed partial class SettingsPageController
     {
         _onlineListStop?.Cancel(); _onlineListStop?.Dispose(); _onlineListStop = null;
         _onlineListRead = null; _onlineListInstance = _onlineListPage = null; _onlineList.Clear(); _onlineListFailed = false;
+        _onlineListIcons.Clear(); _onlineListIconReads.Clear();
+        _contentIconEntities.Clear();
     }
     private ResourceContentOnlineQuery? OnlineFile(InstanceContentEntry item) => _instance is not null && item.Size is { } size && !item.IsDirectory
         ? new(_instance, _selected, item.Name, size, item.ModifiedUtcTicks) : null;
     private InstanceContentEntry LinkedContent(InstanceContentEntry item)
     {
         if (OnlineFile(item) is not { } key || !_onlineList.TryGetValue(key, out var online) || online.Project is null) return item;
-        return item with { DisplayName = online.Project.DisplayName, Version = online.InstalledVersion ?? item.Version };
+        var icon = online.Project.IconUrl is { } url ? _onlineListIcons.GetValueOrDefault(url) : null;
+        return item with
+        {
+            DisplayName = online.Project.DisplayName,
+            Version = _selected == "mods" ? online.InstalledVersion ?? item.Version : item.Version,
+            Icon = item.Icon ?? icon,
+            UpdateAvailable = online.UpdateAvailable ?? item.UpdateAvailable,
+            UpdateVersion = online.UpdateVersion?.Number ?? item.UpdateVersion
+        };
     }
     private void UpdateOnlineList()
     {
         if (_onlineListInstance != _instance || _onlineListPage != _selected) { CancelOnlineList(); _onlineListInstance = _instance; _onlineListPage = _selected; }
-        if (_instance is null || _selected is not ("mods" or "resourcepacks" or "shaderpacks") || !_managementLoaded || _management is null || _onlineListFailed
+        if (_instance is null || _selected is not ("mods" or "resourcepacks" or "shaderpacks") || !_managementLoaded || _management is null || _onlineListFailed || _managementWrite is not null
             || _resourceQueries?.TryResolve(ResourceCatalogContract.ContentOnlineBatch, out var route) != true) return;
         if (_onlineListRead is { IsCompleted: true } read)
         {
@@ -55,6 +68,7 @@ internal sealed partial class SettingsPageController
             }
             else { _onlineListFailed = true; return; }
         }
+        UpdateOnlineListIcons();
         if (_onlineListRead is not null) return;
         var files = _management.Contents.FirstOrDefault(p => p.PageId == _selected)?.Entries.Select(OnlineFile)
             .Where(q => q is not null && !_onlineList.ContainsKey(q)).Take(100).Select(q => q!).ToArray() ?? [];
@@ -62,6 +76,53 @@ internal sealed partial class SettingsPageController
         _onlineListStop ??= new();
         _onlineListRead = _resourceQueries.QueryAsync<ResourceContentOnlineBatchQuery, ResourceContentOnlineBatch>(route, new(files), cancellationToken: _onlineListStop.Token).AsTask();
         WakeOnPlatformCompletion(_onlineListRead);
+    }
+
+    private void UpdateOnlineListIcons()
+    {
+        bool changed = false;
+        foreach (var (url, read) in _onlineListIconReads.ToArray())
+        {
+            if (!read.IsCompleted) continue;
+            _onlineListIconReads.Remove(url);
+            if (_onlineListIcons.Count >= 256) _onlineListIcons.Remove(_onlineListIcons.Keys.First());
+            _onlineListIcons[url] = PendingQuery.Succeeded(read) ? read.Result.Value?.Image : null;
+            changed = true;
+        }
+        if (changed && _contentSnapshot is { } snapshot)
+        {
+            _contentSnapshot = snapshot with { Entries = snapshot.Entries.Select(LinkedContent).ToArray() };
+            foreach (var item in _contentSnapshot.Entries)
+                if (item.Icon is { } image && _contentIconEntities.TryGetValue(item.Name, out var entity) && _shell.Tree.IsAlive(entity)
+                    && _shell.Tree.GetComponent<XsrUiImage>(entity) is { Raster: null } target)
+                {
+                    target.Raster = new(image, [new(new(0, 0, image.Width, image.Height), new(0, 0, 1, 1))]) { FitToBounds = true };
+                    _shell.Tree.MarkDirty(entity, XsrUiDirtyKinds.Paint);
+                }
+        }
+        if (_contentDetail is not null || _contentSnapshot is null || _contentWindowStart < 0
+            || _resourceQueries?.TryResolve(ResourceCatalogContract.Icon, out var route) != true) return;
+        // Only visible virtualized rows request icons. Missing/failed previews are cached too.
+        foreach (var item in _contentSnapshot.Entries.Skip(_contentWindowStart).Take(_contentWindowCount))
+        {
+            if (_onlineListIconReads.Count >= 4) break;
+            if (item.Icon is not null || OnlineFile(item) is not { } key || !_onlineList.TryGetValue(key, out var online)
+                || online.Project?.IconUrl is not { } url || _onlineListIcons.ContainsKey(url) || _onlineListIconReads.ContainsKey(url)) continue;
+            _onlineListStop ??= new();
+            var read = _resourceQueries.QueryAsync<ResourceIconQuery, ResourceIconResult>(route, new(url), cancellationToken: _onlineListStop.Token).AsTask();
+            _onlineListIconReads[url] = read;
+            WakeOnPlatformCompletion(read);
+        }
+    }
+
+    private void UpdateOnlinePack(ResourceContentOnlineQuery query, ResourceVersion version)
+    {
+        if (_instance != query.InstanceDirectory || _selected != query.PageId || _managementWrite is not null
+            || _resourceCommands?.TryResolve(ResourceCatalogContract.UpdateContent, out var route) != true) return;
+        _managementWriteInstance = _instance;
+        _managementWrite = _resourceCommands.Dispatch(route, new ResourceContentUpdateCommand(query, new(version.Provider, version.ProjectId), version.Id)).Completion;
+        CancelOnlineList(); WakeOnPlatformCompletion(_managementWrite);
+        RenderOnlineContent();
     }
 
     private void CancelOnlineContent()
@@ -134,6 +195,17 @@ internal sealed partial class SettingsPageController
             ManagementFactIn(_onlineSection, "作者", project.Author.Length > 0 ? project.Author : "未提供", literal: project.Author.Length > 0);
             ManagementFactIn(_onlineSection, "下载次数", ResourcesPageController.FormatDownloads(project.Downloads));
             ManagementFactIn(_onlineSection, "已安装版本", _onlineContent.InstalledVersion ?? "暂不可用", literal: _onlineContent.InstalledVersion is not null);
+            if (_selected is "resourcepacks" or "shaderpacks" && _onlineContent.UpdateVersion is { } update)
+            {
+                var row = Stack(_onlineSection, "ManagementOnlineUpdateRow", XsrUiOrientation.Horizontal, 12);
+                _shell.Tree.GetComponent<XsrUiElement>(Text(row, "可更新至 " + update.Number, 13, Ink, 32))!.Weight = 1;
+                if (_managementWrite is null && _resourceCommands?.TryResolve(ResourceCatalogContract.UpdateContent, out _) == true)
+                {
+                    var button = ActionButton(row, "ManagementOnlineUpdate", "更新", ManagementAction, 72);
+                    RegisterContentAction(button, () => UpdateOnlinePack(_onlineQuery!, update));
+                }
+                else if (_managementWrite is not null) Text(row, "正在更新…", 13, Muted, 32);
+            }
             var versions = _onlineContent.Versions.Take(6).ToArray();
             if (versions.Length > 0)
             {
@@ -146,13 +218,9 @@ internal sealed partial class SettingsPageController
                     Style(icon, XsrUiColor.Transparent, Muted, 0); _shell.Tree.SetComponent(icon, new XsrUiImage(symbol));
                     Text(row, version.Number + " · " + version.Channel, 13, Ink, 24);
                     if (_selected is "resourcepacks" or "shaderpacks" && version.File is not null && _managementWrite is null
-                        && _resourceCommands?.TryResolve(ResourceCatalogContract.UpdateContent, out var updateRoute) == true)
-                        ManagementButton(row, version.Number == _onlineContent.InstalledVersion ? "重新安装" : "安装此版本", () =>
-                        {
-                            _managementWriteInstance = _instance;
-                            _managementWrite = _resourceCommands.Dispatch(updateRoute, new ResourceContentUpdateCommand(_onlineQuery!, new(version.Provider, version.ProjectId), version.Id)).Completion;
-                            CancelOnlineList(); WakeOnPlatformCompletion(_managementWrite);
-                        }, 96);
+                        && _resourceCommands?.TryResolve(ResourceCatalogContract.UpdateContent, out _) == true)
+                        ManagementButton(row, _onlineContent.InstalledFiles.Any(f => f.Source.Provider == version.Provider && f.Source.ProjectId == version.ProjectId && f.VersionId == version.Id) ? "重新安装" : "安装此版本",
+                            () => UpdateOnlinePack(_onlineQuery!, version), 96);
                 }
             }
             else Text(_onlineSection, "暂未找到适用于当前游戏的版本。", 13, Muted, 26);

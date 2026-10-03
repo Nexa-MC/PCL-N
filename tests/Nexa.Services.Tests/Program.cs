@@ -83,6 +83,7 @@ internal static partial class Program
         ("resource provided aliases retain versions and reject incomplete declarations", ResourceProvidedAliasesKeepVersionsAndRejectIncompleteDeclarations),
         ("resource installed content identifies hashes and rejects stale identity", ResourceInstalledContentUsesHashesAndRejectsStaleIdentity),
         ("resource content batch associates all kinds with batched authority", ResourceContentBatchAssociatesAllKindsWithBatchedAuthority),
+        ("installed content updates use exact identities and known chronology", InstalledContentUpdateUsesExactIdentityAndKnownChronology),
         ("resource pack and shader updates retain originals and journal success", ResourcePackAndShaderUpdatesKeepOriginalOnFailureAndJournalSuccess),
         ("resource mod install verifies actual dependency tables before importing", ResourceModInstallationVerifiesActualDependenciesBeforeImport),
         ("resource mod removal preserves shared dependencies and revalidates", ResourceModRemovalPreservesSharedDependenciesAndRevalidates),

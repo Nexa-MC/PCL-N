@@ -12,6 +12,47 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
+    private sealed class ChronologyCatalog(ResourceVersion installed, ResourceVersion candidate) : IResourceCatalogSource, IResourceFileSource
+    {
+        public Task<ResourceSearchResult> SearchAsync(ResourceSearchQuery query, CancellationToken token) => throw new NotSupportedException();
+        public Task<ResourceDetail> DetailAsync(ResourceDetailQuery query, CancellationToken token) => Task.FromResult(new ResourceDetail(
+            new("A", "Pack", "", "", 0, "https://modrinth.com/project/A") { Sources = query.Sources }, "MIT", [candidate]));
+        public Task<ResourceVersion?> ReadVersionAsync(ResourceDownloadCommand command, CancellationToken token) => Task.FromResult<ResourceVersion?>(installed);
+    }
+    private static async ValueTask InstalledContentUpdateUsesExactIdentityAndKnownChronology()
+    {
+        foreach (string page in new[] { "mods", "resourcepacks", "shaderpacks" })
+            foreach (string scenario in new[] { "newer", "same-number", "older", "unknown", "installed", "same-bytes", "wrong-game", "wrong-loader", "wrong-project" })
+            {
+                string root = CreateTempDirectory();
+                try
+                {
+                    string instance = ResourceInstanceFixture(root); string directory = Path.Combine(instance, page); Directory.CreateDirectory(directory);
+                    byte[] bytes = "installed"u8.ToArray(); string path = Path.Combine(directory, page == "mods" ? "local.jar.disabled" : "local.zip");
+                    await File.WriteAllBytesAsync(path, bytes); var file = new FileInfo(path);
+                    string hash = Convert.ToHexString(SHA512.HashData(bytes)).ToLowerInvariant();
+                    using var http = new HttpClient(new ResourceHttp(request => new(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(request.RequestUri!.AbsolutePath.EndsWith("version_files", StringComparison.Ordinal)
+                            ? new JsonObject { [hash] = new JsonObject { ["project_id"] = "A", ["id"] = "Old" } }.ToJsonString()
+                            : "{\"data\":{\"exactMatches\":[]}}")
+                    }));
+                    var old = new ResourceVersion("Old", "Old", "1", "正式版", ["1.21.1"], ["fabric"], scenario == "unknown" ? "" : "2026-01-01T00:00:00Z", "") { ProjectId = "A" };
+                    var next = new ResourceVersion(scenario == "installed" ? "Old" : "New", "New", scenario is "same-number" or "installed" ? "1" : "2", "正式版",
+                        [scenario == "wrong-game" ? "1.20.1" : "1.21.1"], [scenario == "wrong-loader" ? "forge" : "fabric"],
+                        scenario == "older" ? "2025-01-01T00:00:00Z" : "2026-02-01T00:00:00Z", "")
+                    { ProjectId = scenario == "wrong-project" ? "B" : "A", File = new("next.zip", "https://cdn.modrinth.com/data/A/next.zip", 10, null, scenario == "same-bytes" ? hash : new string('a', 128)) };
+                    var service = new ResourceContentOnlineService(new(new(http, "")), new ChronologyCatalog(old, next));
+                    var result = await service.ReadAsync(new(instance, page, file.Name, file.Length, file.LastWriteTimeUtc.Ticks), default);
+                    bool updates = scenario is "newer" or "same-number" || scenario == "wrong-loader" && page != "mods";
+                    AssertEqual(updates, result.UpdateVersion is not null);
+                    AssertEqual(scenario == "unknown" ? (bool?)null : updates, result.UpdateAvailable);
+                    AssertEqual("Old", result.InstalledFiles.Single().VersionId);
+                    AssertEqual("1", result.InstalledVersion);
+                }
+                finally { Directory.Delete(root, true); }
+            }
+    }
     private static async ValueTask ResourceContentBatchAssociatesAllKindsWithBatchedAuthority()
     {
         string root = CreateTempDirectory();

@@ -14,6 +14,7 @@ internal sealed partial class SettingsPageController
 
     private void OpenContentDetail(InstanceContentEntry item)
     {
+        item = LinkedContent(item);
         _contentReturnOffset = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY;
         _contentDetail = item;
         BuildSections(true);
@@ -94,7 +95,7 @@ internal sealed partial class SettingsPageController
     private static string FormatContentSize(long bytes) => bytes >= 1024 * 1024
         ? $"{bytes / (1024d * 1024):N1} MB" : $"{bytes / 1024d:N1} KB";
 
-    private void ContentImage(XsrUiEntityId parent, InstanceContentEntry item, double? width, double height)
+    private XsrUiEntityId ContentImage(XsrUiEntityId parent, InstanceContentEntry item, double? width, double height)
     {
         string placeholder = _selected switch { "mods" => "lucide/blocks", "resourcepacks" => "nexa/content-package", "shaderpacks" => "nexa/content-shader", "saves" => "nexa/content-world", _ => "nexa/content-image" };
         var entity = Element(parent, "ManagementContentIcon", XsrUiSemanticRole.None, null, width, height);
@@ -103,6 +104,7 @@ internal sealed partial class SettingsPageController
         if (item.Icon is { } png)
             image.Raster = new(png, [new(new(0, 0, png.Width, png.Height), new(0, 0, 1, 1))]) { FitToBounds = true };
         _shell.Tree.SetComponent(entity, image);
+        return entity;
     }
 
     private void BuildScreenshotCard(XsrUiEntityId parent, InstanceContentEntry item)

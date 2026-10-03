@@ -91,7 +91,12 @@ public sealed record ResourceFavoritesSnapshot(IReadOnlyList<ResourceProject> Pr
 public sealed record ResourceFavoriteCommand(ResourceProject Project, bool Saved);
 public sealed record ResourceContentOnlineQuery(string InstanceDirectory, string PageId, string Name, long ExpectedSize, long ExpectedModifiedUtcTicks)
 { public bool MirrorFirst { get; init; } = true; }
-public sealed record ResourceContentOnline(ResourceProject? Project, string? InstalledVersion, IReadOnlyList<ResourceVersion> Versions, string? Notice);
+public sealed record ResourceContentOnline(ResourceProject? Project, string? InstalledVersion, IReadOnlyList<ResourceVersion> Versions, string? Notice)
+{
+    public IReadOnlyList<ResourceInstalledFile> InstalledFiles { get; init; } = [];
+    public ResourceVersion? UpdateVersion { get; init; }
+    public bool? UpdateAvailable { get; init; }
+}
 public sealed record ResourceContentOnlineBatchQuery(IReadOnlyList<ResourceContentOnlineQuery> Files);
 public sealed record ResourceContentOnlineMatch(ResourceContentOnlineQuery File, ResourceContentOnline Content);
 public sealed record ResourceContentOnlineBatch(IReadOnlyList<ResourceContentOnlineMatch> Matches);

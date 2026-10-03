@@ -206,6 +206,7 @@ internal sealed partial class SettingsPageController
         int count = Math.Min(rows - start, (int)Math.Ceiling(_shell.Renderer.Viewport.Height / rowHeight) + 8);
         if (_contentWindowStart == start && _contentWindowCount == count && _contentColumns == columns) return;
         _contentWindowStart = start; _contentWindowCount = count; _contentColumns = columns;
+        _contentIconEntities.Clear();
         foreach (var action in _contentActions) _managementActions.Remove(action);
         _contentActions.Clear();
         foreach (var child in _shell.Tree.Children(_contentList).ToArray()) _shell.Tree.Destroy(child);
@@ -228,22 +229,24 @@ internal sealed partial class SettingsPageController
                     bodyLayout.Weight = 1;
                     bodyLayout.VerticalAlignment = XsrUiAlignment.Stretch;
                     bodyLayout.Padding = new(16, 10, 16, 10);
-                    ContentImage(body, item, 48, 48);
+                    _contentIconEntities[item.Name] = ContentImage(body, item, 48, 48);
                     var text = Stack(body, "ManagementContentIdentity", XsrUiOrientation.Vertical, 2);
                     _shell.Tree.GetComponent<XsrUiElement>(text)!.Weight = 1;
                     if (_selected == "resourcepacks")
                     {
                         ContentName(text, ResourcePackTitle(item), 15, 26);
-                        ContentName(text, item.Description, 12, 40, maxLines: 2, foreground: Muted);
+                        ContentName(text, item.Description, 12, item.UpdateAvailable == true ? 22 : 40, maxLines: item.UpdateAvailable == true ? 1 : 2, foreground: Muted);
+                        if (item.UpdateAvailable == true) Text(text, "可更新至 " + item.UpdateVersion, 12, Muted, 22);
                     }
                     else
                     {
                         ContentName(text, item.DisplayName.Length == 0 ? item.Name : item.DisplayName, 15, 26);
                         Text(text, item.Name + (item.Enabled == false ? " · 已禁用" : "") + (item.PackageProblem.Length > 0 ? " · 包异常" : item.UpdateAvailable == true ? " · 可更新" : ""), 12, Muted, 22);
                     }
-                    if (_selected == "mods")
+                    if (_selected is "mods" or "resourcepacks" or "shaderpacks")
                     {
-                        var version = Text(body, item.Version.Length > 0 ? item.Version : "版本未标注", 12, Muted, 24);
+                        string release = _selected == "mods" ? item.Version : OnlineFile(item) is { } key && _onlineList.TryGetValue(key, out var online) ? online.InstalledVersion ?? "" : "";
+                        var version = Text(body, release.Length > 0 ? release : _selected == "mods" ? "版本未标注" : "", 12, Muted, 24);
                         _shell.Tree.GetComponent<XsrUiElement>(version)!.Width = 116;
                         _shell.Tree.GetComponent<XsrUiVisualStyle>(version)!.TextAlignment = XsrUiTextAlignment.End;
                     }
