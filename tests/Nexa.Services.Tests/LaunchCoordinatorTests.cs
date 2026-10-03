@@ -185,6 +185,14 @@ internal static partial class Program
             AssertEqual("player-uuid", request.PlayerUuid);
             AssertEqual(MinecraftLaunchIdentityMode.Offline, request.IdentityMode);
             AssertEqual(0, installer.Calls);
+            AssertTrue(host.SettingsPolicy.Set(new("game.server", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "global.invalid:25565"))).IsSuccess);
+            AssertEqual("example.invalid:25565", (await coordinator.PrepareAsync("fabric-loader", 0)).Value.Request.Server);
+            AssertTrue(host.SettingsPolicy.Set(new("game.server", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "instance.invalid:25565"), loaderDirectory)).IsSuccess);
+            AssertEqual("instance.invalid:25565", (await coordinator.PrepareAsync("fabric-loader", 0)).Value.Request.Server);
+            AssertTrue(host.SettingsPolicy.Set(new("game.server", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, ""), loaderDirectory)).IsSuccess);
+            AssertTrue((await coordinator.PrepareAsync("fabric-loader", 0)).Value.Request.Server is null);
+            AssertTrue(host.SettingsPolicy.Set(new("game.server", SettingsLayer.Instance, new(SettingsOverrideMode.Inherit), loaderDirectory)).IsSuccess);
+            AssertEqual("example.invalid:25565", (await coordinator.PrepareAsync("fabric-loader", 0)).Value.Request.Server);
             AssertTrue(host.SettingsPolicy.Set(new("game.memory", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "6145"))).IsSuccess);
             var customMemory = await coordinator.PrepareAsync("fabric-loader", 0);
             AssertTrue(customMemory.IsSuccess); AssertEqual(6145, customMemory.Value.Request.MemoryMegabytes);

@@ -20,6 +20,9 @@ public sealed record SettingsPolicyDefinition(string Key, SettingsValueKind Kind
         if (value.Mode == SettingsOverrideMode.Auto) return SupportsAuto && value.Value is null ? null : "Auto is not supported or carries a payload.";
         if (value.Mode != SettingsOverrideMode.Custom || value.Value is null) return "A custom value is required.";
         string raw = value.Value;
+        if (Key == "game.server" && (raw.Length > 512 || raw.Any(char.IsWhiteSpace)
+            || raw.Any(char.IsControl) || raw.Contains("://", StringComparison.Ordinal)))
+            return "Expected a server host with an optional port, without spaces or a URI scheme.";
         return Kind switch
         {
             SettingsValueKind.Boolean when raw is not ("true" or "false") => "Expected true or false.",

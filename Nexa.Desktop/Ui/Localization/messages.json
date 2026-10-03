@@ -8675,6 +8675,16 @@
     "zh-Hant": "返回依賴關係"
   },
   {
+    "source": "默认地址，可带端口；版本单独设置与临时加入优先。",
+    "en": "Default address, with an optional port. Instance settings and explicit joins take priority.",
+    "zh-Hant": "預設地址，可帶連接埠；版本單獨設定與臨時加入優先。"
+  },
+  {
+    "source": "启动前补全缺失或损坏的游戏文件；不关闭预检。",
+    "en": "Repair missing or damaged game files before launch. Preflight stays enabled.",
+    "zh-Hant": "啟動前補全缺失或損壞的遊戲檔案；不關閉預檢。"
+  },
+  {
     "source": "游戏文件并发数",
     "en": "Concurrent game files",
     "zh-Hant": "遊戲檔案並行數"

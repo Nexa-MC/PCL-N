@@ -852,6 +852,18 @@
     "availability": "NotImplemented"
   },
   {
+    "id": "global.game.default-server",
+    "parent": "global.game.519289dc7549",
+    "scope": "global",
+    "page": "game",
+    "section": "启动行为",
+    "label": "默认服务器",
+    "kind": "Setting",
+    "key": "game.server",
+    "developer": false,
+    "availability": "Available"
+  },
+  {
     "id": "global.game.2fc72ad5a99f",
     "parent": "global.game.519289dc7549",
     "scope": "global",

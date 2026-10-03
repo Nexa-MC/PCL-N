@@ -171,6 +171,14 @@ internal static partial class Program
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
         var input = FindByKey(fixture.Shell, scene, "SettingsInput.game.memory").Entity;
+        var serverInput = ShowFormControl("SettingsInput.game.server").Entity;
+        fixture.Shell.Renderer.SetTextInputValue(serverInput, "test.invalid:25565");
+        Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.game.server").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.server").Value.Value == "test.invalid:25565"; }, TimeSpan.FromSeconds(5)));
+        scene = fixture.Shell.Render(new(1000, 650));
+        Emit(fixture.Intents, "ui.settings.choice", ShowFormControl("SettingsOption.game.auto-repair.false").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.auto-repair").Value.Value == "false"; }, TimeSpan.FromSeconds(5)));
+        ShowFormControl("SettingsInput.game.memory");
         fixture.Shell.Renderer.SetTextInputValue(input, "6145");
         Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.game.memory").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.memory").Value.Value == "6145"; }, TimeSpan.FromSeconds(5)));
@@ -193,6 +201,22 @@ internal static partial class Program
         Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsOption.network.file-retry.false").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("network.file-retry").Value.Value == "false"; }, TimeSpan.FromSeconds(5)));
         SettingsEffectiveValue Read(string key) => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(value => value.Key == key);
+        XsrUiSceneNode ShowFormControl(string key)
+        {
+            XsrUiEntityId found = default;
+            fixture.Shell.Tree.Walk(settings.Page, entity => { if (fixture.Shell.Tree.Name(entity) == key) found = entity; return true; });
+            AssertTrue(found.IsAssigned);
+            var container = FindByKey(fixture.Shell, scene, "SettingsSections").Entity;
+            var scroll = fixture.Shell.Tree.GetComponent<XsrUiScroll>(container)!;
+            for (int offset = 0; offset <= 3000; offset += 150)
+            {
+                scroll.OffsetY = offset;
+                fixture.Shell.Tree.MarkDirty(container, XsrUiDirtyKinds.Layout);
+                scene = fixture.Shell.Render(new(1000, 650));
+                if (scene.Nodes.Any(node => node.Entity == found)) break;
+            }
+            return FindByKey(fixture.Shell, scene, key);
+        }
     }
 
     private static void SettingsDeveloperToggleKeepsPositionAndFocus()

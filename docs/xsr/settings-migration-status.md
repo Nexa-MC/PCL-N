@@ -25,10 +25,16 @@ Installation and launch completion capture the policy before work; failed integr
 checks still reject publication. These controls explicitly cover game files, rather
 than claiming to change resource/Java/loader budgets or global HTTP admission.
 
+XSR-764 delivers default-server policy and scoped automatic game-file repair. Launch
+preparation captures its effective settings once. Instance metadata and explicit Join
+server intents retain priority over a global default; empty instance Custom disables join.
+Turning off automatic repair does not disable preflight or Java validation. The current
+catalog has 535 positions, including the new default-server form field.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions, vendor preference; compatibility checks remain mandatory until a separate safe policy exists |
-| Game | Title, isolation, launch visibility, process priority, wrapper/hooks and default server; each needs scope-correct consumers and failure/cancellation semantics |
+| Game | Title, isolation, launch visibility, process priority and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Source selection, bandwidth, proxy and DNS; other download kinds need their own budget policies |
 | Appearance/general | Frame-rate policy, low power, theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |

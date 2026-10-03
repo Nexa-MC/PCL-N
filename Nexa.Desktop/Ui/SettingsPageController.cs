@@ -412,6 +412,8 @@ internal sealed partial class SettingsPageController : IDisposable
         "java.auto-install" => "缺少兼容 Java 时自动下载；关闭时先询问。",
         "network.file-concurrency" => "同时处理的游戏文件数，1–64；新安装和启动前补全生效。",
         "network.file-retry" => "失败后额外重试一次；不影响来源切换与文件校验。",
+        "game.server" => "默认地址，可带端口；版本单独设置与临时加入优先。",
+        "game.auto-repair" => "启动前补全缺失或损坏的游戏文件；不关闭预检。",
         "appearance.animations-disabled" => "减少界面切换和展开时的动态效果。",
         _ => null,
     };

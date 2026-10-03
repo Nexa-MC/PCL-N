@@ -39,6 +39,9 @@ internal static partial class Program
         AssertEqual("--demo", result.CustomGameArguments);
         AssertEqual("-Dlegacy=true", result.CustomJvmArguments);
         AssertEqual(854, request.Width);
+        var serverDefault = new SettingsEffectiveSnapshot(1, [Setting("game.server", "global.invalid:25565", SettingsLayer.Global)]);
+        AssertEqual("global.invalid:25565", Nexa.Services.Minecraft.Launch.MinecraftLaunchCoordinator.ApplySettings(request, serverDefault).Server);
+        AssertEqual("legacy.invalid", Nexa.Services.Minecraft.Launch.MinecraftLaunchCoordinator.ApplySettings(request with { Server = "legacy.invalid" }, serverDefault).Server);
     }
 
     private static void WindowsDigitizerFlagsDistinguishTouchAndPen()

@@ -7,6 +7,7 @@ internal static partial class Program
         ("download settings capture bounded workers and migrate legacy sliders", DownloadSettingsCaptureBoundedWorkers),
         ("download retry settings preserve integrity and commit last", DownloadRetrySettingPreservesIntegrityAndCommitLast),
         ("launch completion uses captured download retry policy", LaunchCompletionUsesDownloadRetryPolicy),
+        ("scoped repair setting controls actual preparation and validates server", ScopedRepairSettingControlsActualPreparation),
         ("instance path probes preserve files and isolate concurrent calls", InstancePathProbesPreserveExistingFilesAndIsolateConcurrentCalls),
         ("instance server lists preserve tags and reject stale writes", InstanceServersPreserveUnknownTagsAndRejectStaleWrites),
         ("instance server status uses bounded protocol and admitted revisions", InstanceServerStatusUsesBoundedProtocolAndAdmittedRevision),

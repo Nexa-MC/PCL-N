@@ -227,6 +227,13 @@ public sealed class MinecraftLaunchCoordinator
             }
 
             operation?.Stage("resolve_account");
+            SettingsEffectiveSnapshot? effectiveSettings = null;
+            if (_settingsPolicy is not null)
+            {
+                var policy = _settingsPolicy.Read(new(instance.DirectoryPath));
+                if (!policy.IsSuccess) throw new InvalidOperationException("无法读取版本启动设置。");
+                effectiveSettings = policy.Value;
+            }
             string method = string.Empty;
             XsrResult<MinecraftLaunchIdentity> identityResult =
                 XsrResult.Failure<MinecraftLaunchIdentity>(MinecraftErrors.InvalidRequest("the account was not resolved."));
@@ -281,7 +288,8 @@ public sealed class MinecraftLaunchCoordinator
                     // The legacy 补全文件 step: verify every referenced file on disk and
                     // repair the missing ones before the JVM starts. Real download progress
                     // flows through the same stage reports, so the narration stays honest.
-                    if (_fileCompletion is { } completion)
+                    if (_fileCompletion is { } completion
+                        && effectiveSettings?.Values.Single(value => value.Key == "game.auto-repair").Value.Value != "false")
                     {
                         await completion.CompleteAsync(
                             root,
@@ -305,12 +313,10 @@ public sealed class MinecraftLaunchCoordinator
                 ? new ExistingJavaPreference(instance.Metadata.SelectedJavaPath)
                 : new AutoSelectJavaPreference();
             bool automaticallyInstallJava = false;
-            if (_settingsPolicy is not null)
+            if (effectiveSettings is not null)
             {
-                var policy = _settingsPolicy.Read(new(instance.DirectoryPath));
-                if (!policy.IsSuccess) throw new InvalidOperationException("无法读取版本 Java 设置。");
-                preference = ApplyJavaPreference(preference, policy.Value!);
-                automaticallyInstallJava = policy.Value!.Values.Single(value => value.Key == "java.auto-install").Value.Value == "true";
+                preference = ApplyJavaPreference(preference, effectiveSettings);
+                automaticallyInstallJava = effectiveSettings.Values.Single(value => value.Key == "java.auto-install").Value.Value == "true";
             }
             operation?.Stage("select_java", $"os={_platform.OperatingSystem} os_version={_platform.OperatingSystemVersion} arm64={_platform.IsArm64Architecture} manifest_major={javaRequest.ManifestJavaMajorVersion}");
             JavaSelectionResult java = default!;
@@ -351,7 +357,7 @@ public sealed class MinecraftLaunchCoordinator
                 manifests,
                 loader,
                 identityResult.Value,
-                resolvedJava.Value, root);
+                resolvedJava.Value, root, effectiveSettings);
             if (identityResult.Value.AuthServer is { } authServer)
             {
                 if (_authlib is null) throw new InvalidOperationException("Authlib Injector preparation is not composed.");
@@ -889,7 +895,7 @@ public sealed class MinecraftLaunchCoordinator
         MinecraftModLoaderDescriptor loader,
         MinecraftLaunchIdentity identity,
         ResolvedJava java,
-        string minecraftRootDirectory)
+        string minecraftRootDirectory, SettingsEffectiveSnapshot? effectiveSettings)
     {
         MinecraftInstanceMetadata metadata = instance.Metadata;
         int width = GetSetting("LaunchArgumentWindowWidth", 854);
@@ -944,10 +950,8 @@ public sealed class MinecraftLaunchCoordinator
                 ["is_demo_user"] = false,
             },
         };
-        if (_settingsPolicy is null) return request;
-        var effective = _settingsPolicy.Read(new(instance.DirectoryPath));
-        if (!effective.IsSuccess) throw new InvalidOperationException("无法读取版本设置：" + effective.Error?.Message);
-        return ApplySettings(request, effective.Value!, ResolveAutomaticMemoryMegabytes(loader.Kind));
+        return effectiveSettings is null ? request
+            : ApplySettings(request, effectiveSettings, ResolveAutomaticMemoryMegabytes(loader.Kind));
     }
 
     internal static JavaPreference ApplyJavaPreference(JavaPreference fallback, SettingsEffectiveSnapshot snapshot)
@@ -963,6 +967,13 @@ public sealed class MinecraftLaunchCoordinator
     {
         foreach (var setting in snapshot.Values)
         {
+            if (setting.Key == "game.server" && setting.Source != SettingsLayer.Builtin)
+            {
+                if (setting.ValidationError is not null) throw new InvalidDataException("默认服务器设置无效。");
+                if (setting.Source == SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.Server))
+                    request = request with { Server = string.IsNullOrEmpty(setting.Value.Value) ? null : setting.Value.Value };
+                continue;
+            }
             if (setting.Key == "game.memory" && setting.Source != SettingsLayer.Builtin)
             {
                 if (setting.ValidationError is not null) throw new InvalidDataException("内存设置无效。");
