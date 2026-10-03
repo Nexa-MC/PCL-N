@@ -20,7 +20,7 @@ internal static partial class Program
         foreach ((string projectName, string projectPath) in projects)
         {
             bool renderer = projectName.StartsWith("Nexa.UI.Next", StringComparison.Ordinal);
-            if (projectName.EndsWith(".Tests", StringComparison.Ordinal) || (!projectName.StartsWith("Nexa.Services", StringComparison.Ordinal) && projectName != "Nexa.Desktop" && !renderer)) continue;
+            if (projectName.EndsWith(".Tests", StringComparison.Ordinal) || (!projectName.StartsWith("Nexa.Services", StringComparison.Ordinal) && projectName is not ("Nexa.Desktop" or "Nexa.Update.Helper") && !renderer)) continue;
             string directory = Path.GetDirectoryName(projectPath)!;
             var trees = Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories).Where(p => !IsBuildOutput(p))
                 .Select(p => CSharpSyntaxTree.ParseText(File.ReadAllText(p), path: p)).ToList();

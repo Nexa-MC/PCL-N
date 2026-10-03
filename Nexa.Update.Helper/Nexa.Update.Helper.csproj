@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>Preinstalled privileged update transaction host. No user application initialization.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nexa.Services.Updates/Nexa.Services.Updates.csproj" />
+    <ProjectReference Include="../Nexa.Platform.Runtime/Nexa.Platform.Runtime.csproj" />
+    <EmbeddedResource Include="../GPG-PUBLIC-KEY.asc" LogicalName="Nexa.Update.ReleaseKey.asc" />
+  </ItemGroup>
+</Project>

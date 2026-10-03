@@ -30,6 +30,10 @@
   "Nexa.Jvm.Host": [
     "Nexa.Contracts"
   ],
+  "Nexa.Update.Helper": [
+    "Nexa.Platform.Runtime",
+    "Nexa.Services.Updates"
+  ],
   "Nexa.Minecraft.Benchmarks": [
     "Nexa.Services",
     "Nexa.Xsr.State"

@@ -4,6 +4,10 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("automatic update recovers every commit boundary offline", AutomaticUpdateRecoversEveryCommitBoundary),
+        ("automatic update rejects bytes before activation", AutomaticUpdateRejectsPackageBeforeActivation),
+        ("automatic update journal preserves interrupted frames", Sync(AutomaticUpdateJournalPreservesEveryInterruptedFrame)),
+        ("automatic update native protected transaction", AutomaticUpdateNativeProtectedTransaction),
         ("protected update journal rejects rollback and corruption", Sync(UpdateJournalRejectsRollbackAndCorruption)),
         ("protected update journal recovers every interrupted append", Sync(UpdateJournalRecoversEveryInterruptedAppend)),
         ("protected update journal capacity preserves committed records", Sync(UpdateJournalCapacityNeverDiscardsCommittedRecords)),

@@ -27,10 +27,21 @@ public sealed class VerifiedReleasePackage
     public string Sha256 { get; }
 
     /// <summary>The installed identity and high-water version must come from the trusted helper.</summary>
-    public static async Task<VerifiedReleasePackage> VerifyAsync(ReadOnlyMemory<byte> manifest,
+    public static Task<VerifiedReleasePackage> VerifyAsync(ReadOnlyMemory<byte> manifest,
         ReadOnlyMemory<byte> signature, UpdateBuildIdentity installedIdentity, string selectedChannel,
         string highestAcceptedVersion, string format, IUpdateSignatureVerifier verifier,
         CancellationToken cancellationToken = default)
+        => VerifyCoreAsync(manifest, signature, installedIdentity, selectedChannel, highestAcceptedVersion, format, verifier, null, cancellationToken);
+
+    internal static Task<VerifiedReleasePackage> VerifyResumeAsync(ReadOnlyMemory<byte> manifest,
+        ReadOnlyMemory<byte> signature, UpdateBuildIdentity installed, string channel, string highest,
+        string format, IUpdateSignatureVerifier verifier, string protectedDigest, CancellationToken token)
+        => VerifyCoreAsync(manifest, signature, installed, channel, highest, format, verifier, protectedDigest, token);
+
+    private static async Task<VerifiedReleasePackage> VerifyCoreAsync(ReadOnlyMemory<byte> manifest,
+        ReadOnlyMemory<byte> signature, UpdateBuildIdentity installedIdentity, string selectedChannel,
+        string highestAcceptedVersion, string format, IUpdateSignatureVerifier verifier, string? resumeDigest,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(installedIdentity);
         ArgumentNullException.ThrowIfNull(verifier);
@@ -66,7 +77,8 @@ public sealed class VerifiedReleasePackage
                 _ => "ci",
             };
             if (candidate.Stage == UpdateVersionStage.Ci || channel != derivedChannel || channel != selectedChannel
-                || candidate <= installed || candidate <= highest)
+                || candidate <= installed || (candidate <= highest && !(candidate == highest && resumeDigest is not null
+                    && Convert.ToHexStringLower(SHA256.HashData(owned)) == resumeDigest)))
                 throw new InvalidDataException("发布版本、通道或防回退策略不匹配。");
             var expected = new HashSet<string>(StringComparer.Ordinal);
             foreach (string rid in RuntimeIds)
