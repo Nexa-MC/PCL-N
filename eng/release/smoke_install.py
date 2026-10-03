@@ -50,10 +50,11 @@ def windows(root, base):
         except subprocess.CalledProcessError:
             # Inspect the actual installer output before uninstalling it. This is
             # read-only evidence; never repair an object the helper refused.
-            script = "$args | ForEach-Object { $a = Get-Acl -LiteralPath $_; [pscustomobject]@{Path=$_;Owner=$a.Owner;Sddl=$a.Sddl} } | ConvertTo-Json"
-            result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", script,
-                                     str(executable.anchor), str(executable.parent.parent),
-                                     str(executable.parent), str(executable.parent / "Nexa.Update.Helper.exe")],
+            paths = (executable.anchor, executable.parent.parent, executable.parent,
+                     executable.parent / "Nexa.Update.Helper.exe")
+            script = "@(" + ",".join("'" + str(path).replace("'", "''") + "'" for path in paths) + ")"
+            script += " | ForEach-Object { $a = Get-Acl -LiteralPath $_; [pscustomobject]@{Path=$_;Owner=$a.Owner;Sddl=$a.Sddl} } | ConvertTo-Json"
+            result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", script],
                                     capture_output=True, text=True, timeout=30, check=False)
             (diagnostics / "update-admission.txt").write_text(result.stdout + result.stderr, encoding="utf-8")
             print(result.stdout + result.stderr, flush=True)
