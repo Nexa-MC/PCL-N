@@ -95,3 +95,8 @@ The installed helper has no endpoint/key override and cannot consume this test a
 Interrupted bodies, invalid signatures/digests, tag fallback, offline recovery and rollback
 are checked through actual HTTP transfers. The optional standalone fixture listener binds
 only IPv4 loopback and never reads arbitrary files or accepts uploaded content.
+
+Differential reconstruction and its independent publisher envelope are specified in
+[XSR-755](migrations/XSR-755-protected-differential-update.md). Optional differential failure
+falls back to the signed full package in a separate fresh slot; it cannot relax admission,
+replay protection or activation rules.

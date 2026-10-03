@@ -57,7 +57,7 @@ internal static partial class Program
                 {
                     string slot = await transaction.InstallAsync("2.0.0.alpha.6", "alpha", budget.Token);
                     AssertFixtureActivation(directory, slot);
-                    AssertEqual(mode == UpdateHttpMode.PrefixedTag ? 6 : 3, server.Requests - requestsBefore);
+                    AssertEqual(mode == UpdateHttpMode.PrefixedTag ? 8 : 5, server.Requests - requestsBefore);
                     Console.WriteLine($"PASS HTTP: {mode} verifies and activates signed bytes");
                 }
                 transaction.Rollback();
@@ -71,6 +71,47 @@ internal static partial class Program
             finally { Directory.Delete(path, recursive: true); }
         }
         Console.WriteLine($"Local update server smoke passed; HTTP requests={server.Requests}, package transfers={server.PackageRequests}.");
+    }
+
+    private static async ValueTask AutomaticUpdateDeltaLoopbackHttpTransaction()
+    {
+        foreach (string mode in new[] { "ready", "corrupt-delta", "offline-recovery" })
+        {
+            string path = CreateTempDirectory();
+            try
+            {
+                var fixture = CreateDeltaFixture();
+                var assets = fixture.Source.HttpAssets();
+                if (mode == "corrupt-delta")
+                {
+                    string name = assets.Keys.Single(n => n.EndsWith(".delta.zip", StringComparison.Ordinal));
+                    assets[name] = assets[name].ToArray(); assets[name][^1] ^= 1;
+                }
+                await using var server = new UpdateFixtureServer(fixture.Source.HttpFixture(), [], assets);
+                Console.WriteLine($"Local differential server: {server.Address}, scenario={mode}");
+                using var client = new HttpClient(new LoopbackUpdateTransport(server.Address)) { Timeout = TimeSpan.FromSeconds(20) };
+                using var directory = new UpdateFixtureDirectory(path);
+                SeedDeltaSource(directory, fixture);
+                var source = new GitHubUpdateReleaseSource(client);
+                var transaction = new AutomaticUpdateTransaction(directory, fixture.Identity, fixture.Verifier, source)
+                { FaultBoundary = phase => { if (mode == "offline-recovery" && phase == "high-water") throw new IOException("Exit after HTTP delta"); } };
+                string slot;
+                if (mode == "offline-recovery")
+                {
+                    try { await transaction.InstallAsync("2.0.0.alpha.6", "alpha"); throw new InvalidOperationException("Missing fault"); }
+                    catch (IOException) { }
+                    int requests = server.Requests; server.Mode = UpdateHttpMode.Offline;
+                    slot = await new AutomaticUpdateTransaction(directory, fixture.Identity, fixture.Verifier, source).InstallAsync("2.0.0.alpha.6", "alpha");
+                    AssertEqual(requests, server.Requests);
+                }
+                else slot = await transaction.InstallAsync("2.0.0.alpha.6", "alpha");
+                AssertDeltaOutput(directory, slot, fixture);
+                AssertEqual(mode == "corrupt-delta" ? 1 : 0, server.PackageRequests);
+                AssertEqual(1, server.DeltaRequests);
+                Console.WriteLine($"PASS differential HTTP: {mode}, full transfers={server.PackageRequests}, delta transfers={server.DeltaRequests}");
+            }
+            finally { Directory.Delete(path, recursive: true); }
+        }
     }
 
     private static void AssertFixtureActivation(IUpdateDirectory directory, string slotName)
@@ -129,9 +170,12 @@ internal static partial class Program
         private volatile UpdateHttpMode _mode;
         private int _requests, _packages;
 
-        internal UpdateFixtureServer(AutomaticUpdateFixtureSource fixture, byte[] wrongSignature)
+        private readonly Dictionary<string, byte[]> _additionalAssets;
+        private int _deltaPackages;
+        internal UpdateFixtureServer(AutomaticUpdateFixtureSource fixture, byte[] wrongSignature, Dictionary<string, byte[]>? additionalAssets = null)
         {
             _fixture = fixture; _wrongSignature = wrongSignature;
+            _additionalAssets = additionalAssets ?? [];
             _listener.Start(8);
             Address = new Uri($"http://127.0.0.1:{((IPEndPoint)_listener.LocalEndpoint).Port}/");
             _worker = RunAsync();
@@ -140,6 +184,7 @@ internal static partial class Program
         internal UpdateHttpMode Mode { get => _mode; set => _mode = value; }
         internal int Requests => Volatile.Read(ref _requests);
         internal int PackageRequests => Volatile.Read(ref _packages);
+        internal int DeltaRequests => Volatile.Read(ref _deltaPackages);
 
         private async Task RunAsync()
         {
@@ -180,6 +225,10 @@ internal static partial class Program
             if (route == "/test-key.asc") body = Encoding.ASCII.GetBytes(_fixture.PublicKey);
             else if (route == release + "Nexa-Release.json") body = _fixture.Manifest;
             else if (route == release + "Nexa-Release.json.asc") body = mode == UpdateHttpMode.BadSignature ? _wrongSignature : _fixture.Signature;
+            else if (route.StartsWith(release, StringComparison.Ordinal) && _additionalAssets.TryGetValue(route[release.Length..], out body))
+            {
+                if (route.EndsWith(".delta.zip", StringComparison.Ordinal)) Interlocked.Increment(ref _deltaPackages);
+            }
             else if (route == release + "Nexa-2.0.0.alpha.6-win-x64.portable.zip")
             {
                 package = true; Interlocked.Increment(ref _packages);

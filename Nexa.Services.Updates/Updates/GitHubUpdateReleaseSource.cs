@@ -3,9 +3,15 @@ using System.Net;
 namespace Nexa.Services.Updates;
 
 /// <summary>Independent publisher fetch: no caller URLs, credentials or tool paths.</summary>
-public sealed class GitHubUpdateReleaseSource(HttpClient client) : IUpdateReleaseSource
+public sealed class GitHubUpdateReleaseSource(HttpClient client) : IUpdateReleaseSource, IUpdateDeltaSource
 {
     private const string Repository = "https://github.com/PCL-N-Edition/PCL-N/releases/download/";
+    async Task<(byte[] Index, byte[] Signature)> IUpdateDeltaSource.ReadDeltaIndexAsync(string version, CancellationToken token)
+    {
+        UpdateHighWaterJournal.ParseVersion(version);
+        return (await ReadBoundedAsync(version, "Nexa-Delta.json", token).ConfigureAwait(false),
+            await ReadBoundedAsync(version, "Nexa-Delta.json.asc", token).ConfigureAwait(false));
+    }
     public async Task<(byte[] Manifest, byte[] Signature)> ReadReleaseAsync(string version, CancellationToken token)
     {
         UpdateHighWaterJournal.ParseVersion(version);

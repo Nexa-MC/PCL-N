@@ -67,14 +67,21 @@ public sealed class AutomaticUpdateTransaction(IUpdateDirectory installation, Up
             Publish("downloading");
             Stream? cachedPackage = cached?.OpenRead("package");
             if (cachedPackage is not null && cachedPackage.Length != release.Size) { cachedPackage.Dispose(); cachedPackage = null; }
-            using (Stream input = cachedPackage ?? await source.OpenPackageAsync(version, release.Name, token).ConfigureAwait(false))
-                await release.CopyVerifiedPackageAsync(input, package, token).ConfigureAwait(false);
+            string? slotName = cachedPackage is null ? await TryDeltaAsync(release, installed, previousSlot, cached, tx, token).ConfigureAwait(false) : null;
+            if (slotName is null)
+            {
+                using (Stream input = cachedPackage ?? await source.OpenPackageAsync(version, release.Name, token).ConfigureAwait(false))
+                    await release.CopyVerifiedPackageAsync(input, package, token).ConfigureAwait(false);
+            }
             package.Flush(true); tx.Flush();
             FaultBoundary?.Invoke("received");
             Publish("preparing");
-            string slotName = ".nexa-slot-" + Guid.NewGuid().ToString("N");
-            using IUpdateDirectory slot = installation.CreateDirectory(slotName, publicRead: true);
-            await ProtectedUpdateExtractor.ExtractAsync(package, baseline.RuntimeId, slot, token).ConfigureAwait(false);
+            if (slotName is null)
+            {
+                slotName = ".nexa-slot-" + Guid.NewGuid().ToString("N");
+                using IUpdateDirectory slot = installation.CreateDirectory(slotName, publicRead: true);
+                await ProtectedUpdateExtractor.ExtractAsync(package, baseline.RuntimeId, slot, token).ConfigureAwait(false);
+            }
             UpdateTransactionJournal.Append(pending, version, channel, txName, digest, installed, previousSlot, "prepared");
             installation.Flush();
             FaultBoundary?.Invoke("prepared");
@@ -97,6 +104,47 @@ public sealed class AutomaticUpdateTransaction(IUpdateDirectory installation, Up
         { Publish("failed"); throw; }
 
         void Publish(string phase) => UpdateTransactionJournal.Append(status, version, channel, phase);
+    }
+
+    private async Task<string?> TryDeltaAsync(VerifiedReleasePackage release, string installed, string previousSlot,
+        IUpdateDirectory? cached, IUpdateDirectory tx, CancellationToken token)
+    {
+        if (source is not IUpdateDeltaSource deltaSource) return null;
+        try
+        {
+            byte[] index, signature;
+            try
+            {
+                if (cached is null) throw new FileNotFoundException();
+                index = ReadBounded(cached, "delta-index"); signature = ReadBounded(cached, "delta-signature");
+            }
+            catch (IOException) { (index, signature) = await deltaSource.ReadDeltaIndexAsync(release.Version, token).ConfigureAwait(false); }
+            VerifiedUpdateDelta? delta = await VerifiedUpdateDelta.SelectAsync(index, signature, release, installed, verifier, token).ConfigureAwait(false);
+            if (delta is null) return null;
+            using (FileStream file = tx.CreateFile("delta-index")) { file.Write(index); file.Flush(true); }
+            using (FileStream file = tx.CreateFile("delta-signature")) { file.Write(signature); file.Flush(true); }
+            using FileStream payload = tx.CreateFile("delta");
+            Stream? cachedDelta = null;
+            try { cachedDelta = cached?.OpenRead("delta"); }
+            catch (IOException) { }
+            if (cachedDelta is not null && cachedDelta.Length != delta.Size) { cachedDelta.Dispose(); cachedDelta = null; }
+            using (Stream input = cachedDelta ?? await source.OpenPackageAsync(release.Version, delta.Name, token).ConfigureAwait(false))
+                await delta.ReceiveAsync(input, payload, token).ConfigureAwait(false);
+            payload.Flush(true); tx.Flush();
+            string name = ".nexa-slot-" + Guid.NewGuid().ToString("N");
+            using IUpdateDirectory slot = installation.CreateDirectory(name, publicRead: true);
+            // The source is the admitted baseline or active slot, never a user-provided path.
+            using IUpdateDirectory? origin = previousSlot.Length == 0 ? null : installation.OpenDirectory(previousSlot);
+            await ProtectedDeltaExtractor.ExtractAsync(payload, release, installed, origin ?? installation, slot, tx, token).ConfigureAwait(false);
+            return name;
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or HttpRequestException
+            or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException or FormatException or OverflowException)
+        {
+            // Optional transport/reconstruction cannot weaken the independently signed full fallback.
+            token.ThrowIfCancellationRequested();
+            return null;
+        }
     }
 
     private static byte[] ReadBounded(IUpdateDirectory directory, string name)
