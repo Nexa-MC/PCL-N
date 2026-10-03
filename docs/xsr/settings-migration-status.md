@@ -75,9 +75,11 @@ consumer slices below.
 The installed Java radio chooser is also embedded in instance Java/memory settings,
 using the existing inventory query and instance-scoped policy writes.
 
+XSR-775 delivers durable custom Java registration, native executable selection, and runtime enable/disable. Removal unregisters external files without deleting them. Discovery and explicit launch selection honor disabled entries; successful writes invalidate discovery caches. Canceled pickers and probes, stale registry revisions, and persistence failures cannot publish registration changes.
+
 | Slice | Remaining integration |
 |---|---|
-| Java | Managed-runtime deletion and custom runtime management; compatibility checks remain mandatory until a separate safe policy exists |
+| Java | Managed-runtime deletion; compatibility checks remain mandatory until a separate safe policy exists |
 | Game | Title, isolation, launch visibility and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Low power, theme and supported system integration; platform actions belong to Host |

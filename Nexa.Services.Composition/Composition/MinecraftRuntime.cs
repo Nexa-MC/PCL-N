@@ -127,7 +127,8 @@ public static class MinecraftRuntimeComposer
         }
 
         List<IDisposable> owned = [];
-        IJavaRuntimeLocator locator = javaLocator ?? (javaRuntimeRootDirectory is null ? host.JavaLocator : new LocalJavaRuntimeLocator(runtimeRoot, host.Logging));
+        IJavaRuntimeLocator locator = javaLocator ?? (javaRuntimeRootDirectory is null ? host.JavaLocator : new LocalJavaRuntimeLocator(runtimeRoot, host.Logging)
+        { RegisteredRuntimes = () => host.JavaRegistrations.Read().Registrations });
         IJavaRuntimeInstaller installer;
         if (javaInstaller is null)
         {
@@ -184,7 +185,7 @@ public static class MinecraftRuntimeComposer
             identityResolver,
             launcherVersion,
             windowProbe, authlib, gameWindowAppeared, fileCompletion, host.SettingsPolicy, preflight)
-        { WorkScheduler = host.Work };
+        { WorkScheduler = host.Work, JavaRegistrations = host.JavaRegistrations };
         IXsrDispatchObserver dispatchObserver = observer ?? NullDispatchObserver.Instance;
         XsrCommandRouterBuilder commandBuilder = new();
         if (installer is JavaRuntimeInstaller durableInstaller)

@@ -33,13 +33,16 @@ internal static partial class Program
     internal static ValueTask LauncherSchemaMatchesLegacyDefaults()
     {
         SettingsSchema schema = LauncherDefaults.CreateSchema();
-        // The 103 legacy defaults remain intact; XSR-716 adds one independent text document.
-        AssertEqual(106, schema.Count);
+        // Legacy defaults remain intact; XSR adds independent library, policy, widget and Java registry state.
+        AssertEqual(107, schema.Count);
         AssertEqual(44, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Bool));
         AssertEqual(43, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.I32));
         AssertEqual(17, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Text
             && definition.Key.Value != Nexa.Services.Minecraft.MinecraftLibraryService.SettingKey
-            && definition.Key.Value != SettingsPolicySchema.StorageKey));
+            && definition.Key.Value != SettingsPolicySchema.StorageKey
+            && definition.Key.Value != Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.RegistryKey));
+        AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse(Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.RegistryKey)) is { } registry
+            && registry.DefaultValue == Nexa.Services.Minecraft.Java.JavaRuntimeRegistrationStore.EmptyDocument);
 
         AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse("LaunchAdvanceJvm")) is { } jvm
             && jvm.DefaultValue.StartsWith("-XX:+UseG1GC -XX:-UseAdaptiveSizePolicy", StringComparison.Ordinal)

@@ -4,6 +4,9 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("Java registration persists and removal keeps files", JavaRegistrationPersistsAndRemovalKeepsFiles),
+        ("Java registration failure and late probe never commit", JavaRegistrationFailureAndLateProbeNeverCommit),
+        ("Java registration disables automatic and explicit selection", JavaRegistrationDisablesAutomaticAndExplicitSelection),
         ("download settings capture bounded workers and migrate legacy sliders", DownloadSettingsCaptureBoundedWorkers),
         ("download retry settings preserve integrity and commit last", DownloadRetrySettingPreservesIntegrityAndCommitLast),
         ("launch completion uses captured download retry policy", LaunchCompletionUsesDownloadRetryPolicy),

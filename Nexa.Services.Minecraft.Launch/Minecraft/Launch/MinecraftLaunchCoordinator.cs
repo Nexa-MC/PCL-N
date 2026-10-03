@@ -19,6 +19,7 @@ namespace Nexa.Services.Minecraft.Launch;
 public sealed class MinecraftLaunchCoordinator
 {
     public IWorkScheduler? WorkScheduler { get; init; }
+    public IJavaRuntimeRegistrationStore? JavaRegistrations { get; init; }
 
     private static readonly int[] SelectableJavaMajors = [8, 16, 17, 21, 25];
     private static readonly TimeSpan StageHeartbeatInterval = TimeSpan.FromMilliseconds(120);
@@ -334,7 +335,8 @@ public sealed class MinecraftLaunchCoordinator
                     if (!java.Success && java.FailureReason == JavaSelectionFailureReason.NoCompatibleRuntime
                         && !Nexa.Core.PathIdentity.Comparer.Equals(root, _minecraftRootDirectory))
                     {
-                        JavaSelectionResult local = await new JavaSelectionService(new LocalJavaRuntimeLocator(javaRoot, _log))
+                        JavaSelectionResult local = await new JavaSelectionService(new LocalJavaRuntimeLocator(javaRoot, _log)
+                        { RegisteredRuntimes = JavaRegistrations is null ? null : () => JavaRegistrations.Read().Registrations })
                             .SelectAsync(javaRequest, preference, token).ConfigureAwait(false);
                         if (local.Success) java = local;
                     }

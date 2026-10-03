@@ -9,6 +9,48 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void JavaRegistrationPickerRetiresOnNavigationAndDispatchesCapturedRevision()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        var queries = new XsrQueryRouterBuilder();
+        fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.CatalogQuery, out var catalog);
+        fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.EffectiveQuery, out var effective);
+        queries.Register<SettingsCatalogQuery, SettingsCatalogSnapshot>(SettingsPolicyContract.CatalogQuery,
+            (q, ct) => fixture.Foundation.Queries.QueryAsync<SettingsCatalogQuery, SettingsCatalogSnapshot>(catalog, q, cancellationToken: ct));
+        queries.Register<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(SettingsPolicyContract.EffectiveQuery,
+            (q, ct) => fixture.Foundation.Queries.QueryAsync<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(effective, q, cancellationToken: ct));
+        queries.Register<JavaRuntimeInventoryQuery, JavaRuntimeInventorySnapshot>(JavaRuntimeInventoryContract.Query,
+            (_, _) => ValueTask.FromResult(XsrResult.Success(new JavaRuntimeInventorySnapshot([]) { RegistryRevision = 42 })));
+        var commands = new XsrCommandRouterBuilder();
+        List<JavaRuntimeManageCommand> writes = [];
+        commands.Register<JavaRuntimeManageCommand>(JavaRuntimeInventoryContract.Manage,
+            (command, _) => { writes.Add(command); return ValueTask.FromResult(XsrResult.Success()); });
+        var picker = new TaskCompletionSource<string?>();
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()),
+            commands.Build(new NoopDispatchObserver()), fixture.Store, fixture.Feedback)
+        { PickRemediationJava = () => picker.Task };
+        fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(settings.Page);
+        var scene = fixture.Shell.Render(new(1000, 1700));
+        void Navigate(string page)
+        {
+            Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav." + page).Entity);
+            scene = fixture.Shell.Render(new(1000, 1700));
+        }
+        Navigate("java"); scene = fixture.Shell.Render(new(1000, 1700));
+        Emit(fixture.Intents, "ui.settings.java.add", FindByKey(fixture.Shell, scene, "SettingsJavaAdd").Entity);
+        scene = fixture.Shell.Render(new(1000, 1700));
+        AssertFalse(FindByKey(fixture.Shell, scene, "SettingsJavaAdd").IsEnabled);
+        Navigate("general"); picker.SetResult(Path.GetFullPath("retired-java"));
+        scene = fixture.Shell.Render(new(1000, 1700)); AssertEqual(0, writes.Count);
+        picker = new(); Navigate("java"); scene = fixture.Shell.Render(new(1000, 1700));
+        Emit(fixture.Intents, "ui.settings.java.add", FindByKey(fixture.Shell, scene, "SettingsJavaAdd").Entity);
+        scene = fixture.Shell.Render(new(1000, 1700));
+        string executable = Path.GetFullPath("accepted-java"); picker.SetResult(executable);
+        AssertTrue(SpinWait.SpinUntil(() =>
+        { scene = fixture.Shell.Render(new(1000, 1700)); return writes.Count == 1; }, TimeSpan.FromSeconds(5)));
+        AssertEqual(new JavaRuntimeManageCommand(executable, JavaRuntimeManagementAction.Add, 42), writes.Single());
+    }
+
     private static void InstanceJavaInventoryWritesOnlySelectedInstance()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));

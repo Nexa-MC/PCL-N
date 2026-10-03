@@ -95,7 +95,9 @@ public sealed class FoundationHost : IDisposable
         // The full environment registry: machine facts plus the display/storage/filesystem/
         // power and java/minecraft.files namespaces. Instance-scoped providers bind to the
         // active Minecraft root so storage and file-integrity facts answer for THAT path.
-        JavaLocator = new Minecraft.Java.LocalJavaRuntimeLocator(minecraftRootDirectory is null ? null : Path.Combine(Path.GetFullPath(minecraftRootDirectory), "runtime"), logging);
+        JavaRegistrations = new Minecraft.Java.JavaRuntimeRegistrationStore(Settings);
+        JavaLocator = new Minecraft.Java.LocalJavaRuntimeLocator(minecraftRootDirectory is null ? null : Path.Combine(Path.GetFullPath(minecraftRootDirectory), "runtime"), logging)
+        { RegisteredRuntimes = () => JavaRegistrations.Read().Registrations };
         CapabilityRegistry capabilityRegistry = new CapabilityRegistry(
         [
             .. ModCatalog.Definitions(),
@@ -146,6 +148,7 @@ public sealed class FoundationHost : IDisposable
     public void Dispose() => Work.Dispose();
 
     public Minecraft.Java.IJavaRuntimeLocator JavaLocator { get; }
+    public Minecraft.Java.IJavaRuntimeRegistrationStore JavaRegistrations { get; }
 
     public XsrStateStore StateStore { get; }
 

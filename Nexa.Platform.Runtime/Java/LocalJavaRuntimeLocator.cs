@@ -16,6 +16,7 @@ public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
     private readonly string? _launcherRuntimeRoot;
     private readonly LogService? _log;
     private readonly IJavaRuntimeLocator? _inspectionPort;
+    public Func<IReadOnlyList<JavaRuntimeRegistration>>? RegisteredRuntimes { get; init; }
 
     public LocalJavaRuntimeLocator(string? launcherRuntimeRoot = null, LogService? log = null, IJavaRuntimeLocator? inspectionPort = null)
     {
@@ -79,6 +80,8 @@ public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
         // direct-executable directory (Oracle javapath shims). Collapsing both into "home +
         // /bin/java" dropped every shim the earlier stage had just accepted.
         HashSet<string> executables = new(GetPathComparer());
+        foreach (var entry in RegisteredRuntimes?.Invoke() ?? [])
+            if (entry.Custom && File.Exists(entry.Executable)) executables.Add(entry.Executable);
         foreach (JavaSearchRoot root in EnumerateSearchRoots())
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -427,6 +430,20 @@ public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
     public async ValueTask<JavaRuntimeCandidate?> InspectAsync(
         string javaExecutablePath,
         CancellationToken cancellationToken = default)
+    {
+        var candidate = await InspectCoreAsync(javaExecutablePath, cancellationToken).ConfigureAwait(false);
+        if (candidate is null) return null;
+        var entry = RegisteredRuntimes?.Invoke().FirstOrDefault(item => GetPathComparer().Equals(item.Executable, candidate.Installation.JavaExecutablePath));
+        return candidate with
+        {
+            IsEnabled = entry?.Enabled ?? candidate.IsEnabled,
+            Source = entry?.Custom == true ? JavaSource.ManualAdded : candidate.Source
+        };
+    }
+
+    private async ValueTask<JavaRuntimeCandidate?> InspectCoreAsync(
+        string javaExecutablePath,
+        CancellationToken cancellationToken)
     {
         if (_inspectionPort is not null) return await _inspectionPort.InspectAsync(javaExecutablePath, cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(javaExecutablePath))

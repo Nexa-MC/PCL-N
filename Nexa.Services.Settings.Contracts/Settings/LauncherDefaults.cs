@@ -110,6 +110,7 @@ public static class LauncherDefaults
     public static IReadOnlyDictionary<string, string> TextDefaults { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         [SettingsPolicySchema.StorageKey] = SettingsPolicySchema.EmptyDocument,
+        ["NexaJavaRuntimeRegistry"] = "{\"version\":1,\"revision\":0,\"entries\":[]}",
         ["SystemHttpProxy"] = string.Empty,
         [Minecraft.MinecraftLibraryContract.SettingKey] = string.Empty,
         ["SystemHttpProxyCustomUsername"] = string.Empty,

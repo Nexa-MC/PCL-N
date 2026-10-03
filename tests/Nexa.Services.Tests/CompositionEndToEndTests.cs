@@ -81,7 +81,8 @@ internal static partial class Program
             remediationHandlers: [remediationHandler]);
         FoundationRuntime runtime = FoundationRuntimeComposer.Compose(host, observer);
 
-        AssertEqual(19, runtime.Commands.Count);
+        AssertEqual(20, runtime.Commands.Count);
+        AssertTrue(runtime.Commands.TryResolve(Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.Manage, out _));
         AssertTrue(runtime.Commands.TryResolve(Nexa.Services.Minecraft.Management.InstanceServerListContract.Save, out _));
         AssertTrue(runtime.Commands.TryResolve(Nexa.Services.Minecraft.Management.InstanceModpackExportContract.Export, out _));
         AssertTrue(runtime.Commands.TryResolve(Nexa.Services.Minecraft.Management.InstanceManagementContract.RemoveMod, out _));

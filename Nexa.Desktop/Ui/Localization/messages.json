@@ -1,4 +1,12 @@
 [
+  { "source": "添加 Java", "en": "Add Java", "zh-Hant": "新增 Java" },
+  { "source": "允许使用 Java", "en": "Allow this Java runtime", "zh-Hant": "允許使用 Java" },
+  { "source": "移除登记", "en": "Remove registration", "zh-Hant": "移除登記" },
+  { "source": "移除 Java 登记", "en": "Remove Java registration", "zh-Hant": "移除 Java 登記" },
+  { "source": "未找到可用的 Java", "en": "No usable Java runtime found", "zh-Hant": "找不到可用的 Java" },
+  { "source": "无法选择 Java，请重试。", "en": "Could not select Java. Try again.", "zh-Hant": "無法選擇 Java，請重試。" },
+  { "source": "Java 管理未完成。", "en": "Could not complete the Java operation.", "zh-Hant": "Java 管理未完成。" },
+  { "source": "移除此 Java 的手动登记，保留磁盘上的文件。", "en": "Remove this manual registration. Files on disk will be kept.", "zh-Hant": "移除此 Java 的手動登記，保留磁碟上的檔案。" },
   {
     "source": "自动分配，或输入 MiB",
     "en": "Automatic, or enter MiB",
