@@ -45,7 +45,19 @@ def windows(root, base):
             require(path)
         check_jvm_host(host)
         run(executable.parent / "Nexa.Update.Helper.exe", "--validate-helper", timeout=30)
-        run(executable.parent / "Nexa.Update.Helper.exe", "--validate-installation", timeout=30)
+        try:
+            run(executable.parent / "Nexa.Update.Helper.exe", "--validate-installation", timeout=30)
+        except subprocess.CalledProcessError:
+            # Inspect the actual installer output before uninstalling it. This is
+            # read-only evidence; never repair an object the helper refused.
+            script = "$args | ForEach-Object { $a = Get-Acl -LiteralPath $_; [pscustomobject]@{Path=$_;Owner=$a.Owner;Sddl=$a.Sddl} } | ConvertTo-Json"
+            result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", script,
+                                     str(executable.anchor), str(executable.parent.parent),
+                                     str(executable.parent), str(executable.parent / "Nexa.Update.Helper.exe")],
+                                    capture_output=True, text=True, timeout=30, check=False)
+            (diagnostics / "update-admission.txt").write_text(result.stdout + result.stderr, encoding="utf-8")
+            print(result.stdout + result.stderr, flush=True)
+            raise
         validate_runtime_contents(executable.parent)
         run(executable, "--validate-shell", timeout=30)
     run(root / (base + ".setup.exe"), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/TASKS=desktopicon",
