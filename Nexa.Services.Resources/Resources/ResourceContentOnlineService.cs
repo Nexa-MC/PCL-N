@@ -9,7 +9,8 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
     {
         if (query.Files.Count > 100) throw new InvalidDataException("一次最多识别 100 个资源文件。");
         long budget = 1024L * 1024 * 1024;
-        HashSet<ResourceContentOnlineQuery> eligible = [];
+        Dictionary<ResourceContentOnlineQuery, ResourceInstanceService.Fingerprint> eligible = [];
+        Dictionary<ResourceContentOnlineQuery, (ResourceInstalledFile[] Files, bool Complete)> identified = [];
         foreach (var group in query.Files.GroupBy(q => q.MirrorFirst))
         {
             List<ResourceInstanceService.Fingerprint> fingerprints = [];
@@ -30,29 +31,34 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
                     var file = new FileInfo(Path.Combine(metadata.InstanceIsolation ? instance : versions.Parent.FullName, item.PageId, item.Name));
                     CheckLinks(file.FullName); CheckIdentity(file, item);
                     var fingerprint = await instances.ReadFingerprintAsync(file, token).ConfigureAwait(false);
-                    if (fingerprint is not null) { fingerprints.Add(fingerprint); eligible.Add(item); }
+                    if (fingerprint is not null) { fingerprints.Add(fingerprint); eligible[item] = fingerprint; }
                 }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
             }
-            await instances.IdentifyManyAsync(fingerprints, group.Key, token).ConfigureAwait(false);
+            var identities = await instances.IdentifyManyAsync(fingerprints, group.Key, token, query.Refresh).ConfigureAwait(false);
+            foreach (var item in group)
+                if (eligible.TryGetValue(item, out var fingerprint) && identities.TryGetValue(fingerprint.Sha512, out var identity))
+                    identified[item] = identity;
         }
         var matches = new ResourceContentOnlineMatch[query.Files.Count];
         await Parallel.ForEachAsync(Enumerable.Range(0, query.Files.Count), new ParallelOptions { MaxDegreeOfParallelism = 2, CancellationToken = token }, async (i, ct) =>
         {
             var file = query.Files[i];
-            if (!eligible.Contains(file)) { matches[i] = new(file, new(null, null, [], "文件已变化或超过本次识别预算，已保留本地资料。")); return; }
+            if (!identified.TryGetValue(file, out var identity)) { matches[i] = new(file, new(null, null, [], "文件已变化或超过本次识别预算，已保留本地资料。")); return; }
             try
             {
-                var content = await ReadCoreAsync(file, true, ct).ConfigureAwait(false);
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                deadline.CancelAfter(TimeSpan.FromSeconds(20));
+                var content = await ReadCoreAsync(file, identity, query.Refresh, deadline.Token).ConfigureAwait(false);
                 matches[i] = new(file, content with { Versions = content.Versions.Take(1).ToArray() });
             }
-            catch (Exception error) when (!ct.IsCancellationRequested && error is IOException or UnauthorizedAccessException or HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+            catch (Exception error) when (!ct.IsCancellationRequested && error is IOException or InvalidDataException or UnauthorizedAccessException or HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or KeyNotFoundException or OperationCanceledException)
             { matches[i] = new(file, new(null, null, [], "暂时无法识别在线信息，已保留本地资料。")); }
         }).ConfigureAwait(false);
         return new ResourceContentOnlineBatch(Array.AsReadOnly(matches));
     }, token);
-    public Task<ResourceContentOnline> ReadAsync(ResourceContentOnlineQuery query, CancellationToken token) => ReadCoreAsync(query, false, token);
-    private Task<ResourceContentOnline> ReadCoreAsync(ResourceContentOnlineQuery query, bool preloaded, CancellationToken token) => Task.Run(async () =>
+    public Task<ResourceContentOnline> ReadAsync(ResourceContentOnlineQuery query, CancellationToken token) => ReadCoreAsync(query, null, false, token);
+    private Task<ResourceContentOnline> ReadCoreAsync(ResourceContentOnlineQuery query, (ResourceInstalledFile[] Files, bool Complete)? preloaded, bool refresh, CancellationToken token) => Task.Run(async () =>
     {
         ResourceKind kind = query.PageId switch
         {
@@ -76,15 +82,16 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
         if (file.Length > 512L * 1024 * 1024) return new ResourceContentOnline(null, null, [], "文件较大，暂不进行在线识别。");
         var fingerprint = await instances.ReadFingerprintAsync(file, token).ConfigureAwait(false);
         if (fingerprint is null) throw new IOException("文件已变化，请刷新后重试。");
-        var identified = await instances.IdentifyAsync(fingerprint, query.MirrorFirst, preloaded, token).ConfigureAwait(false);
+        var identified = preloaded ?? await instances.IdentifyAsync(fingerprint, query.MirrorFirst, token).ConfigureAwait(false);
+        if (preloaded is not null) identified = (identified.Files.Select(match => match with { FileName = file.Name, Enabled = fingerprint.Enabled }).ToArray(), identified.Complete);
         if (identified.Files.Length == 0) return new ResourceContentOnline(null, null, [], identified.Complete ? "模组站尚未收录此文件，已保留本地信息。" : "暂时无法连接模组站，已保留本地信息。");
         var edit = await MinecraftInstallEditService.ReadAsync(new(versions.Parent.FullName, Path.GetFileName(instance)), token).ConfigureAwait(false);
         string loader = kind == ResourceKind.Mod ? edit.Selection.Select(selection => selection.Loader switch
         { InstallLoader.Fabric or InstallLoader.LegacyFabric => "fabric", InstallLoader.Quilt => "quilt", InstallLoader.Forge or InstallLoader.Cleanroom => "forge", InstallLoader.NeoForge => "neoforge", _ => "" }).FirstOrDefault(value => value.Length > 0) ?? "" : "";
         var sources = identified.Files.Select(match => match.Source).Distinct().ToArray();
-        var detail = await catalog.DetailAsync(new(sources[0].ProjectId, edit.GameVersion, loader) { Sources = sources, MirrorFirst = query.MirrorFirst }, token).ConfigureAwait(false);
+        var detail = await catalog.DetailAsync(new(sources[0].ProjectId, edit.GameVersion, loader) { Sources = sources, MirrorFirst = query.MirrorFirst, Refresh = refresh }, token).ConfigureAwait(false);
         var project = detail.Project with { Kind = kind };
-        if (translations is not null && string.IsNullOrWhiteSpace(project.ChineseDescription))
+        if (preloaded is null && translations is not null && string.IsNullOrWhiteSpace(project.ChineseDescription))
         {
             var translated = await translations.ReadAsync(new(sources[0], project.Description), token).ConfigureAwait(false);
             project = project with { ChineseDescription = translated.Description };

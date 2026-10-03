@@ -1,6 +1,7 @@
 using Nexa.Desktop.Ui;
 using Nexa.Services.Settings;
 using Nexa.UI.Next;
+using Nexa.Xsr;
 
 namespace Nexa.Desktop.Tests;
 
@@ -287,7 +288,27 @@ internal static partial class Program
     private static void SettingsPlatformReadsAndRefreshesServiceSnapshot()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
-        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries, fixture.Foundation.Commands, fixture.Store, fixture.Feedback);
+        // Test the sealed read/refresh presentation contract, independently of real Java
+        // discovery and OS hardware probe deadlines on the developer machine.
+        var queries = new Nexa.Xsr.Runtime.XsrQueryRouterBuilder();
+        fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.CatalogQuery, out var catalog);
+        fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.EffectiveQuery, out var effective);
+        queries.Register<SettingsCatalogQuery, SettingsCatalogSnapshot>(SettingsPolicyContract.CatalogQuery,
+            (query, token) => fixture.Foundation.Queries.QueryAsync<SettingsCatalogQuery, SettingsCatalogSnapshot>(catalog, query, cancellationToken: token));
+        queries.Register<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(SettingsPolicyContract.EffectiveQuery,
+            (query, token) => fixture.Foundation.Queries.QueryAsync<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(effective, query, cancellationToken: token));
+        long machineRevision = 0;
+        queries.Register<Nexa.Services.Capabilities.MachineCapabilityQuery, Nexa.Services.Capabilities.MachineCapabilitySnapshot>(
+            Nexa.Services.Capabilities.MachineCapabilityStateContract.SnapshotQuery, (_, _) => new(XsrResult.Success(
+                new Nexa.Services.Capabilities.MachineCapabilitySnapshot(machineRevision, DateTimeOffset.UtcNow,
+                    [Nexa.Services.Capabilities.MachineCapabilityCatalog.Os.Observe("Test OS", DateTimeOffset.UtcNow, "fixture")]))));
+        var commands = new Nexa.Xsr.Runtime.XsrCommandRouterBuilder();
+        commands.Register<Nexa.Services.Capabilities.MachineCapabilityRefresh>(Nexa.Services.Capabilities.MachineCapabilityStateContract.RefreshCommand, (_, token) =>
+        {
+            fixture.Store.Publish(fixture.Store.Resolve(Nexa.Services.Capabilities.MachineCapabilityStateContract.RevisionKey), ++machineRevision, cancellationToken: token);
+            return new(XsrResult.Success());
+        });
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()), commands.Build(new NoopDispatchObserver()), fixture.Store, fixture.Feedback);
         fixture.Shell.Renderer.ReducedMotion = true;
         fixture.Controller.SettingsPage = settings.Page;
         Emit(fixture.Intents, "ui.navigation.settings");
@@ -310,6 +331,9 @@ internal static partial class Program
             AssertTrue(Math.Abs(card.Rect.Width - body.Rect.Width - 32) < .01);
         }
         long before = fixture.Store.Read<long>(id).Value;
+        var refresh = FindByKey(fixture.Shell, scene, "PlatformRefresh");
+        AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiImage>(refresh.Entity) is not null);
+        AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiText>(refresh.Entity) is null);
         Emit(fixture.Intents, "ui.settings.platform.refresh", FindByKey(fixture.Shell, scene, "PlatformRefresh").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { Ready(); return fixture.Store.Read<long>(id).Value > before; }, TimeSpan.FromSeconds(5)));
         AssertTrue(SpinWait.SpinUntil(Ready, TimeSpan.FromSeconds(5)));

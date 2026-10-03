@@ -17,7 +17,8 @@ public static class ResourceCatalogRuntimeComposer
 {
     public static ResourceCatalogRuntime Compose(IResourceCatalogSource? source = null, IXsrDispatchObserver? observer = null, FoundationHost? host = null, string? favoritesPath = null, MinecraftInstallService? installer = null)
     {
-        HttpClient? http = source is null ? new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(25) } : null;
+        HttpClient? http = source is null ? Nexa.Services.Downloads.PooledHttpClient.Create(allowAutoRedirect: false, log: host?.Logging) : null;
+        if (http is not null) http.Timeout = TimeSpan.FromSeconds(25);
         var transport = http is null ? null : new ResourceProviderHttp(http);
         source ??= new MergedResourceCatalog(new ResourceCatalogService(http!, transport), new CurseForgeResourceCatalog(transport!));
         var translations = transport is null ? null : new ResourceTranslationService(transport);

@@ -250,6 +250,12 @@ internal static partial class Program
                 AssertContains(new(0, 0, size.Width, size.Height), content);
                 AssertContains(content, FindByKey(shell, scene, "LibraryDirectoryBar").Rect);
                 AssertEqual(40d, FindByKey(shell, scene, "LibraryDirectoryBar").Rect.Height);
+                var refresh = FindByKey(shell, scene, "LibraryRefresh");
+                var directoryBar = FindByKey(shell, scene, "LibraryDirectoryBar");
+                AssertEqual(40d, refresh.Rect.Width);
+                AssertTrue(string.IsNullOrEmpty(refresh.Text));
+                AssertFalse(shell.Tree.GetComponent<XsrUiVisualStyle>(refresh.Entity)!.HoverExpand);
+                AssertTrue(Math.Abs(refresh.Rect.X + refresh.Rect.Width - directoryBar.Rect.X - directoryBar.Rect.Width) < .01);
                 AssertFalse(HasKey(shell, scene, "LibrarySelection"));
                 AssertFalse(HasKey(shell, scene, "LibraryDirectoryHint"));
                 AssertFalse(HasKey(shell, scene, "LibraryDirectoryPath"));

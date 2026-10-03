@@ -48,7 +48,7 @@ public sealed record ResourceIconResult(Nexa.Core.Media.PngImage? Image);
 public sealed record ResourceSearchResult(IReadOnlyList<ResourceProject> Projects, int Total, int Page)
 { public string? Notice { get; init; } public bool? HasMore { get; init; } }
 public sealed record ResourceDetailQuery(string ProjectId, string GameVersion = "", string Loader = "")
-{ public IReadOnlyList<ResourceReference> Sources { get; init; } = []; public bool MirrorFirst { get; init; } = true; }
+{ public IReadOnlyList<ResourceReference> Sources { get; init; } = []; public bool MirrorFirst { get; init; } = true; public bool Refresh { get; init; } }
 public sealed record ResourceVersion(string Id, string Name, string Number, string Channel,
     IReadOnlyList<string> Games, IReadOnlyList<string> Loaders, string Published, string Website)
 {
@@ -97,7 +97,8 @@ public sealed record ResourceContentOnline(ResourceProject? Project, string? Ins
     public ResourceVersion? UpdateVersion { get; init; }
     public bool? UpdateAvailable { get; init; }
 }
-public sealed record ResourceContentOnlineBatchQuery(IReadOnlyList<ResourceContentOnlineQuery> Files);
+public sealed record ResourceContentOnlineBatchQuery(IReadOnlyList<ResourceContentOnlineQuery> Files)
+{ public bool Refresh { get; init; } }
 public sealed record ResourceContentOnlineMatch(ResourceContentOnlineQuery File, ResourceContentOnline Content);
 public sealed record ResourceContentOnlineBatch(IReadOnlyList<ResourceContentOnlineMatch> Matches);
 public sealed record ResourceContentUpdateCommand(ResourceContentOnlineQuery File, ResourceReference Source, string VersionId);

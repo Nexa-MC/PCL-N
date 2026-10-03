@@ -60,15 +60,24 @@ public sealed class ResourceInstanceService(ResourceProviderHttp http)
         if (result.Complete) _identified.Save(key, result);
         return result;
     }
-    internal async Task IdentifyManyAsync(List<Fingerprint> files, bool mirror, CancellationToken token)
+    internal async Task<IReadOnlyDictionary<string, (ResourceInstalledFile[] Files, bool Complete)>> IdentifyManyAsync(List<Fingerprint> files, bool mirror, CancellationToken token, bool refresh = false)
     {
-        var missing = files.Where(f => !_identified.TryRead(f.Sha512 + mirror, out _)).ToList();
-        if (missing.Count == 0) return;
+        var identified = new Dictionary<string, (ResourceInstalledFile[] Files, bool Complete)>(StringComparer.OrdinalIgnoreCase);
+        var missing = new List<Fingerprint>();
+        foreach (var file in files)
+            if (!refresh && _identified.TryRead(file.Sha512 + mirror, out var cached)) identified[file.Sha512] = cached;
+            else missing.Add(file);
+        if (missing.Count == 0) return identified;
         var results = await Task.WhenAll(ReadModrinth(missing, mirror, token), ReadCurseForge(missing, mirror, token)).ConfigureAwait(false);
         bool complete = results.All(r => r.Complete);
-        if (!complete) return;
         var matches = results.SelectMany(r => r.Files).ToLookup(f => f.Sha512, StringComparer.OrdinalIgnoreCase);
-        foreach (var file in missing) _identified.Save(file.Sha512 + mirror, (matches[file.Sha512].ToArray(), true));
+        foreach (var file in missing)
+        {
+            var value = (Files: matches[file.Sha512].ToArray(), Complete: complete);
+            identified[file.Sha512] = value;
+            if (complete) _identified.Save(file.Sha512 + mirror, value);
+        }
+        return identified;
     }
     private async Task<(ResourceInstalledFile[] Files, bool Complete)> ReadModrinth(List<Fingerprint> files, bool mirror, CancellationToken token)
     {

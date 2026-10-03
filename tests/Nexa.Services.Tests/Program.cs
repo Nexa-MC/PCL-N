@@ -4,6 +4,8 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("installed batches reuse partial identity and refresh caches", InstalledBatchReusesPartialIdentityAndRefreshesCaches),
+        ("explicit resource refresh bypasses merged detail cache", ExplicitResourceRefreshBypassesMergedDetailCache),
         ("low power setting retains legacy scope and durability", Sync(LowPowerSettingRetainsLegacyScopeAndDurability)),
         ("Java registration persists and removal keeps files", JavaRegistrationPersistsAndRemovalKeepsFiles),
         ("Java registration failure and late probe never commit", JavaRegistrationFailureAndLateProbeNeverCommit),

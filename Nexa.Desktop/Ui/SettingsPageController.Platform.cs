@@ -110,7 +110,7 @@ internal sealed partial class SettingsPageController
         var toolbar = Stack(_sections, "PlatformToolbar", XsrUiOrientation.Horizontal, 12);
         var status = Text(toolbar, _machineError ?? (_machineRefreshing is not null || _machine is null ? "正在检测平台功能…" : "检测时间：" + _machine.Timestamp.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.CurrentCulture)), 12, Muted, 32);
         _shell.Tree.GetComponent<XsrUiElement>(status)!.Weight = 1;
-        var refresh = ActionButton(toolbar, "PlatformRefresh", "重新检测", RefreshPlatform, 84);
+        var refresh = RefreshIcon(toolbar, "PlatformRefresh", RefreshPlatform);
         _shell.Tree.GetComponent<XsrUiInput>(refresh)!.Enabled = _machineRefreshing is null;
 
         if (_machine is not null)

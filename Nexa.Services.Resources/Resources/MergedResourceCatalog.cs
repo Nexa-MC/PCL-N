@@ -53,7 +53,7 @@ public sealed class MergedResourceCatalog(IResourceCatalogSource modrinth, IReso
         var sources = query.Sources.Count == 0 ? new[] { new ResourceReference(ResourceProvider.Modrinth, query.ProjectId) } : query.Sources.Distinct().Take(2).ToArray();
         if (sources.Any(reference => !Enum.IsDefined(reference.Provider))) throw new ArgumentException("资源站无效。");
         var cacheKey = (query.ProjectId, query.GameVersion, query.Loader, query.MirrorFirst, sources.FirstOrDefault(), sources.Skip(1).FirstOrDefault());
-        if (_detailCache.TryRead(cacheKey, out var cached)) return cached!;
+        if (!query.Refresh && _detailCache.TryRead(cacheKey, out var cached)) return cached!;
         var results = await Task.WhenAll(sources.Select(async reference =>
         {
             try { return (Value: await (reference.Provider == ResourceProvider.Modrinth ? modrinth : curseForge).DetailAsync(query with { ProjectId = reference.ProjectId, Sources = [] }, token).ConfigureAwait(false), Error: (string?)null); }

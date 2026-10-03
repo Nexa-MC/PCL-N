@@ -47,7 +47,7 @@ internal sealed partial class SettingsPageController
             var add = ActionButton(header, "SettingsJavaAdd", "添加 Java", AddJava, 84);
             _shell.Tree.GetComponent<XsrUiInput>(add)!.Enabled = !JavaManagementBusy && _javaInventoryRead is null && _javaInventory is not null;
         }
-        var scan = ActionButton(header, "SettingsJavaScan", "重新扫描", ScanJava, 84);
+        var scan = RefreshIcon(header, "SettingsJavaScan", ScanJava);
         _shell.Tree.GetComponent<XsrUiInput>(scan)!.Enabled = _javaInventoryRead is null && !JavaManagementBusy;
         if (focus is "SettingsJavaScan" or "SettingsJavaAdd") _shell.Tree.Walk(header, entity =>
         { if (_shell.Tree.Name(entity) == focus) _shell.Renderer.Focus(entity, showIndicator: false); return true; });

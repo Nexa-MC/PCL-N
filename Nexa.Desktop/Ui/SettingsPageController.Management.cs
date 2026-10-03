@@ -43,7 +43,7 @@ internal sealed partial class SettingsPageController
     private void ResetManagement()
     {
         if (_instanceDirectory is null) return;
-        _contentDetail = null; _contentFilter = ""; _modCategory = "all"; _checkModUpdates = false; _checkingModUpdates = false;
+        _contentDetail = null; _contentFilter = ""; _modCategory = "all";
         CancelManagementRead(); _management = null; _managementError = null;
         _selected = "overview"; _scrollPositions.Clear(); _recoverySnapshotPage = 0; _recoveryChangesPage = 0;
         ResetContentGraph();
@@ -81,19 +81,19 @@ internal sealed partial class SettingsPageController
                 {
                     IncludeRecoveryStorage = _selected == "recovery",
                     IncludeTrash = _selected == "trash",
-                    CheckModUpdates = _checkModUpdates,
                     IncludeContentGraph = _selected == "contentgraph"
                 }, cancellationToken: _managementStop.Token).AsTask();
-            _checkModUpdates = false;
             WakeOnPlatformCompletion(_managementRead);
         }
         if (_managementRead is not { IsCompleted: true } reading) return;
-        _managementRead = null; _managementLoaded = true; _checkingModUpdates = false;
+        _managementRead = null; _managementLoaded = true;
         _managementStop?.Dispose(); _managementStop = null;
         if (PendingQuery.Succeeded(reading)
             && reading.Result.Value!.InstanceDirectory == _instance)
         {
             _management = reading.Result.Value; _managementError = null;
+            if (_contentDetail is { } detail)
+                _contentDetail = _management!.Contents.FirstOrDefault(page => page.PageId == _selected)?.Entries.FirstOrDefault(item => item.Name == detail.Name);
             if (!ManagementPages.Any(page => page.Id == _selected)) _selected = "overview";
             RebuildManagementNavigation();
         }
@@ -116,6 +116,21 @@ internal sealed partial class SettingsPageController
     {
         var button = ActionButton(parent, "Management." + label, label, ManagementAction, width);
         _managementActions[button] = action;
+    }
+
+    private void RefreshManagement()
+    {
+        if (_managementWrite is not null) return;
+        CancelOnlineContent(); CancelManagementRead(); _managementError = null;
+        _onlineListInstance = _instance; _onlineListPage = _selected; _onlineListRefresh = true;
+    }
+
+    private void ManagementRefreshIcon(XsrUiEntityId toolbar, bool spacer = false)
+    {
+        if (spacer) _shell.Tree.GetComponent<XsrUiElement>(Element(toolbar, "ManagementToolbarSpacer", XsrUiSemanticRole.None, null))!.Weight = 1;
+        var button = RefreshIcon(toolbar, "Management.刷新", ManagementAction);
+        _shell.Tree.GetComponent<XsrUiInput>(button)!.Enabled = _managementWrite is null;
+        _managementActions[button] = RefreshManagement;
     }
 
     private void OpenContentDirectory(string directory)
@@ -143,11 +158,11 @@ internal sealed partial class SettingsPageController
         if (_management is not { } snapshot)
         {
             Text(_sections, _managementError ?? "正在读取版本内容…", 13, Muted, 28);
-            ManagementButton(toolbar, "刷新", () => { CancelManagementRead(); _managementError = null; }, 60);
+            ManagementRefreshIcon(toolbar, spacer: true);
             return;
         }
         var page = snapshot.Pages.First(item => item.Id == _selected);
-        if (page.Directory is null) ManagementButton(toolbar, "刷新", () => { CancelManagementRead(); _managementError = null; }, 60);
+        if (page.Directory is null) ManagementRefreshIcon(toolbar, spacer: true);
         if (page.Directory is { } directory)
         {
             _contentSearch = Element(toolbar, "ManagementContentSearch", XsrUiSemanticRole.TextInput, "搜索内容", height: 36);
@@ -157,8 +172,8 @@ internal sealed partial class SettingsPageController
             _shell.Tree.SetComponent(_contentSearch, new XsrUiInput { Focusable = true, Clickable = true });
             Style(_contentSearch, new(241, 244, 248), Ink, 10, 13);
             _shell.Renderer.SetTextInputValue(_contentSearch, _contentFilter);
-            ManagementButton(toolbar, "刷新", () => { CancelManagementRead(); _managementError = null; }, 60);
             ManagementButton(toolbar, "打开文件夹", () => OpenContentDirectory(directory), 100);
+            ManagementRefreshIcon(toolbar);
             _contentSnapshot = snapshot.Contents.FirstOrDefault(item => item.PageId == _selected);
             if (_selected == "mods") BuildModCategories();
             var location = Stack(_sections, "ManagementLocation", XsrUiOrientation.Horizontal, 12);
@@ -166,6 +181,12 @@ internal sealed partial class SettingsPageController
             DesktopLiteralText.Preserve(_shell.Tree, path);
             _shell.Tree.GetComponent<XsrUiElement>(path)!.Weight = 1;
             _contentCount = Text(location, $"{_contentSnapshot?.Entries.Count ?? 0} 项" + (_contentSnapshot?.Complete == false ? " · 未全部列出" : ""), 12, Muted, 24);
+            if (_selected is "mods" or "resourcepacks" or "shaderpacks")
+            {
+                _onlineListStatus = Text(_sections, "正在关联在线信息", 11, Muted, 22);
+                DesktopLiteralText.Preserve(_shell.Tree, _onlineListStatus);
+                UpdateOnlineListStatus();
+            }
             if (_managementError is not null) Text(_sections, _managementError, 13, Muted, 28);
             if (_contentSnapshot?.Error is { } error) Text(_sections, error, 13, Muted, 28);
             _contentList = Stack(_sections, "ManagementContentList", XsrUiOrientation.Vertical, 0);

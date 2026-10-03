@@ -6,9 +6,6 @@ namespace Nexa.Desktop.Ui;
 internal sealed partial class SettingsPageController
 {
     private string _modCategory = "all";
-    private bool _checkModUpdates;
-    private bool _checkingModUpdates;
-    private XsrUiEntityId _modUpdateButton;
     private readonly Dictionary<XsrUiEntityId, string> _modCategoryOptions = [];
     private XsrUiEntityId _modCategoryTrack;
 
@@ -53,15 +50,6 @@ internal sealed partial class SettingsPageController
             };
         }
         _shell.Tree.GetComponent<XsrUiElement>(track)!.Width = 432;
-        _modUpdateButton = ActionButton(row, "Management.检查更新", _checkingModUpdates ? "检查中…" : "检查更新", ManagementAction, 84);
-        _managementActions[_modUpdateButton] = () =>
-        {
-            if (_managementRead is not null || _checkingModUpdates) return;
-            _checkingModUpdates = true;
-            _shell.Tree.SetComponent(_modUpdateButton, new XsrUiText("检查中…"));
-            _checkModUpdates = true;
-            CancelManagementRead();
-        };
         UpdateModCategories();
     }
 

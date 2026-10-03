@@ -436,7 +436,8 @@ internal sealed partial class VersionSelectionController : IDisposable
         { style.HoverExpand = true; style.CornerRadius = 16; style.Background = DesktopUiPalette.CapsuleBackground; style.Foreground = DesktopUiPalette.CapsuleForeground; style.TextAlignment = XsrUiTextAlignment.Center; }
         if (key == "LibraryAddPath") { style.Background = Blue; style.Foreground = new(255, 255, 255); style.Hover = new(23, 110, 225); }
         if (key == "LibraryDropdownDismiss") { style.Background = XsrUiColor.Transparent; style.Hover = XsrUiColor.Transparent; }
-        if (key is "LibraryAddDirectory" or "LibraryRefresh") { style.HoverExpand = true; style.CornerRadius = key == "LibraryAddDirectory" ? 20 : 18; style.TextAlignment = XsrUiTextAlignment.Center; }
+        if (key == "LibraryAddDirectory") { style.HoverExpand = true; style.CornerRadius = 20; style.TextAlignment = XsrUiTextAlignment.Center; }
+        if (key == "LibraryRefresh") { style.CornerRadius = 20; style.Background = DesktopUiPalette.CapsuleBackground; style.Foreground = DesktopUiPalette.CapsuleForeground; style.Hover = DesktopUiPalette.CapsuleHover; }
         if (key == "LibraryAddDirectory") { style.Background = DesktopUiPalette.CapsuleBackground; style.Foreground = DesktopUiPalette.CapsuleForeground; style.Hover = DesktopUiPalette.CapsuleHover; style.FontWeight = 600; }
         _shell.Tree.SetComponent(entity, style);
         if (_shell.Tree.GetComponent<XsrUiText>(entity) is { } text && key != "LibraryEmpty") { text.MaxLines = 1; text.TrimOverflow = true; }

@@ -8,6 +8,16 @@ internal sealed partial class SettingsPageController
 {
     private readonly Dictionary<XsrUiEntityId, (Editor Editor, XsrUiEntityId Auto, XsrUiEntityId Manual)> _autoModes = [];
 
+    private XsrUiEntityId RefreshIcon(XsrUiEntityId parent, string name, XsrSemanticId command)
+    {
+        var button = Element(parent, name, XsrUiSemanticRole.Button, "刷新", 36, 36);
+        _shell.Tree.SetComponent(button, new XsrUiInput { Focusable = true, Clickable = true });
+        _shell.Tree.SetComponent(button, new XsrUiCommandBinding(command));
+        _shell.Tree.SetComponent(button, new XsrUiImage("pcl/refresh"));
+        Style(button, new(242, 245, 249), Blue, 10);
+        return button;
+    }
+
     private void BuildAutomaticMode(XsrUiEntityId parent, Editor editor)
     {
         var track = Stack(parent, "SettingsMode." + editor.Entry.SettingKey, XsrUiOrientation.Horizontal, 0);

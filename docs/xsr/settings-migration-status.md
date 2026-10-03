@@ -79,6 +79,8 @@ XSR-775 delivers durable custom Java registration, native executable selection, 
 
 XSR-776 connects low-power presentation to window activity and the existing task, launch and sign-in state. Idle background windows request at most 10 fps; foreground activity restores the stored animation rate. The renderer remains demand-driven and no transfer, native window animation or input clock is suspended.
 
+XSR-779 makes installed-content enrichment and update checks one incremental refresh operation. Visible rows receive small independent batches, partial provider matches are retained within the request, and refresh bypasses online caches. Settings refresh controls are accessible icon buttons at the right of their toolbar.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Managed-runtime deletion; compatibility checks remain mandatory until a separate safe policy exists |

@@ -1,4 +1,9 @@
 [
+  {"en":"Matching online information","zh-Hant":"正在關聯線上資訊","source":"正在关联在线信息"},
+  {"en":"Online information is unavailable","zh-Hant":"線上資訊尚不可用","source":"在线信息尚不可用"},
+  {"en":"Online information refreshed. Some files could not be fully identified","zh-Hant":"線上資訊已重新整理，部分檔案未能完整識別","source":"在线信息已刷新，部分文件未能完整识别"},
+  {"en":"Online information refreshed","zh-Hant":"線上資訊已重新整理","source":"在线信息已刷新"},
+  {"en":"Matched","zh-Hant":"已關聯","source":"已关联"},
   { "source": "窗口在后台且没有任务时降低动画帧率，返回后自动恢复。", "en": "Reduce animation frame rate when the window is in the background with no active tasks. Restore it on return.", "zh-Hant": "視窗在背景且沒有任務時降低動畫幀率，返回後自動恢復。" },
   { "source": "添加 Java", "en": "Add Java", "zh-Hant": "新增 Java" },
   { "source": "允许使用 Java", "en": "Allow this Java runtime", "zh-Hant": "允許使用 Java" },
