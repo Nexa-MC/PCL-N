@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
     <Description>Executable contract tests for the XSR foundation services.</Description>
     <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

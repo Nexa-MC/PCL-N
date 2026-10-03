@@ -15,7 +15,10 @@ An existing object is never adopted. Read handles and new files retain sharing r
 Tests exercise descriptor policy, ordinary-user tree rejection and real native object reads.
 The separate elevated Windows CI test creates only a randomly named staging directory under
 Program Files, exercises create-new, handle sharing, parent lifetime and object-bound cleanup,
-and removes its fixture. It fails when the required elevated fixture cannot run. Local
+and removes its fixture. It also impersonates the same user with Administrators disabled
+and privileges removed, confirms the account SID is unchanged, and requires actual child
+creation and file writes to fail with access denied. This tests OS enforcement in addition
+to descriptor policy. It fails when the required elevated fixture cannot run. Local
 unelevated tests do not claim coverage of these writes. NativeAOT executes the same adapter.
 
 This closes the Windows admission/staging primitive only. The privileged helper executable,

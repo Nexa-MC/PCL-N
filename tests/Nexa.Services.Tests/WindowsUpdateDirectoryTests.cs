@@ -1,6 +1,9 @@
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Microsoft.Win32.SafeHandles;
 using Nexa.Platform.Updates;
 
 namespace Nexa.Services.Tests;
@@ -77,6 +80,7 @@ internal static partial class Program
             var release = await ReceptionReleaseAsync();
             await release.CopyVerifiedPackageAsync(new MemoryStream(ReceptionPackage), file.Stream);
             file.Stream.Flush(true);
+            WindowsUpdateRejectsSameAccountWrites(identity, file.Stream.SafeFileHandle);
             ExpectUpdateFailure<IOException>(() => stage.CreateFile("package.bin"));
             ExpectUpdateFailure<IOException>(() => stage.OpenReadFile("package.bin"));
             byte[] received = new byte[ReceptionPackage.Length];
@@ -92,10 +96,60 @@ internal static partial class Program
         }
     }
 
+    [SupportedOSPlatform("windows")]
+    private static unsafe void WindowsUpdateRejectsSameAccountWrites(WindowsIdentity identity, SafeFileHandle file)
+    {
+        char* buffer = stackalloc char[32768];
+        uint length = UpdateFixtureNative.GetFinalPathNameByHandle(file, buffer, 32768, 0);
+        if (length is 0 or >= 32768) throw new Win32Exception(Marshal.GetLastPInvokeError());
+        string path = new(buffer, 0, (int)length);
+        string directory = Path.GetDirectoryName(path)!;
+        var administrator = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+        byte[] sid = new byte[administrator.BinaryLength];
+        administrator.GetBinaryForm(sid, 0);
+        SafeAccessTokenHandle token;
+        fixed (byte* pointer = sid)
+        {
+            var disabled = new UpdateFixtureNative.SidAndAttributes { Sid = (nint)pointer };
+            if (!UpdateFixtureNative.CreateRestrictedToken(identity.AccessToken, 1, 1, &disabled, 0, 0, 0, 0, out token))
+                throw new Win32Exception(Marshal.GetLastPInvokeError());
+        }
+        using (token)
+        {
+            WindowsIdentity.RunImpersonated(token, () =>
+            {
+                using var restricted = WindowsIdentity.GetCurrent();
+                AssertEqual(identity.User!.Value, restricted.User!.Value);
+                AssertFalse(new WindowsPrincipal(restricted).IsInRole(WindowsBuiltInRole.Administrator));
+                // No privileged handle is passed to the simulated attacker. These name-based
+                // attempts must be denied by the kernel, rather than by adapter policy.
+                ExpectUpdateFailure<UnauthorizedAccessException>(() => Directory.CreateDirectory(Path.Combine(directory, "attacker-child")));
+                ExpectUpdateFailure<UnauthorizedAccessException>(() => File.WriteAllText(Path.Combine(directory, "attacker-file"), "changed"));
+                ExpectUpdateFailure<UnauthorizedAccessException>(() => { using var write = File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete); });
+            });
+        }
+    }
+
     private static void ExpectUpdateFailure<T>(Action action) where T : Exception
     {
         try { action(); }
         catch (T) { return; }
         throw new InvalidOperationException($"Expected {typeof(T).Name}.");
     }
+}
+
+[SupportedOSPlatform("windows")]
+internal static partial class UpdateFixtureNative
+{
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct SidAndAttributes { internal nint Sid; internal uint Attributes; }
+
+    [LibraryImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW", SetLastError = true)]
+    internal static unsafe partial uint GetFinalPathNameByHandle(SafeFileHandle file, char* buffer, uint size, uint flags);
+
+    [LibraryImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static unsafe partial bool CreateRestrictedToken(SafeAccessTokenHandle existing, uint flags,
+        uint disabledCount, SidAndAttributes* disabled, uint deletedCount, nint deleted,
+        uint restrictedCount, nint restricted, out SafeAccessTokenHandle token);
 }
