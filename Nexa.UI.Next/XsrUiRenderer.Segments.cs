@@ -45,12 +45,37 @@ public sealed partial class XsrUiRenderer
     {
         if (_tree.GetComponent<XsrUiScroll>(parent) is not { } scroll || !_paintRects.TryGetValue(parent.Index, out XsrUiRect viewport)
             || !_paintRects.TryGetValue(child.Index, out XsrUiRect target)) return;
-        double delta = target.X < viewport.X ? target.X - viewport.X
-            : target.X + target.Width > viewport.X + viewport.Width ? target.X + target.Width - viewport.X - viewport.Width : 0;
-        if (delta == 0) return;
-        scroll.OffsetX = Math.Max(0, scroll.OffsetX + delta);
+        double overflow = Math.Max(0, _stackContentSizes.GetValueOrDefault(parent.Index).Width - viewport.Width);
+        double offset = scroll.OffsetX;
+        if (_tree.GetComponent<XsrUiSegmentedTrack>(parent) is { } track
+            && _paintRects.TryGetValue(track.Selected.Index, out XsrUiRect previous))
+        {
+            double travel = Math.Max(1, viewport.Width - previous.Width);
+            double start = Math.Clamp((previous.X - viewport.X) / travel, 0, 1);
+            double progress = (target.X - viewport.X) / Math.Max(1, viewport.Width - target.Width);
+            offset = ProjectSegmentScroll(scroll.OffsetX, start, progress, overflow);
+        }
+        double left = target.X - viewport.X + scroll.OffsetX;
+        double minimum = Math.Clamp(left + target.Width - viewport.Width, 0, overflow);
+        double maximum = Math.Clamp(left, 0, overflow);
+        // A click keeps its admitted target, even when the drag projection would travel
+        // far enough to bring a different item under the pointer.
+        offset = minimum <= maximum ? Math.Clamp(offset, minimum, maximum) : maximum;
+        if (offset == scroll.OffsetX) return;
+        scroll.OffsetX = offset;
         _tree.MarkDirty(parent, XsrUiDirtyKinds.Layout);
     }
+    private static double ProjectSegmentScroll(double startOffset, double startProgress, double progress, double overflow)
+    {
+        if (progress >= startProgress)
+        {
+            double traveled = (progress - startProgress) / Math.Max(.001, 1 - startProgress);
+            return startOffset + (overflow - startOffset) * Math.Clamp((traveled - .2) / .8, 0, 1);
+        }
+        return startProgress > .001 ? startOffset * Math.Clamp(progress / startProgress, 0, 1)
+            : startOffset + overflow * progress / .8;
+    }
+
     private bool BeginSegmentDrag(XsrUiPoint point)
     {
         if (_scene is null) return false;
@@ -95,15 +120,7 @@ public sealed partial class XsrUiRenderer
         {
             double overflow = Math.Max(0, _stackContentSizes.GetValueOrDefault(_segmentDrag.Index).Width - viewport.Width);
             double progress = (point.X - track.GrabOffset - viewport.X) / Math.Max(1, viewport.Width - track.ScrollThumbWidth);
-            double target;
-            if (progress >= track.ScrollStartProgress)
-            {
-                double traveled = (progress - track.ScrollStartProgress) / Math.Max(.001, 1 - track.ScrollStartProgress);
-                target = track.ScrollStartOffset + (overflow - track.ScrollStartOffset) * Math.Clamp((traveled - .2) / .8, 0, 1);
-            }
-            else target = track.ScrollStartProgress > .001
-                ? track.ScrollStartOffset * Math.Clamp(progress / track.ScrollStartProgress, 0, 1)
-                : track.ScrollStartOffset + overflow * progress / .8;
+            double target = ProjectSegmentScroll(track.ScrollStartOffset, track.ScrollStartProgress, progress, overflow);
             double offset = Math.Clamp(target, 0, overflow);
             scrollShift = offset - scroll.OffsetX;
             if (scrollShift != 0) { scroll.OffsetX = offset; _tree.MarkDirty(_segmentDrag, XsrUiDirtyKinds.Layout); }

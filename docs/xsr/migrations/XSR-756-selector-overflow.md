@@ -10,11 +10,15 @@ left end, rightward auto-scroll starts after 20% of the available thumb travel a
 the remaining 80% onto the hidden content distance. Re-grabbing a scrolled thumb preserves
 the current offset; reversal scrolls back proportionally. The scroll is position-based,
 not a fixed increment per pointer event, so input frequency cannot change the result.
-Click, keyboard and accessibility activation reveal the selected segment independently of
-the drag threshold. Revelation happens in the common activation path once, in both
-directions, without disturbing an active thumb drag.
+Click, keyboard and accessibility activation use the same 20% proportional projection
+as dragging, including fully visible options. The requested offset is bounded so the
+clicked option stays visible; activation must never substitute another option just
+because scrolling moved the labels. Leftward selection reveals preceding content.
+Re-selecting an unchanged option does not drift. Active thumb drags continue to own
+scrolling, and do not run this activation projection for every emitted intent.
 
 Contract tests cover clipping, viewport shrink/grow, proportional scroll, repeated pointer
-coordinates, reversing, cancellation, keyboard reachability and partially clipped pointer selection. UI.Next owns geometry and
+coordinates, reversing, cancellation, keyboard reachability, fully visible and partially
+clipped pointer selection, and actual settings-page mouse input. UI.Next owns geometry and
 gesture state; Desktop retains only selection intents. Existing reduced-motion behavior
 and scroll/transition clocks remain unchanged.

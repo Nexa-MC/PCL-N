@@ -69,6 +69,31 @@ internal static partial class Program
         AssertTrue(FindByKey(fixture.Shell, scene, "SettingsSections").Rect.Width > 480);
     }
 
+    private static void SettingsPointerSelectionScrollsFullyVisibleOptions()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
+            fixture.Foundation.Commands, fixture.Store, fixture.Feedback);
+        fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(settings.Page);
+        var scene = fixture.Shell.Render(new(700, 650));
+        var nav = FindByKey(fixture.Shell, scene, "SettingsNavigation");
+        var scroll = fixture.Shell.Tree.GetComponent<XsrUiScroll>(nav.Entity)!;
+        var track = fixture.Shell.Tree.GetComponent<XsrUiSegmentedTrack>(nav.Entity)!;
+        var target = scene.Nodes.Where(n => fixture.Shell.Tree.Name(n.Entity).StartsWith("SettingsNav.", StringComparison.Ordinal)
+            && n.Entity != track.Selected && n.Rect.X >= nav.Rect.X && n.Rect.X + n.Rect.Width <= nav.Rect.X + nav.Rect.Width)
+            .MaxBy(n => n.Rect.X);
+        double before = scroll.OffsetX;
+        var point = new XsrUiPoint(target.Rect.X + target.Rect.Width / 2, target.Rect.Y + target.Rect.Height / 2);
+        AssertTrue(fixture.Shell.Renderer.PointerPressed(point)); AssertTrue(fixture.Shell.Renderer.PointerReleased(point));
+        scene = fixture.Shell.Render(new(700, 650));
+        AssertEqual(fixture.Shell.Tree.Name(target.Entity)["SettingsNav.".Length..], settings.SelectedSection);
+        AssertTrue(scroll.OffsetX > before);
+        var selected = scene.Nodes.Single(n => n.Entity == target.Entity);
+        AssertTrue(selected.Rect.X >= nav.Rect.X && selected.Rect.X + selected.Rect.Width <= nav.Rect.X + nav.Rect.Width + .01);
+        double retained = scroll.OffsetX;
+        fixture.Shell.Render(new(700, 650)); fixture.Shell.Render(new(700, 650)); AssertEqual(retained, scroll.OffsetX);
+    }
+
     private static void VersionSettingsAreScopedAndRestoreInheritance()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));

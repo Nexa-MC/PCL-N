@@ -42,6 +42,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("Settings pointer selection scrolls fully visible options", SettingsPointerSelectionScrollsFullyVisibleOptions),
         ("automatic update restart follows selected version and rollback", AutomaticUpdateRestartFollowsSelectedVersionAndRollback),
         ("automatic update resumes on startup without opening settings", AutomaticUpdateResumesOnStartupWithoutOpeningSettings),
         ("automatic update retry retains protected transaction channel", AutomaticUpdateRetryRetainsProtectedChannel),
