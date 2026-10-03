@@ -113,6 +113,10 @@ class InstallScopeTests(unittest.TestCase):
         self.assertIn("{commondesktop}\\NexaCL", setup)
         self.assertIn("{commonprograms}\\NexaCL", setup)
         self.assertNotIn("{localappdata}", setup)
+        self.assertIn("function InitializeSetup: Boolean;", setup)
+        self.assertIn("SetTokenInformation@advapi32.dll", setup)
+        self.assertIn("NexaSetTokenOwner(Token, 4, Owner, 4)", setup)
+        self.assertIn("'S-1-5-32-544'", setup)
         ns = {"w": "http://wixtoolset.org/schemas/v4/wxs"}
         installer = ET.parse(root / "windows.wxs").find("w:Package", ns)
         self.assertEqual("perMachine", installer.attrib["Scope"])

@@ -72,6 +72,12 @@ acceptance; a green managed test is not evidence for either.
 Installer smoke runs the installed helper's non-mutating `--validate-installation` mode,
 which admits its exact fixed executable path and the entire real installation namespace.
 
+Windows Setup sets its elevated process token's default owner to BUILTIN Administrators
+before creating installation objects. Ownership therefore starts protected; no post-copy
+owner/DACL repair window is introduced. This does not admit or change existing unsafe
+objects. A prior unsafe installation still requires a clean reinstall, as reported by
+the helper. MSI runs its machine-wide file installation through Windows Installer.
+
 Local HTTP validation belongs only to the Services test executable. A loopback-only fixture
 serves a freshly test-signed release; a test transport maps the fixed publisher requests
 onto that fixture. It exercises the production release source, verifier and transaction

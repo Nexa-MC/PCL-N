@@ -50,14 +50,17 @@ def windows(root, base):
         except subprocess.CalledProcessError:
             # Inspect the actual installer output before uninstalling it. This is
             # read-only evidence; never repair an object the helper refused.
+            probe = subprocess.run([str(executable.parent / "Nexa.Update.Helper.exe"), "--validate-installation"],
+                                   capture_output=True, text=True, timeout=30, check=False)
             paths = (executable.anchor, executable.parent.parent, executable.parent,
                      executable.parent / "Nexa.Update.Helper.exe")
             script = "@(" + ",".join("'" + str(path).replace("'", "''") + "'" for path in paths) + ")"
             script += " | ForEach-Object { $a = Get-Acl -LiteralPath $_; [pscustomobject]@{Path=$_;Owner=$a.Owner;Sddl=$a.Sddl} } | ConvertTo-Json"
-            result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", script],
+            result = subprocess.run(["pwsh.exe", "-NoProfile", "-NonInteractive", "-Command", script],
                                     capture_output=True, text=True, timeout=30, check=False)
-            (diagnostics / "update-admission.txt").write_text(result.stdout + result.stderr, encoding="utf-8")
-            print(result.stdout + result.stderr, flush=True)
+            evidence = probe.stdout + probe.stderr + result.stdout + result.stderr
+            (diagnostics / "update-admission.txt").write_text(evidence, encoding="utf-8")
+            print(evidence, flush=True)
             raise
         validate_runtime_contents(executable.parent)
         run(executable, "--validate-shell", timeout=30)
