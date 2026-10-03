@@ -190,7 +190,7 @@ internal static partial class Program
             minecraftRootDirectory: minecraftRootDirectory,
             configureLogging: logging =>
             {
-                if (consoleAttached || channel != "release") logging.MaximumLevel = LogLevel.RealTime;
+                if (consoleAttached || buildInfo.DiagnosticsRequired) logging.MaximumLevel = LogLevel.RealTime;
                 if (consoleAttached) logging.AddSink(new ConsoleLogSink());
                 logging.AddSink(sink);
                 onLogReady(logging);

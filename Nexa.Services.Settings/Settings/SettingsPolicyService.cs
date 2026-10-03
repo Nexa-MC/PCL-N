@@ -96,6 +96,14 @@ public sealed partial class SettingsPolicyService
                 inherited = new(SettingsOverrideMode.Custom, "fullscreen");
             if (inherited is null && definition.Key == "updates.auto-check" && raw.GetValueOrDefault("SystemUpdateMode") == "3")
                 inherited = new(SettingsOverrideMode.Custom, "false");
+            if (inherited is null && definition.Key == "diagnostics.log-level" && raw.GetValueOrDefault("SystemLogLevel") is { } level && level != "2")
+                inherited = new(SettingsOverrideMode.Custom, level);
+            if (inherited is null && definition.Key == "diagnostics.log-lines" && raw.GetValueOrDefault("SystemMaxLog") is { } logSlider
+                && logSlider != "13" && int.TryParse(logSlider, out int logValue))
+            {
+                long lines = logValue switch { <= 5 => (long)logValue * 10 + 50, <= 13 => (long)logValue * 50 - 150, <= 28 => (long)logValue * 100 - 800, _ => 2000 };
+                inherited = new(SettingsOverrideMode.Custom, Math.Clamp(lines, 50, 2000).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
             if (inherited is null && definition.Key == "game.process-priority" && raw.GetValueOrDefault("LaunchArgumentPriority") is "0" or "2" or "3" or "4")
                 inherited = new(SettingsOverrideMode.Custom, raw["LaunchArgumentPriority"] switch
                 { "0" => "above-normal", "2" => "below-normal", "3" => "high", _ => "real-time" });
@@ -166,6 +174,10 @@ public sealed partial class SettingsPolicyService
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "appearance.animation-fps")
                 writes["UiAniFPS"] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? "59"
                     : (int.Parse(mutation.Value.Value!, System.Globalization.CultureInfo.InvariantCulture) - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "diagnostics.log-level")
+                writes["SystemLogLevel"] = mutation.Value.Value is "0" or "1" or "2" or "3" or "4" ? mutation.Value.Value : "2";
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "diagnostics.log-lines" && mutation.Value.Mode == SettingsOverrideMode.Inherit)
+                writes["SystemMaxLog"] = "13";
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.game-source")
                 writes["ToolDownloadSource"] = mutation.Value.Value switch { "mirrors-first" => "0", "official-only" => "2", _ => "1" };
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.file-concurrency")

@@ -2455,7 +2455,7 @@
     "section": "日志",
     "label": "日志等级",
     "kind": "Setting",
-    "key": null,
+    "key": "diagnostics.log-level",
     "developer": false,
     "availability": "NotImplemented"
   },
@@ -2479,7 +2479,7 @@
     "section": "日志",
     "label": "最大日志数量",
     "kind": "Setting",
-    "key": null,
+    "key": "diagnostics.log-lines",
     "developer": false,
     "availability": "NotImplemented"
   },

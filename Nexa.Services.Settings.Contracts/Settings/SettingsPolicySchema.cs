@@ -84,6 +84,8 @@ public static class SettingsPolicySchema
             Choices: "official-first|mirrors-first|official-only"),
         new("install.inherit-vanilla", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.NextTask),
         new("diagnostics.telemetry", SettingsValueKind.Boolean, "false", false, false, "TelemetryExperienceProgram", SettingsApplyTiming.Immediate),
+        new("diagnostics.log-level", SettingsValueKind.Enum, "auto", false, false, null, SettingsApplyTiming.Immediate, Choices: "auto|0|1|2|3|4"),
+        new("diagnostics.log-lines", SettingsValueKind.Number, "500", false, false, null, SettingsApplyTiming.Immediate, "entries", 50, 2000),
         new("updates.channel", SettingsValueKind.Enum, "build", false, false, null, SettingsApplyTiming.NextTask, Choices: "build|stable|alpha|beta|ci"),
         new("updates.auto-check", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
         new("developer.enabled", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),

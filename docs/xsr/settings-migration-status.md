@@ -81,7 +81,9 @@ XSR-776 connects low-power presentation to window activity and the existing task
 
 XSR-778 connects durable update channel preferences and an optional startup discovery check. Discovery follows the current build by default; active update transactions retain their captured channel. Switching preferences retires old offers and responses.
 
-XSR-779 makes installed-content enrichment and update checks one incremental refresh operation. Visible rows receive small independent batches, partial provider matches are retained within the request, and refresh bypasses online caches. Settings refresh controls are accessible icon buttons at the right of their toolbar.
+XSR-779 makes installed-content enrichment and update checks one incremental refresh operation. Visible rows receive small independent batches, partial provider matches are retained within the request, and refresh bypasses online caches. All Settings refresh controls are accessible icon buttons at the right of their toolbar.
+
+XSR-780 applies local log verbosity and bounded UI history immediately from committed settings, without visiting Settings. Disk logs are retained independently; this slice does not implement disk log deletion.
 
 | Slice | Remaining integration |
 |---|---|
@@ -89,7 +91,7 @@ XSR-779 makes installed-content enrichment and update checks one incremental ref
 | Game | Title, isolation, launch visibility and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Theme and supported system integration; platform actions belong to Host |
-| Privacy/advanced | Log retention/level; existing telemetry policy and update actions must retain their current security boundaries |
+| Privacy/advanced | Disk log retention/export; existing telemetry policy and update actions retain their security boundaries |
 | Storage | Storage-location migration preview and cleanup; use existing service commands and transaction contracts |
 
 Reserved IA positions are not a statement that dev already implements every capability.

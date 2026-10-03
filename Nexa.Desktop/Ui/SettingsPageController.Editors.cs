@@ -62,6 +62,8 @@ internal sealed partial class SettingsPageController
             { "normal" => "正常", "below-normal" => "较低", "above-normal" => "较高", "high" => "高", "real-time" => "实时", _ => value };
             if (entry.SettingKey == "updates.channel") label = value switch
             { "build" => "跟随当前版本", "stable" => "正式版", "alpha" => "Alpha", "beta" => "Beta", "ci" => "CI", _ => value };
+            if (entry.SettingKey == "diagnostics.log-level") label = value switch
+            { "auto" => "自动", "0" => "仅错误", "1" => "警告", "2" => "信息", "3" => "调试", "4" => "详细跟踪", _ => value };
             if (entry.SettingKey == "java.vendor") label = value switch
             { "" => "自动", "EclipseTemurin" => "Temurin", "IbmSemeru" => "IBM Semeru", "GraalVmCommunity" => "GraalVM", "OpenJdk" => "OpenJDK", "TencentKona" => "腾讯 Kona", "Dragonwell" => "龙井 Java", "Unknown" => "其他", _ => value };
             bool nativeName = entry.SettingKey == "general.language" && value != "auto";

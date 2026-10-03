@@ -426,6 +426,8 @@ internal sealed partial class SettingsPageController : IDisposable
         "general.region" => "用于日期和数字；更改后重启生效。",
         "updates.channel" => "用于下次检查；CI 使用 Alpha 更新。已开始的更新保持原通道。",
         "updates.auto-check" => "启动时检查一次；关闭后仍可手动检查。安装更新前需要确认。",
+        "diagnostics.log-level" => "立即生效；自动沿用当前构建的日志等级。",
+        "diagnostics.log-lines" => "界面保留的日志条数，50–2000；不会删除磁盘日志。",
         "game.process-priority" => "下次启动生效；系统可能拒绝提高优先级。",
         "game.jvm" => "每行一个参数，应用后用于下次启动。",
         "install.inherit-vanilla" => "关闭时安装独立版本；开启后依赖原版。下次安装生效。",

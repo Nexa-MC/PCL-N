@@ -4,6 +4,9 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("log preferences apply committed state and dispose", Sync(LogPreferencesApplyCommittedStateAndDispose)),
+        ("log retention changes never wait for observers", LogRetentionChangesDoNotWaitForObservers),
+        ("log preferences retain legacy values and bounds", Sync(LogPreferencesRetainLegacyValuesAndBounds)),
         ("installed batches reuse partial identity and refresh caches", InstalledBatchReusesPartialIdentityAndRefreshesCaches),
         ("explicit resource refresh bypasses merged detail cache", ExplicitResourceRefreshBypassesMergedDetailCache),
         ("update preferences follow build and persist explicit choices", Sync(UpdatePreferencesFollowBuildAndPersistExplicitChoices)),

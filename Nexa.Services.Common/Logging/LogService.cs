@@ -37,6 +37,7 @@ public sealed class LogService : ILogWriter, IDisposable
 
     private readonly object _gate = new();
     private readonly int _capacity;
+    private int _retentionLimit;
     private readonly TimeProvider _clock;
     private readonly XsrStateStore _store;
     private readonly XsrStateId _entriesId;
@@ -70,6 +71,7 @@ public sealed class LogService : ILogWriter, IDisposable
         _store = store ?? throw new ArgumentNullException(nameof(store));
 
         _capacity = capacity;
+        _retentionLimit = capacity;
         _clock = clock ?? TimeProvider.System;
         _entriesId = _store.Resolve(EntriesKey);
         if (publicationInterval is { } interval && interval > TimeSpan.Zero)
@@ -95,6 +97,24 @@ public sealed class LogService : ILogWriter, IDisposable
     }
 
     public int Capacity => _capacity;
+
+    /// <summary>Bounded retained history; reducing it discards oldest entries immediately.</summary>
+    public int RetentionLimit
+    {
+        get => Volatile.Read(ref _retentionLimit);
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            if (Volatile.Read(ref _disposed)) return;
+            int limit = Math.Min(value, _capacity);
+            if (Interlocked.Exchange(ref _retentionLimit, limit) <= limit) return;
+            // A settings commit may hold its own business lock. Never wait for log
+            // observers (which can themselves write settings) on that thread.
+            if (_publicationTimer is null) ThreadPool.QueueUserWorkItem(static log => log.FlushPending(), this, preferLocal: false);
+            else try { _publicationTimer.Change(TimeSpan.Zero, Timeout.InfiniteTimeSpan); }
+                catch (ObjectDisposedException) { }
+        }
+    }
 
     public XsrStateStore StateStore => _store;
 
@@ -167,7 +187,7 @@ public sealed class LogService : ILogWriter, IDisposable
                 string.IsNullOrWhiteSpace(module) ? "General" : module.Trim(), redacted, error)
             { Operation = facts };
             _ring.Enqueue(entry);
-            if (_ring.Count > _capacity) _ring.Dequeue();
+            while (_ring.Count > Volatile.Read(ref _retentionLimit)) _ring.Dequeue();
             _pending = true;
             if (_publicationTimer is null) FlushPending();
             else SchedulePublication();
@@ -220,6 +240,7 @@ public sealed class LogService : ILogWriter, IDisposable
     {
         lock (_gate)
         {
+            while (_ring.Count > Volatile.Read(ref _retentionLimit)) { _ring.Dequeue(); _pending = true; }
             if (_publicationScheduled)
             {
                 _publicationTimer!.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);

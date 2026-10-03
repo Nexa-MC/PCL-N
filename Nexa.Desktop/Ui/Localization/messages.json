@@ -1,4 +1,8 @@
 [
+  {"source":"详细跟踪","en":"Detailed tracing","zh-Hant":"詳細追蹤"},
+  {"source":"仅错误","en":"Errors only","zh-Hant":"僅錯誤"},
+  {"source":"界面保留的日志条数，50–2000；不会删除磁盘日志。","en":"Keep 50–2000 log entries in the interface. Log files are kept separately.","zh-Hant":"介面保留的日誌筆數，50–2000；不會刪除磁碟日誌。"},
+  {"source":"立即生效；自动沿用当前构建的日志等级。","en":"Applies immediately. Automatic uses the log level for the current build.","zh-Hant":"立即生效；自動沿用目前版本的日誌等級。"},
   {"en":"Applies to the next check. CI uses Alpha updates. Updates already in progress keep their original channel.","zh-Hant":"用於下次檢查；CI 使用 Alpha 更新。已開始的更新保持原通道。","source":"用于下次检查；CI 使用 Alpha 更新。已开始的更新保持原通道。"},
   {"en":"Check once at startup. Manual checks remain available when off. Installing an update requires confirmation.","zh-Hant":"啟動時檢查一次；關閉後仍可手動檢查。安裝更新前需要確認。","source":"启动时检查一次；关闭后仍可手动检查。安装更新前需要确认。"},
   {"en":"Follow current build","zh-Hant":"跟隨目前版本","source":"跟随当前版本"},

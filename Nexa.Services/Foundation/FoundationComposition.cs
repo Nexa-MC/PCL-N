@@ -61,6 +61,7 @@ public static class FoundationState
 public sealed class FoundationHost : IDisposable
 {
     private readonly IReadOnlyList<object> _services;
+    private readonly SettingsLoggingSession _loggingSettings;
 
     internal FoundationHost(
         XsrStateStore stateStore,
@@ -82,6 +83,7 @@ public sealed class FoundationHost : IDisposable
         Telemetry = telemetry ?? throw new ArgumentNullException(nameof(telemetry));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         SettingsPolicy = new SettingsPolicyService(Settings);
+        _loggingSettings = new(Settings, SettingsPolicy, Logging);
         InputUsage = new InputUsageTracker();
         ObservationHistory = new ResourceObservationHistory();
         OnlineResourceModels = new OnlineWorkingSetModelStore();
@@ -145,7 +147,7 @@ public sealed class FoundationHost : IDisposable
     }
 
     public WorkScheduler Work { get; }
-    public void Dispose() => Work.Dispose();
+    public void Dispose() { _loggingSettings.Dispose(); Work.Dispose(); }
 
     public Minecraft.Java.IJavaRuntimeLocator JavaLocator { get; }
     public Minecraft.Java.IJavaRuntimeRegistrationStore JavaRegistrations { get; }
