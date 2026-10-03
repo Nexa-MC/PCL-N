@@ -691,6 +691,9 @@ internal sealed class ResourcesPageController : IDisposable
     {
         var track = Stack(parent, name, true); _shell.Tree.GetComponent<XsrUiStackPanel>(track)!.Spacing = 0; E(track).Width = width * labels.Length;
         _segments.Add((track, width));
+        E(track).MaxWidth = 960;
+        _shell.Tree.SetComponent(track, new XsrUiScroll());
+        _shell.Tree.SetComponent(track, new XsrUiScrollGesture());
         Style(track, Tint, Ink, 10);
         var thumb = Element(track, name + "Thumb"); E(thumb).IsVisible = false; Style(thumb, White, Ink, 8);
         _shell.Tree.SetComponent(thumb, new XsrUiTransition()); _shell.Tree.SetComponent(track, new XsrUiSegmentedTrack(thumb));

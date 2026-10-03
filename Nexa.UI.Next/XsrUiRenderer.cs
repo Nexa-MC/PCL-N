@@ -423,6 +423,12 @@ public sealed partial class XsrUiRenderer
         width = ConstrainDimension(width, element?.MinWidth, element?.MaxWidth, padding.Horizontal);
         height = ConstrainDimension(height, element?.MinHeight, element?.MaxHeight, padding.Vertical);
 
+        if (_tree.GetComponent<XsrUiSegmentedTrack>(entity) is not null)
+        {
+            width = Math.Min(width, Math.Max(0, available.Width - margin.Horizontal));
+            widthSensitive = true;
+        }
+
         XsrUiSize desired = new(width, height);
         if (widthSensitive) _widthSensitiveMeasures.Add(entity.Index);
         else _widthSensitiveMeasures.Remove(entity.Index);
@@ -1487,6 +1493,7 @@ public sealed partial class XsrUiRenderer
         XsrUiPager? pageContainer = components.Get<XsrUiPager>();
         XsrUiRect? childClip = transition is { MovesSelf: false, OffsetX: not 0 } or { MovesSelf: false, OffsetY: not 0 }
             || pageContainer is not null || components.Get<XsrUiScroll>() is not null || components.Get<XsrUiSegmentReveal>() is not null
+            || components.Get<XsrUiSegmentedTrack>() is not null
             ? visibleClip ?? rect
             : clip;
         if (transition is { MovesSelf: false })

@@ -460,6 +460,9 @@ public sealed class XsrUiSegmentedTrack(XsrUiEntityId thumb)
     internal bool Dragging { get; set; }
     internal double DragX { get; set; }
     internal double GrabOffset { get; set; }
+    internal double ScrollStartProgress { get; set; }
+    internal double ScrollStartOffset { get; set; }
+    internal double ScrollThumbWidth { get; set; }
     internal long GestureRevision { get; set; }
 }
 

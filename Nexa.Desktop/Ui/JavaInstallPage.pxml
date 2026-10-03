@@ -7,7 +7,7 @@
       <Button Key="JavaInstallStart" Label="开始安装 Java 版 Minecraft" Content="开始安装" Icon="lucide/arrow-right"
               Command="ui.install.start" Width="124" Height="40" />
     </StackPanel>
-    <StackPanel Key="JavaInstallPagerTabs" Label="Java 版安装子页面" Orientation="Horizontal" Height="44" Spacing="2" Padding="4,0,4,0" Scroll="true">
+    <StackPanel Key="JavaInstallPagerTabs" Label="Java 版安装子页面" Orientation="Horizontal" Height="44" MaxWidth="960" Spacing="2" Padding="4,0,4,0" Scroll="true">
       <ContentHost Key="JavaInstallThumb" IsVisible="false" />
       <Button Key="JavaMinecraftTab" Label="显示 Minecraft 安装选项" Content="Minecraft" Command="ui.install.page.minecraft" Height="36" VerticalAlignment="Center" Width="104" Padding="0" />
       <Button Key="JavaForgeTab" Label="显示 Forge 安装选项" Content="Forge" Command="ui.install.page.forge" Height="36" VerticalAlignment="Center" Width="76" Padding="0" />

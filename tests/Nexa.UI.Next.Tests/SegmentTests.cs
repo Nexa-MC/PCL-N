@@ -67,6 +67,49 @@ internal static partial class Program
         public override long GetTimestamp() => _ticks;
         public void Advance(int milliseconds) => _ticks += milliseconds;
     }
+    private static void SegmentOverflowClipsAndScrollsByDragProgress()
+    {
+        XsrUiTree tree = new();
+        var page = tree.Create("page");
+        tree.SetComponent(page, new XsrUiStackPanel(XsrUiOrientation.Vertical));
+        var root = tree.Create("track"); tree.Attach(root, page);
+        tree.SetComponent(root, new XsrUiElement { Height = 40, MaxWidth = 240, HorizontalAlignment = XsrUiAlignment.Start });
+        tree.SetComponent(root, new XsrUiStackPanel(XsrUiOrientation.Horizontal));
+        var scroll = new XsrUiScroll(); tree.SetComponent(root, scroll);
+        var thumb = tree.Create("thumb"); tree.Attach(thumb, root);
+        tree.SetComponent(thumb, new XsrUiElement { IsVisible = false }); tree.SetComponent(thumb, new XsrUiTransition());
+        var track = new XsrUiSegmentedTrack(thumb); tree.SetComponent(root, track);
+        var options = new List<XsrUiEntityId>();
+        for (int i = 0; i < 10; i++)
+        {
+            var option = tree.Create("option-" + i); tree.Attach(option, root); options.Add(option);
+            tree.SetComponent(option, new XsrUiElement { Width = 100, Height = 40 });
+            tree.SetComponent(option, new XsrUiInput { Clickable = true, Focusable = true });
+            tree.SetComponent(option, new XsrUiCommandBinding(XsrSemanticId.Parse("test.segment")));
+        }
+        track.Selected = options[0];
+        var renderer = new XsrUiRenderer(tree, new XsrStateStoreBuilder().Build(), new SegmentSink(track)) { Viewport = new(300, 200) };
+        renderer.SetRoot(page);
+        var scene = renderer.Render();
+        AssertClose(240, scene.Nodes.Single(n => n.Entity == root).Rect.Width);
+        AssertFalse(renderer.HitTest(new(270, 20)) == options[2]);
+        AssertTrue(renderer.PointerPressed(new(50, 20)));
+        renderer.PointerMoved(new(78, 20)); renderer.Render(); AssertClose(0, scroll.OffsetX);
+        renderer.PointerMoved(new(134, 20)); renderer.Render(); AssertClose(380, scroll.OffsetX);
+        renderer.PointerMoved(new(134, 20)); renderer.Render(); AssertClose(380, scroll.OffsetX);
+        renderer.PointerMoved(new(190, 20)); renderer.Render(); AssertClose(760, scroll.OffsetX);
+        AssertEqual(options[9], track.Selected);
+        renderer.PointerMoved(new(50, 20)); renderer.Render(); AssertClose(0, scroll.OffsetX);
+        renderer.CancelPointerGesture();
+        renderer.Viewport = new(180, 200); scene = renderer.Render();
+        AssertClose(180, scene.Nodes.Single(n => n.Entity == root).Rect.Width);
+        AssertTrue(renderer.Focus(options[8])); AssertTrue(renderer.HandleKey(XsrUiKey.Right)); scene = renderer.Render();
+        AssertEqual(options[9], track.Selected);
+        AssertClose(820, scroll.OffsetX);
+        renderer.Viewport = new(500, 200); scene = renderer.Render();
+        AssertClose(240, scene.Nodes.Single(n => n.Entity == root).Rect.Width);
+        AssertClose(760, scroll.OffsetX);
+    }
     private static void ListDragKeepsClicksSeparateAndPublishesInertia()
     {
         XsrUiTree tree = new(); XsrUiEntityId root = tree.Create("list");

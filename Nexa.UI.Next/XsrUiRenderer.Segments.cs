@@ -63,6 +63,9 @@ public sealed partial class XsrUiRenderer
             _segmentDrag = node.Entity; track.Dragging = true;
             Focus(track.Selected, showIndicator: false);
             track.GrabOffset = point.X - thumb.Rect.X; track.DragX = thumb.Rect.X;
+            track.ScrollStartOffset = _tree.GetComponent<XsrUiScroll>(node.Entity)?.OffsetX ?? 0;
+            track.ScrollThumbWidth = thumb.Rect.Width;
+            track.ScrollStartProgress = Math.Clamp((thumb.Rect.X - node.Rect.X) / Math.Max(1, node.Rect.Width - thumb.Rect.Width), 0, 1);
             _tree.MarkDirty(node.Entity, XsrUiDirtyKinds.Paint);
             return true;
         }
@@ -79,17 +82,35 @@ public sealed partial class XsrUiRenderer
     {
         if (!_tree.IsAlive(_segmentDrag) || !IsInVisibleTree(_segmentDrag)) return EndSegmentDrag();
         XsrUiSegmentedTrack track = _tree.GetComponent<XsrUiSegmentedTrack>(_segmentDrag)!;
-        XsrUiSceneNode[] segments = _scene!.Nodes.Where(n => n.IsClickable && _tree.IsAlive(n.Entity) && _tree.Parent(n.Entity) == _segmentDrag && n.IsEnabled).ToArray();
+        // Offscreen options participate in the catalog too. Scene hit-test flags deliberately
+        // exclude clipped nodes, whereas this captured gesture moves the viewport itself.
+        var segments = _tree.Children(_segmentDrag).Where(entity => IsInVisibleTree(entity)
+            && _tree.GetComponent<XsrUiInput>(entity) is { Clickable: true } input && IsEnabled(input)
+            && _paintRects.ContainsKey(entity.Index))
+            .Select(entity => (Entity: entity, Rect: _paintRects[entity.Index])).ToArray();
         if (segments.Length == 0) return EndSegmentDrag();
         double left = segments.Min(n => n.Rect.X), right = segments.Max(n => n.Rect.X + n.Rect.Width);
-        track.DragX = Math.Clamp(point.X - track.GrabOffset, left, Math.Max(left, right - track.LastTarget.Width));
-        XsrUiSceneNode nearest = segments.MinBy(n => Math.Abs(point.X - n.Rect.X - n.Rect.Width / 2));
-        if (nearest.Entity != track.Selected) Activate(nearest.Entity);
+        double scrollShift = 0;
         if (_tree.GetComponent<XsrUiScroll>(_segmentDrag) is { } scroll && _paintRects.TryGetValue(_segmentDrag.Index, out XsrUiRect viewport))
         {
-            double step = point.X > viewport.X + viewport.Width - 24 ? 18 : point.X < viewport.X + 24 ? -18 : 0;
-            if (step != 0) { scroll.OffsetX = Math.Max(0, scroll.OffsetX + step); _tree.MarkDirty(_segmentDrag, XsrUiDirtyKinds.Layout); }
+            double overflow = Math.Max(0, _stackContentSizes.GetValueOrDefault(_segmentDrag.Index).Width - viewport.Width);
+            double progress = (point.X - track.GrabOffset - viewport.X) / Math.Max(1, viewport.Width - track.ScrollThumbWidth);
+            double target;
+            if (progress >= track.ScrollStartProgress)
+            {
+                double traveled = (progress - track.ScrollStartProgress) / Math.Max(.001, 1 - track.ScrollStartProgress);
+                target = track.ScrollStartOffset + (overflow - track.ScrollStartOffset) * Math.Clamp((traveled - .2) / .8, 0, 1);
+            }
+            else target = track.ScrollStartProgress > .001
+                ? track.ScrollStartOffset * Math.Clamp(progress / track.ScrollStartProgress, 0, 1)
+                : track.ScrollStartOffset + overflow * progress / .8;
+            double offset = Math.Clamp(target, 0, overflow);
+            scrollShift = offset - scroll.OffsetX;
+            if (scrollShift != 0) { scroll.OffsetX = offset; _tree.MarkDirty(_segmentDrag, XsrUiDirtyKinds.Layout); }
         }
+        track.DragX = Math.Clamp(point.X - track.GrabOffset, left - scrollShift, Math.Max(left - scrollShift, right - scrollShift - track.LastTarget.Width));
+        var nearest = segments.MinBy(n => Math.Abs(point.X - (n.Rect.X - scrollShift) - n.Rect.Width / 2));
+        if (nearest.Entity != track.Selected) Activate(nearest.Entity);
         _tree.MarkDirty(_segmentDrag, XsrUiDirtyKinds.Paint);
         return true;
     }

@@ -41,6 +41,8 @@ internal sealed partial class SettingsPageController
         Style(thumb, White, Ink, 7);
         _shell.Tree.SetComponent(thumb, new XsrUiTransition());
         _shell.Tree.SetComponent(track, new XsrUiSegmentedTrack(thumb));
+        _shell.Tree.SetComponent(track, new XsrUiScroll());
+        _shell.Tree.SetComponent(track, new XsrUiScrollGesture());
         Dictionary<XsrUiEntityId, string> options = [];
         string[] values = entry.Definition!.Kind == SettingsValueKind.Boolean ? ["false", "true"] : entry.Definition.Choices.Split('|');
         double width = 6;

@@ -34,6 +34,8 @@ internal sealed partial class SettingsPageController
         Style(thumb, White, Ink, 7);
         _shell.Tree.SetComponent(thumb, new XsrUiTransition());
         _shell.Tree.SetComponent(track, new XsrUiSegmentedTrack(thumb));
+        _shell.Tree.SetComponent(track, new XsrUiScroll());
+        _shell.Tree.SetComponent(track, new XsrUiScrollGesture());
         foreach (var (key, label) in new[] { ("all", "全部"), ("enabled", "已启用"), ("disabled", "已禁用"),
             ("updates", "可更新"), ("problems", "包异常"), ("unchecked", "未检测") })
         {
