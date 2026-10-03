@@ -16,17 +16,20 @@ internal sealed partial class SettingsPageController
     private bool _javaInventoryRequested, _javaInventoryFailed;
     private readonly Dictionary<XsrUiEntityId, JavaRuntimeCandidate> _javaChoices = [];
     private static bool IsJavaInventoryIntent(XsrSemanticId command) => command == ScanJava || command == ChooseJava;
+    private bool IsJavaInventoryPage => _instanceDirectory is null ? _selected == "java" : _selected == "game";
 
-    private void BuildJavaInventory()
+    private void BuildJavaInventory(XsrUiEntityId parent = default)
     {
-        if (_instanceDirectory is not null || _selected != "java" || !_queries.TryResolve(JavaRuntimeInventoryContract.Query, out _)) return;
+        if (!IsJavaInventoryPage || !_queries.TryResolve(JavaRuntimeInventoryContract.Query, out _)) return;
         bool restoreScanFocus = _shell.Tree.IsAlive(_shell.Renderer.Focused) && _shell.Tree.Name(_shell.Renderer.Focused) == "SettingsJavaScan";
-        if (!_shell.Tree.IsAlive(_javaInventoryGroup)) _javaInventoryGroup = Stack(_sections, "SettingsJavaInventory", XsrUiOrientation.Vertical, 10);
+        if (!_shell.Tree.IsAlive(_javaInventoryGroup)) _javaInventoryGroup = Stack(parent.IsAssigned ? parent : _sections, "SettingsJavaInventory", XsrUiOrientation.Vertical, 10);
         var group = _javaInventoryGroup;
+        _shell.Tree.SetComponent(group, new XsrUiSemantic(XsrUiSemanticRole.RadioGroup, "Java 运行时"));
+        _shell.Tree.SetComponent(group, new XsrUiSelectionGroup(isSelectionRequired: false));
         foreach (var child in _shell.Tree.Children(group).ToArray()) _shell.Tree.Destroy(child);
         _javaChoices.Clear();
         var header = Stack(group, "SettingsJavaInventory.Header", XsrUiOrientation.Horizontal, 16);
-        var label = Text(header, "已安装 Java", 18, Ink, height: 28, weight: 600);
+        var label = Text(header, "已安装 Java", _instanceDirectory is null ? 18 : 14, Ink, height: 28, weight: 600);
         _shell.Tree.GetComponent<XsrUiElement>(label)!.Weight = 1;
         var scan = ActionButton(header, "SettingsJavaScan", "重新扫描", ScanJava, 84);
         _shell.Tree.GetComponent<XsrUiInput>(scan)!.Enabled = _javaInventoryRead is null;
@@ -64,7 +67,7 @@ internal sealed partial class SettingsPageController
             DesktopLiteralText.Preserve(_shell.Tree, path);
             _shell.Tree.GetComponent<XsrUiVisualStyle>(path)!.WrapText = true;
             _shell.Tree.GetComponent<XsrUiText>(path)!.MaxLines = 2;
-            var choose = ActionButton(row, "SettingsJavaChoose." + index++, "使用", ChooseJava, 64);
+            var choose = RadioOption(row, "SettingsJavaChoose." + index++, "使用", ChooseJava, 64);
             _javaChoices[choose] = candidate;
         }
         UpdateJavaChoices();
@@ -72,7 +75,7 @@ internal sealed partial class SettingsPageController
 
     private void HandleJavaInventory(XsrSemanticId command, XsrUiEntityId source)
     {
-        if (_instanceDirectory is not null || _selected != "java" || !_shell.Tree.IsAlive(source)) return;
+        if (!IsJavaInventoryPage || !_shell.Tree.IsAlive(source)) return;
         if (command == ScanJava && _shell.Tree.Name(source) == "SettingsJavaScan" && _javaInventoryRead is null)
         {
             CancelJavaInventory(); StartJavaInventory(refresh: true); BuildJavaInventory(); return;
@@ -80,7 +83,8 @@ internal sealed partial class SettingsPageController
         if (command == ChooseJava && _javaChoices.TryGetValue(source, out var candidate)
             && _javaInventory is not null && _javaInventoryRead is null && candidate.IsAvailable && candidate.IsEnabled && _writing is null
             && _commands.TryResolve(SettingsPolicyContract.SetCommand, out var set))
-            _writing = SaveAsync(set, new("java.runtime", SettingsLayer.Global, new(SettingsOverrideMode.Custom, candidate.Installation.JavaExecutablePath)));
+            _writing = SaveAsync(set, new("java.runtime", _instanceDirectory is null ? SettingsLayer.Global : SettingsLayer.Instance,
+                new(SettingsOverrideMode.Custom, candidate.Installation.JavaExecutablePath), _instance));
     }
 
     private void StartJavaInventory(bool refresh)
@@ -95,7 +99,7 @@ internal sealed partial class SettingsPageController
 
     private void UpdateJavaInventory()
     {
-        if (_instanceDirectory is not null || _selected != "java") { CancelJavaInventory(); return; }
+        if (!IsJavaInventoryPage) { CancelJavaInventory(); return; }
         if (!_javaInventoryRequested) { StartJavaInventory(refresh: false); BuildJavaInventory(); }
         if (_javaInventoryRead is { IsCompleted: true } reading)
         {
@@ -117,6 +121,7 @@ internal sealed partial class SettingsPageController
             string label = !candidate.IsAvailable ? "不可用" : !candidate.IsEnabled ? "已禁用" : string.Equals(candidate.Installation.JavaExecutablePath, selected,
                 OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ? "已选" : "使用";
             var text = _shell.Tree.GetComponent<XsrUiText>(entity)!;
+            _shell.Tree.GetComponent<XsrUiSelection>(entity)!.IsSelected = label == "已选";
             if (text.Content != label) { text.Content = label; _shell.Tree.MarkDirty(entity, XsrUiDirtyKinds.Paint); }
             _shell.Tree.GetComponent<XsrUiInput>(entity)!.Enabled = available && _writing is null && _javaInventoryRead is null;
         }

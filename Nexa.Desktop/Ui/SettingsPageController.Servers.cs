@@ -69,9 +69,10 @@ internal sealed partial class SettingsPageController
         if (_serverEditing is { } editing)
         {
             var entry = editing >= 0 ? list.Entries[editing] : new(-1, "", "");
-            _serverName = ManagementField(_sections, "ServerName", "名称", entry.Name);
-            _serverAddress = ManagementField(_sections, "ServerAddress", "地址", entry.Address, "example.org:25565");
-            var actions = Stack(_sections, "ServerEditorActions", XsrUiOrientation.Horizontal, 8);
+            var editor = FormGroup(_sections, "ServerEditor", editing < 0 ? "添加服务器" : "编辑服务器");
+            _serverName = ManagementField(editor, "ServerName", "名称", entry.Name);
+            _serverAddress = ManagementField(editor, "ServerAddress", "地址", entry.Address, "example.org:25565");
+            var actions = Stack(editor, "ServerEditorActions", XsrUiOrientation.Horizontal, 8);
             ManagementButton(actions, "取消", () => { _serverEditing = null; BuildSections(); }, 64);
             ManagementButton(actions, "保存", () =>
             {
@@ -83,8 +84,10 @@ internal sealed partial class SettingsPageController
         }
         foreach (var (entry, index) in list.Entries.Select((e, i) => (e, i)))
         {
-            var row = Stack(_sections, "ServerEntry." + index, XsrUiOrientation.Horizontal, 10); Style(row, White, Ink, 12);
-            _shell.Tree.GetComponent<XsrUiElement>(row)!.Padding = new(14, 10, 14, 10);
+            var card = Stack(_sections, "ServerEntry." + index, XsrUiOrientation.Vertical, 8); Style(card, White, Ink, 12);
+            var body = Stack(card, "ServerEntryBody", XsrUiOrientation.Vertical, 8);
+            _shell.Tree.GetComponent<XsrUiElement>(body)!.Padding = new(16, 10, 16, 10);
+            var row = Stack(body, "ServerEntryIdentity", XsrUiOrientation.Horizontal, 10);
             var identity = Stack(row, "ServerIdentity", XsrUiOrientation.Vertical, 2); _shell.Tree.GetComponent<XsrUiElement>(identity)!.Weight = 1;
             ContentName(identity, entry.Name, 15, 26); ContentName(identity, entry.Address, 12, 22, foreground: Muted);
             _serverStatusLabels[index] = Text(identity, ServerStatusLabel(index), 12, Muted, 24);
@@ -96,12 +99,13 @@ internal sealed partial class SettingsPageController
                 _shell.Tree.SetComponent(_serverStatusLabels[index], new XsrUiText("正在连接…")); WakeOnPlatformCompletion(_serverStatusRead);
             }, 84);
             if (JoinManagementServer is not null) ManagementButton(row, "加入", () => JoinManagementServer(_serverInstance!, entry.Address), 60);
-            ManagementButton(row, "编辑", () => { _serverEditing = index; BuildSections(); }, 60);
-            if (index > 0) ManagementButton(row, "上移", () =>
+            var actions = Stack(body, "ServerEntryActions", XsrUiOrientation.Horizontal, 8);
+            ManagementButton(actions, "编辑", () => { _serverEditing = index; BuildSections(); }, 60);
+            if (index > 0) ManagementButton(actions, "上移", () =>
             { var items = list.Entries.ToList(); (items[index - 1], items[index]) = (items[index], items[index - 1]); SaveServers(items); }, 60);
-            if (index + 1 < list.Entries.Count) ManagementButton(row, "下移", () =>
+            if (index + 1 < list.Entries.Count) ManagementButton(actions, "下移", () =>
             { var items = list.Entries.ToList(); (items[index + 1], items[index]) = (items[index], items[index + 1]); SaveServers(items); }, 60);
-            ManagementButton(row, "移除", () => _feedback.ShowDialog("server.remove", "移除服务器", "只从此版本的列表移除此服务器。", "移除", "取消", accepted => { if (accepted && _serverInstance == _instance && ReferenceEquals(_serverList, list)) SaveServers(list.Entries.Where((_, i) => i != index).ToArray()); }), 60);
+            ManagementButton(actions, "移除", () => _feedback.ShowDialog("server.remove", "移除服务器", "只从此版本的列表移除此服务器。", "移除", "取消", accepted => { if (accepted && _serverInstance == _instance && ReferenceEquals(_serverList, list)) SaveServers(list.Entries.Where((_, i) => i != index).ToArray()); }), 60);
         }
     }
     private string ServerStatusLabel(int index) => _serverStatuses.TryGetValue(index, out var status)

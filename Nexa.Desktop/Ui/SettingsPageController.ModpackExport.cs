@@ -60,31 +60,37 @@ internal sealed partial class SettingsPageController
     private void BuildModpackExport(InstanceManagementSnapshot snapshot)
     {
         if (_exportNameDraft.Length == 0) _exportNameDraft = Path.GetFileName(snapshot.InstanceDirectory);
-        ManagementFact("Minecraft", snapshot.GameVersion);
-        ManagementFact("整合包版本", snapshot.ModpackVersion.Length > 0 ? snapshot.ModpackVersion : "未记录");
-        _exportName = ManagementField(_sections, "ExportName", "包名称", _exportNameDraft);
-        _exportVersion = ManagementField(_sections, "ExportVersion", "包版本", _exportVersionDraft);
-        _exportPath = ManagementField(_sections, "ExportPath", "保存到", _exportPathDraft, "完整 .mrpack 文件路径");
-        if (_pickExportDirectory is not null) ManagementButton(_sections, "选择保存目录", () =>
+        var metadata = FormGroup(_sections, "ExportMetadata", "整合包信息");
+        ManagementFactIn(metadata, "Minecraft", snapshot.GameVersion);
+        ManagementFactIn(metadata, "已记录版本", snapshot.ModpackVersion.Length > 0 ? snapshot.ModpackVersion : "未记录");
+        _exportName = ManagementField(metadata, "ExportName", "包名称", _exportNameDraft);
+        _exportVersion = ManagementField(metadata, "ExportVersion", "包版本", _exportVersionDraft);
+        _exportPath = ManagementField(metadata, "ExportPath", "保存到", _exportPathDraft, "完整 .mrpack 文件路径");
+        if (_pickExportDirectory is not null) ManagementButton(metadata, "选择保存目录", () =>
         {
             if (_exportDirectoryRead is not null) return;
             _exportDirectoryRead = _pickExportDirectory(); WakeOnPlatformCompletion(_exportDirectoryRead);
         }, 128);
         if (_exportPreview is { } preview)
         {
+            var categories = FormGroup(_sections, "ExportCategories", "包含的内容");
             foreach (var category in preview.Categories)
             {
                 bool selected = _exportCategories.Contains(category.Id);
-                var row = Stack(_sections, "ExportCategory." + category.Id, XsrUiOrientation.Horizontal, 12);
-                var title = Text(row, category.Label + " · " + category.FileCount + " 个文件", 13, Ink, 36);
-                _shell.Tree.GetComponent<XsrUiElement>(title)!.Weight = 1;
+                var row = Stack(categories, "ExportCategory." + category.Id, XsrUiOrientation.Horizontal, 12);
+                var choice = ToggleControl(row, "ExportCategoryChoice." + category.Id, category.Label, selected,
+                    ManagementAction, checkBox: true);
+                _shell.Tree.GetComponent<XsrUiElement>(choice)!.Weight = 1;
+                _shell.Tree.GetComponent<XsrUiElement>(choice)!.Width = null;
+                Text(row, category.FileCount + " 个文件", 12, Muted, 36);
                 Text(row, (category.Bytes / 1048576d).ToString("0.0", System.Globalization.CultureInfo.CurrentCulture) + " MiB", 12, Muted, 36);
-                ManagementButton(row, selected ? "已选择" : "选择", () =>
+                _managementActions[choice] = () =>
                 {
                     CaptureExportDrafts();
                     if (!_exportCategories.Remove(category.Id)) _exportCategories.Add(category.Id);
-                    BuildSections();
-                }, 72);
+                    _shell.Tree.GetComponent<XsrUiToggle>(choice)!.IsChecked = _exportCategories.Contains(category.Id);
+                    _shell.Tree.MarkDirty(choice, XsrUiDirtyKinds.Paint);
+                };
             }
             Text(_sections, "配置和模组默认包含。存档与游戏选项需自行选择；分享前请检查配置中的敏感信息和文件的分发许可。", 12, Muted, 32);
             ManagementButton(_sections, "导出整合包", () =>

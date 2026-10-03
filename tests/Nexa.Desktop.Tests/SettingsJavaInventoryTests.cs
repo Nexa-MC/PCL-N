@@ -9,6 +9,49 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void InstanceJavaInventoryWritesOnlySelectedInstance()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        var queries = new XsrQueryRouterBuilder();
+        fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.CatalogQuery, out var catalog);
+        fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.EffectiveQuery, out var effective);
+        queries.Register<SettingsCatalogQuery, SettingsCatalogSnapshot>(SettingsPolicyContract.CatalogQuery,
+            (q, ct) => fixture.Foundation.Queries.QueryAsync<SettingsCatalogQuery, SettingsCatalogSnapshot>(catalog, q, cancellationToken: ct));
+        queries.Register<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(SettingsPolicyContract.EffectiveQuery,
+            (q, ct) => fixture.Foundation.Queries.QueryAsync<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(effective, q, cancellationToken: ct));
+        string home = Path.GetFullPath("instance-java-choice");
+        var runtime = new JavaInstallation(home, Path.Combine(home, "bin", "java"), null,
+            new Version(21, 0), JavaBrand.EclipseTemurin, JavaArchitecture.X64, true, true);
+        queries.Register<JavaRuntimeInventoryQuery, JavaRuntimeInventorySnapshot>(JavaRuntimeInventoryContract.Query,
+            (_, _) => ValueTask.FromResult(XsrResult.Success(new JavaRuntimeInventorySnapshot([new(runtime)]))));
+        string instance = Path.GetFullPath("instance-java-one");
+        string? global = fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(v => v.Key == "java.runtime").Value.Value;
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()),
+            fixture.Foundation.Commands, fixture.Store, fixture.Feedback, () => instance);
+        fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(settings.Page);
+        var scene = fixture.Shell.Render(new(1000, 1700));
+        Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
+        scene = fixture.Shell.Render(new(1000, 1700));
+        var input = FindByKey(fixture.Shell, scene, "SettingsInput.java.runtime").Entity;
+        var choice = FindByKey(fixture.Shell, scene, "SettingsJavaChoose.0");
+        AssertEqual(XsrUiSemanticRole.RadioButton, choice.Role);
+        Emit(fixture.Intents, "ui.settings.java.choose", choice.Entity);
+        AssertTrue(SpinWait.SpinUntil(() =>
+        {
+            scene = fixture.Shell.Render(new(1000, 1700));
+            return FindByKey(fixture.Shell, scene, "SettingsJavaChoose.0").IsSelected;
+        }, TimeSpan.FromSeconds(5)));
+        AssertEqual(runtime.JavaExecutablePath, fixture.Foundation.Host.SettingsPolicy.Read(new(instance)).Value!.Values.Single(v => v.Key == "java.runtime").Value.Value);
+        AssertEqual(global, fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(v => v.Key == "java.runtime").Value.Value);
+        AssertEqual(input, FindByKey(fixture.Shell, scene, "SettingsInput.java.runtime").Entity);
+        instance = Path.GetFullPath("other-root/instance-java-two");
+        scene = fixture.Shell.Render(new(1000, 1700));
+        Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
+        scene = fixture.Shell.Render(new(1000, 1700));
+        AssertFalse(FindByKey(fixture.Shell, scene, "SettingsJavaChoose.0").IsSelected);
+        AssertEqual(global, fixture.Foundation.Host.SettingsPolicy.Read(new(instance)).Value!.Values.Single(v => v.Key == "java.runtime").Value.Value);
+    }
+
     private static void JavaInventoryPageRetiresLateReadsAndPersistsDefaultSelection()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));

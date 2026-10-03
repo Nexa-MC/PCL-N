@@ -8953,5 +8953,75 @@
     "source": "未知架构",
     "zh-Hant": "未知架構",
     "en": "Unknown architecture"
+  },
+  {
+    "source": "Java 与内存",
+    "en": "Java and memory",
+    "zh-Hant": "Java 與記憶體"
+  },
+  {
+    "source": "启动与窗口",
+    "en": "Launch and window",
+    "zh-Hant": "啟動與視窗"
+  },
+  {
+    "source": "高级参数",
+    "en": "Advanced arguments",
+    "zh-Hant": "進階參數"
+  },
+  {
+    "source": "包含的内容",
+    "en": "Included content",
+    "zh-Hant": "包含的內容"
+  },
+  {
+    "source": "整合包信息",
+    "en": "Modpack information",
+    "zh-Hant": "整合包資訊"
+  },
+  {
+    "source": "已记录版本",
+    "en": "Recorded version",
+    "zh-Hant": "已記錄版本"
+  },
+  {
+    "source": "恢复此类",
+    "en": "Restore category",
+    "zh-Hant": "還原此類"
+  },
+  {
+    "source": "分配方式",
+    "en": "Allocation mode",
+    "zh-Hant": "分配方式"
+  },
+  {
+    "source": "手动",
+    "en": "Manual",
+    "zh-Hant": "手動"
+  },
+  {
+    "source": "版本设置分类",
+    "en": "Instance settings categories",
+    "zh-Hant": "版本設定分類"
+  },
+  {
+    "source": "版本信息",
+    "en": "Instance information",
+    "zh-Hant": "版本資訊"
+  },
+  {
+    "source": "请先填写 Java 可执行文件路径，再选择手动。",
+    "en": "Enter a Java executable path before selecting Manual.",
+    "zh-Hant": "請先填寫 Java 可執行檔路徑，再選擇手動。"
+  },
+  {
+    "source": "启用模组",
+    "en": "Enable mod",
+    "zh-Hant": "啟用模組"
+  },
+  {
+    "source": "筛选模组",
+    "en": "Filter mods",
+    "zh-Hant": "篩選模組"
   }
 ]

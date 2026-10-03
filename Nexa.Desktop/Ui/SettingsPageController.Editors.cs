@@ -34,6 +34,7 @@ internal sealed partial class SettingsPageController
     private void BuildShiftSelector(XsrUiEntityId parent, SettingsCatalogEntry entry)
     {
         var track = Stack(parent, "SettingsSelector." + entry.SettingKey, XsrUiOrientation.Horizontal, 0);
+        _shell.Tree.SetComponent(track, new XsrUiSemantic(XsrUiSemanticRole.RadioGroup, DisplayLabel(entry.Label)));
         Style(track, new(241, 245, 250), Ink, 9);
         _shell.Tree.GetComponent<XsrUiElement>(track)!.Padding = new(3, 3, 3, 3);
         _shell.Tree.GetComponent<XsrUiElement>(track)!.HorizontalAlignment = XsrUiAlignment.End;
@@ -46,7 +47,8 @@ internal sealed partial class SettingsPageController
         _shell.Tree.SetComponent(track, new XsrUiScrollGesture());
         Dictionary<XsrUiEntityId, string> options = [];
         string[] values = entry.SettingKey == "general.region" ? ["auto", "follow-language", "zh-CN", "zh-TW", "en-US"]
-            : entry.Definition!.Kind == SettingsValueKind.Boolean ? ["false", "true"] : entry.Definition.Choices.Split('|');
+            : entry.Definition!.Kind == SettingsValueKind.Boolean ? entry.InvertBoolean ? ["false", "true"] : ["true", "false"]
+            : entry.Definition.Choices.Split('|');
         double width = 0;
         foreach (string value in values)
         {
@@ -62,7 +64,7 @@ internal sealed partial class SettingsPageController
             { "" => "自动", "EclipseTemurin" => "Temurin", "IbmSemeru" => "IBM Semeru", "GraalVmCommunity" => "GraalVM", "OpenJdk" => "OpenJDK", "TencentKona" => "腾讯 Kona", "Dragonwell" => "龙井 Java", "Unknown" => "其他", _ => value };
             bool nativeName = entry.SettingKey == "general.language" && value != "auto";
             double optionWidth = Math.Max(48, (nativeName ? label : _shell.Renderer.LocalizeText(label)).Sum(character => character > 127 ? 12 : 7) + 24);
-            var option = ActionButton(track, "SettingsOption." + entry.SettingKey + "." + value, label, Choice, optionWidth);
+            var option = RadioOption(track, "SettingsOption." + entry.SettingKey + "." + value, label, Choice, optionWidth);
             if (nativeName) DesktopLiteralText.Preserve(_shell.Tree, option);
             _shell.Tree.SetComponent(option, new XsrUiSelection());
             options[option] = value; width += optionWidth;
@@ -87,7 +89,7 @@ internal sealed partial class SettingsPageController
                     try
                     {
                         string name = System.Globalization.CultureInfo.GetCultureInfo(raw).NativeName;
-                        var custom = ActionButton(selector.Track, "SettingsOption.general.region." + raw, name, Choice, 48);
+                        var custom = RadioOption(selector.Track, "SettingsOption.general.region." + raw, name, Choice, 48);
                         DesktopLiteralText.Preserve(_shell.Tree, custom);
                         _shell.Tree.SetComponent(custom, new XsrUiSelection());
                         selector.Options[custom] = raw;

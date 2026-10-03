@@ -45,6 +45,8 @@ internal static partial class Program
         ("Presentation settings apply outside navigation and preserve activity policy", PresentationSettingsApplyWithoutNavigation),
         ("Java vendor selector fits and scrolls in a narrow window", JavaVendorSelectorFitsAndScrollsInNarrowWindow),
         ("Settings pointer selection scrolls fully visible options", SettingsPointerSelectionScrollsFullyVisibleOptions),
+        ("version settings use scoped controls and inset forms", VersionSettingsUseScopedControlsAndInsetForms),
+        ("instance Java inventory writes only the selected instance", InstanceJavaInventoryWritesOnlySelectedInstance),
         ("automatic update restart follows selected version and rollback", AutomaticUpdateRestartFollowsSelectedVersionAndRollback),
         ("automatic update resumes on startup without opening settings", AutomaticUpdateResumesOnStartupWithoutOpeningSettings),
         ("automatic update retry retains protected transaction channel", AutomaticUpdateRetryRetainsProtectedChannel),

@@ -174,11 +174,13 @@ internal sealed partial class SettingsPageController
         }
         else if (_selected == "overview")
         {
-            ManagementFact("版本", System.IO.Path.GetFileName(snapshot.InstanceDirectory));
-            ManagementFact("Minecraft", snapshot.GameVersion);
-            ManagementFact("游戏目录", snapshot.GameDirectory);
-            if (snapshot.Description.Length > 0) ManagementFact("描述", snapshot.Description);
-            if (OpenManagementDirectory is not null) ManagementButton(_sections, "打开版本文件夹", () => OpenContentDirectory(snapshot.InstanceDirectory), 128);
+            var information = FormGroup(_sections, "ManagementOverview", "版本信息");
+            ManagementFactIn(information, "版本名称", System.IO.Path.GetFileName(snapshot.InstanceDirectory));
+            ManagementFactIn(information, "Minecraft", snapshot.GameVersion);
+            ManagementFactIn(information, "实例目录", snapshot.InstanceDirectory);
+            ManagementFactIn(information, "游戏目录", snapshot.GameDirectory);
+            if (snapshot.Description.Length > 0) ManagementFactIn(information, "描述", snapshot.Description);
+            if (OpenManagementDirectory is not null) ManagementButton(information, "打开版本文件夹", () => OpenContentDirectory(snapshot.InstanceDirectory), 128);
         }
         else if (_selected == "recovery") BuildRecoveryStorage(snapshot);
         else if (_selected == "trash") BuildContentTrash(snapshot);
@@ -191,16 +193,6 @@ internal sealed partial class SettingsPageController
             BuildServers();
         _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY = _scrollPositions.GetValueOrDefault(_selected);
         _shell.Tree.MarkDirty(_sections, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
-    }
-
-    private void ManagementFact(string label, string value)
-    {
-        var row = Stack(_sections, "ManagementFact", XsrUiOrientation.Horizontal, 20);
-        var caption = Text(row, label, 13, Muted, 32);
-        _shell.Tree.GetComponent<XsrUiElement>(caption)!.Width = 120;
-        var content = Text(row, value, 14, Ink, 32);
-        if (label is "版本名称" or "实例目录" or "游戏目录" or "名称") DesktopLiteralText.Preserve(_shell.Tree, content);
-        _shell.Tree.GetComponent<XsrUiElement>(content)!.Weight = 1;
     }
 
     private void UpdateContentWindow()
@@ -303,7 +295,10 @@ internal sealed partial class SettingsPageController
         if (snapshot.Trash.Count == 0) Text(_sections, "没有已移除的内容。", 13, Muted, 28);
         foreach (var item in snapshot.Trash.Skip(_trashPage * 10).Take(10))
         {
-            var row = Stack(_sections, "ContentTrashRow", XsrUiOrientation.Horizontal, 12);
+            var card = Stack(_sections, "ContentTrashRow", XsrUiOrientation.Vertical, 0);
+            Style(card, White, Ink, 12);
+            var row = Stack(card, "ContentTrashBody", XsrUiOrientation.Horizontal, 12);
+            _shell.Tree.GetComponent<XsrUiElement>(row)!.Padding = new(16, 8, 16, 8);
             var name = Text(row, item.Name, 14, Ink, 38);
             DesktopLiteralText.Preserve(_shell.Tree, name);
             _shell.Tree.GetComponent<XsrUiElement>(name)!.Weight = 1;

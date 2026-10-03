@@ -27,6 +27,7 @@ internal sealed partial class SettingsPageController
         _modCategoryOptions.Clear();
         var row = Stack(_sections, "ManagementModCategories", XsrUiOrientation.Horizontal, 12);
         var track = Stack(row, "ManagementModCategoryTrack", XsrUiOrientation.Horizontal, 0);
+        _shell.Tree.SetComponent(track, new XsrUiSemantic(XsrUiSemanticRole.RadioGroup, "筛选模组"));
         _modCategoryTrack = track;
         Style(track, new(241, 245, 250), Ink, 9);
         var thumb = Element(track, "ManagementModCategoryThumb", XsrUiSemanticRole.None, null);
@@ -39,7 +40,7 @@ internal sealed partial class SettingsPageController
         foreach (var (key, label) in new[] { ("all", "全部"), ("enabled", "已启用"), ("disabled", "已禁用"),
             ("updates", "可更新"), ("problems", "包异常"), ("unchecked", "未检测") })
         {
-            var option = ActionButton(track, "ManagementModCategory." + key, label, ManagementAction, 72);
+            var option = RadioOption(track, "ManagementModCategory." + key, label, ManagementAction, 72);
             _shell.Tree.SetComponent(option, new XsrUiSelection());
             _modCategoryOptions[option] = key;
             _managementActions[option] = () =>

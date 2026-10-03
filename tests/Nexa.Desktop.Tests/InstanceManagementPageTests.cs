@@ -90,7 +90,9 @@ internal static partial class Program
             Emit(fixture.Intents, "ui.settings.management.action", FindByKey(fixture.Shell, scene, "ManagementContentDetails.example.jar").Entity);
             scene = fixture.Shell.Render(new(1000, 650));
             AssertTrue(scene.Nodes.Any(node => fixture.Shell.Tree.Name(node.Entity) == "ManagementContentDetail"));
-            Emit(fixture.Intents, "ui.settings.management.action", FindByKey(fixture.Shell, scene, "ManagementModToggle.example.jar").Entity);
+            var toggle = FindByKey(fixture.Shell, scene, "ManagementModToggle.example.jar.false");
+            AssertEqual(XsrUiSemanticRole.RadioButton, toggle.Role); AssertEqual("关闭", toggle.Text);
+            Emit(fixture.Intents, "ui.settings.management.action", toggle.Entity);
             bool toggled = SpinWait.SpinUntil(() =>
             {
                 scene = fixture.Shell.Render(new(1000, 650));

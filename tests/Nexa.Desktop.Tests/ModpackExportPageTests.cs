@@ -40,7 +40,14 @@ internal static partial class Program
         fixture.Shell.Renderer.SetTextInputValue(FindByKey(fixture.Shell, scene, "ExportName").Entity, "My Pack");
         fixture.Shell.Renderer.SetTextInputValue(FindByKey(fixture.Shell, scene, "ExportVersion").Entity, "3.2");
         fixture.Shell.Renderer.SetTextInputValue(FindByKey(fixture.Shell, scene, "ExportPath").Entity, Path.Combine(Path.GetTempPath(), "test.mrpack"));
-        Click("Management.选择", "ui.settings.management.action"); Pump(() => scene.Nodes.Count(n => n.Text == "已选择") == 2);
+        var nameEntity = FindByKey(fixture.Shell, scene, "ExportName").Entity;
+        fixture.Shell.Renderer.Focus(nameEntity);
+        var saves = FindByKey(fixture.Shell, scene, "ExportCategoryChoice.saves");
+        AssertEqual(XsrUiSemanticRole.CheckBox, saves.Role); AssertEqual(false, saves.IsChecked);
+        Click("ExportCategoryChoice.saves", "ui.settings.management.action");
+        Pump(() => FindByKey(fixture.Shell, scene, "ExportCategoryChoice.saves").IsChecked == true);
+        AssertEqual(nameEntity, FindByKey(fixture.Shell, scene, "ExportName").Entity);
+        AssertEqual(nameEntity, fixture.Shell.Renderer.Focused);
         AssertEqual("My Pack", fixture.Shell.Tree.GetComponent<XsrUiTextInput>(FindByKey(fixture.Shell, scene, "ExportName").Entity)!.ReadDraft());
         Click("Management.导出整合包", "ui.settings.management.action"); Pump(() => saved is not null);
         AssertEqual(instance, saved!.InstanceDirectory); AssertEqual("My Pack", saved.Name); AssertEqual("3.2", saved.Version);

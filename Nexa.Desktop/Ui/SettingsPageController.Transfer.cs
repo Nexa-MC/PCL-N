@@ -33,9 +33,7 @@ internal sealed partial class SettingsPageController
 
     private void BuildSettingsTransfer()
     {
-        var group = Stack(_sections, "SettingsTransfer", XsrUiOrientation.Vertical, 10);
-        Text(group, "设置数据", 18, Ink, height: 28, weight: 600);
-        var divider = Element(group, "SettingsGroupDivider", XsrUiSemanticRole.None, null, height: 1); Style(divider, Line, Muted, 0);
+        var group = FormGroup(_sections, "SettingsTransfer", "设置数据");
         Row("SettingsImport", "导入设置", "先预览更改，确认后应用。", "选择文件", ImportSettings, _readSettingsDocument is not null);
         Row("SettingsExport", "导出设置", "不包含账户、凭据或本机路径。", "导出", ExportSettings, _saveSettingsDocument is not null);
         Row("SettingsReset", _instance is null ? "恢复默认" : "恢复继承", "仅重置已接入的设置，不删除版本或文件。", "恢复", ResetSettings,

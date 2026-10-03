@@ -186,6 +186,10 @@ internal static partial class Program
         Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsAuto.game.memory").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.memory").Value.Mode == SettingsOverrideMode.Auto; }, TimeSpan.FromSeconds(5)));
         scene = fixture.Shell.Render(new(1000, 650));
+        AssertEqual("6145", fixture.Shell.Tree.GetComponent<XsrUiTextInput>(input)!.ReadDraft());
+        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsManual.game.memory").Entity);
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.memory").Value.Mode == SettingsOverrideMode.Custom && Read("game.memory").Value.Value == "6145"; }, TimeSpan.FromSeconds(5)));
+        scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.java").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
         AssertEqual("false", Read("java.auto-install").Value.Value);

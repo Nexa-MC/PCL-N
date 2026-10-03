@@ -33,14 +33,14 @@ internal sealed partial class SettingsPageController
         _shell.Tree.GetComponent<XsrUiElement>(spacer)!.Weight = 1;
         if (item.Enabled is { } enabled)
         {
-            var toggle = ActionButton(header, "ManagementModToggle." + item.Name, enabled ? "停用" : "启用", ManagementAction, 64);
-            RegisterContentAction(toggle, () => ToggleMod(item));
+            Text(header, "启用模组", 13, Ink, 32);
+            BuildBinaryChoice(header, "ManagementModToggle." + item.Name, "启用模组", enabled, _ => ToggleMod(item));
         }
         ManagementButton(header, "移至已移除内容", () => RemoveContent(item), 116);
         var surface = Stack(_sections, "ManagementContentDetail", XsrUiOrientation.Vertical, 0);
         Style(surface, White, Ink, 16);
         var hero = Stack(surface, "ManagementContentDetailBody", XsrUiOrientation.Vertical, 16);
-        _shell.Tree.GetComponent<XsrUiElement>(hero)!.Padding = new(24, 24, 24, 24);
+        _shell.Tree.GetComponent<XsrUiElement>(hero)!.Padding = new(16, 16, 16, 16);
         if (_selected == "screenshots")
         {
             ContentImage(hero, item, null, Math.Min(420, _shell.Renderer.Viewport.Height * .5));
@@ -86,8 +86,9 @@ internal sealed partial class SettingsPageController
         var row = Stack(parent, "ContentDetailFact", XsrUiOrientation.Horizontal, 20);
         _shell.Tree.GetComponent<XsrUiElement>(Text(row, label, 12, Muted, 28))!.Width = 90;
         var content = Text(row, value, 13, Ink, 28);
-        if (literal ?? (label is "文件名" or "所在目录" or "版本" or "资源包格式" or "作者" or "名称" or "已安装版本")) DesktopLiteralText.Preserve(_shell.Tree, content);
+        if (literal ?? (label is "文件名" or "所在目录" or "版本" or "资源包格式" or "作者" or "名称" or "已安装版本" or "版本名称" or "实例目录" or "游戏目录")) DesktopLiteralText.Preserve(_shell.Tree, content);
         _shell.Tree.GetComponent<XsrUiElement>(content)!.Weight = 1;
+        _shell.Tree.GetComponent<XsrUiVisualStyle>(content)!.TextAlignment = XsrUiTextAlignment.End;
     }
 
     private static string FormatContentSize(long bytes) => bytes >= 1024 * 1024

@@ -65,6 +65,7 @@ internal sealed partial class SettingsPageController : IDisposable
         shell.Tree.Walk(Page, entity => { names[shell.Tree.Name(entity)] = entity; return true; });
         _navigationRoot = names["SettingsNavigation"]; _pager = names["SettingsPager"];
         shell.Tree.SetComponent(_navigationRoot, new XsrUiScrollGesture());
+        shell.Tree.SetComponent(_navigationRoot, new XsrUiSemantic(XsrUiSemanticRole.RadioGroup, instanceDirectory is null ? "设置分类" : "版本设置分类"));
         Style(_navigationRoot, new(241, 245, 250), Ink, 10);
         shell.Tree.GetComponent<XsrUiElement>(_navigationRoot)!.HorizontalAlignment = XsrUiAlignment.Start;
         shell.Tree.SetComponent(_navigationRoot, new XsrUiSegmentedTrack(names["SettingsThumb"]));
@@ -112,7 +113,7 @@ internal sealed partial class SettingsPageController : IDisposable
         }
         if (instance != _instance)
         {
-            CancelSettingsTransfer();
+            CancelSettingsTransfer(); CancelJavaInventory();
             _instance = instance; _reading = null; _values = null; _revision = -1;
             ResetManagement();
             if (_catalog is not null) BuildSections(navigating: true);
@@ -229,7 +230,7 @@ internal sealed partial class SettingsPageController : IDisposable
             {
                 body = Stack(_pager, "SettingsSections", XsrUiOrientation.Vertical, 28);
                 var layout = _shell.Tree.GetComponent<XsrUiElement>(body)!;
-                layout.VerticalAlignment = XsrUiAlignment.Stretch; layout.Padding = new(12, 18, 12, 24);
+                layout.VerticalAlignment = XsrUiAlignment.Stretch; layout.Padding = new(20, 16, 20, 16);
                 _shell.Tree.SetComponent(body, new XsrUiScroll { ShowsVerticalIndicator = true });
                 _shell.Tree.SetComponent(body, new XsrUiScrollGesture());
                 _shell.Tree.SetComponent(body, new XsrUiTransition { Key = page.Id, MovesSelf = true });
@@ -237,7 +238,7 @@ internal sealed partial class SettingsPageController : IDisposable
             }
             _shell.Tree.Detach(body); _shell.Tree.Attach(body, _pager);
             if (page.Id == _selected) _sections = body;
-            var button = Element(_navigationRoot, "SettingsNav." + page.Id, XsrUiSemanticRole.Button, page.Label, width: Math.Max(64, page.Label.Length * 14 + 24), height: 36);
+            var button = Element(_navigationRoot, "SettingsNav." + page.Id, XsrUiSemanticRole.RadioButton, page.Label, width: Math.Max(64, page.Label.Length * 14 + 24), height: 36);
             _shell.Tree.SetComponent(button, new XsrUiText(page.Label));
             _shell.Tree.SetComponent(button, new XsrUiInput { Focusable = true, Clickable = true });
             _shell.Tree.SetComponent(button, new XsrUiCommandBinding(Select));
@@ -282,7 +283,7 @@ internal sealed partial class SettingsPageController : IDisposable
         foreach (var child in _shell.Tree.Children(_sections).ToArray()) _shell.Tree.Destroy(child);
         _javaChoices.Clear();
         _javaInventoryGroup = default;
-        _editors.Clear(); _inheritButtons.Clear(); _selectors.Clear(); _argumentEditors.Clear(); _argumentActions.Clear(); _choices.Clear();
+        _editors.Clear(); _inheritButtons.Clear(); _selectors.Clear(); _autoModes.Clear(); _argumentEditors.Clear(); _argumentActions.Clear(); _choices.Clear();
         _managementActions.Clear(); _contentSearch = default; _contentList = default; _contentWindowStart = -1;
         _graphSearch = _graphBody = default; _graphActions.Clear();
         if (_instanceDirectory is not null && _selected != "game")
@@ -310,18 +311,19 @@ internal sealed partial class SettingsPageController : IDisposable
             Text(_sections, Pages.First(page => page.Id == _selected).Label, 20, Ink, height: 30, weight: 600);
             Text(_sections, "此分类的设置正在准备中。", 13, Muted, height: 24);
         }
-        foreach (var section in available.GroupBy(item => (Section: item.DeveloperOnly ? "开发者" : item.Section, item.DeveloperOnly)))
+        _shell.Tree.GetComponent<XsrUiStackPanel>(_sections)!.Spacing = 18;
+        foreach (var section in available.GroupBy(item => (Section: item.DeveloperOnly ? "开发者" : _instanceDirectory is not null ? InstanceSettingGroup(item) : item.Section, item.DeveloperOnly))
+            .OrderBy(group => _instanceDirectory is null ? 0 : group.Key.Section switch { "启动与窗口" => 0, "Java 与内存" => 1, "服务器" => 2, _ => 3 }))
         {
-            var group = Stack(_sections, "SettingsGroup." + section.First().Id, XsrUiOrientation.Vertical, 10);
-            Text(group, DisplayLabel(section.Key.Section), 18, Ink, height: 28, weight: 600);
-            var separator = Element(group, "SettingsGroupDivider", XsrUiSemanticRole.None, null, height: 1);
-            Style(separator, Line, Muted, 0);
-            var cardContent = Stack(group, "SettingsForm", XsrUiOrientation.Vertical, 4);
+            var cardContent = FormGroup(_sections, "SettingsGroup." + section.First().Id, DisplayLabel(section.Key.Section));
             var rows = section.ToArray();
             for (int i = 0; i < rows.Length; i++)
             {
                 BuildRow(cardContent, rows[i]);
+                if (i + 1 < rows.Length)
+                    Style(Element(cardContent, "SettingsRowDivider", XsrUiSemanticRole.None, null, height: 1), Line, Muted, 0);
             }
+            if (_instanceDirectory is not null && section.Key.Section == "Java 与内存") BuildJavaInventory(cardContent);
         }
         if (transfer) BuildSettingsTransfer();
         BuildJavaInventory();
@@ -394,7 +396,8 @@ internal sealed partial class SettingsPageController : IDisposable
         {
             var slot = Element(row, "SettingsControlSlot", XsrUiSemanticRole.None, null, height: 40);
             _shell.Tree.GetComponent<XsrUiElement>(slot)!.Weight = 1;
-            BuildShiftSelector(slot, entry); return;
+            BuildShiftSelector(slot, entry);
+            return;
         }
         XsrUiEntityId input = default;
         if (definition.Kind is SettingsValueKind.Number or SettingsValueKind.Text or SettingsValueKind.Path)
@@ -414,8 +417,7 @@ internal sealed partial class SettingsPageController : IDisposable
         _editors[button] = new(entry, input, button, default);
         if (definition.SupportsAuto)
         {
-            var automatic = ActionButton(row, "SettingsAuto." + entry.SettingKey, "自动", Choice, 44);
-            _choices[automatic] = (_editors[button], "auto");
+            BuildAutomaticMode(row, _editors[button]);
         }
     }
 
@@ -446,7 +448,7 @@ internal sealed partial class SettingsPageController : IDisposable
             var value = _values?.Values.FirstOrDefault(item => item.Key == editor.Entry.SettingKey);
             if (value is null) continue;
             string raw = value.Value.Value ?? "";
-            if (editor.Input.IsAssigned && !_shell.Renderer.Focused.Equals(editor.Input))
+            if (editor.Input.IsAssigned && value.Value.Mode != SettingsOverrideMode.Auto && !_shell.Renderer.Focused.Equals(editor.Input))
                 _shell.Renderer.SetTextInputValue(editor.Input, raw);
         }
         foreach (var (button, key) in _inheritButtons)
@@ -456,7 +458,7 @@ internal sealed partial class SettingsPageController : IDisposable
             string label = value?.Source == SettingsLayer.Instance ? "恢复继承" : "继承中";
             if (text.Content != label) { text.Content = label; _shell.Tree.MarkDirty(button, XsrUiDirtyKinds.Paint); }
         }
-        UpdateNavigationWidths(); UpdateShiftSelectors(); UpdateArgumentEditors();
+        UpdateNavigationWidths(); UpdateShiftSelectors(); UpdateAutomaticModes(); UpdateArgumentEditors();
     }
 
     private void Save(Editor editor, string? selectedValue = null)
@@ -469,6 +471,15 @@ internal sealed partial class SettingsPageController : IDisposable
             return;
         }
         var current = _values.Values.First(item => item.Key == editor.Entry.SettingKey).Value.Value;
+        if (selectedValue == "__manual__")
+        {
+            selectedValue = _shell.Tree.GetComponent<XsrUiTextInput>(editor.Input)!.ReadDraft();
+            if (string.IsNullOrWhiteSpace(selectedValue))
+            {
+                if (editor.Entry.Definition!.Kind == SettingsValueKind.Number) selectedValue = editor.Entry.Definition.DefaultValue;
+                else { _feedback.Info("请先填写 Java 可执行文件路径，再选择手动。"); return; }
+            }
+        }
         string raw = selectedValue ?? (editor.Input.IsAssigned ? _shell.Tree.GetComponent<XsrUiTextInput>(editor.Input)!.ReadDraft()
             : editor.Entry.Definition!.Kind == SettingsValueKind.Boolean ? (current == "true" ? "false" : "true") : (current == "fullscreen" ? "windowed" : "fullscreen"));
         var value = editor.Entry.Definition!.SupportsAuto && selectedValue == "auto"

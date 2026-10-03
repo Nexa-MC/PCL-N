@@ -1,5 +1,6 @@
 using Nexa.Desktop.Ui;
 using Nexa.Services.Settings;
+using Nexa.UI.Next;
 
 namespace Nexa.Desktop.Tests;
 
@@ -43,11 +44,10 @@ internal static partial class Program
         var scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.appearance").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
-        var disable = FindByKey(fixture.Shell, scene, "SettingsOption.appearance.animations-disabled.true");
-        var enable = FindByKey(fixture.Shell, scene, "SettingsOption.appearance.animations-disabled.false");
-        AssertEqual("关闭", disable.Text);
-        AssertEqual("开启", enable.Text);
-        Emit(fixture.Intents, "ui.settings.choice", disable.Entity);
+        var animations = FindByKey(fixture.Shell, scene, "SettingsOption.appearance.animations-disabled.true");
+        AssertEqual(XsrUiSemanticRole.RadioButton, animations.Role);
+        AssertEqual("关闭", animations.Text);
+        Emit(fixture.Intents, "ui.settings.choice", animations.Entity);
         AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return fixture.Shell.Renderer.ReducedMotion; }, TimeSpan.FromSeconds(5)));
         presentation.Dispose();
         Set("appearance.lock-window", true);

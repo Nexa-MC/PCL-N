@@ -65,6 +65,16 @@ XSR-772 delivers the installed Java inventory, explicit cache-invalidating scan 
 selection of a discovered runtime as the global Java preference. Discovery runs in
 Services outside rendering and late results are retired on navigation.
 
+XSR-773 replaces Boolean button pairs with confirmed-state draggable On/Off radio groups, exclusive choices
+with accessible draggable radio groups, and export selections with check boxes. Version
+game settings use compact inset launch/window, Java/memory, server and advanced forms;
+management destinations retain Service-owned conditional availability. Overview, recovery,
+server editor, export, content details and removed-content rows use consistent spacing and
+operation placement. This is presentation parity, not implementation of the reserved
+consumer slices below.
+The installed Java radio chooser is also embedded in instance Java/memory settings,
+using the existing inventory query and instance-scoped policy writes.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Managed-runtime deletion and custom runtime management; compatibility checks remain mandatory until a separate safe policy exists |

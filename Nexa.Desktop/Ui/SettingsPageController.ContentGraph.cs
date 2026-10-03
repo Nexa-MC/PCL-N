@@ -47,7 +47,7 @@ internal sealed partial class SettingsPageController
             _graph!.Fit(node.Rect.Width, node.Rect.Height); _shell.Tree.MarkDirty(_graphCanvas, XsrUiDirtyKinds.Paint);
         }, 60);
         Text(_sections, $"{graph.Nodes.Count} 个身份 · 箭头指向依赖 · 节点越大，被依赖越多", 12, Muted, 24);
-        _graphCanvas = Element(_sections, "ContentGraphCanvas", XsrUiSemanticRole.Button, "依赖图，拖动平移，点击节点查看关系", height: 380);
+        _graphCanvas = Element(_sections, "ContentGraphCanvas", XsrUiSemanticRole.Content, "依赖图，拖动平移，点击节点查看关系", height: 380);
         Style(_graphCanvas, new(247, 249, 252), Ink, 14);
         _shell.Tree.SetComponent(_graphCanvas, _graph!);
         _shell.Tree.SetComponent(_graphCanvas, new XsrUiInput { Clickable = true, Focusable = true });
