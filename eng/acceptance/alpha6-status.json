@@ -24,7 +24,7 @@
       "id": "protected-update-transaction",
       "priority": "P0",
       "state": "partial",
-      "summary": "XSR-754 delivers the preinstalled protected helper, independent publisher verification, Windows/Unix immutable slots, offline recovery, activation, rollback, restart and idle-safe UI progress. Managed interruption/UI regressions pass; Launcher Build retains six-RID native transaction, installed-helper and installer evidence. Physical acceptance remains separate; legacy staged helpers stay refused.",
+      "summary": "XSR-754 delivers the preinstalled protected helper, independent publisher verification, Windows/Unix immutable slots, offline recovery, activation, rollback, restart and idle-safe UI progress. Managed interruption/UI and real loopback HTTP regressions pass. Windows Setup creates administrator-owned objects before copy; Launcher Build validates installed-helper admission and native transactions on six RIDs. Physical acceptance remains separate; legacy staged helpers stay refused.",
       "evidence": ["docs/xsr/automatic-update-transaction.md", "docs/xsr/migrations/XSR-754-protected-automatic-update.md", ".github/workflows/launcher-build.yml", "docs/xsr/migrations/XSR-730-signed-release-manifest.md", "docs/xsr/migrations/XSR-746-update-high-water-store.md", "docs/xsr/migrations/XSR-751-update-reception-boundary.md", "docs/xsr/migrations/XSR-752-windows-update-object-admission.md", "docs/xsr/migrations/XSR-753-windows-update-high-water-journal.md"],
       "remaining": ["Exercise physical power-loss and replacement races on all three operating systems; assigned to Dots because the user has no available devices."]
     },
