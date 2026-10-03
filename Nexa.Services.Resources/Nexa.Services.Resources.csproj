@@ -12,6 +12,8 @@
     <ProjectReference Include="../Nexa.Services.Minecraft.Install.Contracts/Nexa.Services.Minecraft.Install.Contracts.csproj" />
     <ProjectReference Include="../Nexa.Services.Minecraft.Library.Contracts/Nexa.Services.Minecraft.Library.Contracts.csproj" />
     <ProjectReference Include="../Nexa.Services.Minecraft.Metadata/Nexa.Services.Minecraft.Metadata.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Management/Nexa.Services.Minecraft.Management.csproj" />
+    <ProjectReference Include="../Nexa.Services.Minecraft.Management.Contracts/Nexa.Services.Minecraft.Management.Contracts.csproj" />
     <ProjectReference Include="../Nexa.Services.Minecraft.Process/Nexa.Services.Minecraft.Process.csproj" />
     <ProjectReference Include="../Nexa.Services.Minecraft.Process.Contracts/Nexa.Services.Minecraft.Process.Contracts.csproj" />
     <ProjectReference Include="../Nexa.Contracts/Nexa.Contracts.csproj" />

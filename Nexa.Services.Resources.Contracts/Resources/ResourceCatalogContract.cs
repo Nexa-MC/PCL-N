@@ -15,6 +15,8 @@ public static class ResourceCatalogContract
     public static readonly XsrSemanticId Favorites = XsrSemanticId.Parse("resources.favorites.read");
     public static readonly XsrSemanticId Favorite = XsrSemanticId.Parse("resources.favorites.set");
     public static readonly XsrSemanticId ContentOnline = XsrSemanticId.Parse("resources.content.online");
+    public static readonly XsrSemanticId ContentOnlineBatch = XsrSemanticId.Parse("resources.content.online-batch");
+    public static readonly XsrSemanticId UpdateContent = XsrSemanticId.Parse("resources.content.update");
     public const int PageSize = 20;
 }
 
@@ -90,3 +92,7 @@ public sealed record ResourceFavoriteCommand(ResourceProject Project, bool Saved
 public sealed record ResourceContentOnlineQuery(string InstanceDirectory, string PageId, string Name, long ExpectedSize, long ExpectedModifiedUtcTicks)
 { public bool MirrorFirst { get; init; } = true; }
 public sealed record ResourceContentOnline(ResourceProject? Project, string? InstalledVersion, IReadOnlyList<ResourceVersion> Versions, string? Notice);
+public sealed record ResourceContentOnlineBatchQuery(IReadOnlyList<ResourceContentOnlineQuery> Files);
+public sealed record ResourceContentOnlineMatch(ResourceContentOnlineQuery File, ResourceContentOnline Content);
+public sealed record ResourceContentOnlineBatch(IReadOnlyList<ResourceContentOnlineMatch> Matches);
+public sealed record ResourceContentUpdateCommand(ResourceContentOnlineQuery File, ResourceReference Source, string VersionId);

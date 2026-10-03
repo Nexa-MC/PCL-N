@@ -11,6 +11,7 @@ public sealed class ResourceInstanceService(ResourceProviderHttp http)
 {
     internal sealed record Fingerprint(string Name, long Size, long Modified, string Sha512, string Sha1, uint CurseForge, bool Enabled);
     private readonly ResourceSnapshotCache<string, Fingerprint> _cache = new(512);
+    private readonly ResourceSnapshotCache<string, (ResourceInstalledFile[] Files, bool Complete)> _identified = new(1024);
     public Task<ResourceInstanceContext> ReadAsync(ResourceInstanceQuery query, CancellationToken token) => Task.Run(async () =>
     {
         var edit = await MinecraftInstallEditService.ReadAsync(new(query.Root, query.InstanceId), token).ConfigureAwait(false);
@@ -48,10 +49,26 @@ public sealed class ResourceInstanceService(ResourceProviderHttp http)
         if (fingerprint is not null) _cache.Save(key, fingerprint);
         return fingerprint;
     }
-    internal async Task<(ResourceInstalledFile[] Files, bool Complete)> IdentifyAsync(Fingerprint file, bool mirror, CancellationToken token)
+    internal Task<(ResourceInstalledFile[] Files, bool Complete)> IdentifyAsync(Fingerprint file, bool mirror, CancellationToken token) => IdentifyAsync(file, mirror, false, token);
+    internal async Task<(ResourceInstalledFile[] Files, bool Complete)> IdentifyAsync(Fingerprint file, bool mirror, bool useCache, CancellationToken token)
     {
+        string key = file.Sha512 + mirror;
+        if (useCache && _identified.TryRead(key, out var cached))
+            return (cached.Files.Select(f => f with { FileName = file.Name, Enabled = file.Enabled }).ToArray(), cached.Complete);
         var results = await Task.WhenAll(ReadModrinth([file], mirror, token), ReadCurseForge([file], mirror, token)).ConfigureAwait(false);
-        return (results.SelectMany(result => result.Files).ToArray(), results.All(result => result.Complete));
+        var result = (Files: results.SelectMany(result => result.Files).ToArray(), Complete: results.All(result => result.Complete));
+        if (result.Complete) _identified.Save(key, result);
+        return result;
+    }
+    internal async Task IdentifyManyAsync(List<Fingerprint> files, bool mirror, CancellationToken token)
+    {
+        var missing = files.Where(f => !_identified.TryRead(f.Sha512 + mirror, out _)).ToList();
+        if (missing.Count == 0) return;
+        var results = await Task.WhenAll(ReadModrinth(missing, mirror, token), ReadCurseForge(missing, mirror, token)).ConfigureAwait(false);
+        bool complete = results.All(r => r.Complete);
+        if (!complete) return;
+        var matches = results.SelectMany(r => r.Files).ToLookup(f => f.Sha512, StringComparer.OrdinalIgnoreCase);
+        foreach (var file in missing) _identified.Save(file.Sha512 + mirror, (matches[file.Sha512].ToArray(), true));
     }
     private async Task<(ResourceInstalledFile[] Files, bool Complete)> ReadModrinth(List<Fingerprint> files, bool mirror, CancellationToken token)
     {

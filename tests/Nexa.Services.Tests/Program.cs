@@ -68,6 +68,8 @@ internal static partial class Program
         ("resource identity malformed providers preserve healthy source and cancellation", ResourceIdentityMalformedProviderPreservesHealthySource),
         ("resource provided aliases retain versions and reject incomplete declarations", ResourceProvidedAliasesKeepVersionsAndRejectIncompleteDeclarations),
         ("resource installed content identifies hashes and rejects stale identity", ResourceInstalledContentUsesHashesAndRejectsStaleIdentity),
+        ("resource content batch associates all kinds with batched authority", ResourceContentBatchAssociatesAllKindsWithBatchedAuthority),
+        ("resource pack and shader updates retain originals and journal success", ResourcePackAndShaderUpdatesKeepOriginalOnFailureAndJournalSuccess),
         ("resource mod install verifies actual dependency tables before importing", ResourceModInstallationVerifiesActualDependenciesBeforeImport),
         ("resource mod removal preserves shared dependencies and revalidates", ResourceModRemovalPreservesSharedDependenciesAndRevalidates),
         ("mod removal impact traverses aliases cycles and indirect consumers", ModRemovalImpactIncludesIndirectAliasesAndSkipsDisabledConsumers),

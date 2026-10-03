@@ -394,6 +394,8 @@
     "Nexa.Services.Minecraft.Install",
     "Nexa.Services.Minecraft.Install.Contracts",
     "Nexa.Services.Minecraft.Library.Contracts",
+    "Nexa.Services.Minecraft.Management",
+    "Nexa.Services.Minecraft.Management.Contracts",
     "Nexa.Services.Minecraft.Metadata",
     "Nexa.Services.Minecraft.Process",
     "Nexa.Services.Minecraft.Process.Contracts",

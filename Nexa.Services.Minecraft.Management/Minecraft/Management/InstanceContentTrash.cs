@@ -44,7 +44,7 @@ public static class InstanceContentTrash
             || item is FileInfo file && file.Length != command.ExpectedSize)
             throw new IOException("内容已变化，请刷新后再移除。");
     }
-    private static void RemoveOne(InstanceContentRemoveCommand command, InstanceManagementSnapshot snapshot, CancellationToken token)
+    private static string RemoveOne(InstanceContentRemoveCommand command, InstanceManagementSnapshot snapshot, CancellationToken token)
     {
         ValidateRemoval(command, snapshot);
         string source = Path.Combine(snapshot.GameDirectory, command.PageId, command.Name);
@@ -68,6 +68,46 @@ public static class InstanceContentTrash
         { journal.Write(bytes); journal.Flush(true); }
         token.ThrowIfCancellationRequested();
         Move(source, Path.Combine(transaction, "content"), command.IsDirectory);
+        return transaction;
+    }
+
+    /// <summary>Publishes a verified staged pack and journals the original using the same content lifecycle.</summary>
+    public static async Task<XsrResult> ReplacePackAsync(InstanceContentRemoveCommand command, string stagedPath, string newName,
+        XsrStateStore store, CancellationToken token = default)
+    {
+        try
+        {
+            if (command.PageId is not ("resourcepacks" or "shaderpacks") || command.IsDirectory
+                || !MinecraftVersionPaths.IsSafeReference(newName) || !newName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("请选择有效的资源包或光影包。");
+            var snapshot = await InstanceManagementService.ReadAsync(new(command.InstanceDirectory), token).ConfigureAwait(false);
+            using var lease = await InstanceRecoveryOperationGate.EnterRestoreAsync(Directory.GetParent(snapshot.InstanceDirectory)!.Parent!.FullName, token).ConfigureAwait(false);
+            snapshot = await InstanceManagementService.ReadAsync(new(command.InstanceDirectory), token).ConfigureAwait(false);
+            RejectRunning(snapshot, store, token); ValidateRemoval(command, snapshot);
+            var stage = new FileInfo(Path.GetFullPath(stagedPath));
+            if (stage.Directory is not { } staging || !staging.Name.StartsWith(".nexa-resource-", StringComparison.Ordinal)
+                || !Nexa.Core.PathIdentity.Comparer.Equals(staging.Parent?.FullName, snapshot.GameDirectory))
+                throw new InvalidDataException("下载暂存文件不属于此游戏目录。");
+            RecoveryBlobStore.CheckLinks(stage.FullName);
+            if (!stage.Exists || stage.Length is <= 0 or > 2L * 1024 * 1024 * 1024) throw new IOException("下载暂存文件不可用。");
+            string target = Path.Combine(snapshot.GameDirectory, command.PageId, newName);
+            string original = Path.Combine(snapshot.GameDirectory, command.PageId, command.Name);
+            RecoveryBlobStore.CheckLinks(target);
+            if (!Nexa.Core.PathIdentity.Comparer.Equals(target, original) && Path.Exists(target)) throw new IOException("新版本文件已存在，未覆盖任何内容。");
+            token.ThrowIfCancellationRequested();
+            string transaction = RemoveOne(command, snapshot, token);
+            try { File.Move(stage.FullName, target, false); }
+            catch
+            {
+                RecoveryBlobStore.CheckLinks(original); RecoveryBlobStore.CheckLinks(transaction);
+                File.Move(Path.Combine(transaction, "content"), original, false);
+                throw;
+            }
+            return XsrResult.Success();
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { return XsrResult.Failure(XsrRuntimeErrors.Cancelled()); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or ArgumentException)
+        { return XsrResult.Failure(MinecraftErrors.InvalidRequest(error.Message)); }
     }
 
     public static async Task<XsrResult> RestoreAsync(InstanceContentRestoreCommand command, XsrStateStore store, CancellationToken token = default)
@@ -141,7 +181,7 @@ public static class InstanceContentTrash
     private static void Move(string source, string destination, bool directory)
     { if (directory) Directory.Move(source, destination); else File.Move(source, destination, false); }
 
-    private static void RejectRunning(InstanceManagementSnapshot snapshot, XsrStateStore store, CancellationToken token)
+    internal static void RejectRunning(InstanceManagementSnapshot snapshot, XsrStateStore store, CancellationToken token)
     {
         if (store.TryResolve(MinecraftProcessStateComposition.SessionsKey, out var sessions)
             && store.ReadCollection<MinecraftProcessSnapshot>(sessions, cancellationToken: token).Items.Any(item => item.State is MinecraftProcessState.Created or MinecraftProcessState.Running

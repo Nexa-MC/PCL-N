@@ -35,6 +35,7 @@ internal sealed partial class SettingsPageController
 
     private void CancelManagementRead()
     {
+        CancelOnlineList();
         _managementStop?.Cancel(); _managementStop?.Dispose(); _managementStop = null;
         _managementRead = null; _managementLoaded = false;
     }
@@ -270,7 +271,7 @@ internal sealed partial class SettingsPageController
     private void ApplyContentFilter()
     {
         if (_management?.Contents.FirstOrDefault(item => item.PageId == _selected) is not { } source) return;
-        _contentSnapshot = source with { Entries = source.Entries.Where(item => (_selected != "mods" || MatchesModCategory(item, _modCategory)) && ((item.Name.Contains(_contentFilter, StringComparison.OrdinalIgnoreCase) || StripContentFormatting(item.Name).Contains(_contentFilter, StringComparison.OrdinalIgnoreCase)) || (StripContentFormatting(item.DisplayName).Contains(_contentFilter, StringComparison.OrdinalIgnoreCase) || StripContentFormatting(item.Description).Contains(_contentFilter, StringComparison.OrdinalIgnoreCase)) || item.Version.Contains(_contentFilter, StringComparison.OrdinalIgnoreCase))).ToArray() };
+        _contentSnapshot = source with { Entries = source.Entries.Select(LinkedContent).Where(item => (_selected != "mods" || MatchesModCategory(item, _modCategory)) && ((item.Name.Contains(_contentFilter, StringComparison.OrdinalIgnoreCase) || StripContentFormatting(item.Name).Contains(_contentFilter, StringComparison.OrdinalIgnoreCase)) || (StripContentFormatting(item.DisplayName).Contains(_contentFilter, StringComparison.OrdinalIgnoreCase) || StripContentFormatting(item.Description).Contains(_contentFilter, StringComparison.OrdinalIgnoreCase)) || item.Version.Contains(_contentFilter, StringComparison.OrdinalIgnoreCase))).ToArray() };
         if (_contentCount.IsAssigned && _shell.Tree.IsAlive(_contentCount))
             _shell.Tree.SetComponent(_contentCount, new XsrUiText($"{_contentSnapshot.Entries.Count} / {source.Entries.Count} 项" + (source.Complete ? "" : " · 未全部列出")));
         _contentWindowStart = -1;

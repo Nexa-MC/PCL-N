@@ -5,7 +5,54 @@ namespace Nexa.Services.Resources;
 
 public sealed class ResourceContentOnlineService(ResourceInstanceService instances, IResourceCatalogSource catalog, ResourceTranslationService? translations = null)
 {
-    public Task<ResourceContentOnline> ReadAsync(ResourceContentOnlineQuery query, CancellationToken token) => Task.Run(async () =>
+    public Task<ResourceContentOnlineBatch> ReadBatchAsync(ResourceContentOnlineBatchQuery query, CancellationToken token) => Task.Run(async () =>
+    {
+        if (query.Files.Count > 100) throw new InvalidDataException("一次最多识别 100 个资源文件。");
+        long budget = 1024L * 1024 * 1024;
+        HashSet<ResourceContentOnlineQuery> eligible = [];
+        foreach (var group in query.Files.GroupBy(q => q.MirrorFirst))
+        {
+            List<ResourceInstanceService.Fingerprint> fingerprints = [];
+            foreach (var item in group)
+            {
+                token.ThrowIfCancellationRequested();
+                if (item.PageId is not ("mods" or "resourcepacks" or "shaderpacks") || !Path.IsPathFullyQualified(item.InstanceDirectory)
+                    || !MinecraftVersionPaths.IsSafeReference(item.Name) || item.ExpectedSize is < 0 or > 512L * 1024 * 1024) continue;
+                if (item.ExpectedSize > budget) continue;
+                budget -= item.ExpectedSize;
+                try
+                {
+                    string instance = Path.TrimEndingDirectorySeparator(Path.GetFullPath(item.InstanceDirectory));
+                    var versions = Directory.GetParent(instance);
+                    if (versions?.Name != "versions" || versions.Parent is null) continue;
+                    CheckLinks(instance);
+                    var metadata = await new MinecraftInstanceMetadataStore().LoadAsync(instance, token).ConfigureAwait(false);
+                    var file = new FileInfo(Path.Combine(metadata.InstanceIsolation ? instance : versions.Parent.FullName, item.PageId, item.Name));
+                    CheckLinks(file.FullName); CheckIdentity(file, item);
+                    var fingerprint = await instances.ReadFingerprintAsync(file, token).ConfigureAwait(false);
+                    if (fingerprint is not null) { fingerprints.Add(fingerprint); eligible.Add(item); }
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+            }
+            await instances.IdentifyManyAsync(fingerprints, group.Key, token).ConfigureAwait(false);
+        }
+        var matches = new ResourceContentOnlineMatch[query.Files.Count];
+        await Parallel.ForEachAsync(Enumerable.Range(0, query.Files.Count), new ParallelOptions { MaxDegreeOfParallelism = 2, CancellationToken = token }, async (i, ct) =>
+        {
+            var file = query.Files[i];
+            if (!eligible.Contains(file)) { matches[i] = new(file, new(null, null, [], "文件已变化或超过本次识别预算，已保留本地资料。")); return; }
+            try
+            {
+                var content = await ReadCoreAsync(file, true, ct).ConfigureAwait(false);
+                matches[i] = new(file, content with { Versions = content.Versions.Take(1).ToArray() });
+            }
+            catch (Exception error) when (!ct.IsCancellationRequested && error is IOException or UnauthorizedAccessException or HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+            { matches[i] = new(file, new(null, null, [], "暂时无法识别在线信息，已保留本地资料。")); }
+        }).ConfigureAwait(false);
+        return new ResourceContentOnlineBatch(Array.AsReadOnly(matches));
+    }, token);
+    public Task<ResourceContentOnline> ReadAsync(ResourceContentOnlineQuery query, CancellationToken token) => ReadCoreAsync(query, false, token);
+    private Task<ResourceContentOnline> ReadCoreAsync(ResourceContentOnlineQuery query, bool preloaded, CancellationToken token) => Task.Run(async () =>
     {
         ResourceKind kind = query.PageId switch
         {
@@ -29,7 +76,7 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
         if (file.Length > 512L * 1024 * 1024) return new ResourceContentOnline(null, null, [], "文件较大，暂不进行在线识别。");
         var fingerprint = await instances.ReadFingerprintAsync(file, token).ConfigureAwait(false);
         if (fingerprint is null) throw new IOException("文件已变化，请刷新后重试。");
-        var identified = await instances.IdentifyAsync(fingerprint, query.MirrorFirst, token).ConfigureAwait(false);
+        var identified = await instances.IdentifyAsync(fingerprint, query.MirrorFirst, preloaded, token).ConfigureAwait(false);
         if (identified.Files.Length == 0) return new ResourceContentOnline(null, null, [], identified.Complete ? "模组站尚未收录此文件，已保留本地信息。" : "暂时无法连接模组站，已保留本地信息。");
         var edit = await MinecraftInstallEditService.ReadAsync(new(versions.Parent.FullName, Path.GetFileName(instance)), token).ConfigureAwait(false);
         string loader = kind == ResourceKind.Mod ? edit.Selection.Select(selection => selection.Loader switch

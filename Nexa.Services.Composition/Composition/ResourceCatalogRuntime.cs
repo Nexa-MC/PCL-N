@@ -44,6 +44,15 @@ public static class ResourceCatalogRuntimeComposer
             var content = new ResourceContentOnlineService(instances, source, translations);
             queries.Register<ResourceContentOnlineQuery, ResourceContentOnline>(ResourceCatalogContract.ContentOnline,
                 async (query, token) => XsrResult.Success(await content.ReadAsync(query, token).ConfigureAwait(false)));
+            queries.Register<ResourceContentOnlineBatchQuery, ResourceContentOnlineBatch>(ResourceCatalogContract.ContentOnlineBatch,
+                async (query, token) => XsrResult.Success(await content.ReadBatchAsync(query, token).ConfigureAwait(false)));
+            var updates = new ResourceContentUpdateService(content, downloader, host.StateStore);
+            commands.Register<ResourceContentUpdateCommand>(ResourceCatalogContract.UpdateContent, async (command, token) =>
+            {
+                try { await updates.UpdateAsync(command, token).ConfigureAwait(false); return XsrResult.Success(); }
+                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+                { return XsrResult.Failure(new XsrError(XsrErrorKind.Rejected, XsrSemanticId.Parse("resources.update.failed"), error.Message)); }
+            });
             queries.Register<ResourceInstanceQuery, ResourceInstanceContext>(ResourceCatalogContract.Instance,
                 async (query, token) => XsrResult.Success(await instances.ReadAsync(query, token).ConfigureAwait(false)));
             queries.Register<ResourceModPlanQuery, ResourceInstallPlan>(ResourceCatalogContract.PlanMod, async (query, token) =>
