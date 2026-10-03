@@ -207,7 +207,8 @@ internal static partial class Program
         AssertEqual(labelY + 6, surface.Scene!.Nodes.Single(node => node.Entity == text).Rect.Y);
         AssertEqual(siblingY, surface.Scene.Nodes.Single(node => node.Entity == image).Rect.Y);
         AssertTrue(surface.Scene.Outgoing.Any(layer => layer.Group == text && layer.BehindSelf));
-        await Task.Delay(40);
+        deadline = DateTime.UtcNow.AddSeconds(2);
+        while (shell.Renderer.GetTransitionOffsetY(text) == 6 && DateTime.UtcNow < deadline) await Task.Delay(16);
         double live = shell.Renderer.GetTransitionOffsetY(text);
         AssertTrue(live is > 0 and < 6);
         labelTransition.Key = "reverse";
@@ -229,7 +230,9 @@ internal static partial class Program
         shell.Tree.MarkDirty(text, XsrUiDirtyKinds.Paint); shell.Tree.MarkDirty(image, XsrUiDirtyKinds.Paint);
         surface.CommitScene();
         AssertEqual(0d, surface.Scene!.Nodes.Single(node => node.Entity == image).PresentationOpacity);
-        await Task.Delay(40);
+        deadline = DateTime.UtcNow.AddSeconds(2);
+        while (shell.Renderer.GetTransitionOffsetY(text) >= shell.Renderer.GetTransitionOffsetY(image)
+            && DateTime.UtcNow < deadline) await Task.Delay(16);
         AssertTrue(shell.Renderer.GetTransitionOffsetY(text) < shell.Renderer.GetTransitionOffsetY(image));
         shell.Renderer.ReducedMotion = true; surface.CommitScene();
         AssertEqual(1d, surface.Scene!.Nodes.Single(node => node.Entity == image).PresentationOpacity);

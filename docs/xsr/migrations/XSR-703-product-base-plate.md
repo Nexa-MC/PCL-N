@@ -98,6 +98,10 @@ instead of the Avalonia animation stack — the
 latter's `TransformAnimator` crashed under NativeAOT on transform keyframes, and the shared
 clock keeps every rule testable and allocation-bounded:
 
+Native transition regressions wait for presented movement and stagger ordering
+with bounded deadlines. They retain intermediate-position and reversal assertions
+without assuming a dispatcher tick must arrive within a fixed 40 ms.
+
 - press scales to 0.97 on pointer-down over 120 ms and settles back on release;
 - hover fades are 120 ms in, 180 ms out, mirrored and interruptible;
 - the selection pill grows over 300 ms (ease-out) and collapses over 120 ms (ease-in);
