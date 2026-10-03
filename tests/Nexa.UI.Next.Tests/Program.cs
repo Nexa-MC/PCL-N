@@ -17,6 +17,7 @@ internal static partial class Program
         ("structural input barriers follow visible sibling order", Sync(StructuralInputBarriersFollowVisibleSiblingOrder)),
         ("steady pointer queries allocate no managed memory", Sync(SteadyPointerQueriesAllocateNoManagedMemory)),
         ("segmented track supports drag snap keyboard and cancellation", Sync(SegmentedTrackSupportsDragSnapKeyboardAndCancellation)),
+        ("segment clicks reveal clipped selections in both directions", Sync(SegmentClicksRevealClippedSelectionInBothDirections)),
         ("segmented overflow clips resizes and scrolls proportionally", Sync(SegmentOverflowClipsAndScrollsByDragProgress)),
         ("list drag keeps clicks separate and publishes inertia", Sync(ListDragKeepsClicksSeparateAndPublishesInertia)),
         // XSR-201: ECS kernel.

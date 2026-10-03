@@ -1246,6 +1246,12 @@ public sealed partial class XsrUiRenderer
             return false;
         }
 
+        // Mouse, keyboard and accessibility activation share viewport revelation. A captured
+        // thumb drag owns proportional scrolling and must not be re-scrolled for each intent.
+        XsrUiEntityId parent = _tree.Parent(entity);
+        if (parent.IsAssigned && parent != _segmentDrag && _tree.GetComponent<XsrUiSegmentedTrack>(parent) is not null)
+            RevealSegment(parent, entity);
+
         _sink.Emit(binding.Command, entity, XsrCorrelationId.Create());
         return true;
     }

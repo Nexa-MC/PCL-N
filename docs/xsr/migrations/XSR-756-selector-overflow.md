@@ -10,9 +10,11 @@ left end, rightward auto-scroll starts after 20% of the available thumb travel a
 the remaining 80% onto the hidden content distance. Re-grabbing a scrolled thumb preserves
 the current offset; reversal scrolls back proportionally. The scroll is position-based,
 not a fixed increment per pointer event, so input frequency cannot change the result.
-Keyboard selection reveals the selected segment independently of the drag threshold.
+Click, keyboard and accessibility activation reveal the selected segment independently of
+the drag threshold. Revelation happens in the common activation path once, in both
+directions, without disturbing an active thumb drag.
 
 Contract tests cover clipping, viewport shrink/grow, proportional scroll, repeated pointer
-coordinates, reversing, cancellation and keyboard reachability. UI.Next owns geometry and
+coordinates, reversing, cancellation, keyboard reachability and partially clipped pointer selection. UI.Next owns geometry and
 gesture state; Desktop retains only selection intents. Existing reduced-motion behavior
 and scroll/transition clocks remain unchanged.

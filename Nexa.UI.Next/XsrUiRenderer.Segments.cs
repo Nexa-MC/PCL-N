@@ -38,7 +38,7 @@ public sealed partial class XsrUiRenderer
         int current = Array.IndexOf(segments, _focused);
         if (current < 0) return false;
         int next = Math.Clamp(current + (key == XsrUiKey.Right ? 1 : -1), 0, segments.Length - 1);
-        if (next != current) { RevealSegment(parent, segments[next]); Focus(segments[next]); Activate(segments[next]); }
+        if (next != current) { Focus(segments[next]); Activate(segments[next]); }
         return true;
     }
     private void RevealSegment(XsrUiEntityId parent, XsrUiEntityId child)

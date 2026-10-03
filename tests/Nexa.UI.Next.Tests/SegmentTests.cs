@@ -110,6 +110,41 @@ internal static partial class Program
         AssertClose(240, scene.Nodes.Single(n => n.Entity == root).Rect.Width);
         AssertClose(760, scroll.OffsetX);
     }
+    private static void SegmentClicksRevealClippedSelectionInBothDirections()
+    {
+        XsrUiTree tree = new(); XsrUiEntityId root = tree.Create("track"), thumb = tree.Create("thumb");
+        tree.SetComponent(root, new XsrUiElement { Width = 240, Height = 40 });
+        tree.SetComponent(root, new XsrUiStackPanel(XsrUiOrientation.Horizontal));
+        var scroll = new XsrUiScroll(); tree.SetComponent(root, scroll);
+        tree.SetComponent(thumb, new XsrUiElement { IsVisible = false }); tree.SetComponent(thumb, new XsrUiTransition()); tree.Attach(thumb, root);
+        var track = new XsrUiSegmentedTrack(thumb); tree.SetComponent(root, track);
+        var options = new List<XsrUiEntityId>();
+        for (int i = 0; i < 10; i++)
+        {
+            var option = tree.Create("option-" + i); tree.Attach(option, root); options.Add(option);
+            tree.SetComponent(option, new XsrUiElement { Width = 100, Height = 40 });
+            tree.SetComponent(option, new XsrUiInput { Clickable = true, Focusable = true });
+            tree.SetComponent(option, new XsrUiCommandBinding(XsrSemanticId.Parse("test.segment")));
+        }
+        track.Selected = options[0]; var sink = new SegmentSink(track);
+        var renderer = new XsrUiRenderer(tree, new XsrStateStoreBuilder().Build(), sink) { ReducedMotion = true };
+        renderer.SetRoot(root); renderer.Render();
+        AssertTrue(renderer.PointerPressed(new(220, 20))); AssertTrue(renderer.PointerReleased(new(220, 20)));
+        var scene = renderer.Render(); AssertEqual(options[2], track.Selected); AssertClose(60, scroll.OffsetX); AssertEqual(1, sink.Count);
+        var selected = scene.Nodes.Single(n => n.Entity == options[2]); AssertClose(140, selected.Rect.X); AssertClose(240, selected.Rect.X + selected.Rect.Width);
+        // A fully visible tap does not advance the viewport a second time.
+        AssertTrue(renderer.PointerPressed(new(90, 20))); AssertTrue(renderer.PointerReleased(new(90, 20)));
+        renderer.Render(); AssertEqual(options[1], track.Selected); AssertClose(60, scroll.OffsetX); AssertEqual(2, sink.Count);
+        track.Selected = options[3]; scroll.OffsetX = 160; tree.MarkDirty(root, XsrUiDirtyKinds.Layout); renderer.Render(); // The preceding option is now partially clipped at the left.
+        AssertTrue(renderer.PointerPressed(new(20, 20))); AssertTrue(renderer.PointerReleased(new(20, 20)));
+        renderer.Render(); AssertEqual(options[1], track.Selected); AssertClose(100, scroll.OffsetX); AssertEqual(3, sink.Count);
+        AssertTrue(renderer.Activate(options[9])); renderer.Render(); AssertClose(760, scroll.OffsetX);
+        AssertTrue(renderer.Focus(options[9])); AssertTrue(renderer.HandleKey(XsrUiKey.Left)); renderer.Render();
+        AssertEqual(options[8], track.Selected); AssertClose(760, scroll.OffsetX);
+        AssertTrue(renderer.HandleKey(XsrUiKey.Left)); renderer.Render(); AssertEqual(options[7], track.Selected); AssertClose(700, scroll.OffsetX);
+        tree.GetComponent<XsrUiInput>(options[0])!.Enabled = false;
+        AssertFalse(renderer.Activate(options[0])); renderer.Render(); AssertClose(700, scroll.OffsetX);
+    }
     private static void ListDragKeepsClicksSeparateAndPublishesInertia()
     {
         XsrUiTree tree = new(); XsrUiEntityId root = tree.Create("list");
