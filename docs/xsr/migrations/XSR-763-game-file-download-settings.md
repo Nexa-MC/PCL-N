@@ -17,3 +17,7 @@ UI enables the existing catalog positions, without adding a second settings stor
 cover durable values, invalid limits, legacy slider conversion, bounded workers, captured
 policy and real install/file-completion retry behavior. All verification and commit-last
 contracts continue to apply when retry is disabled.
+
+Follow-up: asset-index completion also uses the captured retry preference, including
+its separate fetch/verify loop. A corrupt index is removed after either one attempt
+(retry off) or two (retry on); file completion never parses or keeps the bad index.

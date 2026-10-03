@@ -103,10 +103,11 @@ internal static partial class Program
                 new MinecraftVersionDescriptor("1.20.1", "1.20.1", Path.Combine(directory, "1.20.1.json"), null, null, null, null,
                     new MinecraftVersionClassification("1.20.1", "release", MinecraftVersionCategory.Release, null)),
                 new MinecraftInstanceMetadata());
-            int attempts = 0;
+            int attempts = 0, indexAttempts = 0;
             using var completion = new MinecraftLaunchFileCompletion(fixture.Downloads, connectionFactory: source =>
             {
                 if (source.Contains("client/1.20.1.jar", StringComparison.Ordinal)) Interlocked.Increment(ref attempts);
+                if (source.EndsWith("/5.json", StringComparison.Ordinal)) Interlocked.Increment(ref indexAttempts);
                 return new ServingConnection("BAD"u8.ToArray());
             }, settingsPolicy: settings);
             bool failed = false;
@@ -119,6 +120,17 @@ internal static partial class Program
             AssertTrue(failed);
             AssertEqual(retry ? 2 : 1, attempts);
             AssertFalse(File.Exists(Path.Combine(directory, "1.20.1.jar")));
+            string indexPath = Path.Combine(fixture.Root, "assets", "indexes", "5.json");
+            File.Delete(indexPath);
+            failed = false;
+            try
+            {
+                await completion.CompleteAsync(fixture.Root, instance, new(VanillaJson(), []),
+                    new(MinecraftLibraryOperatingSystem.Win32, "10.0.26100", true, false), "offline", null, CancellationToken.None);
+            }
+            catch (InvalidOperationException) { failed = true; }
+            AssertTrue(failed); AssertEqual(retry ? 2 : 1, indexAttempts);
+            AssertFalse(File.Exists(indexPath));
         }
     }
 }

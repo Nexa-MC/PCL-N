@@ -127,7 +127,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
 
         if (indexDiskPath is not null)
         {
-            await EnsureAssetIndexAsync(indexDiskPath, indexPlan, cancellationToken).ConfigureAwait(false);
+            await EnsureAssetIndexAsync(indexDiskPath, indexPlan, downloadPolicy, cancellationToken).ConfigureAwait(false);
             if (File.Exists(indexDiskPath))
             {
                 JsonObject indexJson = await MinecraftVersionJsonReader.ReadAsync(indexDiskPath, cancellationToken)
@@ -242,6 +242,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
     private async ValueTask EnsureAssetIndexAsync(
         string indexDiskPath,
         MinecraftAssetIndexDownloadPlan plan,
+        MinecraftDownloadPolicy downloadPolicy,
         CancellationToken cancellationToken)
     {
         var expected = new MinecraftExpectedFile(indexDiskPath, plan.Size >= 0 ? plan.Size : null, plan.Sha1);
@@ -257,14 +258,15 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
 
         Directory.CreateDirectory(Path.GetDirectoryName(indexDiskPath)!);
         string[] sources = MinecraftDownloadSourcePlanner.GetLauncherOrMetaSources(plan.Url!, true, plan.Sha1);
-        for (int attempt = 0; attempt < 2; attempt++)
+        int attempts = downloadPolicy.Retry ? 2 : 1;
+        for (int attempt = 0; attempt < attempts; attempt++)
         {
             TryDelete(indexDiskPath);
             DownloadTransferResult transfer = await TransferAsync(sources, indexDiskPath, cancellationToken,
                 allowResume: false).ConfigureAwait(false);
             if (transfer.Success && await _verification.VerifyAsync(expected, cancellationToken, forceHash: true).ConfigureAwait(false)) return;
             TryDelete(indexDiskPath);
-            if (attempt == 0) await Task.Delay(FileRetryDelay, cancellationToken).ConfigureAwait(false);
+            if (attempt + 1 < attempts) await Task.Delay(FileRetryDelay, cancellationToken).ConfigureAwait(false);
         }
         throw new InvalidOperationException("补全文件失败：资源索引下载或校验失败。");
     }
