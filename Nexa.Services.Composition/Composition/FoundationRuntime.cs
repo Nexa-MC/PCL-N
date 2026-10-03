@@ -1,8 +1,8 @@
 using Nexa.Services.Accounts;
 using Nexa.Services.Capabilities;
 using Nexa.Services.Foundation;
-using Nexa.Services.Minecraft.Management;
 using Nexa.Services.Minecraft.Install;
+using Nexa.Services.Minecraft.Management;
 using Nexa.Services.Settings;
 using Nexa.Services.Telemetry;
 using Nexa.Xsr.Runtime;
