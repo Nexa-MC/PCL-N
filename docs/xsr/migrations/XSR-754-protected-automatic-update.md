@@ -35,6 +35,12 @@ remain available; the helper is required in every release payload.
 Managed tests inject interruption after receipt, preparation, high-water, acceptance and
 activation; all recover offline, preserve complete activation and reject replay after rollback.
 Additional tests reject bad package bytes and interrupted/corrupt journal frames. Native
+public-journal tests hold the writer open while reading both progress and completion. Public
+Windows journal writers do not request DELETE access, keeping read/write sharing coherent;
+the original one-argument read API remains available for binary compatibility.
+Native validation also exercises architecture-specific Linux ARM64 open flags and macOS
+descriptor security-property queries. An absent ACL property is distinguished from a failed
+filesystem query; permission/unsupported errors are never interpreted as absence.
 release CI executes a real protected transaction/rollback on each of six RIDs and smoke-runs
 the helper, alongside installer, Desktop NativeAOT and trim checks. Native CI results must be
 reviewed before acceptance; fixtures are not physical power-loss or OS signing acceptance.

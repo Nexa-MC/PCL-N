@@ -77,6 +77,14 @@ internal static partial class Program
             : OperatingSystem.IsMacOS() ? "/Library" : "/usr/lib";
         using IUpdateDirectory parent = ProtectedUpdateDirectory.Open(root);
         using IUpdateDirectory directory = parent.CreateDirectory(".nexa-ci-" + Guid.NewGuid().ToString("N"), publicRead: true);
+        using (FileStream writer = directory.OpenState("public-progress", publicRead: true, exclusive: false))
+        {
+            UpdateTransactionJournal.Append(writer, "progress");
+            using FileStream reader = directory.OpenRead("public-progress");
+            AssertEqual("progress", UpdateTransactionJournal.Read(reader)![0]);
+            UpdateTransactionJournal.Append(writer, "complete");
+            AssertEqual("complete", UpdateTransactionJournal.Read(reader)![0]);
+        }
         var fixture = CreateAutomaticUpdateFixture(System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier);
         var transaction = new AutomaticUpdateTransaction(directory, fixture.Identity, fixture.Verifier, fixture.Source)
         { FaultBoundary = phase => { if (phase == "high-water") throw new IOException("Simulated exit"); } };

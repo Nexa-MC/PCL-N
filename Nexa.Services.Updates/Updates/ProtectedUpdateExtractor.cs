@@ -71,7 +71,11 @@ internal static class ProtectedUpdateExtractor
                 if (!directories.ContainsKey(path)) directories.Add(path, directories[parent].CreateDirectory(parts[i], publicRead: true));
                 parent = path;
             }
-            if (directory) return;
+            if (directory)
+            {
+                if (length != 0) throw new InvalidDataException("更新包目录包含非空数据。");
+                return;
+            }
             if (!files.Add(name) || directories.ContainsKey(name) || input is null) throw new InvalidDataException("更新包条目重复或为空。");
             using FileStream output = directories[parent].CreateFile(parts[^1], publicRead: true, executable);
             byte[] buffer = new byte[65536];

@@ -16,9 +16,9 @@ internal sealed partial class UnixUpdateDirectory : IUpdateDirectory
     { _chain = chain; Path = path; _created = created; }
 
     private static bool Mac => OperatingSystem.IsMacOS();
-    private static int NoFollow => Mac ? 0x100 : 0x20000;
+    private static int NoFollow => Mac ? 0x100 : RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? 0x8000 : 0x20000;
     private static int CloseOnExec => Mac ? 0x1000000 : 0x80000;
-    private static int DirectoryFlag => Mac ? 0x100000 : 0x10000;
+    private static int DirectoryFlag => Mac ? 0x100000 : RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? 0x4000 : 0x10000;
     private static int CreateFlag => Mac ? 0x200 : 0x40;
     private static int ExclusiveFlag => Mac ? 0x800 : 0x80;
 
@@ -172,8 +172,8 @@ internal sealed partial class UnixUpdateDirectory : IUpdateDirectory
             }
             return;
         }
-        nint acl = AclGetFd(fd, 0x100);
-        if (acl == 0) Fail("读取更新 ACL");
+        nint acl = ReadMacAcl(fd);
+        if (acl == 0) return;
         try
         {
             int kind = 0, count = 0, result;
@@ -187,6 +187,24 @@ internal sealed partial class UnixUpdateDirectory : IUpdateDirectory
             if (result != -1 || Marshal.GetLastPInvokeError() != 22) throw new UnauthorizedAccessException("更新 ACL 结构异常。");
         }
         finally { _ = AclFree(acl); }
+    }
+
+    private static unsafe nint ReadMacAcl(int fd)
+    {
+        nint security = FilesecInit();
+        if (security == 0) Fail("创建 ACL 查询");
+        try
+        {
+            byte* stat = stackalloc byte[256];
+            int result = RuntimeInformation.ProcessArchitecture == Architecture.X64
+                ? FstatxMac64(fd, stat, security) : FstatxMac(fd, stat, security);
+            if (result != 0) Fail("读取更新对象扩展权限");
+            if (FilesecQuery(security, 5, out int present) != 0) Fail("查询更新 ACL");
+            if (present == 0) return 0;
+            if (FilesecGet(security, 5, out nint acl) != 0 || acl is 0 or 1) Fail("读取更新 ACL");
+            return acl;
+        }
+        finally { FilesecFree(security); }
     }
 
     private static void Fail(string action) => throw new IOException(action + "失败。", new Win32Exception(Marshal.GetLastPInvokeError()));
@@ -209,7 +227,12 @@ internal sealed partial class UnixUpdateDirectory : IUpdateDirectory
     [LibraryImport("libc", EntryPoint = "fstat$INODE64", SetLastError = true)] private static unsafe partial int FstatMac64(int fd, byte* stat);
     [LibraryImport("libc", EntryPoint = "fstat", SetLastError = true)] private static unsafe partial int FstatMac(int fd, byte* stat);
     [LibraryImport("libc", EntryPoint = "fgetxattr", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)] private static partial nint GetXattr(int fd, string name, nint value, nuint size);
-    [LibraryImport("libc", EntryPoint = "acl_get_fd_np", SetLastError = true)] private static partial nint AclGetFd(int fd, int type);
+    [LibraryImport("libc", EntryPoint = "filesec_init", SetLastError = true)] private static partial nint FilesecInit();
+    [LibraryImport("libc", EntryPoint = "filesec_free")] private static partial void FilesecFree(nint security);
+    [LibraryImport("libc", EntryPoint = "filesec_query_property", SetLastError = true)] private static partial int FilesecQuery(nint security, int property, out int present);
+    [LibraryImport("libc", EntryPoint = "filesec_get_property", SetLastError = true)] private static partial int FilesecGet(nint security, int property, out nint acl);
+    [LibraryImport("libc", EntryPoint = "fstatx_np$INODE64", SetLastError = true)] private static unsafe partial int FstatxMac64(int fd, byte* stat, nint security);
+    [LibraryImport("libc", EntryPoint = "fstatx_np", SetLastError = true)] private static unsafe partial int FstatxMac(int fd, byte* stat, nint security);
     [LibraryImport("libc", EntryPoint = "acl_get_entry", SetLastError = true)] private static partial int AclGetEntry(nint acl, int kind, out nint entry);
     [LibraryImport("libc", EntryPoint = "acl_get_tag_type", SetLastError = true)] private static partial int AclGetTag(nint entry, out int tag);
     [LibraryImport("libc", EntryPoint = "acl_free")] private static partial int AclFree(nint acl);

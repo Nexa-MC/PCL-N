@@ -108,7 +108,9 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
     }
 
     /// <summary>Opens one protected leaf by parent handle, refusing reparse points and shared hardlinks.</summary>
-    public FileStream OpenReadFile(string name, bool concurrentState = false)
+    public FileStream OpenReadFile(string name) => OpenReadFile(name, concurrentState: false);
+
+    public FileStream OpenReadFile(string name, bool concurrentState)
     {
         lock (_gate)
         {
@@ -302,7 +304,13 @@ public sealed partial class WindowsUpdateDirectory : IDisposable
                 SecurityDescriptor = securityPointer
             };
             uint access = directory ? DirectoryAccess : ReadControl | Synchronize | ReadAttributes | 1;
-            if (create || state) access |= DeleteAccess | (directory ? 0u : 2u);
+            if (create || state)
+            {
+                access |= directory ? 0u : 2u;
+                // Concurrent public journals need no deletion authority. Giving their writer
+                // DELETE access would prevent readers that intentionally exclude delete sharing.
+                if (create || exclusive) access |= DeleteAccess;
+            }
             uint options = 0x200020u | (directory ? 1u : 0x40u) | (create || state ? 2u : 0u);
             int status = NtCreateFile(out SafeFileHandle handle, access, &attributes, out _, 0, 0, state ? exclusive ? 0u : 1u : concurrentRead ? 3u : 1u,
                 state ? 3u : create ? 2u : 1u, options, 0, 0);
