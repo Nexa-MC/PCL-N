@@ -1,11 +1,44 @@
 using Nexa.Desktop.Ui;
+using Nexa.Services.Accounts;
+using Nexa.Services.Minecraft.Launch;
 using Nexa.Services.Settings;
+using Nexa.Services.Tasks;
 using Nexa.UI.Next;
 
 namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void LowPowerPresentationYieldsToWorkAndRestoresPreference()
+    {
+        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([])); fixture.Controller.Dispose();
+        var policy = fixture.Foundation.Host.SettingsPolicy;
+        void Set(string key, string value) => AssertTrue(policy.Set(new(key, SettingsLayer.Global, new(SettingsOverrideMode.Custom, value))).IsSuccess);
+        Set("appearance.animation-fps", "120"); Set("appearance.low-power", "true");
+        List<int> rates = [];
+        using var session = new DesktopPresentationSession(fixture.Shell, fixture.Store, _ => { }, rates.Add);
+        AssertEqual(120, rates.Last());
+        void Pump() => fixture.Shell.Render(new(1000, 650));
+        fixture.Shell.PublishWindowActivity(false, false); Pump(); AssertEqual(10, rates.Last());
+        using var task = fixture.Foundation.Host.Tasks.Begin(new("low-power-task", "Fixture", []));
+        Pump(); AssertEqual(120, rates.Last()); task.Complete(); Pump(); AssertEqual(10, rates.Last());
+        var launch = fixture.Store.Resolve(MinecraftLaunchProgressState.SnapshotKey);
+        fixture.Store.Publish(launch, new MinecraftLaunchProgressSnapshot(true, "prepare", 0, "", "", false, null));
+        Pump(); AssertEqual(120, rates.Last());
+        fixture.Store.Publish(launch, MinecraftLaunchProgressSnapshot.Empty); Pump(); AssertEqual(10, rates.Last());
+        var login = fixture.Store.Resolve(AccountOnboardingState.Login);
+        fixture.Store.Publish(login, new AccountLoginSnapshot(1, AccountLoginPhase.Starting, "")); Pump(); AssertEqual(120, rates.Last());
+        fixture.Store.Publish(login, new AccountLoginSnapshot(1, AccountLoginPhase.Completed, "")); Pump(); AssertEqual(10, rates.Last());
+        Set("appearance.animation-fps", "30"); Pump(); AssertEqual(10, rates.Last());
+        fixture.Shell.PublishWindowActivity(true, false); Pump(); AssertEqual(30, rates.Last());
+        fixture.Shell.PublishWindowActivity(true, true); Pump(); AssertEqual(10, rates.Last());
+        Set("appearance.low-power", "false"); Pump(); AssertEqual(30, rates.Last());
+        AssertFalse(fixture.Shell.Renderer.ReducedMotion);
+        int calls = rates.Count; for (int i = 0; i < 10; i++) Pump(); AssertEqual(calls, rates.Count);
+        session.Dispose(); Set("appearance.animation-fps", "60"); Pump(); AssertEqual(calls, rates.Count);
+        AssertEqual("60", policy.Read(new()).Value!.Values.Single(v => v.Key == "appearance.animation-fps").Value.Value);
+    }
+
     private static void PresentationSettingsApplyWithoutNavigation()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));

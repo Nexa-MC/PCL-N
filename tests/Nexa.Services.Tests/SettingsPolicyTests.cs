@@ -10,6 +10,18 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
+    private static void LowPowerSettingRetainsLegacyScopeAndDurability()
+    {
+        var port = new InMemorySettingsPort(); var (store, policy) = PolicyFixture(port);
+        AssertTrue(store.SetValue("UiUltraLowPowerMode", true).IsSuccess);
+        AssertEqual("true", Effective(policy, "appearance.low-power").Value.Value);
+        AssertTrue(policy.Set(new("appearance.low-power", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "false"))).IsSuccess);
+        AssertEqual(false, store.GetValue<bool>("UiUltraLowPowerMode").Value);
+        var (_, reopened) = PolicyFixture(port); AssertEqual("false", Effective(reopened, "appearance.low-power").Value.Value);
+        AssertFalse(policy.Set(new("appearance.low-power", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "true"), Path.GetFullPath("low-power-instance"))).IsSuccess);
+        AssertEqual(SettingsCapabilityAvailability.Available, SettingsCatalog.Read(new()).Entries.Single(e => e.SettingKey == "appearance.low-power").Availability);
+    }
+
     private static void AnimationFrameRateUsesActualFpsAndLegacySliderEncoding()
     {
         var port = new InMemorySettingsPort();

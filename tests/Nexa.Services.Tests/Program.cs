@@ -4,6 +4,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("low power setting retains legacy scope and durability", Sync(LowPowerSettingRetainsLegacyScopeAndDurability)),
         ("Java registration persists and removal keeps files", JavaRegistrationPersistsAndRemovalKeepsFiles),
         ("Java registration failure and late probe never commit", JavaRegistrationFailureAndLateProbeNeverCommit),
         ("Java registration disables automatic and explicit selection", JavaRegistrationDisablesAutomaticAndExplicitSelection),

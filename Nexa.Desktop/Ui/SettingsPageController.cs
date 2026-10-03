@@ -438,6 +438,7 @@ internal sealed partial class SettingsPageController : IDisposable
         "game.auto-repair" => "启动前补全缺失或损坏的游戏文件；不关闭预检。",
         "appearance.animations-disabled" => "减少界面切换和展开时的动态效果。",
         "appearance.animation-fps" => "动画时钟的目标帧率，1–240 fps；不改变动画时长。",
+        "appearance.low-power" => "窗口在后台且没有任务时降低动画帧率，返回后自动恢复。",
         _ => null,
     };
 

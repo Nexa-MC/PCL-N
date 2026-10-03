@@ -77,12 +77,14 @@ using the existing inventory query and instance-scoped policy writes.
 
 XSR-775 delivers durable custom Java registration, native executable selection, and runtime enable/disable. Removal unregisters external files without deleting them. Discovery and explicit launch selection honor disabled entries; successful writes invalidate discovery caches. Canceled pickers and probes, stale registry revisions, and persistence failures cannot publish registration changes.
 
+XSR-776 connects low-power presentation to window activity and the existing task, launch and sign-in state. Idle background windows request at most 10 fps; foreground activity restores the stored animation rate. The renderer remains demand-driven and no transfer, native window animation or input clock is suspended.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Managed-runtime deletion; compatibility checks remain mandatory until a separate safe policy exists |
 | Game | Title, isolation, launch visibility and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
-| Appearance/general | Low power, theme and supported system integration; platform actions belong to Host |
+| Appearance/general | Theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |
 | Storage | Storage-location migration preview and cleanup; use existing service commands and transaction contracts |
 

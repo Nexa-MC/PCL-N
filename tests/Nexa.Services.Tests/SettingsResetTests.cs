@@ -25,12 +25,14 @@ internal static partial class Program
         AssertEqual("1500", Effective(policy, "game.width", second).Value.Value);
         var global = policy.PreviewReset(new());
         AssertTrue(global.Changes.All(change => change.Layer == SettingsLayer.Global && change.InstanceId is null));
-        AssertFalse(global.Changes.Any(change => change.Key is "appearance.low-power" or "network.proxy-password"));
+        AssertFalse(global.Changes.Any(change => change.Key == "network.proxy-password"));
+        AssertTrue(global.Changes.Any(change => change.Key == "appearance.low-power"));
         AssertEqual("1024", Effective(policy, "game.width").Value.Value);
         AssertTrue(policy.ApplyReset(new(global.Revision)).IsSuccess);
         AssertEqual("854", Effective(policy, "game.width").Value.Value);
         AssertEqual(59, store.GetValue<int>("UiAniFPS").Value);
-        AssertEqual("true", Effective(policy, "appearance.low-power").Value.Value);
+        AssertEqual("false", Effective(policy, "appearance.low-power").Value.Value);
+        AssertEqual(false, store.GetValue<bool>("UiUltraLowPowerMode").Value);
         AssertEqual("keep-private", Effective(policy, "network.proxy-password").Value.Value);
         var (_, reopened) = PolicyFixture(port);
         AssertEqual("854", Effective(reopened, "game.width", first).Value.Value);

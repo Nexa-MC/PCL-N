@@ -42,6 +42,7 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("low power presentation yields to work and restores preference", LowPowerPresentationYieldsToWorkAndRestoresPreference),
         ("Java registration picker retires on navigation and dispatches captured revision", JavaRegistrationPickerRetiresOnNavigationAndDispatchesCapturedRevision),
         ("Presentation settings apply outside navigation and preserve activity policy", PresentationSettingsApplyWithoutNavigation),
         ("Java vendor selector fits and scrolls in a narrow window", JavaVendorSelectorFitsAndScrollsInNarrowWindow),
