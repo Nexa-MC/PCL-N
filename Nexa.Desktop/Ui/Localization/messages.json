@@ -8893,5 +8893,25 @@
     "en": "Restore {0} settings.",
     "en-one": "Restore {0} setting.",
     "template": true
+  },
+  {
+    "source": "较低",
+    "zh-Hant": "較低",
+    "en": "Below normal"
+  },
+  {
+    "source": "较高",
+    "zh-Hant": "較高",
+    "en": "Above normal"
+  },
+  {
+    "source": "实时",
+    "zh-Hant": "即時",
+    "en": "Real time"
+  },
+  {
+    "source": "下次启动生效；系统可能拒绝提高优先级。",
+    "zh-Hant": "下次啟動生效；系統可能拒絕提高優先順序。",
+    "en": "Applies on the next launch. The system may deny a higher priority."
   }
 ]

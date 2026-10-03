@@ -141,6 +141,7 @@ public static class MinecraftLaunchPlanner
             MinecraftRootDirectory = root,
             ClientJarPath = clientJar,
             JavaMajorVersion = request.JavaMajorVersion,
+            ProcessPriority = request.ProcessPriority,
             HeapLimitMiB = args.Count(static arg => arg.StartsWith("-Xmx", StringComparison.Ordinal)) == 1
                 ? Math.Max(256, request.MemoryMegabytes) : -1,
             IsInheritedClientJar = clientJarResolution.IsInherited,

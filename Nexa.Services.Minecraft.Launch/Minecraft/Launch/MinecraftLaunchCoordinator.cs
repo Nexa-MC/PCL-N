@@ -978,6 +978,23 @@ public sealed class MinecraftLaunchCoordinator
     {
         foreach (var setting in snapshot.Values)
         {
+            if (setting.Key == "game.process-priority")
+            {
+                if (setting.ValidationError is not null) throw new InvalidDataException("进程优先级设置无效。");
+                request = request with
+                {
+                    ProcessPriority = setting.Value.Value switch
+                    {
+                        "normal" => System.Diagnostics.ProcessPriorityClass.Normal,
+                        "below-normal" => System.Diagnostics.ProcessPriorityClass.BelowNormal,
+                        "above-normal" => System.Diagnostics.ProcessPriorityClass.AboveNormal,
+                        "high" => System.Diagnostics.ProcessPriorityClass.High,
+                        "real-time" => System.Diagnostics.ProcessPriorityClass.RealTime,
+                        _ => throw new InvalidDataException("进程优先级设置无效。")
+                    }
+                };
+                continue;
+            }
             if (setting.Key == "game.server" && setting.Source != SettingsLayer.Builtin)
             {
                 if (setting.ValidationError is not null) throw new InvalidDataException("默认服务器设置无效。");

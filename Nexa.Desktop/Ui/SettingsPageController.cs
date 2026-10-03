@@ -418,6 +418,7 @@ internal sealed partial class SettingsPageController : IDisposable
     private static string? SettingHint(string? key) => key switch
     {
         "general.region" => "用于日期和数字；更改后重启生效。",
+        "game.process-priority" => "下次启动生效；系统可能拒绝提高优先级。",
         "game.jvm" => "每行一个参数，应用后用于下次启动。",
         "install.inherit-vanilla" => "关闭时安装独立版本；开启后依赖原版。下次安装生效。",
         "game.arguments" => "传递给 Minecraft 的额外启动参数。",

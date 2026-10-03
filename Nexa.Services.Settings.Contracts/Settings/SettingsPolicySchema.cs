@@ -71,6 +71,8 @@ public static class SettingsPolicySchema
         new("game.pre-launch", SettingsValueKind.Text, "", true, false, "LaunchAdvanceRun", SettingsApplyTiming.NextLaunch, Exportable: false),
         new("game.auto-repair", SettingsValueKind.Boolean, "true", true, false, "LaunchAutoRepairGame", SettingsApplyTiming.NextLaunch),
         new("game.server", SettingsValueKind.Text, "", true, false, null, SettingsApplyTiming.NextLaunch),
+        new("game.process-priority", SettingsValueKind.Enum, "normal", true, false, null, SettingsApplyTiming.NextLaunch,
+            Choices: "normal|below-normal|above-normal|high|real-time"),
         new("network.proxy-mode", SettingsValueKind.Enum, "1", false, false, "SystemHttpProxyType", SettingsApplyTiming.NextTask, Choices: "0|1|2"),
         new("network.proxy-address", SettingsValueKind.Text, "", false, false, "SystemHttpProxy", SettingsApplyTiming.NextTask, Exportable: false),
         new("network.proxy-user", SettingsValueKind.Text, "", false, false, "SystemHttpProxyCustomUsername", SettingsApplyTiming.NextTask, Exportable: false),

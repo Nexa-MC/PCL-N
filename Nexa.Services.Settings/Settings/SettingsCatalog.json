@@ -727,9 +727,9 @@
     "section": "默认资源配置",
     "label": "进程优先级",
     "kind": "Setting",
-    "key": null,
+    "key": "game.process-priority",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.1cf65ca0a095",

@@ -216,6 +216,8 @@ internal static partial class Program
         ("settings batch failures publish nothing and cross validate", Sync(SettingsBatchFailurePublishesNothing)),
         ("settings import is previewed atomic and private", Sync(SettingsImportIsPreviewedAtomicAndPrivate)),
         ("settings reset is scoped previewed and preserves reserved values", Sync(SettingsResetIsScopedPreviewedAndPreservesReservedValues)),
+        ("game priority captures scoped preference and legacy meaning", Sync(GamePriorityCapturesScopedPreferenceAndLegacyMeaning)),
+        ("game priority control failure cannot fail started session", GamePriorityControlFailureCannotFailStartedSession),
         ("settings reset rejects stale revision and rolls back save failure", Sync(SettingsResetRejectsStaleRevisionAndRollsBackSaveFailure)),
         ("settings layers survive restart and preserve unknown data", Sync(SettingsLayersSurviveRestartAndPreserveUnknowns)),
         ("Java major choices select installed runtimes or acquire missing ones", JavaMajorChoiceUsesInstalledOrDownloads),

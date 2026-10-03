@@ -29,6 +29,7 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 | game.wrapper | Text | empty | G/I | LaunchWrapperCommand | Next launch | No |
 | game.pre-launch | Text | empty | G/I | LaunchAdvanceRun | Next launch | No |
 | game.auto-repair | Bool | true | G/I | LaunchAutoRepairGame | Next launch | Yes |
+| game.process-priority | normal / below-normal / above-normal / high / real-time | normal | G/I | LaunchArgumentPriority 1/2/0/3/4 | Next launch | Yes |
 | game.server | Server host with optional port, at most 512 characters, no whitespace/control/scheme | empty | G/I | New | Next launch | Yes |
 | network.proxy-mode | 0 / 1 / 2 (none / system / custom) | 1 | G | SystemHttpProxyType | Next task | Yes |
 | network.proxy-address | Text, absolute HTTP/HTTPS/SOCKS5 URI when custom | empty | G | SystemHttpProxy | Next task | No |

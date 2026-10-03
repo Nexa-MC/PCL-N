@@ -57,10 +57,14 @@ XSR-770 delivers revision-checked reset previews for working global settings and
 current-instance overrides. Reserved settings and files are retained; instance reset
 restores inheritance without changing other instances.
 
+XSR-771 captures scoped process priority for the next launch and applies it through
+Jvm.Host. A denied scheduling change cannot fail a started game. Legacy priority
+encodings persist with their original meaning.
+
 | Slice | Remaining integration |
 |---|---|
 | Java | Installed runtime inventory/actions; compatibility checks remain mandatory until a separate safe policy exists |
-| Game | Title, isolation, launch visibility, process priority and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
+| Game | Title, isolation, launch visibility and wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
 | Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
 | Appearance/general | Low power, theme and supported system integration; platform actions belong to Host |
 | Privacy/advanced | Log retention/level and update preferences; existing telemetry policy and update actions must retain their current security boundaries |

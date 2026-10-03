@@ -65,6 +65,16 @@ public sealed class MinecraftLaunchExecutor
             operation?.Stage("start_process");
             stage?.Invoke("start_process");
             MinecraftProcessSession session = await _jvmHost.StartAsync(plan, instanceId, cancellationToken).ConfigureAwait(false);
+            if (plan.ProcessPriority is { } priority)
+            {
+                try
+                {
+                    var result = _jvmHost.SetPriority(session, priority);
+                    if (!result.Succeeded) _log?.Warn("Launch", $"Process priority was not applied session={session.Snapshot.SessionId} code={result.Code}.");
+                }
+                catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+                { _log?.Warn("Launch", $"Process priority failed session={session.Snapshot.SessionId} exception={error.GetType().Name}."); }
+            }
             operation?.Complete($"session={session.Snapshot.SessionId} pid={session.Snapshot.ProcessId}");
             return session;
         }

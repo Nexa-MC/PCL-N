@@ -94,6 +94,9 @@ public sealed partial class SettingsPolicyService
             }
             if (inherited is null && definition.Key == "game.window-mode" && raw.GetValueOrDefault("LaunchArgumentWindowType") == "0")
                 inherited = new(SettingsOverrideMode.Custom, "fullscreen");
+            if (inherited is null && definition.Key == "game.process-priority" && raw.GetValueOrDefault("LaunchArgumentPriority") is "0" or "2" or "3" or "4")
+                inherited = new(SettingsOverrideMode.Custom, raw["LaunchArgumentPriority"] switch
+                { "0" => "above-normal", "2" => "below-normal", "3" => "high", _ => "real-time" });
             if (inherited is null && definition.Key == "appearance.animation-fps"
                 && raw.GetValueOrDefault("UiAniFPS") is { } frameSlider && frameSlider != "59"
                 && int.TryParse(frameSlider, out int frames))
@@ -155,6 +158,9 @@ public sealed partial class SettingsPolicyService
                 writes[key] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? definition.DefaultValue : mutation.Value.Value!;
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.window-mode")
                 writes["LaunchArgumentWindowType"] = mutation.Value.Value == "fullscreen" ? "0" : "1";
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.process-priority")
+                writes["LaunchArgumentPriority"] = mutation.Value.Value switch
+                { "above-normal" => "0", "below-normal" => "2", "high" => "3", "real-time" => "4", _ => "1" };
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "appearance.animation-fps")
                 writes["UiAniFPS"] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? "59"
                     : (int.Parse(mutation.Value.Value!, System.Globalization.CultureInfo.InvariantCulture) - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
