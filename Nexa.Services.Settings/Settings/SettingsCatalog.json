@@ -3330,10 +3330,10 @@
     "page": "advanced",
     "section": "XSR State Inspector",
     "label": "XSR State Inspector",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.dc7ae54c530b",
@@ -3354,10 +3354,10 @@
     "page": "advanced",
     "section": "Renderer Diagnostics",
     "label": "Renderer Diagnostics",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.40eee0bd4639",

@@ -4,6 +4,22 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("Linux display projects active outputs and explicit primary", Sync(LinuxDisplayProjectsActiveOutputsAndExplicitPrimary)),
+        ("macOS power preserves unavailable evidence and battery units", Sync(MacPowerProjectionPreservesUnavailableAndBatteryUnits)),
+        ("Linux power enumerates batteries and weights energy", Sync(LinuxPowerEnumeratesSystemBatteriesAndWeightsEnergy)),
+        ("Unix GPU budgets do not substitute static capacity", Sync(DedicatedGpuBudgetDoesNotUseStaticCapacityOnUnix)),
+        ("Linux display query bounds timeout and cancellation", LinuxDisplayQueryHonorsBoundsTimeoutAndCancellation),
+        ("form factor failed probes preserve unknown evidence", FormFactorFailedProbesPreserveUnknown),
+        ("Windows power projection recognizes unknown sentinels", Sync(WindowsPowerProjectionRecognizesUnknownSentinels)),
+        ("Windows embedded displays preserve unknown evidence", Sync(WindowsDisplayEmbeddedConnectorsPreserveUnknown)),
+        ("Microsoft wardrobe validates bytes and owned capes", WardrobeMicrosoftUsesValidatedBytesAndOwnedCapes),
+        ("wardrobe rejects unsupported invalid and stale requests", WardrobeRejectsUnsupportedInvalidAndStaleRequests),
+        ("wardrobe late responses and failures preserve account", WardrobeLateResponsesAndFailuresPreserveCurrentAccount),
+        ("LittleSkin wardrobe separates provider and game tokens", WardrobeLittleSkinUsesProviderAndGameTokensAndClearsCape),
+        ("wardrobe bounds chunked responses and cape inventories", WardrobeBoundsChunkedResponsesAndCapeInventories),
+        ("wardrobe PNG validates complete static skins", Sync(WardrobePngAcceptsCompleteStaticSkins)),
+        ("wardrobe PNG rejects malformed and unsupported structures", Sync(WardrobePngRejectsMalformedStructureAndUnsupportedFormats)),
+        ("wardrobe PNG rejects invalid and unbounded image data", Sync(WardrobePngRejectsInvalidAndUnboundedImageData)),
         ("appearance preferences retain legacy modes and durable failures", Sync(AppearancePreferencesRetainLegacyModesRestartAndDurableFailures)),
         ("disk logs rotate within physical bounds", DiskLogsRotateWithinPhysicalBounds),
         ("disk retention protects current unrelated files and links", DiskRetentionProtectsCurrentUnrelatedFilesAndLinks),

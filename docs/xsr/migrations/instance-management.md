@@ -1,5 +1,9 @@
 # 版本设置与版本管理迁移
 
+2026-10-05 按基准 `565e5143` 复核。下文保留首个迁移单元的行为与验收记录，
+早期只读阶段的缺口不代表当前产品状态。当前补齐见本文末尾与
+[未实现库存](../XSR-795-unimplemented-inventory.md)。
+
 行为参考：`dev` 的 `4755faee0a10686917213afe57cb772ade83d77f`，只读检查
 `Features/Instances/Views/InstancePageRegistry`、`PageInstanceLeft`、
 `InstanceDisplayHelper` 及各右侧页面；不复制旧实现或引用旧程序集。
@@ -53,8 +57,10 @@ inheritsFrom/jar 引用和实例设置键；存档、配置与其他文件随目
 拒绝无效名称、目标冲突、链接路径及相关活动游戏进程。失败恢复原清单和目录，设置
 最后持久化；备份在回退失败时保留供恢复。改名与组件修改分阶段处理，不能声称跨两者
 的全事务回滚。成功后重新扫描并选择新实例。尚未接通的恢复基线不作为改名成功证据。
-页目录不等于完整管理能力：模组搜索/更新/删除、导入、存档数据包、截图预览、
-服务器编辑和整合包导出仍未完成，不将这些栏目中的只读列表或说明算成功能迁移。
+首个只读阶段的页目录不等于完整管理能力。当时模组搜索/更新/删除、导入、存档数据包、
+截图预览、服务器编辑和导出仍未完成；搜索/移除/还原及截图预览已由后续产品接线补齐，
+服务器与导出见 XSR-759/760，资源包/光影更新见 XSR-758/774。当前剩余项见末尾，
+不能继续把这些已交付操作列作只读入口，也不能将剩余能力的列表或说明算作完成。
 测试覆盖原版、禁用模组、相似 ID、独立 OptiFine、隔离/共享目录、无效实例身份和取消。
 
 模组启停命令使用完整实例目录与单个文件名，通过 Service 将 `.jar` / `.litemod` 与
@@ -64,7 +70,7 @@ inheritsFrom/jar 引用和实例设置键；存档、配置与其他文件随目
 这些检查不宣称抵御同账户恶意进程持续交换文件。完成后 Desktop 重新查询能力与目录。
 
 验收需逐页对照上述 dev 功能，并覆盖：原版、不同加载器、禁用/缺失支持模组、切换实例、
-共享目录、文件冲突与取消。接口或空白页面不能算完成，完整管理操作尚待实现。
+共享目录、文件冲突与取消。接口或空白页面不能算完成，已交付和待实现操作分别核对。
 
 ## Installed content presentation (2026-09-26)
 
@@ -116,3 +122,19 @@ and the instance Minecraft/loader constraints. A candidate must belong to the sa
 be newer than the identified installed release and exclude the installed hash. No file is
 uploaded or replaced. Unmatched/offline files remain unknown. Search/category changes retain
 the search entity and update only virtualized rows; refresh and detail navigation retain category.
+
+## Current consumer closure and remaining scope
+
+The `565e5143` audit identifies working server NBT editing, ordering, opt-in status and
+temporary Join ([XSR-759](XSR-759-instance-servers.md)); previewed selected-file MRPack
+export ([XSR-760](XSR-760-modpack-export.md)); and fingerprint association plus compatible,
+reversible single resource-pack/shader updates ([XSR-758](XSR-758-installed-online-content.md)
+and [XSR-774](XSR-774-installed-resource-association-and-updates.md)). Screenshot gallery/detail
+preview and search, mod enable/disable, trash/restore and snapshot commands are also connected.
+
+Mod updates are still checks only: `ResourceContentUpdateService` admits `resourcepacks` and
+`shaderpacks`, not `mods`. Selection/bulk updates, changelog and one multi-item rollback
+transaction remain open. World-specific datapack/version/last-played/size, backup and lock
+workflows, screenshot crop and richer metadata, and broader instance icon/tag/note editing
+need their own consumers. Existing folder/JAR/modpack import does not provide every local
+content import workflow. Physical interruption and interaction acceptance remains separate.

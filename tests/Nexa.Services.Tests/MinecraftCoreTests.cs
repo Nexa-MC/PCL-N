@@ -407,7 +407,7 @@ internal static partial class Program
             File.WriteAllText(Path.Combine(versionDirectory, "1.20.1.json"), "{\"id\":\"1.20.1\",\"type\":\"release\"}");
             MinecraftRuntime runtime = MinecraftRuntimeComposer.Compose();
             AssertEqual(2, runtime.Commands.Count);
-            AssertEqual(3, runtime.Queries.Count);
+            AssertEqual(4, runtime.Queries.Count);
             AssertTrue(runtime.Queries.TryResolve(MinecraftRouteIds.VersionsRead, out XsrQueryId versionsId));
             XsrResult<IReadOnlyList<MinecraftVersionDescriptor>> versions = await runtime.Queries.QueryAsync<MinecraftVersionsQuery, IReadOnlyList<MinecraftVersionDescriptor>>(versionsId, new MinecraftVersionsQuery(root));
             AssertTrue(versions.IsSuccess);
@@ -774,4 +774,3 @@ internal static partial class Program
     }
 
 }
-

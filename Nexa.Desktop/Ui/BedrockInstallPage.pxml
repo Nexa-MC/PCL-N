@@ -1,16 +1,25 @@
 <Page xmlns="https://pcln.dev/pxml/2026" Key="BedrockInstallPage" Label="安装 Bedrock 版">
-  <ContentHost Key="BedrockInstallHost" Label="Bedrock 版安装迁移状态">
-    <StackPanel Key="BedrockInstallCard" Orientation="Vertical" Width="440" Height="252"
+  <ContentHost Key="BedrockInstallHost" Label="Minecraft for Windows 官方安装入口">
+    <StackPanel Key="BedrockInstallCard" Orientation="Vertical" Width="480" Height="384"
                 HorizontalAlignment="Center" VerticalAlignment="Center" Padding="30" Spacing="14">
       <Image Key="BedrockInstallIcon" Label="Bedrock 版图标" Source="lucide/box" Width="40" Height="40"
              HorizontalAlignment="Center" />
       <StackPanel Key="BedrockInstallHeader" Orientation="Vertical" Spacing="6">
-        <Text Key="BedrockInstallTitle" Content="Bedrock 版安装正在迁移" Height="30"
+        <Text Key="BedrockInstallTitle" Content="安装 Minecraft for Windows" Height="30"
               HorizontalAlignment="Center" />
-        <Text Key="BedrockInstallDescription" Content="此功能尚未迁移到 Nexa，因此不会开始下载或显示虚假的安装进度。"
-              Height="48" />
+        <Text Key="BedrockInstallDescription" Content="Bedrock 版 Windows 客户端由 Microsoft Store 提供。购买、许可证和安装由商店处理。"
+              Height="60" />
       </StackPanel>
-      <Text Key="BedrockInstallReturn" Content="你可以使用左上角返回，继续选择 Java 版安装。" Height="24" />
+      <Text Key="BedrockInstallStatus" Content="打开 Microsoft Store，继续获取或安装游戏。" Height="48" />
+      <StackPanel Key="BedrockInstallActions" Orientation="Horizontal" Height="44" Spacing="10">
+        <Button Key="BedrockInstallStore" Label="打开 Microsoft Store 中的 Minecraft for Windows"
+                Content="打开 Microsoft Store" Icon="lucide/shopping-bag"
+                Command="ui.bedrock.install.store" Weight="1" Height="44" />
+        <Button Key="BedrockInstallWebsite" Label="打开 Minecraft for Windows 官方产品页"
+                Content="官方产品页" Icon="lucide/external-link"
+                Command="ui.bedrock.install.website" Width="142" Height="44" />
+      </StackPanel>
+      <Text Key="BedrockInstallReturn" Content="使用左上角返回，可继续选择 Java 版安装。" Height="24" />
     </StackPanel>
   </ContentHost>
 </Page>

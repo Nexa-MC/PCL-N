@@ -3,107 +3,82 @@ using System.Runtime.InteropServices;
 namespace Nexa.Services.Capabilities;
 
 /// <summary>
-/// Form-factor heuristic (§15): battery + internal panel = Laptop; battery + touch-first + no
-/// keyboard = Handheld (Steam-Deck class); otherwise Desktop. The inputs come from facts the
-/// other providers already collected, so this provider never re-probes hardware.
+/// Form-factor heuristic (§15) over observed battery, primary-panel and input facts.
+/// Unknown input facts stay unknown instead of becoming a fabricated desktop classification.
 /// </summary>
 public sealed class FormFactorCapabilityProvider(Func<bool>? batteryPresent = null, Func<bool>? internalDisplay = null,
     Func<bool>? touchAvailable = null, Func<bool>? keyboardAvailable = null, Func<bool>? controllerAvailable = null)
     : IMachineCapabilityProvider
 {
-    private readonly Func<bool> _batteryPresent = batteryPresent ?? DefaultBatteryProbe;
-    private readonly Func<bool> _internalDisplay = internalDisplay ?? DefaultInternalPanelProbe;
-    private readonly Func<bool> _touchAvailable = touchAvailable ?? DefaultTouchProbe;
-    private readonly Func<bool> _keyboardAvailable = keyboardAvailable ?? DefaultKeyboardProbe;
-    private readonly Func<bool> _controllerAvailable = controllerAvailable ?? DefaultControllerProbe;
+    private readonly Func<bool>? _batteryPresent = batteryPresent;
+    private readonly Func<bool>? _internalDisplay = internalDisplay;
+    private readonly Func<bool>? _touchAvailable = touchAvailable;
+    private readonly Func<bool>? _keyboardAvailable = keyboardAvailable;
+    private readonly Func<bool>? _controllerAvailable = controllerAvailable;
 
     public string Id => FormFactorCatalog.ProviderId;
 
-    public ValueTask<IReadOnlyList<ICapability>> CollectAsync(DateTimeOffset timestamp, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<ICapability>> CollectAsync(DateTimeOffset timestamp, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        Task<IReadOnlyList<ICapability>> power = _batteryPresent is null
+            ? CollectSafelyAsync(new HardwarePowerCapabilityProvider(), timestamp, cancellationToken)
+            : Task.FromResult<IReadOnlyList<ICapability>>([]);
+        Task<IReadOnlyList<ICapability>> display = _internalDisplay is null
+            ? CollectSafelyAsync(new DisplayCapabilityProvider(), timestamp, cancellationToken)
+            : Task.FromResult<IReadOnlyList<ICapability>>([]);
+        Task<IReadOnlyList<ICapability>> input = _touchAvailable is null || _keyboardAvailable is null || _controllerAvailable is null
+            ? CollectSafelyAsync(new InputCapabilityProvider(), timestamp, cancellationToken)
+            : Task.FromResult<IReadOnlyList<ICapability>>([]);
+        await Task.WhenAll(power, display, input).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Project(timestamp,
+            _batteryPresent is not null ? InvokeSafely(_batteryPresent) : ReadBoolean(await power.ConfigureAwait(false), MachineEnvironmentCatalog.PowerBatteryPresent.Id),
+            _internalDisplay is not null ? InvokeSafely(_internalDisplay) : ReadBoolean(await display.ConfigureAwait(false), MachineEnvironmentCatalog.DisplayPrimaryInternal.Id),
+            _touchAvailable is not null ? InvokeSafely(_touchAvailable) : ReadBoolean(await input.ConfigureAwait(false), InputCatalog.InputTouchAvailable.Id),
+            _keyboardAvailable is not null ? InvokeSafely(_keyboardAvailable) : ReadBoolean(await input.ConfigureAwait(false), InputCatalog.InputKeyboardAvailable.Id),
+            _controllerAvailable is not null ? InvokeSafely(_controllerAvailable) : ReadBoolean(await input.ConfigureAwait(false), InputCatalog.InputControllerAvailable.Id));
+    }
+
+    internal static IReadOnlyList<ICapability> Project(DateTimeOffset timestamp, bool? battery, bool? internalPanel,
+        bool? touch, bool? keyboard, bool? controller)
+    {
         const string source = "形态启发式（电池 + 内建屏 + 触摸）";
-        bool battery = Safe(_batteryPresent);
-        bool internalPanel = Safe(_internalDisplay);
-        bool touch = Safe(_touchAvailable);
-        bool handheld = battery && internalPanel && touch && !_keyboardAvailable() && _controllerAvailable();
-        string type = handheld ? "Handheld" : battery && internalPanel ? "Laptop" : "Desktop";
-        return ValueTask.FromResult<IReadOnlyList<ICapability>>(Array.AsReadOnly(new ICapability[]
+        bool? laptop = And(battery, internalPanel);
+        bool? handheld = And(battery, internalPanel, touch, keyboard.HasValue ? !keyboard.Value : null, controller);
+        string? type = handheld == true ? "Handheld" : laptop == false ? "Desktop"
+            : laptop == true && handheld == false ? "Laptop" : null;
+        return Array.AsReadOnly(new ICapability[]
         {
-            FormFactorCatalog.FormFactorType.Observe(type, timestamp, source),
-            FormFactorCatalog.FormFactorPortable.Observe(battery, timestamp, source),
-            FormFactorCatalog.FormFactorBatteryPowered.Observe(battery, timestamp, source),
-            FormFactorCatalog.FormFactorHandheld.Observe(handheld, timestamp, source),
-        }));
+            type is not null ? FormFactorCatalog.FormFactorType.Observe(type, timestamp, source)
+                : FormFactorCatalog.FormFactorType.Unavailable(CapabilityAvailability.Unknown, timestamp, "缺少确定设备形态所需的电池、主屏或输入事实"),
+            BooleanFact(FormFactorCatalog.FormFactorPortable, battery),
+            BooleanFact(FormFactorCatalog.FormFactorBatteryPowered, battery),
+            BooleanFact(FormFactorCatalog.FormFactorHandheld, handheld),
+        });
 
-        static bool Safe(Func<bool> probe)
-        {
-            try
-            {
-                return probe();
-            }
-            catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException)
-            {
-                return false;
-            }
-        }
+        ICapability BooleanFact(CapabilityDefinition<bool> definition, bool? value) => value.HasValue
+            ? definition.Observe(value.Value, timestamp, source)
+            : definition.Unavailable(CapabilityAvailability.Unknown, timestamp, "设备形态所需的原生检测事实不可读");
     }
 
-    private static bool DefaultBatteryProbe() =>
-        OperatingSystem.IsWindows()
-            ? GetSystemPowerStatus(out var status) && status is { BatteryFlag: not 128, ACLineStatus: not 255 }
-            : File.Exists("/sys/class/power_supply/BAT0");
+    private static bool? And(params bool?[] values) => values.Contains(false) ? false : values.Any(value => !value.HasValue) ? null : true;
 
-    private static bool DefaultInternalPanelProbe() =>
-        OperatingSystem.IsWindows() && DisplayCapabilityProbe.IsPrimaryInternalProbe();
+    private static bool? ReadBoolean(IReadOnlyList<ICapability> facts, string id) =>
+        facts.FirstOrDefault(item => item.Id == id) is Capability<bool> { Availability: CapabilityAvailability.Available } fact ? fact.Value : null;
 
-    private static bool DefaultTouchProbe() =>
-        OperatingSystem.IsWindows()
-            ? WindowsInputProbe.HasTouch(GetSystemMetrics(SmDigitizer))
-            : OperatingSystem.IsLinux() && LinuxInputProbe.Read().Devices.Any(device => device.Touch);
-
-    private static bool DefaultKeyboardProbe() => OperatingSystem.IsWindows()
-        ? WindowsInputProbe.KeyboardPresent() != false
-        : OperatingSystem.IsLinux() && LinuxInputProbe.Read().Devices.Any(device => device.Keyboard);
-
-    private static bool DefaultControllerProbe()
+    private static bool? InvokeSafely(Func<bool> probe)
     {
-        if (OperatingSystem.IsWindows())
-            for (uint user = 0; user < 4; user++) if (XInputGetState(user, out _) == 0) return true;
-        return OperatingSystem.IsLinux() && Directory.Exists("/dev/input")
-            && Directory.EnumerateFiles("/dev/input", "js*").Any();
+        try { return probe(); }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException) { return null; }
     }
 
-    private const int SmDigitizer = 0x2004;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct SystemPowerStatus
+    private static async Task<IReadOnlyList<ICapability>> CollectSafelyAsync(IMachineCapabilityProvider provider,
+        DateTimeOffset timestamp, CancellationToken cancellationToken)
     {
-        public byte ACLineStatus;
-        public byte BatteryFlag;
-        public byte BatteryPercent;
-        public byte Reserved;
-        public uint BatteryLifetime;
-        public uint BatteryFullLifetime;
-    }
-
-    [DllImport("user32.dll", SetLastError = false)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetSystemPowerStatus(out SystemPowerStatus status);
-
-    [DllImport("user32.dll", SetLastError = false)]
-    private static extern int GetSystemMetrics(int index);
-
-    [DllImport("xinput1_4.dll", SetLastError = false)]
-    private static extern int XInputGetState(uint userIndex, out XInputState state);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct XInputState
-    {
-        public uint PacketNumber;
-        public ushort GamepadButtons;
-        public byte LeftTrigger, RightTrigger;
-        public short ThumbLX, ThumbLY, ThumbRX, ThumbRY;
+        try { return await provider.CollectAsync(timestamp, cancellationToken).ConfigureAwait(false); }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested && exception is not OutOfMemoryException and not AccessViolationException)
+        { return []; }
     }
 }
 
@@ -128,7 +103,7 @@ public sealed class InputCapabilityProvider(InputUsageTracker? usage = null) : I
 
         if (OperatingSystem.IsMacOS())
             return ValueTask.FromResult<IReadOnlyList<ICapability>>(AppendUsage(MacInputProbe.Collect(timestamp), timestamp));
-        return ValueTask.FromResult<IReadOnlyList<ICapability>>(AppendUsage(Unavailable(timestamp, "此平台尚未接入输入设备通道"), timestamp));
+        return ValueTask.FromResult<IReadOnlyList<ICapability>>(AppendUsage(Unavailable(timestamp, "此操作系统未提供输入设备检测通道"), timestamp));
     }
 
     private System.Collections.ObjectModel.ReadOnlyCollection<ICapability> AppendUsage(IEnumerable<ICapability> facts, DateTimeOffset timestamp)
@@ -178,7 +153,7 @@ public sealed class InputCapabilityProvider(InputUsageTracker? usage = null) : I
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<ICapability> Unavailable(DateTimeOffset timestamp, string reason) =>
         Array.AsReadOnly(InputCatalog.Definitions().Where(static definition => !definition.Id.StartsWith("input.usage.", StringComparison.Ordinal))
-            .Select(definition => definition.Unavailable(CapabilityAvailability.NotImplemented, timestamp, reason)).ToArray());
+            .Select(definition => definition.Unavailable(CapabilityAvailability.PlatformUnsupported, timestamp, reason)).ToArray());
 
     private static int CountXInputControllers()
     {

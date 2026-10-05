@@ -79,6 +79,8 @@ public static class MinecraftRuntimeComposer
         queryBuilder.Register(MinecraftRouteIds.VersionsRead, MinecraftQueries.CreateVersionsHandler(versionDiscovery));
         queryBuilder.Register(MinecraftRouteIds.InstancesRead, MinecraftQueries.CreateInstancesHandler(instanceDiscovery));
         queryBuilder.Register(MinecraftRouteIds.CrashAnalyze, MinecraftQueries.CreateCrashHandler());
+        queryBuilder.Register<MinecraftProcessOutputQuery, MinecraftProcessOutputSnapshot>(MinecraftProcessOutputContract.Query,
+            (query, token) => processService.ReadOutputAsync(query.SessionId, token));
         return new MinecraftRuntime(
             versionDiscovery,
             instanceDiscovery,
@@ -220,6 +222,8 @@ public static class MinecraftRuntimeComposer
         queryBuilder.Register(MinecraftRouteIds.VersionsRead, MinecraftQueries.CreateVersionsHandler(versionDiscovery));
         queryBuilder.Register(MinecraftRouteIds.InstancesRead, MinecraftQueries.CreateInstancesHandler(instanceDiscovery));
         queryBuilder.Register(MinecraftRouteIds.CrashAnalyze, MinecraftQueries.CreateCrashHandler());
+        queryBuilder.Register<MinecraftProcessOutputQuery, MinecraftProcessOutputSnapshot>(MinecraftProcessOutputContract.Query,
+            (query, token) => processService.ReadOutputAsync(query.SessionId, token));
         return new MinecraftRuntime(
             versionDiscovery,
             instanceDiscovery,

@@ -335,6 +335,12 @@ internal static partial class Program
             runtime.Host.StateStore,
             library, feedback, accountCommands: accounts.Commands,
             directoryEffects: new NativeVersionDirectoryEffects(platformActions), installCatalogCommands: installCatalog.Commands, installCatalogQueries: installCatalog.Queries, installRunCommands: installRun.Commands, recoveryQueries: runtime.Queries);
+        launchPage.CopyProcessLogText = platformActions.CopyTextAsync;
+        using WardrobePageController wardrobePage = new(shell, uiIntents, accounts.Queries!, accounts.Commands, host.StateStore, feedback);
+        wardrobePage.ConfigureFilePicker(platformActions.PickSkinFileAsync);
+        launchPage.WardrobePage = wardrobePage.Page;
+        using BedrockInstallPageController bedrockPage = new(shell, uiIntents, host.StateStore, feedback, platformActions.OpenMinecraftStore, platformActions.OpenHttpsUri);
+        launchPage.BedrockInstallPage = bedrockPage.Page;
         using AccountFormController accountForm = new(shell, uiIntents, accounts.Commands,
             runtime.Host.StateStore, launchPage.AccountBody, feedback,
             new NativeAccountUiEffects(platformActions), runtime.Host.Logging);
@@ -417,6 +423,8 @@ internal static partial class Program
             appearanceSession.Dispose();
             launchPage.Dispose();
             accountForm.Dispose();
+            wardrobePage.Dispose();
+            bedrockPage.Dispose();
             settingsPage.Dispose();
             versionSettings.Dispose();
             resourcesPage.Dispose();
@@ -455,6 +463,8 @@ internal static partial class Program
             appearanceSession.Dispose();
             launchPage.Dispose();
             accountForm.Dispose();
+            wardrobePage.Dispose();
+            bedrockPage.Dispose();
             settingsPage.Dispose();
             versionSettings.Dispose();
             resourcesPage.Dispose();

@@ -9,8 +9,8 @@
 | 分发 PFX 私钥 | 发布 workflow 从 secret 恢复 PFX，Desktop 可嵌入并读取私钥。这种共享客户端身份不能证明请求来自可信安装。轮换、每安装令牌、服务端校验与限流需要 API 服务端改动及部署证据，尚未关闭；不通过移除认证让现有联网流程绕过服务端策略。 |
 | Forge / NeoForge 安装器 | 原校验请求已使用官方 `.sha1` URL，安装器字节可由镜像提供；“同一个镜像给出两者”不符合当前默认路径。修复增加来源重定向检查、官方安装器来源和缓存策略版本；本地显式选择安装器保留原路径。 |
 | Minecraft 元数据 | 原实现是官方优先、失败后回退镜像，且未验证 version manifest 的原始 JSON 摘要。修复将权威元数据锁定官方 HTTPS 来源，验证版本与资源索引的原始字节，取消后续无摘要的重复索引下载；安装、启动、缓存和旧任务策略见 [download-trust.md](download-trust.md)。 |
-| 更新 GPG 策略 | 指纹固定及内容验签已有；本批收口二进制签名、SHA-256/384/512、可信内置 keyring 的过期/吊销、已认证签名过期及实际封套预算，见 [签名策略](update-signature-policy.md)。XSR-730 补齐发布端签名身份清单和运行时原始字节准入，见 [发布准入](release-admission.md)；受保护 helper 的独立消费、持久防回退状态与自动替换仍开放。 |
-| 补丁清单 / hpatchz | 自动更新未接入；unsigned patch index 不能授权最终文件。签名发布清单已交付，受保护 helper 和固定工具身份仍未交付，保持 [更新边界](update-privilege-boundary.md) 的拒绝策略。 |
+| 更新 GPG 策略 | 指纹固定及内容验签已有；本批收口二进制签名、SHA-256/384/512、可信内置 keyring 的过期/吊销、已认证签名过期及实际封套预算，见 [签名策略](update-signature-policy.md)。XSR-730 补齐发布身份清单和原始字节准入；截至 `565e5143`，XSR-754/755 已接入 helper 独立消费、持久防回退及受保护更新。生产 OS 发布身份和物理断电/竞态仍开放。 |
+| 补丁清单 / hpatchz | 原审查时自动更新未接入；unsigned patch index 不能授权最终文件。当前 XSR-754/755 只消费签名授权的完整包或有界内容差分，并可回退完整包，不执行任意 caller 工具路径。旧 staged ApplyPlan/handoff 保持 [更新边界](update-privilege-boundary.md) 的拒绝策略；不能以解除旧 API 的拒绝代替新事务。 |
 | ZIP / TAR 特殊权限 | 修复共享 updater mode 边界，覆盖解包 inventory、scatter 清单与恢复权限。只保留原有 `0755` 范围内的普通权限；标准 ZIP 文件类型位不再导致执行权限丢失。无 mode 元数据仍使用平台默认，不能据此宣称 staging 已受保护。 |
 | 账户保护 / token 参数 | [XSR-741](migrations/XSR-741-private-launch-argument-transport.md) 关闭缺少 Host 时的公开参数回退：共享服务在进程端口前拒绝未声明私有传输的路径，覆盖自定义 JVM/game 参数、旧版计划和全部组合入口；Desktop 始终配置 sibling Host。合成 token 的前后边界复现、真实 Host stdin/取消控制及独立候选审查保留证据。DPAPI 公开 entropy 不能建立同账户隔离；macOS keychain 迁移、同账户内存和共享客户端安装身份仍是独立问题。 |
 

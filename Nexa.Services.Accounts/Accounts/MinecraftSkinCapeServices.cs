@@ -54,7 +54,7 @@ public sealed class MinecraftSkinService
         using HttpResponseMessage response = await _client
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        string body = await AccountProviderResponse.ReadTextAsync(response, cancellationToken).ConfigureAwait(false);
         EnsureSuccess(response, body);
         return new MinecraftSkinUploadResult(ParseActiveSkinAddress(body));
     }
@@ -163,7 +163,7 @@ public sealed class MinecraftCapeService
         using HttpResponseMessage response = await _client
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        string body = await AccountProviderResponse.ReadTextAsync(response, cancellationToken).ConfigureAwait(false);
         EnsureSuccess(response, body, "读取正版账户披风失败");
         using JsonDocument document = JsonDocument.Parse(body);
         return ParseOwnedCapes(document.RootElement);
@@ -197,8 +197,19 @@ public sealed class MinecraftCapeService
         using HttpResponseMessage response = await _client
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
-        string responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        string responseBody = await AccountProviderResponse.ReadTextAsync(response, cancellationToken).ConfigureAwait(false);
         EnsureSuccess(response, responseBody, "更换正版披风失败");
+    }
+
+    /// <summary>Clears the authenticated profile's current cape using Minecraft's DELETE API.</summary>
+    public async Task ClearActiveCapeAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        EnsureAccessToken(accessToken);
+        using HttpRequestMessage request = CreateRequest(HttpMethod.Delete, ActiveCapeEndpoint, accessToken);
+        using HttpResponseMessage response = await _client.SendAsync(request,
+            HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        string body = await AccountProviderResponse.ReadTextAsync(response, cancellationToken).ConfigureAwait(false);
+        EnsureSuccess(response, body, "关闭正版披风失败");
     }
 
     public static IReadOnlyList<MinecraftOwnedCape> ParseOwnedCapes(JsonElement profile)
@@ -208,6 +219,7 @@ public sealed class MinecraftCapeService
         {
             return [];
         }
+        if (capes.GetArrayLength() > 256) throw new InvalidDataException("账户披风数量超过读取限制。");
 
         List<MinecraftOwnedCape> result = [];
         HashSet<string> ids = new(StringComparer.OrdinalIgnoreCase);
@@ -229,6 +241,8 @@ public sealed class MinecraftCapeService
             }
 
             string alias = ReadString(cape, "alias");
+            if (id.Length > 128 || alias.Length > 256 || address.Length > 2048)
+                throw new InvalidDataException("账户披风信息超过长度限制。");
             result.Add(new MinecraftOwnedCape(
                 id,
                 string.IsNullOrWhiteSpace(alias) ? id : alias,

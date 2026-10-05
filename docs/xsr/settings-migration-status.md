@@ -13,6 +13,12 @@ definitions, of which 45 have available consumers. `java.compatibility` remains
 unavailable: compatibility checks are mandatory, and the retained definition does
 not expose a switch that bypasses them.
 
+XSR-794 adds working consumers to the two existing developer diagnostics positions:
+read-only renderer snapshots and paged state metadata. The catalog remains 540 positions,
+with 83 available entries and 457 raw `NotImplemented` entries. These include structural
+and duplicated positions and independent roadmap contracts; the complete inventory is
+[XSR-795](XSR-795-unimplemented-inventory.md). No additional persistent value is introduced.
+
 ## Delivered launch-policy slice
 
 XSR-761 connects exact custom memory in MiB, instance Auto memory, and automatic missing

@@ -24,7 +24,7 @@ public sealed class AccountSkinService(AccountService accounts, HttpClient clien
     public static string ProfileKey(LaunchProfileView profile) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
         $"{profile.Kind}\n{profile.Uuid}\n{profile.AuthServer}\n{profile.SkinAddress}\n{profile.Username}")));
 
-    public XsrResult Refresh()
+    public XsrResult Refresh(bool force = false)
     {
         lock (_gate)
         {
@@ -33,7 +33,7 @@ public sealed class AccountSkinService(AccountService accounts, HttpClient clien
             CancellationTokenSource operation = new();
             _active = operation;
             LaunchProfileView[] profiles = accounts.GetViews().OrderByDescending(profile => profile.Index == accounts.SelectedIndex).Take(64).ToArray();
-            _running = Task.Run(() => ResolveAll(profiles, operation));
+            _running = Task.Run(() => ResolveAll(profiles, operation, force));
             return XsrResult.Success();
         }
     }
@@ -43,7 +43,7 @@ public sealed class AccountSkinService(AccountService accounts, HttpClient clien
         lock (_gate) { _disposed = true; _active?.Cancel(); _active = null; }
     }
 
-    private async Task ResolveAll(LaunchProfileView[] profiles, CancellationTokenSource operation)
+    private async Task ResolveAll(LaunchProfileView[] profiles, CancellationTokenSource operation, bool force)
     {
         using LogOperation? trace = log?.BeginOperation("AccountSkin", "ResolveAvatars", $"profiles={profiles.Length}", LogLevel.Debug);
         try
@@ -61,7 +61,7 @@ public sealed class AccountSkinService(AccountService accounts, HttpClient clien
             await Parallel.ForEachAsync(profiles, new ParallelOptions { MaxDegreeOfParallelism = 3, CancellationToken = operation.Token }, async (profile, token) =>
             {
                 string key = ProfileKey(profile);
-                if (cached.TryGetValue(key, out AccountSkinSnapshot? previous) && previous.Image is not null) return;
+                if (!force && cached.TryGetValue(key, out AccountSkinSnapshot? previous) && previous.Image is not null) return;
                 PngImage? image = null;
                 try { image = await Resolve(profile, token).ConfigureAwait(false); }
                 catch (Exception failure) when (failure is HttpRequestException or IOException or InvalidDataException or JsonException or FormatException or InvalidOperationException or TaskCanceledException)

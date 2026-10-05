@@ -1,7 +1,12 @@
 # Machine Capability Registry 1.1 — 实现差距矩阵
 
 对照源文档 `PCL Nexa Machine Capability Registry 1.0.md`（正文 1.1，2026-09-19）。
-状态基线：`refactor/xsr` 当前实现。表格区分 Registry 契约已经落地与平台采集器仍待补齐；
+本表保留首批 Registry 差距矩阵及依赖顺序。2026-10-05 对 `565e5143` 的当前复核见
+[XSR-795](XSR-795-unimplemented-inventory.md)；环境/Java/账户/模组/options 投影、嵌套候选
+与指纹、typed remediation 及 Sidecar Host 等后续消费者不能再按下表的早期 ❌/待接
+判定未实现。Linux 显示/macOS 电源与无等价公开通道的 GPU/温度状态订正另见
+[XSR-792](XSR-792-platform-capability-completion.md)，该切片仍需单独验证与实机证据。
+表格区分 Registry 契约已经落地与平台采集器仍待补齐；
 不可采集的值必须保持不可用状态，不能用 `0` 或 `false` 伪装为有效观测。
 
 图例：✅ 已接 · 🟡 部分（有骨干，缺字段/平台） · ❌ 未接
@@ -15,13 +20,13 @@
 | **jvmhost.\*** (§5) | 🟡 | §5 的 37 个 ID 已齐；IJvmHost/JvmHostService 已执行 spawn/wait/kill-tree/suspend/resume/priority/affinity；stdout/stderr ring、CPU/工作集/专用内存/线程、Windows I/O、当前会话 crash-report/hs_err 已采集 | JVM heap/native 与进程 commit 尚无可靠 collector，保持 `DependencyMissing`；cpu_sets、qos、GPU/process-tree metric 与 system correlation 仍待平台 adapter |
 | **process.\*** (§6) | ❌ | 无 | 治理全集：priority/affinity/cpu_sets/qos(.performance/.efficiency)/limit.*/suspend/resume/metric.*（page_faults） |
 | cpu.* (§7) | 🟡 | isa.sse2/avx2/neon、topology.logical_processors | vendor/family/model/microarchitecture/marketing_name；topology.packages/**numa_nodes**/physical_cores/smt/groups/**heterogeneous**/performance_classes/cache.l1-l3/ccd；isa 全表（avx512/avx10/aes/sha/amx/**arm.sve/sve2**）；metric.frequency/utilization/temperature/power；thermal.limit；**derived.***（hybrid/high_parallelism/numa_sensitive/performance_affinity） |
-| memory.* (§8) | 🟡 | physical.usable/available、commit.total/limit/available（Win/Linux 完整，macOS=平台不支持） | physical.installed/hardware_reserved；**swap.\***（available/total/used）；**pagefile.\***（present/system_managed/current/maximum/growth_possible/safe_growth/volume/volume_free）；pressure.observable/level；numa/model(Dedicated/Unified/Hybrid)/uma；**derived.***（low_physical/commit_low/commit_near_limit/pagefile_*/system_reserve/**safe_heap_max**/unified_budget） |
-| gpu.* (§9) | 🟡 | memory.dedicated.budget/current_usage/available_budget（Win DXGI） | adapters 枚举/vendor/device/architecture/type(Integrated/Discrete/External/Virtual)/primary/selected/display_attached；performance_class/low_power/high_performance/selected.performance_rank；memory.**shared**.*/recommended_working_set；api.direct3d/vulkan/metal/opengl；feature.ray_tracing/compute/mesh_shader/vrs/video_*/upscaling/**frame_generation**；metric.utilization/temperature/power/clock/local_memory/shared_memory；thermal.limit；derived.uma/hybrid/vram_pressure/shared_memory_spill/low_performance_selected/shader_pressure/resource_pressure；Linux 通道（NVML/AMD sysfs）与 macOS 通道（Metal）未接 |
+| memory.* (§8) | 🟡 | physical.usable/available（Win/Linux；macOS sysctl + host_statistics64，available 来源明确 free+inactive）；commit.total/limit/available（Win/Linux；macOS 无等价合同，PlatformUnsupported） | physical.installed/hardware_reserved；**swap.\***（available/total/used）；**pagefile.\***（present/system_managed/current/maximum/growth_possible/safe_growth/volume/volume_free）；pressure.observable/level；numa/model(Dedicated/Unified/Hybrid)/uma；**derived.***（完整 safe_heap_max/unified_budget 等仍按具体定义核对） |
+| gpu.* (§9) | 🟡 | memory.dedicated.budget/current_usage/available_budget（Win DXGI）；XSR-792 在 Linux/macOS 返回三项明确 PlatformUnsupported | adapters/vendor/device/type/selected、shared memory、图形 API/features、utilization/temperature/power 和相关派生仍待各自合同。NVML/AMD 整卡容量/占用与 Metal 工作集/分配不是 DXGI 当前进程动态预算的等价事实，不能将该平台限制写作仅缺 adapter 或填 0 |
 | storage.* (§10) | 🟡 | device.capacity.free（实例卷） | devices 枚举/type/bus/capacity.total/rotational/removable/health；**metric.\***（sequential/random 读写、latency、iops）；io.async/mmap/direct/io_uring/directstorage；derived.fast_random_io/high_parallelism/space_low/space_critical |
 | filesystem.* (§11) | 🟡 | case_sensitive/symlink/reflink(按卷判定)/path.exists/writable | hardlink/sparse_file/clone.native/copy_on_write/snapshot.native+atomic/compression/deduplication/extended_attributes/change_journal |
-| display.* (§12) | 🟡 | count/internal/refresh.current/resolution | refresh.max、**dpi/scale**、hdr.supported+enabled、**vrr.supported+enabled**、color.space/depth、internal/external 枚举；derived.high_dpi/high_refresh/4k/hdr_ready/graphics_memory_factor；Linux X11(XRandR)/Wayland 通道未接 |
-| power.* (§13) | 🟡 | source、battery.present/level/charging、profile.current（Win+Linux） | profile.available/performance/balanced/efficiency/hold；tdp.observable+controllable；cpu_limit/gpu_limit.controllable；macOS IOKit 通道未接 |
-| thermal.* (§14) | 🟡 | cpu.temperature（Linux hwmon；Win/macOS 无免驱动通道=诚实 Unknown/未接） | pressure.observable/level(Nominal/Fair/Serious/Critical)、cpu.limit、gpu.temperature/limit、soc/storage.temperature、fan.observable/controllable/rpm；derived.cpu_high/cpu_near_limit/gpu_*/throttling/performance_degraded/pause_background/disable_prewarm |
+| display.* (§12) | 🟡 | count/internal/refresh.current/resolution；XSR-792 Linux XRandR 活动输出/主屏/当前模式和 DRM connector，macOS 32 位显示 ID/有界值/CFRelease | 无主屏保持 Unknown；无会话/缺 xrandr 为 DependencyMissing；Wayland 此合同为 PlatformUnsupported。refresh.max、DPI/scale、HDR/VRR、色彩和更多派生仍需独立接入 |
+| power.* (§13) | 🟡 | 五项 source/battery.present/level/charging/profile.current：Win；XSR-792 Linux 有界 sysfs 与多电池一致投影；macOS 公开 IOPowerSources/NSProcessInfo 及 CF 所有权 | 未启用 low-power 不推断高性能；profile.available/可控切换、TDP、CPU/GPU limit 仍需独立合同；公开探测存在不等于实机验收 |
+| thermal.* (§14) | 🟡 | cpu.temperature：Linux hwmon；Windows 无可读免驱动证据为 Unknown；XSR-792 macOS 无公开免驱动 API 明确 PlatformUnsupported | 私有 AppleSMC 不在当前合同；pressure.level、cpu/gpu limit、其他温度、fan、throttling/性能退化派生仍需独立通道 |
 | **formfactor.\*** (§15) | 🟡 | type/portable/battery_powered/handheld，使用电池、内建屏、触摸、键盘与手柄事实判定 | MiniPC/Workstation；derived.performance_first/battery_aware/controller_first |
 | **input.\*** (§16) | 🟡 | keyboard/mouse/touch/pen/controller.available+count；Windows XInput 逐设备名称、振动能力与陀螺仪不可用事实；usage.primary/recent.keyboard/mouse/touch/controller 会话事件 | trackpad、完整 controller feature；Linux evdev force-feedback 与 macOS IOKit HID 探测 |
 | **network.\*** (§17) | ❌ | 无 | interfaces/ethernet/wifi/active_interface、metered/vpn/proxy、ipv4/ipv6、internet.available、captive_portal、dns/doh、metric.latency/bandwidth/packet_loss、lan.discovery/multicast/peer_transfer |

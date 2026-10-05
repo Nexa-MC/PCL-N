@@ -17,6 +17,9 @@ internal sealed partial class LaunchPageController
     private int _showJavaChoices, _returnFromJavaChoice;
     private bool _processPresentationInitialized;
     private long _processRevision = -1;
+    private ProcessLogPageController? _processLogPage;
+    internal Func<string, Task>? CopyProcessLogText { get; set; }
+    internal Task WaitForProcessLogsAsync() => _processLogPage?.WaitUntilIdle() ?? Task.CompletedTask;
 
     private void ShowJavaVersionChoice()
     {
@@ -76,25 +79,32 @@ internal sealed partial class LaunchPageController
             _processRevision = sessions.Revision;
             var running = sessions.Items
                 .Where(item => item.State is MinecraftProcessState.Created or MinecraftProcessState.Running).ToArray();
-            foreach (var id in _processDocks.Keys.Except(running.Select(item => item.SessionId)).ToArray())
+            var visibleSessions = running.Length > 0 ? running : sessions.Items.OrderByDescending(item => item.StartedAt).Take(1).ToArray();
+            foreach (var id in _processDocks.Keys.Except(visibleSessions.Select(item => item.SessionId)).ToArray())
             {
                 var dock = _processDocks[id];
-                DesktopBubbleLayout.SetVisible(_shell, _store, dock.Power, false, destroy: true);
-                DesktopBubbleLayout.SetVisible(_shell, _store, dock.Logs, false, destroy: true);
+                RetireProcessButton(dock.Power);
+                RetireProcessButton(dock.Logs);
                 _processDocks.Remove(id);
             }
-            for (int i = 0; i < running.Length; i++)
+            for (int i = 0; i < visibleSessions.Length; i++)
             {
-                var session = running[i];
+                var session = visibleSessions[i];
                 if (!_processDocks.TryGetValue(session.SessionId, out var dock))
                 {
                     dock = (CreateProcessButton(session, "power", "结束游戏", "stop"),
-                        CreateProcessButton(session, "menu", "日志（尚未实现）", "logs"));
-                    _shell.Tree.GetComponent<XsrUiInput>(dock.Logs)!.Clickable = false;
+                        CreateProcessButton(session, "menu", "日志", "logs"));
                     _processDocks.Add(session.SessionId, dock);
                 }
-
             }
+        }
+        bool viewingLogs = _processLogPage is { } logPage && _shell.Stage.Navigation.Current == logPage.Page;
+        foreach (var pair in _processDocks)
+        {
+            var session = sessions.Items.FirstOrDefault(item => item.SessionId == pair.Key);
+            DesktopBubbleLayout.SetVisible(_shell, _store, pair.Value.Power, !viewingLogs
+                && session?.State is MinecraftProcessState.Created or MinecraftProcessState.Running);
+            DesktopBubbleLayout.SetVisible(_shell, _store, pair.Value.Logs, !viewingLogs);
         }
         DesktopBubbleLayout.Arrange(_shell);
         if (_store.TryResolve(MinecraftProcessStateComposition.FailuresKey, out var failuresId))
@@ -105,6 +115,16 @@ internal sealed partial class LaunchPageController
                 if (!_shownFailures.Contains(failure.SessionId) && TryShowCrashDialog(failure))
                 { _shownFailures.Add(failure.SessionId); break; }
         }
+    }
+
+    private void RetireProcessButton(XsrUiEntityId entity)
+    {
+        // Hidden viewer docks no longer need an exit animation. The shared dock helper
+        // intentionally leaves already-hidden entities alive, so retire them explicitly.
+        if (!_shell.Tree.GetComponent<XsrUiElement>(entity)!.IsVisible
+            || _shell.Tree.GetComponent<XsrUiOverlayMotion>(entity)!.IsClosing)
+            _shell.Tree.Destroy(entity);
+        else DesktopBubbleLayout.SetVisible(_shell, _store, entity, false, destroy: true);
     }
 
     private XsrUiEntityId CreateProcessButton(MinecraftProcessSnapshot session, string icon, string label, string action)
@@ -132,6 +152,9 @@ internal sealed partial class LaunchPageController
     private bool HandleProcessIntent(DesktopUiIntentEventArgs e)
     {
         string command = e.Intent.Command.Value;
+        if (_processLogPage is { } logs && _shell.Stage.Navigation.Current == logs.Page
+            && (command == "ui.page.back" || command.StartsWith("ui.navigation.", StringComparison.Ordinal)))
+            logs.Leave();
         if (command.StartsWith("ui.java.major.", StringComparison.Ordinal) && int.TryParse(command[14..], out int major))
         {
             _ = SelectJavaMajorAsync(major); return true;
@@ -140,6 +163,15 @@ internal sealed partial class LaunchPageController
         {
             _feedback.ShowDialog("minecraft.stop." + id, "结束游戏？", "未保存的游戏进度可能丢失。", "结束游戏", "取消",
                 confirmed => { if (confirmed) _ = StopProcessAsync(id); });
+            return true;
+        }
+        if (command.StartsWith("ui.process.logs.", StringComparison.Ordinal)
+            && Guid.TryParseExact(command[16..], "N", out var logSession))
+        {
+            _processLogPage ??= new(_shell, _intents, _minecraft.Queries, _store, _feedback,
+                text => CopyProcessLogText?.Invoke(text) ?? Task.FromException(new InvalidOperationException("系统剪贴板不可用。")));
+            OpenSubpage(_processLogPage.Page, e.Intent.Source);
+            _processLogPage.Open(logSession);
             return true;
         }
         return command.StartsWith("ui.process.logs.", StringComparison.Ordinal);

@@ -168,6 +168,13 @@ public sealed partial class AvaloniaUiPlatformActions
         Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true })?.Dispose();
     }
 
+    public void OpenMinecraftStore()
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Minecraft for Windows requires Windows.");
+        if (_owner is null) throw new InvalidOperationException("The native window is not ready.");
+        Process.Start(new ProcessStartInfo("ms-windows-store://pdp/?productid=9NBLGGH2JHXJ") { UseShellExecute = true })?.Dispose();
+    }
+
     public Task CopyTextAsync(string text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
@@ -306,6 +313,25 @@ public sealed partial class AvaloniaUiPlatformActions
             FileTypeFilter = [new FilePickerFileType("Java") { Patterns = OperatingSystem.IsWindows() ? ["java.exe", "javaw.exe"] : ["java"] }],
         });
         using IStorageFile? file = files.Count > 0 ? files[0] : null;
+        return file?.TryGetLocalPath();
+    }
+
+    public Task<string?> PickSkinFileAsync(CancellationToken cancellationToken = default) => Dispatcher.UIThread.CheckAccess()
+        ? PickSkinOnUiThreadAsync(cancellationToken)
+        : Dispatcher.UIThread.InvokeAsync(() => PickSkinOnUiThreadAsync(cancellationToken));
+
+    private async Task<string?> PickSkinOnUiThreadAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native file picker is not ready.");
+        IReadOnlyList<IStorageFile> files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "选择 Minecraft 皮肤",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("PNG") { Patterns = ["*.png"] }],
+        }).ConfigureAwait(true);
+        using IStorageFile? file = files.Count > 0 ? files[0] : null;
+        token.ThrowIfCancellationRequested();
         return file?.TryGetLocalPath();
     }
 }

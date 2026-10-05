@@ -1,6 +1,6 @@
 # Settings IA entry map
 
-This checked-in map reserves final positions. `reserved` means no value contract or consumer is enabled; actions/facts/choices are never persisted. IDs are stable and must not be regenerated on label edits. See SettingsPolicySchema for type/default/range/unit/legacy/scope/timing/export metadata of declared keys.
+This checked-in map reserves final positions. `reserved` means no editable value contract is assigned at this IA position; availability follows the catalog and consumer ledger. Actions/facts/choices are never persisted. Delivered host facts use `read-only` and have no persistent value contract. IDs are stable and must not be regenerated on label edits. See SettingsPolicySchema for type/default/range/unit/legacy/scope/timing/export metadata of declared keys.
 
 | ID | Scope / page / section | Entry | Kind | Value contract | Developer |
 |---|---|---|---|---|---|
@@ -278,9 +278,9 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.advanced.3cf9555686bb | global / advanced / Debug Delay | Debug Delay | Setting | reserved | True |
 | global.advanced.59178c9ecad5 | global / advanced / Debug Animation | Debug Animation | Setting | reserved | True |
 | global.advanced.28957465d6fb | global / advanced / Debug Skip Copy | Debug Skip Copy | Setting | reserved | True |
-| global.advanced.01c0534c8b37 | global / advanced / XSR State Inspector | XSR State Inspector | Setting | reserved | True |
+| global.advanced.01c0534c8b37 | global / advanced / XSR State Inspector | XSR State Inspector | State | read-only (XSR-794) | True |
 | global.advanced.dc7ae54c530b | global / advanced / XSR Operation Log | XSR Operation Log | Setting | reserved | True |
-| global.advanced.8d723d8dcdfb | global / advanced / Renderer Diagnostics | Renderer Diagnostics | Setting | reserved | True |
+| global.advanced.8d723d8dcdfb | global / advanced / Renderer Diagnostics | Renderer Diagnostics | State | read-only (XSR-794) | True |
 | global.advanced.40eee0bd4639 | global / advanced / Runtime Diagnostics | Runtime Diagnostics | Setting | reserved | True |
 | global.advanced.0255fcfeb638 | global / advanced / Raw Settings | Raw Settings | Setting | reserved | True |
 | global.advanced.a4b638d31598 | global / advanced / 打开 settings.json | 打开 settings.json | Action | — | True |

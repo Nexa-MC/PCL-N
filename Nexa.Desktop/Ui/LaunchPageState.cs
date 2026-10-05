@@ -55,6 +55,8 @@ internal static class LaunchPageState
         VersionSelectionState.DeclareState(builder);
         SettingsPresentationState.DeclareState(builder);
         ResourcesPresentationState.DeclareState(builder);
+        ProcessLogPresentationState.DeclareState(builder);
+        WardrobePresentationState.DeclareState(builder);
         SidecarUiPresentationState.Declare(builder);
         builder.Cell<string>(InstanceDirectoryKey, OwnerName);
         ArgumentNullException.ThrowIfNull(builder);

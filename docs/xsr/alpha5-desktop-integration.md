@@ -1,6 +1,8 @@
 # Alpha 4 后续：桌面集成与首次运行
 
-状态：进行中。本文是验收清单，不代表功能已经完成。
+状态：历史交付与验收清单。2026-10-05 按 `565e5143` 复核：本文件保留各首批单元
+当时的范围；当前已交付/剩余项见 [Alpha 5 核对](alpha5-gap-status.md) 和
+[XSR-795 库存](XSR-795-unimplemented-inventory.md)，不代表整份验收已完成。
 
 ## 交付顺序
 
@@ -55,6 +57,10 @@ CI 默认跟随 Alpha 发布。安装包和便携包都存在时才提供更新�
 显式下载通过系统浏览器获取平台安装包，可直接打开 GitHub 发布说明。此阶段不自动执行安装包，
 不宣称已有静默替换、增量升级或原子回滚；这些仍由后续签名安装事务接入。
 
+上述是首批发现/手动下载范围。当前 XSR-754/755 已接入独立验签的受保护 helper、
+恢复/激活/回滚/重启和差分回退，见 [自动更新事务](automatic-update-transaction.md)。
+便携或不安全安装仍只提供手动安装器路径；物理断电及生产 OS 签名身份保持独立。
+
 `POST /v1/launcher/telemetry` 经现有 Cloudflare API Shield mTLS 验证。
 只接受 app.started/app.failure/game.started/game.exited，字段限 version/os/arch/result
 及事件时间；单批 50 条、16 KiB。Worker 严格拒绝额外字段，仅存每日聚合计数。
@@ -64,14 +70,21 @@ CI 默认跟随 Alpha 发布。安装包和便携包都存在时才提供更新�
 构建使用现有 PCLN_API_CLIENT_PFX_BASE64 secret，仅将证书恢复为忽略文件；不得记录证书内容。
 首批客户端接入 app.started；游戏结果及异常事件仍需各自产生者接入。
 
-## Patch 注册边界（待实现）
+后续游戏进程创建/退出及应用异常产生者已接入，当前字段和采集边界见
+[遥测产生者](migrations/telemetry-lifecycle-producers.md) 和 [遥测分层](telemetry-tiers-and-rollouts.md)。
+共享客户端 PFX 不是每安装身份，服务端身份策略和线上观察仍不得由客户端接线替代。
+
+## Patch 注册边界（首批规划与当前受限实现）
 
 用户确认：编译前生成插桩，供 Sidecar 注册。注册/卸载走控制通道，执行留在宿主；
 无同步热路径 IPC、无跨进程 CLR 委托。需先定义支持的数据与操作协议、版本化 ID、
 调用期间不可变补丁快照，以及重入/异常/async/迭代器/ref 语义，再接编译改写器。
 
-首个受限同步 string ABI 与五阶段顺序、指令预算、Host allowlist 和会话卸载契约见
-[function-patches.md](function-patches.md)。编译前改写器和实际页面 patch point 仍独立验收。
+首个受限同步 string ABI、五阶段顺序、指令预算、Host allowlist、会话卸载、编译前
+改写器及实际资源标题 point 已由 XSR-735/736 接入，见 [function-patches.md](function-patches.md)。
+XSR-747–749 补齐 Event/Intent、caption/text-card adapter；[XSR-790](XSR-790-sidecar-host-completion.md)
+补齐本仓 Host API。async/ref/迭代器、语义绑定调用及更多执行 adapter 仍未交付；
+外部 Plugin SDK/引擎、任意 UI 及真实插件验收不由此完成。
 
 ## 首次运行引导
 

@@ -1,0 +1,27 @@
+<Page xmlns="https://pcln.dev/pxml/2026" Key="ProcessLogPage" Label="游戏日志">
+  <StackPanel Orientation="Vertical" Margin="20" Spacing="10" Weight="1">
+    <StackPanel Orientation="Horizontal" Height="38" Spacing="8">
+      <Button Key="ProcessLogPreviousSession" Content="上次运行" Label="上次运行" Command="ui.process.log.previous-session" Width="86" Height="38" />
+      <Text Key="ProcessLogSession" Content="游戏日志" Weight="1" VerticalAlignment="Center" />
+      <Button Key="ProcessLogNextSession" Content="下次运行" Label="下次运行" Command="ui.process.log.next-session" Width="86" Height="38" />
+      <Button Key="ProcessLogRefresh" Content="刷新" Label="刷新日志" Command="ui.process.log.refresh" Width="66" Height="38" />
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" Height="36" Spacing="8">
+      <TextInput Key="ProcessLogSearch" Label="搜索日志" Placeholder="搜索日志内容" Weight="1" Height="36" />
+      <Button Key="ProcessLogAll" Content="全部" Label="全部输出" Command="ui.process.log.all" Width="64" Height="36" />
+      <Button Key="ProcessLogStdout" Content="stdout" Label="标准输出" Command="ui.process.log.stdout" Width="74" Height="36" />
+      <Button Key="ProcessLogStderr" Content="stderr" Label="标准错误" Command="ui.process.log.stderr" Width="74" Height="36" />
+    </StackPanel>
+    <Text Key="ProcessLogStatus" Content="正在读取日志…" Height="42" />
+    <Text Key="ProcessLogEmpty" Content="" Height="48" />
+    <StackPanel Key="ProcessLogRows" Orientation="Vertical" Weight="1" Spacing="6" Scroll="true" />
+    <StackPanel Orientation="Horizontal" Height="36" Spacing="8">
+      <Button Key="ProcessLogPrevious" Content="上一页" Label="上一页日志" Command="ui.process.log.previous" Width="74" Height="36" />
+      <Text Key="ProcessLogPageNumber" Content="1 / 1" Width="64" VerticalAlignment="Center" />
+      <Button Key="ProcessLogNext" Content="下一页" Label="下一页日志" Command="ui.process.log.next" Width="74" Height="36" />
+      <Button Key="ProcessLogClearSelection" Content="清除选择" Label="清除日志选择" Command="ui.process.log.clear-selection" Width="88" Height="36" />
+      <Button Key="ProcessLogCopySelected" Content="复制所选" Label="复制所选日志" Command="ui.process.log.copy-selected" Width="88" Height="36" />
+      <Button Key="ProcessLogCopyPage" Content="复制本页" Label="复制本页日志" Command="ui.process.log.copy-page" Width="88" Height="36" />
+    </StackPanel>
+  </StackPanel>
+</Page>

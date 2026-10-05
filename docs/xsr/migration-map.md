@@ -34,9 +34,11 @@ There is no periodic `dev -> refactor/xsr` merge. A legacy fix is forward-ported
 Foundation services are composed over one shared host state store with formal command/query
 routers sealed in `Nexa.Services.Composition`. The rows below record historical migration
 units and contract tests, not a Beta product acceptance result. Update discovery, planning,
-verification and staging exist; privileged automatic replacement and restart are not
-delivered. Production supplies manual installer/download URLs, and `UpdateStaging.ApplyPlan`
-refuses mutation. See [update-privilege-boundary.md](update-privilege-boundary.md).
+verification and staging exist. XSR-754/755 subsequently delivered protected automatic
+replacement, differential/full fallback, recovery, rollback and restart for eligible
+installations. Portable or ineligible installations retain manual installer/download URLs,
+and the obsolete `UpdateStaging.ApplyPlan` still refuses mutation. See
+[update-privilege-boundary.md](update-privilege-boundary.md).
 
 | Unit | Commit | Outcome |
 |---|---|---|
@@ -234,5 +236,12 @@ inventory and independent execution-engine/SDK boundary are in
 SDK, package/manifest or stable Plugin UI IR freeze.
 
 ## Cutover gate
+
+[XSR-795](XSR-795-unimplemented-inventory.md) inventories all current unimplemented
+markers and distinguishes reachable placeholders, historical consumer mappings, roadmap
+contracts and external acceptance. XSR-791–794 and XSR-796 replace the reachable process
+log, wardrobe, platform-probe, developer-diagnostics and Bedrock handoff placeholders;
+their validation is recorded in the individual delivery notes. This does not close the
+independent roadmap or physical acceptance requirements.
 
 Before XSR replaces the legacy architecture, startup, downloads, instances, Minecraft launch, accounts, settings, updates, cloud, online play, plugins, OOBE, crash recovery, AOT, and trim must pass. Plugin SDK 1.0, Sidecar Protocol v1, Manifest/Package v1, and Plugin UI IR v1 must be frozen with compatibility tests.

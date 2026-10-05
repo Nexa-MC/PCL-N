@@ -252,7 +252,7 @@ internal static partial class Program
         AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiScroll>(list)!.OffsetY >= offset);
         bool hasInspector = false;
         fixture.Shell.Tree.Walk(settings.Page, entity => { hasInspector |= fixture.Shell.Tree.GetComponent<XsrUiText>(entity)?.Content == "XSR State Inspector"; return true; });
-        AssertFalse(hasInspector); // An unimplemented inspector is not an editable setting.
+        AssertTrue(hasInspector);
         AssertFalse(scene.Nodes.Any(item => item.Label?.EndsWith("，尚未可用", StringComparison.Ordinal) == true && item.IsClickable));
     }
 

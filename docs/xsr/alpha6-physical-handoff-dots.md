@@ -19,8 +19,10 @@ platform, plus navigation/search/switch/launch/install pause/resume stress with 
 frame tails, CPU/private/physical memory and measured GPU data. Missing metrics stay unknown.
 
 Recovery cases require interruption and conflict evidence for install/modify/snapshot/update
-transactions; a protected updater cannot be accepted until its helper is implemented and
-verified independently. Record screen-reader, high-contrast, touch/pen/controller and
+transactions. At the `565e5143` implementation baseline, XSR-754/755 supplies the preinstalled
+protected helper, independent verification and transaction/recovery paths. Its physical
+replacement/power-loss acceptance is still open; the historical missing-helper condition
+must not be treated as a current implementation gap. Record screen-reader, high-contrast, touch/pen/controller and
 language/DPI/font results separately. OS publisher trust, SmartScreen and Gatekeeper are
 separate from repository GPG integrity. An unsigned macOS build must not be labeled notarized.
 

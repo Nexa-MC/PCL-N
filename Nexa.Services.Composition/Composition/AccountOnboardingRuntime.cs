@@ -5,11 +5,12 @@ using Nexa.Xsr.Runtime;
 
 namespace Nexa.Services.Composition;
 
-public sealed class AccountOnboardingRuntime(AccountOnboardingService service, XsrCommandRouter commands, HttpClient? ownedClient = null, AccountSkinService? skins = null, IAccountLaunchIdentityResolver? launchIdentityResolver = null) : IDisposable
+public sealed class AccountOnboardingRuntime(AccountOnboardingService service, XsrCommandRouter commands, HttpClient? ownedClient = null, AccountSkinService? skins = null, IAccountLaunchIdentityResolver? launchIdentityResolver = null, XsrQueryRouter? queries = null) : IDisposable
 {
     public AccountOnboardingService Service { get; } = service;
     public XsrCommandRouter Commands { get; } = commands;
     public AccountSkinService? Skins { get; } = skins;
+    public XsrQueryRouter? Queries { get; } = queries;
 
     /// <summary>
     /// The launch identity resolver wired to this runtime's own Microsoft auth capability, so
@@ -47,12 +48,20 @@ public static class AccountOnboardingRuntimeComposer
         commands.Register<AccountImportCommand>(AccountOnboardingRoutes.Import, (command, _) => ValueTask.FromResult(service.Import(command)));
         commands.Register<AccountDiscoverImportsCommand>(AccountOnboardingRoutes.DiscoverImports,
             async (_, cancellation) => await Task.Run(service.DiscoverImports, cancellation).ConfigureAwait(false));
+        AccountWardrobeService wardrobe = new(host.Accounts, http, skins, microsoftService,
+            resolvedOptions.MicrosoftClientId, littleSkinService, resolvedOptions.LittleSkin, host.Logging);
+        commands.Register<AccountWardrobeUploadSkinCommand>(AccountWardrobeContract.UploadSkin, wardrobe.UploadSkinAsync);
+        commands.Register<AccountWardrobeSetCapeCommand>(AccountWardrobeContract.SetCape, wardrobe.SetCapeAsync);
+        XsrQueryRouterBuilder queries = new();
+        queries.Register<AccountWardrobeQuery, AccountWardrobeSnapshot>(AccountWardrobeContract.Read, wardrobe.ReadAsync);
+        queries.Register<AccountWardrobeSkinQuery, AccountWardrobeSkinPreview>(AccountWardrobeContract.ValidateSkin, wardrobe.ValidateSkinAsync);
         IAccountLaunchIdentityResolver resolver = new AccountLaunchIdentityResolver(
             host.Accounts,
             microsoftService,
             resolvedOptions.MicrosoftClientId,
             host.Logging, littleSkinService, resolvedOptions.LittleSkin, yggdrasil);
-        return new(service, commands.Build(observer ?? new Observer()), client is null ? http : null, skins, resolver);
+        return new(service, commands.Build(observer ?? new Observer()), client is null ? http : null, skins, resolver,
+            queries.Build(observer ?? new Observer()));
     }
     private sealed class Observer : IXsrDispatchObserver { public void OnCompleted(XsrDispatchObservation observation) { } }
 }

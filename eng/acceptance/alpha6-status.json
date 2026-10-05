@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "release": "2.0.0.alpha.6",
-  "reviewed_at": "2026-10-03",
+  "reviewed_at": "2026-10-05",
   "overall": "not-accepted",
   "items": [
     {
@@ -40,25 +40,25 @@
       "id": "sidecar-execution-platform",
       "priority": "P1",
       "state": "partial",
-      "summary": "Bounded Function ABI, compiler rewriting, Event/Intent, UI captions and New UI text-card State adapters are present; interactive UI and additional visual/Function shapes remain incomplete.",
-      "evidence": ["docs/xsr/migrations/XSR-735-bounded-function-patch-execution.md", "docs/xsr/migrations/XSR-736-compile-time-function-patches.md", "docs/xsr/migrations/XSR-747-sidecar-event-intent-execution.md", "docs/xsr/migrations/XSR-748-sidecar-ui-caption-state.md", "docs/xsr/migrations/XSR-749-sidecar-ui-card-state.md"],
-      "remaining": ["Deliver and test interactive New UI pages, additional node shapes/images/live State bindings, non-caption UI Patch properties and remaining Function ABI shapes and hook adapters, including cancellation and retired sessions."]
+      "summary": "At baseline 565e5143, bounded Function ABI/compiler points, Event/Intent, caption/text-card State adapters and the XSR-790 Host API are implemented. Host negotiation, typed payloads, streams/credits, health, unregistration and supervision are no longer declaration-only gaps. Additional Function shapes and real plugin acceptance remain distinct from the external Plugin SDK/engine/UI contracts.",
+      "evidence": ["docs/xsr/migrations/XSR-735-bounded-function-patch-execution.md", "docs/xsr/migrations/XSR-736-compile-time-function-patches.md", "docs/xsr/migrations/XSR-747-sidecar-event-intent-execution.md", "docs/xsr/migrations/XSR-748-sidecar-ui-caption-state.md", "docs/xsr/migrations/XSR-749-sidecar-ui-card-state.md", "docs/xsr/XSR-790-sidecar-host-completion.md", "docs/xsr/XSR-795-unimplemented-inventory.md"],
+      "remaining": ["Define and deliver additional Function ABI shapes, semantic call binding and hook/visual adapters with cancellation and retired-session parity.", "Complete external Plugin SDK, execution-engine, package/UI IR and arbitrary interactive New UI contracts in their owning repository, then review real plugin lifecycle and long-running failure evidence."]
     },
     {
       "id": "content-instance-management",
       "priority": "P1",
       "state": "partial",
-      "summary": "Read-only graphs and several instance operations exist, but the requested management workflows are incomplete.",
-      "evidence": ["docs/xsr/instance-content-transactions.md", "docs/xsr/migrations/instance-management.md"],
-      "remaining": ["Add selection/bulk update, changelog and transactional rollback.", "Add world/datapack/backup/lock workflows, server editing and Quick Join, screenshot metadata/crop, and modpack export."]
+      "summary": "At baseline 565e5143, graphs, mod search/enablement/trash/restore, screenshot previews, XSR-759 server editing/status/Join, XSR-760 selected-file MRPack export and XSR-758/774 reversible resource-pack/shader updates have working consumers. Mod and bulk update, world-specific operations and screenshot editing remain incomplete.",
+      "evidence": ["docs/xsr/instance-content-transactions.md", "docs/xsr/migrations/instance-management.md", "docs/xsr/migrations/XSR-758-installed-online-content.md", "docs/xsr/migrations/XSR-759-instance-servers.md", "docs/xsr/migrations/XSR-760-modpack-export.md", "docs/xsr/migrations/XSR-774-installed-resource-association-and-updates.md", "docs/xsr/XSR-795-unimplemented-inventory.md"],
+      "remaining": ["Add actual mod updates, selection/bulk updates, changelog and one multi-item rollback transaction.", "Add world/datapack/version/size/last-played/backup/lock workflows and richer screenshot metadata/crop; current directory and preview operations do not substitute for them.", "Review physical shared-directory, cancellation, interruption and interaction evidence for the delivered management operations."]
     },
     {
       "id": "runtime-performance",
       "priority": "P1",
       "state": "partial",
-      "summary": "Several bounded hot paths are covered, but physical drag, animation, scroll, memory-pressure and GPU budgets remain unaccepted.",
+      "summary": "Several bounded hot paths are covered. Early usable Splash/presentation instrumentation, OS memory-pressure and measured GPU image budgeting plus remaining background admission are separate implementation gaps; physical drag, animation, scroll and 8h KPI evidence remains unaccepted.",
       "evidence": ["docs/xsr/runtime-performance.md", "docs/xsr/migrations/XSR-744-input-scratch-allocation.md"],
-      "remaining": ["Profile physical drag, animation and scroll tails; integrate memory pressure, measured GPU image budgeting and remaining background-work yielding."]
+      "remaining": ["Deliver an early usable Splash, real initialization/error stages and first-presentation instrumentation.", "Integrate OS memory pressure, measured GPU image budgeting and remaining background-work yielding; pixel charge is not measured native/GPU residency.", "Profile physical drag, animation and scroll tails and collect controlled idle/game resource and long-running evidence."]
     },
     {
       "id": "failure-corpus-recovery",

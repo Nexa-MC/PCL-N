@@ -188,10 +188,10 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     private readonly XsrUiEntityId _placeholderPage;
     private readonly XsrUiEntityId _versionListPage;
     private XsrUiEntityId _versionSettingsPage;
-    private readonly XsrUiEntityId _wardrobePage;
+    private XsrUiEntityId _wardrobePage;
     private readonly XsrUiEntityId _installPage;
     private readonly XsrUiEntityId _javaInstallPage;
-    private readonly XsrUiEntityId _bedrockInstallPage;
+    private XsrUiEntityId _bedrockInstallPage;
     private readonly Dictionary<string, XsrUiEntityId> _javaInstallEntities;
     private int _presentedJavaInstallPage = -1;
     private string _activeJavaInstallPage = "JavaMinecraftPage";
@@ -350,6 +350,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
 
         _lifetimeCancellation.Cancel();
         Versions.Dispose();
+        _processLogPage?.Dispose();
         foreach (var dock in _processDocks.Values) { _shell.Tree.Destroy(dock.Power); _shell.Tree.Destroy(dock.Logs); }
         _processDocks.Clear();
         if (_javaChoicePage.IsAssigned) _shell.Tree.Destroy(_javaChoicePage);
@@ -853,6 +854,14 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     internal XsrUiEntityId VersionSettingsPage
     {
         set { _shell.Tree.Destroy(_versionSettingsPage); _versionSettingsPage = value; }
+    }
+    internal XsrUiEntityId WardrobePage
+    {
+        set { _shell.Tree.Destroy(_wardrobePage); _wardrobePage = value; }
+    }
+    internal XsrUiEntityId BedrockInstallPage
+    {
+        set { _shell.Tree.Destroy(_bedrockInstallPage); _bedrockInstallPage = value; }
     }
     internal XsrUiEntityId SettingsPage { get; set; }
     internal XsrUiEntityId ResourcesPage { get; set; }

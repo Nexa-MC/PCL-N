@@ -42,6 +42,21 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("process logs read selected session and copy redacted pages", ProcessLogViewerReadsSelectedSessionAndCopiesRedactedPages),
+        ("process logs cancel retired reads and reject wrong sessions", ProcessLogViewerCancelsRetiredReadsAndRejectsWrongSessions),
+        ("process output captures bounded redacted streams and ended sessions", ProcessOutputQueryCapturesBoundedRedactedStreamsAndEndedSessions),
+        ("developer diagnostics require committed mode and remain read only", DeveloperDiagnosticsAreReadOnlyAndRequireCommittedDeveloperMode),
+        ("developer state inspector pages snapshots and rejects retired actions", DeveloperStateInspectorPagesSnapshotAndRejectsRetiredActions),
+        ("developer renderer diagnostics refresh on demand and resume", DeveloperRendererDiagnosticsRefreshOnlyOnDemandAndResumeOnReturn),
+        ("developer state metadata bounds rows and never formats values", DeveloperStateMetadataProjectionBoundsRowsAndNeverFormatsValues),
+        ("wardrobe previews and dispatches typed mutations", WardrobePagePreviewsAndDispatchesTypedMutations),
+        ("wardrobe retires late queries pickers and previews", WardrobePageRetiresLateQueriesPickersAndPreviews),
+        ("wardrobe refreshes admission after a failed mutation", WardrobePageRefreshesAdmissionAfterFailedMutation),
+        ("wardrobe paginates bounded cape inventories", WardrobePagePaginatesCapeInventory),
+        ("Bedrock official actions require visible owned buttons", BedrockInstallOfficialActionsRequireVisibleOwnedButtons),
+        ("Bedrock unsupported platform opens only official website", BedrockInstallUnsupportedPlatformOnlyOpensOfficialWebsite),
+        ("Bedrock native faults allow retry and disposed actions retire", BedrockInstallNativeFaultsAllowRetryAndDisposedActionsRetire),
+        ("Bedrock effects cannot publish into retired presentation", BedrockInstallEffectCannotPublishIntoRetiredPresentation),
         ("appearance session applies committed modes and survives failed saves", AppearanceSessionAppliesCommittedModesAndSurvivesFailedSaves),
         ("appearance scene preserves colors geometry and caching", AppearanceSceneProjectionPreservesColorsGeometryAndCaching),
         ("appearance controls use confirmed accessible modes", AppearanceControlsUseConfirmedAccessibleModes),
@@ -441,7 +456,7 @@ internal static partial class Program
         AssertTrue(HasKey(fixture.Shell, bedrock, "BedrockInstallPage"));
         AssertEqual("安装 Bedrock 版", FindByKey(fixture.Shell, bedrock, "TitleSubpage").Text);
         AssertTrue(FindByKey(fixture.Shell, bedrock, "BedrockInstallDescription").Text!
-            .Contains("尚未迁移", StringComparison.Ordinal));
+            .Contains("Microsoft Store", StringComparison.Ordinal));
         AssertFalse(HasKey(fixture.Shell, bedrock, "JavaInstallStart"));
     }
 

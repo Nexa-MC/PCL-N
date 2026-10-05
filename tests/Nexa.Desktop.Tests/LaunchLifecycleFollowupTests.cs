@@ -80,7 +80,7 @@ internal static partial class Program
         fixture.Store.PublishDelta(sessions, new XsrCollectionDelta<MinecraftProcessSnapshot, Guid>(0, [session], []));
         var scene = fixture.Shell.Render(new(850, 500));
         var power = FindByKey(fixture.Shell, scene, "process-stop-" + id);
-        AssertFalse(FindByKey(fixture.Shell, scene, "process-logs-" + id).IsClickable);
+        AssertTrue(FindByKey(fixture.Shell, scene, "process-logs-" + id).IsClickable);
         AssertTrue(fixture.Shell.Renderer.Activate(power.Entity));
         scene = fixture.Shell.Render(new(850, 500));
         AssertTrue(fixture.Shell.Renderer.Activate(FindByKey(fixture.Shell, scene, "DialogAccept").Entity));

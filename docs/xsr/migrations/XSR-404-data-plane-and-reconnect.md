@@ -17,6 +17,13 @@ Wave 4 closes with the data plane and failure semantics: command and query forwa
 
 ## Non-goals
 
+This section records the original XSR-404 scope. At baseline `565e5143`, typed values and
+payloads, negotiated streaming/credits, health and unregistration are implemented by
+[XSR-406](XSR-406-transactional-snapshot-typed-codecs.md) and
+[XSR-790](../XSR-790-sidecar-host-completion.md). The original string-only and later-unit
+statements below are historical, not current Host API limitations. Multiplexing unrelated
+plugins over one connection and the separate Plugin SDK/engine remain outside this unit.
+
 Typed state/value serialization (generated codecs), multiplexing several plugins over one connection, permission validation per exchange, and stream-flow control beyond the pending cap are later units. The sidecar-executable side lives in the separate plugin repository and consumes the same frozen protocol surface.
 
 ## Verification

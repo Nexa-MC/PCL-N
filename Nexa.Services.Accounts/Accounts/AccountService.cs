@@ -52,6 +52,7 @@ public sealed class AccountService : IAsyncDisposable
     private readonly LogService? _log;
     private List<LaunchProfile> _profiles;
     private long _credentialGeneration;
+    private long _selectionGeneration;
     private readonly CancellationTokenSource _initializationLifetime = new();
     private int _disposed;
     private RegionalPolicy? _regionalPolicy;
@@ -218,6 +219,7 @@ public sealed class AccountService : IAsyncDisposable
             }
 
             _selectedIndex = index;
+            _selectionGeneration++;
             PublishSelection();
         }
         _log?.Info("Account", $"Active profile selected index={index}");
@@ -476,6 +478,51 @@ public sealed class AccountService : IAsyncDisposable
             return index >= 0 && index < _profiles.Count
                 ? XsrResult.Success(_profiles[index])
                 : XsrResult.Failure<LaunchProfile>(AccountErrors.ProfileNotFound(index));
+        }
+    }
+
+    internal XsrResult<AccountWardrobeCapture> CaptureActiveWardrobe(AccountWardrobeIdentity? expected = null)
+    {
+        lock (_gate)
+        {
+            if (_selectedIndex < 0 || _selectedIndex >= _profiles.Count)
+                return XsrResult.Failure<AccountWardrobeCapture>(AccountErrors.ProfileNotFound(_selectedIndex));
+            var profile = _profiles[_selectedIndex];
+            var identity = new AccountWardrobeIdentity(_selectedIndex, profile.Uuid, profile.Kind,
+                _credentialGeneration, _selectionGeneration);
+            if (expected is not null && expected != identity)
+                return XsrResult.Failure<AccountWardrobeCapture>(AccountWardrobeService.StaleIdentity());
+            return XsrResult.Success(new AccountWardrobeCapture(identity, profile, ViewAt(_selectedIndex)));
+        }
+    }
+
+    internal XsrResult CommitWardrobeSkin(AccountWardrobeIdentity identity, string? address,
+        CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var captured = CaptureActiveWardrobe(identity);
+            if (!captured.IsSuccess) return XsrResult.Failure(captured.Error!);
+            return ReplaceProfile(identity.Index, captured.Value.Profile with { SkinAddress = address }, captured.Value.Profile);
+        }
+    }
+
+    internal XsrResult<AccountWardrobeCapture> CommitWardrobeProfile(AccountWardrobeIdentity identity,
+        LaunchProfile updated, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var capture = CaptureActiveWardrobe(identity);
+            if (!capture.IsSuccess) return capture;
+            var saved = ReplaceProfile(identity.Index, updated, capture.Value.Profile);
+            if (!saved.IsSuccess) return XsrResult.Failure<AccountWardrobeCapture>(saved.Error!);
+            // Reentrant observers can change selection or the roster during publication.
+            if (_selectionGeneration != identity.SelectionGeneration || _selectedIndex != identity.Index
+                || _credentialGeneration != identity.RosterGeneration + 1 || _profiles[identity.Index] != updated)
+                return XsrResult.Failure<AccountWardrobeCapture>(AccountWardrobeService.StaleIdentity());
+            return CaptureActiveWardrobe();
         }
     }
 

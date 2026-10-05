@@ -1,0 +1,38 @@
+<Page xmlns="https://pcln.dev/pxml/2026" Key="AccountWardrobePage" Label="更衣橱">
+  <StackPanel Key="WardrobeRoot" Orientation="Vertical" Weight="1" Spacing="14" Scroll="true" Padding="16">
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <Text Key="WardrobeIdentity" Content="更衣橱" Height="36" Weight="1" />
+      <Button Key="WardrobeRefresh" Label="刷新更衣橱" Content="刷新" Command="ui.wardrobe.refresh" Width="80" Height="36" />
+    </StackPanel>
+    <Text Key="WardrobeStatus" Content="正在读取当前账户…" Height="42" />
+    <StackPanel Key="WardrobePreviews" Orientation="Horizontal" Spacing="24" Height="144">
+      <Image Key="WardrobeHeadPreview" Label="当前皮肤头像预览" Source="pcl/avatar/steve" Width="128" Height="128" />
+      <Image Key="WardrobeTexturePreview" Label="选择的皮肤 PNG 预览" Source="lucide/image" Width="128" Height="128" />
+    </StackPanel>
+    <StackPanel Key="WardrobeSkinSection" Orientation="Vertical" Spacing="10">
+      <Text Content="皮肤" Height="24" />
+      <Text Content="选择 PNG 文件，预览后上传。支持 64×64 或经典模型的 64×32 皮肤，最大 1 MiB。" Height="40" />
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextInput Key="WardrobeSkinPath" Label="皮肤 PNG 文件路径" Placeholder="皮肤 PNG 文件路径" Height="38" Weight="1" />
+        <Button Key="WardrobeBrowse" Label="选择皮肤文件" Content="选择文件" Command="ui.wardrobe.browse" Width="112" Height="38" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <Button Key="WardrobeClassic" Label="经典皮肤模型" Content="✓  经典模型" Command="ui.wardrobe.classic" Width="128" Height="36" />
+        <Button Key="WardrobeSlim" Label="纤细皮肤模型" Content="纤细模型" Command="ui.wardrobe.slim" Width="128" Height="36" />
+        <Button Key="WardrobePreview" Label="校验并预览皮肤" Content="校验并预览" Command="ui.wardrobe.preview" Width="128" Height="36" />
+        <Button Key="WardrobeUpload" Label="上传预览的皮肤" Content="上传皮肤" Command="ui.wardrobe.upload" Width="112" Height="36" />
+      </StackPanel>
+    </StackPanel>
+    <StackPanel Key="WardrobeCapeSection" Orientation="Vertical" Spacing="10">
+      <Text Content="披风" Height="24" />
+      <Text Key="WardrobeCapeStatus" Content="正在读取披风…" Height="28" />
+      <StackPanel Key="WardrobeCapes" Orientation="Vertical" Spacing="8" />
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <Button Key="WardrobeCapePrevious" Label="上一页披风" Content="上一页" Command="ui.wardrobe.cape.previous" Width="96" Height="36" />
+        <Button Key="WardrobeCapeNext" Label="下一页披风" Content="下一页" Command="ui.wardrobe.cape.next" Width="96" Height="36" />
+      </StackPanel>
+      <Button Key="WardrobeCapeClear" Label="关闭当前披风" Content="关闭披风" Command="ui.wardrobe.cape.clear" Width="128" Height="36" />
+    </StackPanel>
+    <Button Key="WardrobeCancel" Label="取消更衣橱操作" Content="取消操作" Command="ui.wardrobe.cancel" Width="128" Height="36" />
+  </StackPanel>
+</Page>

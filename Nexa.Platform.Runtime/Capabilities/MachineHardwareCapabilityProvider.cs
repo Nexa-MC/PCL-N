@@ -31,7 +31,9 @@ internal sealed class ThermalCapabilityProvider : IMachineCapabilityProvider
             : OperatingSystem.IsLinux()
                 ? GpuProbes.CollectThermalUnix(timestamp)
                 : [MachineHardwareCatalog.ThermalCpuTemperature.Unavailable(
-                    CapabilityAvailability.NotImplemented, timestamp, "macOS 需要 AppleSMC 通道，尚未接入")];
+                    CapabilityAvailability.PlatformUnsupported, timestamp, OperatingSystem.IsMacOS()
+                        ? "macOS 没有公开的免驱动 CPU 温度 API；私有 AppleSMC 协议不在此检测范围"
+                        : "此操作系统未提供 CPU 温度检测通道")];
         return ValueTask.FromResult<IReadOnlyList<ICapability>>(thermal);
     }
 }
@@ -47,16 +49,9 @@ internal sealed class HardwarePowerCapabilityProvider : IMachineCapabilityProvid
             ? GpuProbes.CollectPowerWindows(timestamp)
             : OperatingSystem.IsLinux()
                 ? GpuProbes.CollectPowerUnix(timestamp)
-                : [MachineEnvironmentCatalog.PowerSource.Unavailable(
-                        CapabilityAvailability.NotImplemented, timestamp, "macOS 需要 IOKit 电源通道，尚未接入"),
-                    MachineEnvironmentCatalog.PowerBatteryPresent.Unavailable(
-                        CapabilityAvailability.NotImplemented, timestamp, "macOS 需要 IOKit 电源通道，尚未接入"),
-                    MachineEnvironmentCatalog.PowerBatteryLevelPercent.Unavailable(
-                        CapabilityAvailability.NotImplemented, timestamp, "macOS 需要 IOKit 电源通道，尚未接入"),
-                    MachineEnvironmentCatalog.PowerBatteryCharging.Unavailable(
-                        CapabilityAvailability.NotImplemented, timestamp, "macOS 需要 IOKit 电源通道，尚未接入"),
-                    MachineEnvironmentCatalog.PowerProfileCurrent.Unavailable(
-                        CapabilityAvailability.NotImplemented, timestamp, "macOS 需要 IOKit 电源通道，尚未接入")];
+                : OperatingSystem.IsMacOS() ? MacPowerProbe.Collect(timestamp)
+                : MachineCapabilityCatalog.CreateRegistry().Definitions.Where(item => item.Provider == Id)
+                    .Select(item => item.Unavailable(CapabilityAvailability.PlatformUnsupported, timestamp, "此操作系统未提供电源检测通道")).ToList();
         return ValueTask.FromResult<IReadOnlyList<ICapability>>(power);
     }
 }
@@ -71,16 +66,19 @@ public static class GpuProbes
         {
             if (!OperatingSystem.IsWindows())
             {
+                string reason = OperatingSystem.IsLinux()
+                    ? "Linux DRM sysfs/NVML 公开整卡容量与全系统占用，不提供 DXGI 等价的当前进程专用显存动态预算"
+                    : OperatingSystem.IsMacOS()
+                        ? "macOS Metal 推荐工作集与当前 Metal 分配不等同于 DXGI 当前进程专用显存动态预算；统一内存也不属于专用显存"
+                        : "此操作系统未提供当前进程专用显存动态预算接口";
                 return
                 [
                     MachineHardwareCatalog.GpuDedicatedBudget.Unavailable(
-                        CapabilityAvailability.NotImplemented, timestamp, OperatingSystem.IsLinux()
-                    ? "Linux 显存查询需要 NVML/AMD sysfs，尚未接入"
-                    : "macOS 显存查询需要 Metal，尚未接入"),
+                        CapabilityAvailability.PlatformUnsupported, timestamp, reason),
                     MachineHardwareCatalog.GpuDedicatedCurrentUsage.Unavailable(
-                        CapabilityAvailability.NotImplemented, timestamp, OperatingSystem.IsLinux()
-                    ? "Linux 显存查询需要 NVML/AMD sysfs，尚未接入"
-                    : "macOS 显存查询需要 Metal，尚未接入"),
+                        CapabilityAvailability.PlatformUnsupported, timestamp, reason),
+                    MachineHardwareCatalog.GpuDedicatedAvailableBudget.Unavailable(
+                        CapabilityAvailability.PlatformUnsupported, timestamp, reason),
                 ];
             }
 
@@ -177,18 +175,36 @@ public static class GpuProbes
 
     internal static List<ICapability> CollectPowerWindows(DateTimeOffset timestamp)
     {
-        const string statusSource = "Windows GetSystemPowerStatus";
         const string schemeSource = "Windows PowerGetActiveScheme";
-        List<ICapability> facts = [];
-
-        // AC line + battery come from one documented call.
         SYSTEM_POWER_STATUS status = default;
-        if (GetSystemPowerStatus(ref status))
+        bool readable = GetSystemPowerStatus(ref status);
+        List<ICapability> facts = ProjectPowerWindowsStatus(timestamp, readable, status.ACLineStatus, status.BatteryFlag, status.BatteryPercent);
+
+        string profile = ReadActivePowerScheme();
+        facts.Add(profile.Length > 0
+            ? MachineEnvironmentCatalog.PowerProfileCurrent.Observe(profile, timestamp, schemeSource)
+            : MachineEnvironmentCatalog.PowerProfileCurrent.Unavailable(
+                CapabilityAvailability.Unknown, timestamp, "电源模式不可读"));
+        return facts;
+    }
+
+    internal static List<ICapability> ProjectPowerWindowsStatus(DateTimeOffset timestamp, bool readable,
+        byte acLineStatus, byte batteryFlag, byte batteryPercent)
+    {
+        const string statusSource = "Windows GetSystemPowerStatus";
+        List<ICapability> facts = [];
+        if (readable)
         {
-            facts.Add(MachineEnvironmentCatalog.PowerSource.Observe(
-                status.ACLineStatus == 1 ? "外接电源" : status.ACLineStatus == 0 ? "电池" : "未知",
-                timestamp, statusSource));
-            if (status.BatteryFlag == 128)
+            facts.Add(acLineStatus is 0 or 1
+                ? MachineEnvironmentCatalog.PowerSource.Observe(acLineStatus == 1 ? "外接电源" : "电池", timestamp, statusSource)
+                : MachineEnvironmentCatalog.PowerSource.Unavailable(CapabilityAvailability.Unknown, timestamp, "外接电源状态不可读"));
+            if (batteryFlag == 255)
+            {
+                facts.Add(MachineEnvironmentCatalog.PowerBatteryPresent.Unavailable(CapabilityAvailability.Unknown, timestamp, "系统无法确认电池状态"));
+                facts.Add(MachineEnvironmentCatalog.PowerBatteryLevelPercent.Unavailable(CapabilityAvailability.Unknown, timestamp, "系统无法确认电池状态"));
+                facts.Add(MachineEnvironmentCatalog.PowerBatteryCharging.Unavailable(CapabilityAvailability.Unknown, timestamp, "系统无法确认电池状态"));
+            }
+            else if ((batteryFlag & 128) != 0)
             {
                 facts.Add(MachineEnvironmentCatalog.PowerBatteryPresent.Observe(false, timestamp, statusSource));
                 facts.Add(MachineEnvironmentCatalog.PowerBatteryLevelPercent.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "无电池"));
@@ -197,11 +213,11 @@ public static class GpuProbes
             else
             {
                 facts.Add(MachineEnvironmentCatalog.PowerBatteryPresent.Observe(true, timestamp, statusSource));
-                facts.Add(status.BatteryPercent is >= 0 and <= 100
-                    ? MachineEnvironmentCatalog.PowerBatteryLevelPercent.Observe(status.BatteryPercent, timestamp, statusSource)
+                facts.Add(batteryPercent is >= 0 and <= 100
+                    ? MachineEnvironmentCatalog.PowerBatteryLevelPercent.Observe(batteryPercent, timestamp, statusSource)
                     : MachineEnvironmentCatalog.PowerBatteryLevelPercent.Unavailable(CapabilityAvailability.Unknown, timestamp, "电量不可读"));
                 facts.Add(MachineEnvironmentCatalog.PowerBatteryCharging.Observe(
-                    (status.BatteryFlag & 8) != 0, timestamp, statusSource));
+                    (batteryFlag & 8) != 0, timestamp, statusSource));
             }
         }
         else
@@ -212,12 +228,6 @@ public static class GpuProbes
             facts.Add(MachineEnvironmentCatalog.PowerBatteryCharging.Unavailable(CapabilityAvailability.Unknown, timestamp, "电源状态不可读"));
         }
 
-        // Active power scheme: the well-known GUIDs cover the balanced/high-saver trio.
-        string profile = ReadActivePowerScheme();
-        facts.Add(profile.Length > 0
-            ? MachineEnvironmentCatalog.PowerProfileCurrent.Observe(profile, timestamp, schemeSource)
-            : MachineEnvironmentCatalog.PowerProfileCurrent.Unavailable(
-                CapabilityAvailability.Unknown, timestamp, "电源模式不可读"));
         return facts;
     }
 
@@ -287,31 +297,7 @@ public static class GpuProbes
         return facts;
     }
 
-    internal static List<ICapability> CollectPowerUnix(DateTimeOffset timestamp)
-    {
-        // The active governor names the effective profile on Linux.
-        string governor = "/sys/devices/system/cpu/cpufreq/policy0/scaling_governor";
-        const string powerSource = "Linux cpufreq governor";
-        List<ICapability> facts = [];
-        if (File.Exists(governor))
-        {
-            string name = File.ReadAllText(governor).Trim();
-            facts.Add(MachineEnvironmentCatalog.PowerProfileCurrent.Observe(
-                name switch
-                {
-                    "performance" => "高性能",
-                    "powersave" => "节能",
-                    string other => other,
-                }, timestamp, powerSource));
-        }
-        else
-        {
-            facts.Add(MachineEnvironmentCatalog.PowerProfileCurrent.Unavailable(
-                CapabilityAvailability.Unknown, timestamp, "电源模式不可读"));
-        }
-
-        return facts;
-    }
+    internal static List<ICapability> CollectPowerUnix(DateTimeOffset timestamp) => LinuxPowerProbe.Collect(timestamp);
 
     internal static double? ReadLinuxCpuTemperature()
     {

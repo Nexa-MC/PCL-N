@@ -144,9 +144,9 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
         };
         request.Headers.TryAddWithoutValidation("Accept", "application/json");
         using HttpResponseMessage response = await _client
-            .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        string body = await AccountProviderResponse.ReadTextAsync(response, cancellationToken).ConfigureAwait(false);
         string? requestId = TryGetRequestId(response);
         ThrowIfInvalidClient(body, requestId);
         EnsureSuccess(response, body, "申请 LittleSkin 设备代码失败", requestId);
@@ -209,9 +209,9 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
             };
             request.Headers.TryAddWithoutValidation("Accept", "application/json");
             using HttpResponseMessage response = await _client
-                .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .ConfigureAwait(false);
-            string body = await response.Content.ReadAsStringAsync(cancellationToken)
+            string body = await AccountProviderResponse.ReadTextAsync(response, cancellationToken)
                 .ConfigureAwait(false);
             string? requestId = TryGetRequestId(response);
 
@@ -409,6 +409,8 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
         using JsonDocument document = JsonDocument.Parse(body);
         if (document.RootElement.ValueKind != JsonValueKind.Array)
             throw new InvalidDataException("LittleSkin 角色列表响应不是数组。");
+        if (document.RootElement.GetArrayLength() > 256)
+            throw new InvalidDataException("LittleSkin 角色数量超过读取限制。");
 
         List<LittleSkinPlayer> players = [];
         foreach (JsonElement entry in document.RootElement.EnumerateArray())
@@ -445,7 +447,10 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
                 .ConfigureAwait(false);
             using JsonDocument document = JsonDocument.Parse(body);
             JsonElement root = document.RootElement;
-            lastPage = Math.Max(1, (int)ReadInt64(root, "last_page", 1));
+            long reportedPages = ReadInt64(root, "last_page", 1);
+            if (reportedPages is < 1 or > MaximumClosetPages)
+                throw new InvalidDataException("LittleSkin 衣柜分页超过读取限制。");
+            lastPage = (int)reportedPages;
             if (!root.TryGetProperty("data", out JsonElement data) ||
                 data.ValueKind != JsonValueKind.Array)
             {
@@ -454,12 +459,14 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
 
             foreach (JsonElement entry in data.EnumerateArray())
             {
+                if (result.Count >= 1024) throw new InvalidDataException("LittleSkin 衣柜数量超过读取限制。");
                 if (!TryReadInt64(entry, "tid", out long textureId))
                     continue;
                 string hash = ReadString(entry, "hash");
                 if (!IsTextureHash(hash))
                     continue;
                 string name = ReadClosetItemName(entry);
+                if (name.Length > 256) throw new InvalidDataException("LittleSkin 衣柜名称超过长度限制。");
                 result.Add(new LittleSkinClosetItem(
                     textureId,
                     string.IsNullOrWhiteSpace(name) ? "Texture " + textureId : name,
@@ -480,7 +487,9 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(playerId);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(textureId);
+        ArgumentOutOfRangeException.ThrowIfNegative(textureId);
+        if (textureId == 0 && kind != LittleSkinTextureKind.Cape)
+            throw new ArgumentOutOfRangeException(nameof(textureId));
         string field = kind == LittleSkinTextureKind.Cape ? "cape" : "skin";
         using FormUrlEncodedContent content = new(
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -571,9 +580,9 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
             new AuthenticationHeaderValue("Bearer", minecraftAccessToken.Trim());
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         using HttpResponseMessage response = await _client
-            .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        string body = await AccountProviderResponse.ReadTextAsync(response, cancellationToken).ConfigureAwait(false);
         EnsureSuccess(response, body, "上传并应用 LittleSkin 皮肤失败", TryGetRequestId(response));
         return new LittleSkinTextureUploadResult(uuid, LittleSkinTextureKind.Skin, isSlim);
     }
@@ -592,9 +601,9 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
         };
         request.Headers.TryAddWithoutValidation("Accept", "application/json");
         using HttpResponseMessage response = await _client
-            .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        string body = await AccountProviderResponse.ReadTextAsync(response, cancellationToken).ConfigureAwait(false);
         EnsureSuccess(response, body, operation, TryGetRequestId(response));
         return ParseTokenResponse(body, fallbackRefreshToken, requireRefreshToken);
     }
@@ -638,9 +647,9 @@ public sealed class LittleSkinOAuthService : ILittleSkinOAuthService
         request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + accessToken.Trim());
         request.Headers.TryAddWithoutValidation("Accept", "application/json");
         using HttpResponseMessage response = await _client
-            .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        string body = await AccountProviderResponse.ReadTextAsync(response, cancellationToken).ConfigureAwait(false);
         EnsureSuccess(response, body, operation, TryGetRequestId(response));
         return body;
     }

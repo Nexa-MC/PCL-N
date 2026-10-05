@@ -12,5 +12,17 @@ metadata 线索，不是新的 preflight Block。依赖缺失/未知继续保守
 列表与记录读取有数量及字节上限；原项大小/修改时间必须与用户看到的一致，链接拒绝操作。
 此处不宣称抵御同账户恶意进程持续换链，也不提供永久清空回收站。
 
-内容依赖图及更新检查边界见 `instance-content-graph.md`。资源实际更新、服务器 NBT
-编辑和整合包导出是后续独立单元，不能把目录入口当作实现；截图已有有界缩略图及详情预览。
+## 当前管理能力（2026-10-05，基准 `565e5143`）
+
+内容依赖图及检查边界见 `instance-content-graph.md`。原文将资源更新、服务器 NBT
+编辑和导出列作后续单元；这些单元现已分别由
+[XSR-758](migrations/XSR-758-installed-online-content.md)/[774](migrations/XSR-774-installed-resource-association-and-updates.md)、
+[XSR-759](migrations/XSR-759-instance-servers.md) 和
+[XSR-760](migrations/XSR-760-modpack-export.md) 接入真实消费者。
+资源包/光影单项更新重新识别本地文件和兼容版本，经下载校验及可恢复旧文件替换；
+服务器支持编辑/顺序/状态/临时 Join；导出支持预览选中文件的标准 MRPack。
+截图已有有界缩略图和详情预览。上述能力不是仅有目录入口。
+
+模组实际更新、选择/批量更新、changelog 和多项同事务回滚仍未交付；世界数据包、
+世界备份/锁以及截图裁剪仍需要独立闭环。通用内容移除/还原不能充当这些能力。
+运行中共享目录保护、内容身份复验、取消和冲突拒绝继续适用；实机验收另行记录。

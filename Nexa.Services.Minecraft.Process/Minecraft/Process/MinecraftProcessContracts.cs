@@ -8,7 +8,7 @@ using Nexa.Xsr.State;
 
 namespace Nexa.Services.Minecraft.Process;
 
-public sealed class MinecraftProcessSession : IAsyncDisposable
+public sealed partial class MinecraftProcessSession : IAsyncDisposable
 {
     private readonly System.Diagnostics.Process _process;
     private readonly object _gate = new();
@@ -35,16 +35,18 @@ public sealed class MinecraftProcessSession : IAsyncDisposable
             LauncherVisibility = launcherVisibility,
         };
         _createdSnapshot = _snapshot;
-        _outputDrain = process.StartInfo.RedirectStandardOutput ? Task.Run(() => DrainAsync(process.StandardOutput, _evidence)) : Task.CompletedTask;
-        _errorDrain = process.StartInfo.RedirectStandardError ? Task.Run(() => DrainAsync(process.StandardError, _errorEvidence)) : Task.CompletedTask;
+        _outputDrain = process.StartInfo.RedirectStandardOutput ? Task.Run(() => DrainAsync(process.StandardOutput, _evidence, MinecraftProcessOutputChannel.Stdout)) : Task.CompletedTask;
+        _errorDrain = process.StartInfo.RedirectStandardError ? Task.Run(() => DrainAsync(process.StandardError, _errorEvidence, MinecraftProcessOutputChannel.Stderr)) : Task.CompletedTask;
         _process.EnableRaisingEvents = true;
         _process.Exited += OnExited;
     }
 
-    private async Task DrainAsync(StreamReader reader, Queue<string> evidence)
+    private async Task DrainAsync(StreamReader reader, Queue<string> evidence, MinecraftProcessOutputChannel source)
     {
         char[] buffer = new char[2048];
         StringBuilder line = new();
+        StringBuilder outputLine = new();
+        bool outputOverflow = false;
         try
         {
             int read;
@@ -52,6 +54,16 @@ public sealed class MinecraftProcessSession : IAsyncDisposable
                 for (int i = 0; i < read; i++)
                 {
                     char c = buffer[i];
+                    if (c == '\n')
+                    {
+                        AddOutput(source, outputLine.ToString(), outputOverflow);
+                        outputLine.Clear(); outputOverflow = false;
+                    }
+                    else if (c != '\r')
+                    {
+                        if (outputLine.Length < MaximumOutputLineLength) outputLine.Append(c);
+                        else outputOverflow = true;
+                    }
                     if (c == '\n' || line.Length == 2048)
                     {
                         AddEvidence(evidence, line.ToString());
@@ -61,7 +73,11 @@ public sealed class MinecraftProcessSession : IAsyncDisposable
                 }
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException or OperationCanceledException) { }
-        finally { if (line.Length > 0) AddEvidence(evidence, line.ToString()); }
+        finally
+        {
+            if (line.Length > 0) AddEvidence(evidence, line.ToString());
+            if (outputLine.Length > 0 || outputOverflow) AddOutput(source, outputLine.ToString(), outputOverflow);
+        }
     }
 
     private void AddEvidence(Queue<string> evidence, string line)
@@ -205,7 +221,7 @@ public sealed class MinecraftProcessSession : IAsyncDisposable
     }
 }
 
-public sealed class MinecraftProcessService : IAsyncDisposable
+public sealed partial class MinecraftProcessService : IAsyncDisposable
 {
     /// <summary>Finished sessions retained before pruning; older exits are removed.</summary>
     public const int RetainedExitedSessions = 32;

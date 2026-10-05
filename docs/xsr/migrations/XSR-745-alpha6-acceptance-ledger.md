@@ -14,9 +14,12 @@ accepted only when every item is accepted. `--require-accepted` is deliberately
 nonzero today, making it suitable for a release gate without making routine
 ledger validation fail.
 
-This audit found zero fully accepted workstreams: four are partially implemented,
-four remain pending, and native release trust is externally blocked on production
-publisher identities and physical SmartScreen/Gatekeeper review. In particular,
+The original audit found zero fully accepted workstreams. The current ledger was refreshed
+on 2026-10-05 against `565e5143`: protected updates, server editing/Join, MRPack export and
+the complete Sidecar Host API are delivered implementation slices, while remaining product,
+physical and credential-dependent work stays open. See [XSR-795](../XSR-795-unimplemented-inventory.md)
+for the deduplicated inventory; the ledger does not equate raw catalog markers with missing
+features. In particular,
 the 126 Minecraft candidates remain a queue rather than a support declaration;
 the retained composition soaks do not become 8-hour native evidence; and GPG
 package verification does not become Authenticode, Developer ID, notarization or

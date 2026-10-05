@@ -49,6 +49,12 @@ The user-requested constraints take precedence:
 - [sidecar-protocol.md](sidecar-protocol.md) — Sidecar Fabric control/data planes
 - [sidecar-host-api.md](sidecar-host-api.md) — complete PCL-N Host routes, Protocol/Transport API inventory, lifecycle and independent SDK boundary
 - [XSR-790-sidecar-host-completion.md](XSR-790-sidecar-host-completion.md) — negotiated binary values, health/streams, supervision and end-to-end Host acceptance
+- [XSR-791-process-log-view.md](XSR-791-process-log-view.md) — bounded redacted process logs, session selection, search and copy
+- [XSR-792-platform-capability-completion.md](XSR-792-platform-capability-completion.md) — Linux displays and power, macOS power, explicit unsupported facts
+- [XSR-793-account-wardrobe.md](XSR-793-account-wardrobe.md) — validated skin uploads, owned cape selection and account identity admission
+- [XSR-794-developer-diagnostics.md](XSR-794-developer-diagnostics.md) — developer-only state metadata and renderer snapshots
+- [XSR-795-unimplemented-inventory.md](XSR-795-unimplemented-inventory.md) — complete marker inventory, delivered consumers and remaining roadmap contracts
+- [XSR-796-bedrock-store-installation.md](XSR-796-bedrock-store-installation.md) — official Windows Store installation handoff and platform support
 - [versioning.md](versioning.md) — XSR product-version grammar and compatibility surfaces
 - [migration-map.md](migration-map.md) — waves, closed work units, and cutover gates
 - [source-reference.md](source-reference.md) — clean-slate rules for consulting legacy code
