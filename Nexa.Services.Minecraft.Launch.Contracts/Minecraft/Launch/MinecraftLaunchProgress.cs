@@ -49,6 +49,7 @@ public static class MinecraftLaunchStages
     public const string GetArguments = "get_arguments";
     public const string ExtractNatives = "extract_natives";
     public const string PreLaunch = "pre_launch";
+    public const string CustomCommand = "custom_command";
     public const string StartProcess = "start_process";
     public const string WaitWindow = "wait_window";
     public const string End = "end";
@@ -63,9 +64,7 @@ public static class MinecraftLaunchStages
     public const double WaitWindowWeight = 1d;
     public const double EndWeight = 1d;
 
-    // The legacy table carries one weight for custom_command, whose feature has not migrated;
-    // it stays reserved so every migrated stage reports the same overall pacing as the legacy
-    // launch. Migrated stages (including wait_window and pre_launch) are consumed for real.
+    // The migrated command-hook stage consumes its original legacy pacing slot.
     public const double CustomCommandWeight = 1d;
     public const double Total = 44d;
 

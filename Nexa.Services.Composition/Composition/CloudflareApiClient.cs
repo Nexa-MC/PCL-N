@@ -1,4 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
+using Nexa.Services.Network;
 
 namespace Nexa.Services.Composition;
 
@@ -6,17 +7,29 @@ namespace Nexa.Services.Composition;
 public sealed class CloudflareApiClient : IDisposable
 {
     private readonly X509Certificate2 _certificate;
+    private readonly NetworkHttpClientPool? _pool;
     public HttpClient Client { get; }
 
-    private CloudflareApiClient(X509Certificate2 certificate)
+    private CloudflareApiClient(X509Certificate2 certificate, NetworkHttpClientPool? transport)
     {
         _certificate = certificate;
-        var handler = new HttpClientHandler { AllowAutoRedirect = false, ClientCertificateOptions = ClientCertificateOption.Manual };
-        handler.ClientCertificates.Add(certificate);
-        Client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
+        if (transport is null)
+        {
+            var handler = new HttpClientHandler { AllowAutoRedirect = false, ClientCertificateOptions = ClientCertificateOption.Manual };
+            handler.ClientCertificates.Add(certificate);
+            Client = new HttpClient(handler);
+        }
+        else
+        {
+            _pool = transport.CreateSpecialized(handler => handler.SslOptions.ClientCertificates = new X509CertificateCollection { certificate });
+            Client = _pool.CreateClient(allowAutoRedirect: false);
+        }
+        Client.Timeout = TimeSpan.FromSeconds(15);
     }
 
-    public static CloudflareApiClient? TryCreate(Func<Stream?>? embeddedCertificate = null)
+    public static CloudflareApiClient? TryCreate(Func<Stream?>? embeddedCertificate = null) => TryCreate(embeddedCertificate, null);
+
+    public static CloudflareApiClient? TryCreate(Func<Stream?>? embeddedCertificate, NetworkHttpClientPool? transport)
     {
         string? path = Environment.GetEnvironmentVariable("NEXA_API_CLIENT_CERT_PATH");
         string? password = Environment.GetEnvironmentVariable("NEXA_API_CLIENT_CERT_PASSWORD");
@@ -47,8 +60,8 @@ public sealed class CloudflareApiClient : IDisposable
             certificate.Dispose();
             throw new InvalidOperationException("Cloudflare API 客户端证书不可用。");
         }
-        return new CloudflareApiClient(certificate);
+        return new CloudflareApiClient(certificate, transport);
     }
 
-    public void Dispose() { Client.Dispose(); _certificate.Dispose(); }
+    public void Dispose() { Client.Dispose(); _pool?.Dispose(); _certificate.Dispose(); }
 }

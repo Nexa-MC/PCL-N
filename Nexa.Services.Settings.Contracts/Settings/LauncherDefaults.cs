@@ -118,6 +118,7 @@ public static class LauncherDefaults
         ["UiLogoText"] = string.Empty,
         ["UiLanguage"] = "auto",
         ["UiFormatCulture"] = "auto",
+        ["UiAccentColor"] = "blue",
         ["LaunchAdvanceJvm"] = "-XX:+UseG1GC -XX:-UseAdaptiveSizePolicy -XX:-OmitStackTraceInFastThrow -Djdk.lang.Process.allowAmbiguousCommands=true -Dfml.ignoreInvalidMinecraftCertificates=True -Dfml.ignorePatchDiscrepancies=True -Dlog4j2.formatMsgNoLookups=true",
         ["LaunchAdvanceGame"] = string.Empty,
         ["LaunchWrapperCommand"] = string.Empty,

@@ -58,6 +58,8 @@ internal sealed partial class SettingsPageController
             { "auto" => "系统区域", "follow-language" => "界面语言", "zh-CN" => "中国大陆", "zh-TW" => "中国台湾", "en-US" => "美国", _ => value };
             if (entry.SettingKey == "network.game-source") label = value switch
             { "official-first" => "官方优先", "mirrors-first" => "镜像优先", "official-only" => "仅官方", _ => value };
+            if (entry.SettingKey == "network.ip-stack") label = value switch
+            { "auto" => "系统顺序", "ipv4" => "IPv4 优先", "ipv6" => "IPv6 优先", _ => value };
             if (entry.SettingKey == "game.process-priority") label = value switch
             { "normal" => "正常", "below-normal" => "较低", "above-normal" => "较高", "high" => "高", "real-time" => "实时", _ => value };
             if (entry.SettingKey == "game.launcher-visibility") label = value switch
@@ -68,6 +70,10 @@ internal sealed partial class SettingsPageController
             { "build" => "跟随当前版本", "stable" => "正式版", "alpha" => "Alpha", "beta" => "Beta", "ci" => "CI", _ => value };
             if (entry.SettingKey == "diagnostics.log-level") label = value switch
             { "auto" => "自动", "0" => "仅错误", "1" => "警告", "2" => "信息", "3" => "调试", "4" => "详细跟踪", _ => value };
+            if (entry.SettingKey == "appearance.theme-mode") label = value switch
+            { "2" => "跟随系统", "0" => "浅色", "1" => "深色", _ => value };
+            if (entry.SettingKey == "appearance.accent") label = value switch
+            { "blue" => "蓝色", "purple" => "紫色", "green" => "绿色", "orange" => "橙色", _ => value };
             if (entry.SettingKey == "java.vendor") label = value switch
             { "" => "自动", "EclipseTemurin" => "Temurin", "IbmSemeru" => "IBM Semeru", "GraalVmCommunity" => "GraalVM", "OpenJdk" => "OpenJDK", "TencentKona" => "腾讯 Kona", "Dragonwell" => "龙井 Java", "Unknown" => "其他", _ => value };
             bool nativeName = entry.SettingKey == "general.language" && value != "auto";
@@ -194,4 +200,3 @@ internal sealed partial class SettingsPageController
         _shell.Renderer.Focus(action.Editor.Inputs[intent.Command == ArgumentAdd ? action.Editor.Inputs.Count - 1 : Math.Min(action.Index, action.Editor.Inputs.Count - 1)]);
     }
 }
-

@@ -183,7 +183,7 @@ internal static partial class Program
             FoundationHost host = FoundationComposer.Compose(
                 new InMemorySettingsPort(),
                 schema,
-                new LaunchProfileFilePort(Path.Combine(directory, "profiles.json")));
+                new LaunchProfileFilePort(Path.Combine(directory, "profiles.json")), null);
 
             DownloadTransferResult result = await host.Downloads.DownloadAsync(new DownloadRequest
             {
@@ -212,7 +212,7 @@ internal static partial class Program
         LaunchProfileFilePort profilePort = new(System.IO.Path.Combine(
             System.IO.Path.GetTempPath(), "pcl-services-tests", Guid.NewGuid().ToString("N"), "profiles.json"));
         FoundationHost host = FoundationComposer.Compose(new InMemorySettingsPort(), schema, profilePort, bridge);
-        FoundationRuntime runtime = FoundationRuntimeComposer.Compose(host);
+        FoundationRuntime runtime = FoundationRuntimeComposer.Compose(host, null);
         XsrStateStore store = host.StateStore;
         LogService logging = host.Logging;
         AccountService accounts = host.Accounts;

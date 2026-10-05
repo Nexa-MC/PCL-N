@@ -1385,14 +1385,14 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         DrawSelectionPill(context, style);
         if (_node.Scroll is { ShowsVerticalIndicator: true, CanScrollVertically: true } scroll)
         {
-            DrawScrollIndicator(context, rect, scroll);
+            DrawScrollIndicator(context, rect, scroll, _node.ColorScheme);
         }
 
         if (_node.IsFocusVisible)
         {
             context.DrawRectangle(
                 null,
-                new Pen(Brush(new XsrUiColor(11, 91, 203))!, 2),
+                new Pen(Brush(_node.ColorScheme.AccentText)!, 2),
                 new RoundedRect(rect.Deflate(1), new CornerRadius(Math.Max(0, style.CornerRadius - 1))));
         }
     }
@@ -1494,7 +1494,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         context.DrawText(formatted, new Point(alignedX, y));
     }
 
-    internal static void DrawScrollIndicator(DrawingContext context, Rect rect, XsrUiScrollSnapshot scroll)
+    internal static void DrawScrollIndicator(DrawingContext context, Rect rect, XsrUiScrollSnapshot scroll, XsrUiColorScheme scheme = default)
     {
 
         const double width = 3;
@@ -1517,12 +1517,13 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         double x = Math.Max(0, rect.Width - width - 4);
         Rect track = new(x, inset, width, trackHeight);
         Rect thumb = new(x, inset + (travel * progress), width, thumbHeight);
+        XsrUiColor ink = scheme.Foreground(new(91, 105, 122));
         context.DrawRectangle(
-            new SolidColorBrush(Color.FromArgb(28, 91, 105, 122)),
+            Brush(ink with { Alpha = 28 }),
             null,
             new RoundedRect(track, new CornerRadius(width / 2)));
         context.DrawRectangle(
-            new SolidColorBrush(Color.FromArgb(124, 91, 105, 122)),
+            Brush(ink with { Alpha = scheme.IsDark ? (byte)185 : (byte)124 }),
             null,
             new RoundedRect(thumb, new CornerRadius(width / 2)));
     }
@@ -1540,13 +1541,14 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         double pillWidth = rect.Width;
         double pillX = rect.Right - pillWidth;
         var pillRect = new Rect(pillX, rect.Y, pillWidth, rect.Height);
+        XsrUiColor highlight = _node.ColorScheme.Project(OwnedCapsuleHighlight).Background;
         IBrush? pillBackground = new LinearGradientBrush
         {
             StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
             EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
             GradientStops =
             [
-                new GradientStop(Color.FromArgb(245, 255, 255, 255), 0),
+                new GradientStop(Color.FromArgb(highlight.Alpha, highlight.Red, highlight.Green, highlight.Blue), 0),
                 new GradientStop(Color.FromArgb(style.Background.Alpha, style.Background.Red,
                     style.Background.Green, style.Background.Blue), 1),
             ],
@@ -1617,7 +1619,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         }
 
         if (_node.IsFocusVisible)
-            context.DrawRectangle(null, new Pen(Brush(new XsrUiColor(11, 91, 203))!, 2),
+            context.DrawRectangle(null, new Pen(Brush(_node.ColorScheme.AccentText)!, 2),
                 new RoundedRect(pillRect.Deflate(2), new CornerRadius(pillHeight / 2 - 2)));
     }
 

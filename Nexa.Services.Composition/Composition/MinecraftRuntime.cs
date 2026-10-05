@@ -132,8 +132,15 @@ public static class MinecraftRuntimeComposer
         IJavaRuntimeInstaller installer;
         if (javaInstaller is null)
         {
-            HttpJavaRuntimeMetadataProvider metadata = new(host.Logging);
-            JavaRuntimeInstaller concreteInstaller = new(metadata, host.Logging, host.Tasks);
+            HttpClient javaMetadataHttp = host.CreateHttpClient();
+            javaMetadataHttp.Timeout = TimeSpan.FromMinutes(2);
+            javaMetadataHttp.DefaultRequestHeaders.UserAgent.ParseAdd("NexaCL/2.0");
+            HttpJavaRuntimeMetadataProvider metadata = new(javaMetadataHttp, ownsClient: true);
+            HttpClient javaDownloadHttp = host.CreateHttpClient();
+            javaDownloadHttp.Timeout = TimeSpan.FromMinutes(10);
+            JavaRuntimeInstaller concreteInstaller = new(new JavaRuntimeDownloadPlanService(metadata), javaDownloadHttp,
+                ownsHttpClient: true, log: host.Logging, tasks: host.Tasks)
+            { BandwidthLimiter = host.Downloads.BandwidthLimiter };
             owned.Add(metadata);
             concreteInstaller.RuntimesChanged += locator.Invalidate;
             owned.Add(concreteInstaller);
@@ -144,7 +151,8 @@ public static class MinecraftRuntimeComposer
             installer = javaInstaller;
         }
 
-        HttpClient authlibHttp = new() { Timeout = TimeSpan.FromMinutes(2) };
+        HttpClient authlibHttp = host.CreateHttpClient();
+        authlibHttp.Timeout = TimeSpan.FromMinutes(2);
         AuthlibInjectorProvider authlib = new(authlibHttp, host.Downloads);
         owned.Add(authlibHttp);
         owned.Add(authlib);
@@ -153,7 +161,10 @@ public static class MinecraftRuntimeComposer
             { WorkScheduler = host.Work }), host.Logging);
         // The legacy 补全文件 step: the launch pipeline repairs missing files before the JVM
         // starts, sharing the foundation download engine with installs.
-        MinecraftLaunchFileCompletion fileCompletion = new(host.Downloads, host.Logging, settingsPolicy: host.SettingsPolicy);
+        HttpClient completionHttp = host.CreateHttpClient();
+        owned.Add(completionHttp);
+        MinecraftLaunchFileCompletion fileCompletion = new(host.Downloads, host.Logging, settingsPolicy: host.SettingsPolicy)
+        { Transport = completionHttp };
         owned.Add(fileCompletion);
         host.MinecraftRemediations.BindJava(locator, installer, runtimeRoot, fileCompletion);
         LaunchPreflightGate preflight = new(host.StateStore, async (root, instance, plan, token) =>

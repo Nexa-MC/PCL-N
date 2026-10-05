@@ -25,10 +25,7 @@ internal static partial class Program
         fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(settings.Page);
         var scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
-        scene = fixture.Shell.Render(new(1000, 650));
-        var sections = FindByKey(fixture.Shell, scene, "SettingsSections").Entity;
-        fixture.Shell.Tree.GetComponent<XsrUiScroll>(sections)!.OffsetY = 10000;
-        fixture.Shell.Tree.MarkDirty(sections, XsrUiDirtyKinds.Layout); scene = fixture.Shell.Render(new(1000, 650));
+        scene = ShowSettingsTransferAction(fixture, "SettingsExport");
         Emit(fixture.Intents, "ui.settings.data.export", FindByKey(fixture.Shell, scene, "SettingsExport").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Notifications.Any(note => note.Message == "设置已导出。"); }, TimeSpan.FromSeconds(5)));
         AssertTrue(exported is not null);
@@ -36,6 +33,7 @@ internal static partial class Program
         AssertEqual("instance", document.RootElement.GetProperty("scope").GetString());
         AssertEqual("1234", document.RootElement.GetProperty("values").GetProperty("game.width").GetProperty("value").GetString());
         AssertFalse(exported!.Contains("instance-scoped-a", StringComparison.Ordinal));
+        scene = ShowSettingsTransferAction(fixture, "SettingsImport");
         Emit(fixture.Intents, "ui.settings.data.import", FindByKey(fixture.Shell, scene, "SettingsImport").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Dialog is not null; }, TimeSpan.FromSeconds(5)));
         var dialog = fixture.Feedback.Snapshot().Dialog!;
@@ -63,6 +61,7 @@ internal static partial class Program
         scene = fixture.Shell.Render(new(1000, 650));
         void Import()
         {
+            scene = ShowSettingsTransferAction(fixture, "SettingsImport");
             Emit(fixture.Intents, "ui.settings.data.import", FindByKey(fixture.Shell, scene, "SettingsImport").Entity);
             AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Dialog is not null; }, TimeSpan.FromSeconds(5)));
         }
@@ -78,7 +77,7 @@ internal static partial class Program
         AssertTrue(fixture.Feedback.ResolveDialog(dialog.Id, true));
         AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return fixture.Foundation.Host.Settings.GetValue<int>("LaunchArgumentWindowWidth").Value == 1024; }, TimeSpan.FromSeconds(5)));
         // Drain the completed import before issuing another operation.
-        AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return FindByKey(fixture.Shell, scene, "SettingsExport").IsEnabled; }, TimeSpan.FromSeconds(5)));
+        scene = ShowSettingsTransferAction(fixture, "SettingsExport");
         Emit(fixture.Intents, "ui.settings.data.export", FindByKey(fixture.Shell, scene, "SettingsExport").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Notifications.Any(note => note.Message == "设置已导出。"); }, TimeSpan.FromSeconds(5)));
         AssertTrue(exported is not null);
@@ -99,6 +98,7 @@ internal static partial class Program
         scene = fixture.Shell.Render(new(1000, 650));
         void Preview()
         {
+            scene = ShowSettingsTransferAction(fixture, "SettingsImport");
             Emit(fixture.Intents, "ui.settings.data.import", FindByKey(fixture.Shell, scene, "SettingsImport").Entity);
             AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Dialog is not null; }, TimeSpan.FromSeconds(5)));
         }
@@ -128,7 +128,7 @@ internal static partial class Program
         fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(settings.Page);
         var scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.storage").Entity);
-        scene = fixture.Shell.Render(new(1000, 650));
+        scene = ShowSettingsTransferAction(fixture, "SettingsImport");
         Emit(fixture.Intents, "ui.settings.data.import", FindByKey(fixture.Shell, scene, "SettingsImport").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.general").Entity);
@@ -137,9 +137,25 @@ internal static partial class Program
         scene = fixture.Shell.Render(new(1000, 650)); AssertTrue(fixture.Feedback.Snapshot().Dialog is null);
         settings.ConfigureSettingsTransfer(_ => Task.FromResult<string?>(SettingsImportDocument.Replace("global", "instance", StringComparison.Ordinal)), (_, _) => Task.FromResult(true));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.storage").Entity);
-        scene = fixture.Shell.Render(new(1000, 650));
+        scene = ShowSettingsTransferAction(fixture, "SettingsImport");
         Emit(fixture.Intents, "ui.settings.data.import", FindByKey(fixture.Shell, scene, "SettingsImport").Entity);
         AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Notifications.Any(note => note.Message.Contains("作用域", StringComparison.Ordinal)); }, TimeSpan.FromSeconds(5)));
         AssertTrue(fixture.Feedback.Snapshot().Dialog is null);
+    }
+
+    private static XsrUiScene ShowSettingsTransferAction(LaunchPageFixture fixture, string key)
+    {
+        XsrUiScene scene = fixture.Shell.Render(new(1000, 650));
+        AssertTrue(SpinWait.SpinUntil(() =>
+        {
+            scene = fixture.Shell.Render(new(1000, 650));
+            if (!HasKey(fixture.Shell, scene, "SettingsSections")) return false;
+            var sections = FindByKey(fixture.Shell, scene, "SettingsSections").Entity;
+            fixture.Shell.Tree.GetComponent<XsrUiScroll>(sections)!.OffsetY = 10000;
+            fixture.Shell.Tree.MarkDirty(sections, XsrUiDirtyKinds.Layout);
+            scene = fixture.Shell.Render(new(1000, 650));
+            return HasKey(fixture.Shell, scene, key) && FindByKey(fixture.Shell, scene, key).IsEnabled;
+        }, TimeSpan.FromSeconds(5)));
+        return scene;
     }
 }

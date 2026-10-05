@@ -8,7 +8,7 @@ namespace Nexa.Services.Composition;
 /// <summary>Owns update policy and its HTTP pool for one host session.</summary>
 public sealed class LauncherNetworkRuntime : IDisposable, IAsyncDisposable
 {
-    public HttpClient Http { get; } = Nexa.Services.Downloads.PooledHttpClient.Create(allowAutoRedirect: false);
+    public HttpClient Http { get; }
     public string RuntimeId { get; }
     public RolloutService Rollouts { get; }
     public NexaUpdateService Updates { get; }
@@ -16,6 +16,7 @@ public sealed class LauncherNetworkRuntime : IDisposable, IAsyncDisposable
 
     public LauncherNetworkRuntime(FoundationHost host, string settingsFolder, LauncherBuildIdentity build)
     {
+        Http = host.CreateHttpClient(allowAutoRedirect: false);
         Http.Timeout = TimeSpan.FromSeconds(20);
         RuntimeId = (OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux") + "-"
             + System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();

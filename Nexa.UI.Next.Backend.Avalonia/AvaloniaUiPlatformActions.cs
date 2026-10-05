@@ -11,7 +11,7 @@ namespace Nexa.UI.Next.Backend.Avalonia;
 public enum AvaloniaUiInputKind { Keyboard, Mouse, Touch, Controller }
 
 /// <summary>Explicit user-triggered OS effects. Does not know accounts or product layout.</summary>
-public sealed class AvaloniaUiPlatformActions
+public sealed partial class AvaloniaUiPlatformActions
 {
     private TopLevel? _owner;
     private bool _resizeEnabled = true;
@@ -22,6 +22,7 @@ public sealed class AvaloniaUiPlatformActions
     internal void Attach(TopLevel owner)
     {
         _owner = owner;
+        AttachAppearance(owner);
         AvaloniaUiMotion.SetFrameRate(_animationFrameRate);
         if (owner is Window attachedWindow) attachedWindow.CanResize = _resizeEnabled;
         if (owner is AvaloniaUiShellWindow shellWindow) shellWindow.CloseGuard = () => CloseRequested?.Invoke() ?? true;
@@ -279,6 +280,9 @@ public sealed class AvaloniaUiPlatformActions
 
     public Task<string?> PickExportDirectoryAsync() => Dispatcher.UIThread.CheckAccess()
         ? PickDirectoryCoreAsync("选择导出保存目录") : Dispatcher.UIThread.InvokeAsync(() => PickDirectoryCoreAsync("选择导出保存目录"));
+
+    public Task<string?> PickStorageDirectoryAsync() => Dispatcher.UIThread.CheckAccess()
+        ? PickDirectoryCoreAsync("选择启动器数据目录") : Dispatcher.UIThread.InvokeAsync(() => PickDirectoryCoreAsync("选择启动器数据目录"));
 
     private async Task<string?> PickDirectoryCoreAsync(string title)
     {

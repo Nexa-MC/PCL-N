@@ -49,6 +49,9 @@ public sealed record MinecraftLaunchRequest
     public bool IsolatedGameDirectory { get; init; }
     public string? CustomJvmArguments { get; init; }
     public string? CustomGameArguments { get; init; }
+    public string WrapperCommand { get; init; } = string.Empty;
+    public string PreLaunchCommand { get; init; } = string.Empty;
+    public bool WaitForPreLaunchCommand { get; init; } = true;
     public IReadOnlyList<string> ClasspathHeadEntries { get; init; } = [];
 
     /// <summary>
@@ -189,6 +192,11 @@ public sealed record MinecraftLaunchPlan(
     public ProcessPriorityClass? ProcessPriority { get; init; }
     public string WindowTitle { get; init; } = string.Empty;
     public MinecraftLauncherVisibility LauncherVisibility { get; init; }
+
+    /// <summary>User-authored, captured executable prefix. It wraps the private JVM transport.</summary>
+    public string WrapperCommand { get; init; } = string.Empty;
+    public string PreLaunchCommand { get; init; } = string.Empty;
+    public bool WaitForPreLaunchCommand { get; init; } = true;
 
     /// <summary>Configured heap request; -1 when custom arguments override the planner's value.</summary>
     public int HeapLimitMiB { get; init; } = -1;

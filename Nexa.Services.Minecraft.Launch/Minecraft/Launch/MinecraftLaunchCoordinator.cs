@@ -530,26 +530,21 @@ public sealed class MinecraftLaunchCoordinator
                 MinecraftLaunchStages.ExtractNatives,
                 MinecraftLaunchStages.ProgressAt(afterArguments),
                 Method: method));
-            // The legacy pre-launch stage: the working directory must exist before the game
-            // (or anything the plan references) writes into it — strictly before start_process.
-            _progress?.Report(new MinecraftLaunchStageReport(
-                MinecraftLaunchStages.PreLaunch,
-                MinecraftLaunchStages.ProgressAt(afterExtract),
-                Method: method));
-            Directory.CreateDirectory(plan.WorkingDirectory);
             Process.MinecraftProcessSession session = startedSession = await _executor.ExecuteAsync(
                 plan,
                 preparation.Value.Instance.Id,
                 stage: stageToken =>
                 {
-                    if (stageToken == MinecraftLaunchStages.StartProcess)
+                    double? completed = stageToken switch
                     {
-                        // custom_command has not migrated; its reserved weight is skipped over.
-                        _progress?.Report(new MinecraftLaunchStageReport(
-                            MinecraftLaunchStages.StartProcess,
-                            MinecraftLaunchStages.ProgressAt(afterCustomCommand),
-                            Method: method));
-                    }
+                        MinecraftLaunchStages.PreLaunch => afterExtract,
+                        MinecraftLaunchStages.CustomCommand => afterPreLaunch,
+                        MinecraftLaunchStages.StartProcess => afterCustomCommand,
+                        _ => null,
+                    };
+                    if (completed is { } weight)
+                        _progress?.Report(new MinecraftLaunchStageReport(stageToken,
+                            MinecraftLaunchStages.ProgressAt(weight), Method: method));
                 },
                 launchToken)
                 .ConfigureAwait(false);
@@ -627,7 +622,8 @@ public sealed class MinecraftLaunchCoordinator
             or UnauthorizedAccessException
             or InvalidDataException
             or InvalidOperationException
-            or ArgumentException)
+            or ArgumentException
+            or System.ComponentModel.Win32Exception)
         {
             operation?.Fail(exception);
             _progress?.Stop();
@@ -912,6 +908,7 @@ public sealed class MinecraftLaunchCoordinator
             metadata.CustomInfo,
             GetSetting("LaunchArgumentInfo", "NexaN"),
             "NexaCL");
+        bool instancePreLaunch = !string.IsNullOrWhiteSpace(metadata.PreLaunchCommand);
         DateTimeOffset? releaseTime = ReadReleaseTime(manifests) ?? instance.Version.ReleaseTime;
 
         var request = new MinecraftLaunchRequest
@@ -935,6 +932,12 @@ public sealed class MinecraftLaunchCoordinator
             IsolatedGameDirectory = metadata.InstanceIsolation,
             CustomJvmArguments = string.IsNullOrWhiteSpace(customJvm) ? null : customJvm,
             CustomGameArguments = string.IsNullOrWhiteSpace(customGame) ? null : customGame,
+            WrapperCommand = effectiveSettings is null
+                ? FirstNonEmpty(metadata.WrapperCommand, GetSetting("LaunchWrapperCommand", string.Empty)) : metadata.WrapperCommand,
+            PreLaunchCommand = effectiveSettings is null
+                ? FirstNonEmpty(metadata.PreLaunchCommand, GetSetting("LaunchAdvanceRun", string.Empty)) : metadata.PreLaunchCommand,
+            WaitForPreLaunchCommand = instancePreLaunch
+                ? metadata.WaitForPreLaunchCommand : effectiveSettings is null ? GetSetting("LaunchAdvanceRunWait", true) : true,
             ClasspathHeadEntries = SplitClasspathHead(metadata.ClasspathHead),
             Server = string.IsNullOrWhiteSpace(metadata.ServerToEnter) ? null : metadata.ServerToEnter,
             ReleaseTime = releaseTime,
@@ -979,6 +982,7 @@ public sealed class MinecraftLaunchCoordinator
 
     internal static MinecraftLaunchRequest ApplySettings(MinecraftLaunchRequest request, SettingsEffectiveSnapshot snapshot, int? automaticMemoryMegabytes = null)
     {
+        bool hasLegacyPreLaunch = !string.IsNullOrWhiteSpace(request.PreLaunchCommand);
         foreach (var setting in snapshot.Values)
         {
             if (setting.Key == "game.title")
@@ -1027,6 +1031,25 @@ public sealed class MinecraftLaunchCoordinator
                     request = request with { Server = string.IsNullOrEmpty(setting.Value.Value) ? null : setting.Value.Value };
                 continue;
             }
+            if (setting.Key is "game.wrapper" or "game.pre-launch" or "game.pre-launch-wait")
+            {
+                if (setting.ValidationError is not null)
+                    throw new InvalidDataException("启动钩子设置无效。");
+                if (setting.Key == "game.wrapper"
+                    && (setting.Source == SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.WrapperCommand)))
+                    request = request with { WrapperCommand = setting.Value.Value ?? "" };
+                if (setting.Key == "game.pre-launch"
+                    && (setting.Source == SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.PreLaunchCommand)))
+                    request = request with { PreLaunchCommand = setting.Value.Value ?? "" };
+                if (setting.Key == "game.pre-launch-wait")
+                {
+                    var command = snapshot.Values.Single(item => item.Key == "game.pre-launch");
+                    if (setting.Source == SettingsLayer.Instance || command.Source == SettingsLayer.Instance
+                        || !hasLegacyPreLaunch)
+                        request = request with { WaitForPreLaunchCommand = setting.Value.Value == "true" };
+                }
+                continue;
+            }
             if (setting.Key == "game.memory" && setting.Source != SettingsLayer.Builtin)
             {
                 if (setting.ValidationError is not null) throw new InvalidDataException("内存设置无效。");
@@ -1051,6 +1074,8 @@ public sealed class MinecraftLaunchCoordinator
                 _ => request,
             };
         }
+        _ = MinecraftLaunchHooks.ParseWrapper(request.WrapperCommand);
+        MinecraftLaunchHooks.ValidatePreLaunch(request.PreLaunchCommand);
         return request;
     }
 

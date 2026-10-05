@@ -13,9 +13,9 @@ internal static partial class Program
         using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, fixture.Foundation.Queries,
             fixture.Foundation.Commands, fixture.Store, fixture.Feedback, () => instance);
         fixture.Shell.Renderer.ReducedMotion = true; fixture.Shell.Stage.Navigation.Replace(settings.Page);
-        var scene = fixture.Shell.Render(new(900, 1500));
+        var scene = fixture.Shell.Render(new(900, 2400));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
-        scene = fixture.Shell.Render(new(900, 1500));
+        scene = fixture.Shell.Render(new(900, 2400));
         var toggle = FindByKey(fixture.Shell, scene, "SettingsOption.game.auto-repair.false");
         AssertEqual(XsrUiSemanticRole.RadioButton, toggle.Role); AssertEqual("关闭", toggle.Text);
         AssertEqual(XsrUiSemanticRole.RadioGroup, FindByKey(fixture.Shell, scene, "SettingsSelector.game.auto-repair").Role);
@@ -38,7 +38,7 @@ internal static partial class Program
         AssertTrue(fixture.Shell.Renderer.HandleKey(XsrUiKey.Space));
         AssertTrue(SpinWait.SpinUntil(() =>
         {
-            scene = fixture.Shell.Render(new(900, 1500));
+            scene = fixture.Shell.Render(new(900, 2400));
             return FindByKey(fixture.Shell, scene, "SettingsOption.game.auto-repair.false").IsSelected == true;
         }, TimeSpan.FromSeconds(5)));
         AssertEqual("false", fixture.Foundation.Host.SettingsPolicy.Read(new(instance)).Value!.Values.Single(v => v.Key == "game.auto-repair").Value.Value);
@@ -47,11 +47,11 @@ internal static partial class Program
         Emit(fixture.Intents, "ui.settings.inherit", FindByKey(fixture.Shell, scene, "SettingsInherit.game.auto-repair").Entity);
         AssertTrue(SpinWait.SpinUntil(() =>
         {
-            scene = fixture.Shell.Render(new(900, 1500));
+            scene = fixture.Shell.Render(new(900, 2400));
             return FindByKey(fixture.Shell, scene, "SettingsOption.game.auto-repair.true").IsSelected == true;
         }, TimeSpan.FromSeconds(5)));
-        // Keep the width narrow while including all newly migrated window rows.
-        scene = fixture.Shell.Render(new(700, 1500));
+        // Keep the width narrow while including the migrated window and hook forms.
+        scene = fixture.Shell.Render(new(700, 2400));
         var binary = FindByKey(fixture.Shell, scene, "SettingsSelector.game.auto-repair");
         AssertTrue(binary.Rect.X + binary.Rect.Width <= 700);
         AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiSegmentedTrack>(binary.Entity) is not null);

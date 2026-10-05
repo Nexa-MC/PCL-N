@@ -14,7 +14,7 @@ public sealed class LauncherTelemetryRuntime : IDisposable, IAsyncDisposable
     public LauncherTelemetryRuntime(FoundationHost host, RolloutService rollouts, NexaUpdateService updates,
         string version, Func<Stream?> embeddedCertificate)
     {
-        try { _identity = CloudflareApiClient.TryCreate(embeddedCertificate); }
+        try { _identity = CloudflareApiClient.TryCreate(embeddedCertificate, host.NetworkHttp); }
         catch (Exception error) when (error is IOException or System.Security.Cryptography.CryptographicException or InvalidOperationException)
         { host.Logging.Warn("Cloudflare", "API 客户端身份不可用，联网服务暂不可用。"); }
         if (_identity is null)

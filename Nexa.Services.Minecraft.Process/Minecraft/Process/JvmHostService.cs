@@ -52,7 +52,7 @@ public sealed class JvmHostService : IJvmHost
         string[] jvm = plan.Arguments.Take(mainClass).ToArray();
         string[] game = mainClass < plan.Arguments.Count ? plan.Arguments.Skip(mainClass + 1).ToArray() : [];
         return new(plan.JavaExecutablePath, plan.WorkingDirectory, jvm, game, plan.ClasspathEntries,
-            plan.NativesDirectory, null)
+            plan.NativesDirectory, string.IsNullOrWhiteSpace(plan.WrapperCommand) ? null : plan.WrapperCommand)
         { MainClass = mainClass < plan.Arguments.Count ? plan.Arguments[mainClass] : null };
     }
 

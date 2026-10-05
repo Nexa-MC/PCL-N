@@ -416,6 +416,7 @@ internal static partial class Program
             await VerifyConfigurableMotionFrameClock().ConfigureAwait(true);
             VerifyNativeTextEditing(window, shell, surface);
             await VerifyNativeSettingsControls(shell, surface);
+            VerifyNativeAppearancePreferences(window, shell, surface);
             VerifyReentrantRemovalCommit(shell, surface);
             await VerifyTransitionGroupsAndMedia(shell, surface);
             VerifySharedRasterBudget();

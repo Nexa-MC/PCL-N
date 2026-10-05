@@ -60,7 +60,9 @@ public static class JvmHostCapabilityCatalog
             WorkingDirectory.Observe(environment.WorkingDirectory, timestamp, source),
             Classpath.Observe(string.Join(Path.PathSeparator, plan.ClasspathEntries), timestamp, source),
             NativePath.Observe(plan.NativesDirectory, timestamp, source),
-            Wrapper.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "未配置启动包装器"),
+            environment.Wrapper is { } wrapper
+                ? Wrapper.Observe(wrapper, timestamp, source)
+                : Wrapper.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "未配置启动包装器"),
             Spawn.Observe(true, timestamp, source), Tree.Observe(true, timestamp, source), Wait.Observe(true, timestamp, source),
             Terminate.Observe(true, timestamp, source), KillTree.Observe(true, timestamp, source),
             Supported(Suspend, suspendable, timestamp, source), Supported(Resume, suspendable, timestamp, source),
@@ -90,7 +92,7 @@ public static class JvmHostCapabilityCatalog
             if (plan.Arguments[index] is "-cp" or "-classpath") { main = index + 2; break; }
         return new(plan.JavaExecutablePath, plan.WorkingDirectory, plan.Arguments.Take(main).ToArray(),
             main < plan.Arguments.Count ? plan.Arguments.Skip(main + 1).ToArray() : [], plan.ClasspathEntries,
-            plan.NativesDirectory, null);
+            plan.NativesDirectory, string.IsNullOrWhiteSpace(plan.WrapperCommand) ? null : plan.WrapperCommand);
     }
 
     private static CapabilityDefinition<T> Fact<T>(string id, string label, string unit = "") =>

@@ -195,7 +195,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl
         _textOffset = Math.Clamp(_textOffset, Math.Max(0, cursor - available), Math.Max(0, cursor));
         double x = 12 - _textOffset;
         FormattedText formatted = FormatInput(presented.Length == 0 ? input.Placeholder : presented,
-            presented.Length == 0 ? Brush(new XsrUiColor(112, 122, 138)) : null);
+            presented.Length == 0 ? Brush(_node.ColorScheme.Foreground(new(96, 108, 124))) : null);
         double y = (rect.Height - formatted.Height) / 2;
         Rect cursorRect = new(x + cursor, Math.Max(4, y), 1, Math.Min(22, rect.Height - 8));
         if (cursorRect != TextCursorRectangle) { TextCursorRectangle = cursorRect; _inputMethod?.NotifyCursorChanged(); }
@@ -206,14 +206,14 @@ internal sealed partial class AvaloniaUiSceneNodeControl
             {
                 double left = FormatInput(text[..start]).WidthIncludingTrailingWhitespace;
                 double right = FormatInput(text[..end]).WidthIncludingTrailingWhitespace;
-                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(55, 11, 91, 203)), null,
+                context.DrawRectangle(Brush(_node.ColorScheme.AccentText with { Alpha = 55 }), null,
                     new Rect(x + left, 7, right - left, Math.Max(0, rect.Height - 14)));
             }
             context.DrawText(formatted, new Point(x, y));
             if (_node.IsFocused)
             {
                 if (_caretVisible || input.Preedit.Length > 0)
-                    context.DrawRectangle(Brush(new XsrUiColor(11, 91, 203)), null, cursorRect);
+                    context.DrawRectangle(Brush(_node.ColorScheme.AccentText), null, cursorRect);
                 if (input.Preedit.Length > 0)
                 {
                     double from = FormatInput(text[..caret]).WidthIncludingTrailingWhitespace;
@@ -222,7 +222,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl
             }
         }
         if (_node.IsFocused)
-            context.DrawRectangle(null, new Pen(Brush(new XsrUiColor(11, 91, 203)), 1),
+            context.DrawRectangle(null, new Pen(Brush(_node.ColorScheme.AccentText), 1),
                 new RoundedRect(rect.Deflate(.5), new CornerRadius(style.CornerRadius)));
     }
 

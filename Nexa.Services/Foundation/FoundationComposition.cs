@@ -1,8 +1,10 @@
+using System.Globalization;
 using Nexa.Services.Accounts;
 using Nexa.Services.Capabilities;
 using Nexa.Services.Downloads;
 using Nexa.Services.Logging;
 using Nexa.Services.Minecraft.Process;
+using Nexa.Services.Network;
 using Nexa.Services.Scheduling;
 using Nexa.Services.Settings;
 using Nexa.Services.Tasks;
@@ -73,7 +75,8 @@ public sealed class FoundationHost : IDisposable
         TaskCenterService tasks,
         WorkScheduler work,
         string? minecraftRootDirectory = null,
-        IEnumerable<IRemediationHandler>? remediationHandlers = null)
+        IEnumerable<IRemediationHandler>? remediationHandlers = null,
+        string? javaRuntimeRootDirectory = null)
     {
         Work = work ?? throw new ArgumentNullException(nameof(work));
         StateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
@@ -83,6 +86,8 @@ public sealed class FoundationHost : IDisposable
         Telemetry = telemetry ?? throw new ArgumentNullException(nameof(telemetry));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         SettingsPolicy = new SettingsPolicyService(Settings);
+        NetworkHttp = new(CaptureNetworkPreferences, RegionalPolicy.Current.IsMainlandChina);
+        Downloads.BandwidthLimiter = new(CaptureBandwidthLimit);
         _loggingSettings = new(Settings, SettingsPolicy, Logging);
         InputUsage = new InputUsageTracker();
         ObservationHistory = new ResourceObservationHistory();
@@ -98,7 +103,11 @@ public sealed class FoundationHost : IDisposable
         // power and java/minecraft.files namespaces. Instance-scoped providers bind to the
         // active Minecraft root so storage and file-integrity facts answer for THAT path.
         JavaRegistrations = new Minecraft.Java.JavaRuntimeRegistrationStore(Settings);
-        JavaLocator = new Minecraft.Java.LocalJavaRuntimeLocator(minecraftRootDirectory is null ? null : Path.Combine(Path.GetFullPath(minecraftRootDirectory), "runtime"), logging)
+        string? defaultJavaRoot = minecraftRootDirectory is null ? null : Path.Combine(Path.GetFullPath(minecraftRootDirectory), "runtime");
+        JavaManagedRuntimeRoots = Array.AsReadOnly(new[] { defaultJavaRoot, javaRuntimeRootDirectory }
+            .Where(root => !string.IsNullOrWhiteSpace(root)).Select(root => Path.GetFullPath(root!))
+            .Distinct(Nexa.Core.PathIdentity.Comparer).ToArray());
+        JavaLocator = new Minecraft.Java.LocalJavaRuntimeLocator(string.IsNullOrWhiteSpace(javaRuntimeRootDirectory) ? defaultJavaRoot : Path.GetFullPath(javaRuntimeRootDirectory), logging)
         { RegisteredRuntimes = () => JavaRegistrations.Read().Registrations };
         CapabilityRegistry capabilityRegistry = new CapabilityRegistry(
         [
@@ -142,12 +151,40 @@ public sealed class FoundationHost : IDisposable
         ResourceEstimator = new ResourceEstimator(history: ObservationHistory);
         Preflight = new CapabilityPreflightEngine();
         Tasks = tasks ?? throw new ArgumentNullException(nameof(tasks));
-        _services = Array.AsReadOnly<object>([Logging, Downloads, Accounts, Telemetry, Settings, SettingsPolicy, Tasks, Work,
+        _services = Array.AsReadOnly<object>([Logging, Downloads, Accounts, Telemetry, Settings, SettingsPolicy, NetworkHttp, Tasks, Work,
             InputUsage, ObservationHistory, MachineCapabilities, ResourceEstimator, Preflight, Remediations]);
     }
 
     public WorkScheduler Work { get; }
-    public void Dispose() { _loggingSettings.Dispose(); Work.Dispose(); }
+    public void Dispose() { _loggingSettings.Dispose(); NetworkHttp.Dispose(); Work.Dispose(); }
+
+    public NetworkHttpClientPool NetworkHttp { get; }
+    public IReadOnlyList<string> JavaManagedRuntimeRoots { get; }
+
+    public HttpClient CreateHttpClient(bool allowAutoRedirect = true) =>
+        new(new DiagnosticHttpHandler(Logging, NetworkHttp.CreateHandler(allowAutoRedirect)));
+
+    private NetworkPreferences CaptureNetworkPreferences()
+    {
+        var snapshot = SettingsPolicy.Read(new());
+        Dictionary<string, string?> values = snapshot.IsSuccess ? snapshot.Value!.Values.ToDictionary(item => item.Key, item => item.Value.Value, StringComparer.Ordinal) : [];
+        string Text(string key, string fallback = "") => values.GetValueOrDefault(key) ?? fallback;
+        return new()
+        {
+            ProxyMode = int.TryParse(Text("network.proxy-mode", "1"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int mode) ? mode : 1,
+            ProxyAddress = Text("network.proxy-address"),
+            ProxyUser = Text("network.proxy-user"),
+            ProxyPassword = Text("network.proxy-password"),
+            DnsOverHttps = Text("network.doh", "true") == "true",
+            IpStack = Text("network.ip-stack", "auto")
+        };
+    }
+
+    private long CaptureBandwidthLimit()
+    {
+        string? raw = SettingsPolicy.Read(new()).Value?.Values.FirstOrDefault(item => item.Key == "network.bandwidth-kib")?.Value.Value;
+        return long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out long kib) && kib is >= 0 and <= 1048576 ? kib * 1024 : 0;
+    }
 
     public Minecraft.Java.IJavaRuntimeLocator JavaLocator { get; }
     public Minecraft.Java.IJavaRuntimeRegistrationStore JavaRegistrations { get; }
@@ -199,6 +236,25 @@ public static class FoundationComposer
         Action<XsrStateStoreBuilder>? declareHostState = null,
         Action<LogService>? configureLogging = null,
         string? minecraftRootDirectory = null,
+        IEnumerable<IRemediationHandler>? remediationHandlers = null) =>
+        ComposeWithJavaRuntimeRoot(settingsPort, settingsSchema, profilePort, javaRuntimeRootDirectory: null,
+            observer, clock, logCapacity, downloadBufferSize, minimumSegmentBytes, telemetryCapacity,
+            declareHostState, configureLogging, minecraftRootDirectory, remediationHandlers);
+
+    public static FoundationHost ComposeWithJavaRuntimeRoot(
+        ISettingsPort settingsPort,
+        SettingsSchema settingsSchema,
+        ILaunchProfilePort profilePort,
+        string? javaRuntimeRootDirectory,
+        IXsrStateObserver? observer = null,
+        TimeProvider? clock = null,
+        int logCapacity = 2_000,
+        int downloadBufferSize = 128 * 1024,
+        long minimumSegmentBytes = 8 * 1024 * 1024,
+        int telemetryCapacity = 500,
+        Action<XsrStateStoreBuilder>? declareHostState = null,
+        Action<LogService>? configureLogging = null,
+        string? minecraftRootDirectory = null,
         IEnumerable<IRemediationHandler>? remediationHandlers = null)
     {
         ArgumentNullException.ThrowIfNull(settingsPort);
@@ -220,6 +276,6 @@ public static class FoundationComposer
         var tasks = new TaskCenterService(store);
 
         return new FoundationHost(store, logging, downloads, accounts, telemetry, settings, tasks, work,
-            minecraftRootDirectory, remediationHandlers);
+            minecraftRootDirectory, remediationHandlers, javaRuntimeRootDirectory);
     }
 }

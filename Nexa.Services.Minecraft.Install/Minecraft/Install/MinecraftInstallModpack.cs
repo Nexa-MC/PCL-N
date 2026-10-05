@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Nexa.Services.Downloads;
 using Nexa.Services.Files;
 using Nexa.Services.Minecraft.Management;
+using Nexa.Services.Settings;
 using Nexa.Xsr;
 
 namespace Nexa.Services.Minecraft.Install;
@@ -20,6 +21,7 @@ public sealed partial class MinecraftInstallService
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, task.CancellationToken, execution.Token);
         token = linked.Token;
         ModpackInstallJournal? journal = saved;
+        MinecraftDownloadPolicy downloadPolicy = MinecraftDownloadPolicy.Read(_settingsPolicy);
         FileStream? lease = null;
         try
         {
@@ -87,34 +89,39 @@ public sealed partial class MinecraftInstallService
             var installed = await RunAsync(new(buildRoot, pack.Game, pack.Loader, pack.Build, InstanceName: pack.InstanceId)
             { PreparingEdit = true, ReuseRoot = root, ModsRelativeDirectory = "versions/" + pack.InstanceId + "/mods" }, task, token,
                 new PersistentInstallMetadataSource(buildRoot, _metadata, journal), deferCompletion: true).ConfigureAwait(false);
-            using var packHttp = Nexa.Services.Downloads.PooledHttpClient.Create(allowAutoRedirect: false);
+            using var packHttp = HttpClientFactory?.Invoke(false) ?? Nexa.Services.Downloads.PooledHttpClient.Create(allowAutoRedirect: false);
             packHttp.Timeout = TimeSpan.FromMinutes(5);
             int completed = 0;
             var expandedBudget = new ArchiveReadBudget(MinecraftModpackArchive.MaxExpanded);
-            foreach (var file in files)
+            await FileBatchProgress.RunAsync(files.Count, async (fileIndex, token) =>
             {
+                var file = files[fileIndex];
                 token.ThrowIfCancellationRequested();
                 string target = Nexa.Core.PathIdentity.Contained(installed.InstanceDirectory, file.Path);
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 bool verified = File.Exists(target) && await VerifyPackFileAsync(target, file, token).ConfigureAwait(false);
-                foreach (string url in verified ? [] : file.Urls)
+                for (int attempt = 0; !verified && attempt < (downloadPolicy.Retry ? 2 : 1); attempt++)
                 {
-                    TryDelete(target);
-                    var request = new DownloadRequest
+                    if (attempt > 0) await Task.Delay(FileRetryDelay, token).ConfigureAwait(false);
+                    foreach (string url in file.Urls)
                     {
-                        Sources = [url],
-                        DestinationPath = target,
-                        ConnectionFactory = source => new PackSizeConnection(_connectionFactory is { } factory ? factory(source) : new PackHttpConnection(packHttp, source), file.Size),
-                    };
-                    var transfer = await _downloads.DownloadAsync(request, cancellationToken: token).ConfigureAwait(false);
-                    if (transfer.Success && await VerifyPackFileAsync(target, file, token).ConfigureAwait(false)) { verified = true; break; }
+                        TryDelete(target);
+                        var request = new DownloadRequest
+                        {
+                            Sources = [url],
+                            DestinationPath = target,
+                            ConnectionFactory = source => new PackSizeConnection(_connectionFactory is { } factory ? factory(source) : new PackHttpConnection(packHttp, source), file.Size),
+                        };
+                        var transfer = await _downloads.DownloadAsync(request, cancellationToken: token).ConfigureAwait(false);
+                        if (transfer.Success && await VerifyPackFileAsync(target, file, token).ConfigureAwait(false)) { verified = true; break; }
+                    }
                 }
                 if (!verified) throw new IOException("整合包文件下载或校验失败：" + file.Path);
                 await RecoveryRecordAuthority.AuthorizeFileAsync(target, token).ConfigureAwait(false);
-                expandedBudget.Consume(new FileInfo(target).Length);
-                completed++;
-                task.Report("附加组件", file.Path, (double)completed / Math.Max(1, files.Count), completed, files.Count, 0);
-            }
+                lock (expandedBudget) expandedBudget.Consume(new FileInfo(target).Length);
+                int done = Interlocked.Increment(ref completed);
+                task.Report("附加组件", file.Path, (double)done / Math.Max(1, files.Count), done, files.Count, 0);
+            }, token, downloadPolicy.Concurrency).ConfigureAwait(false);
             using (var archive = ZipFile.OpenRead(archivePath))
                 foreach (string prefix in plan.OverrideRoots)
                     foreach (var entry in archive.Entries.Where(entry => entry.Name.Length > 0 && entry.FullName.StartsWith(prefix, StringComparison.Ordinal)))

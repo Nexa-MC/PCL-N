@@ -15,6 +15,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
     private readonly bool _ownsHttpClient;
     private readonly LogService? _log;
     public event Action? RuntimesChanged;
+    public Nexa.Services.Downloads.DownloadBandwidthLimiter? BandwidthLimiter { get; init; }
 
     public JavaRuntimeInstaller(IJavaRuntimeMetadataProvider metadataProvider, LogService? log = null, Nexa.Services.Tasks.TaskCenterService? tasks = null)
         : this(
@@ -52,6 +53,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
 
         using LogOperation? operation = _log?.BeginOperation("Java", "InstallRuntime", $"component={requestedComponent}");
         string? currentFile = null;
+        var bandwidth = BandwidthLimiter?.Capture();
         FileStream? rootLease = null;
         try
         {
@@ -66,6 +68,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
             execution.Ready.TrySetResult();
             if (journal.CancelRequested)
             {
+                JavaRuntimeManagedStore.CheckUnused(runtimeRootDirectory, journal.Intent.Component);
                 await journal.CancelAsync(MatchesAsync).ConfigureAwait(false);
                 throw new IOException("Java 安装已撤回，请重试。");
             }
@@ -78,6 +81,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
             }
             if (journal.Ready)
             {
+                JavaRuntimeManagedStore.CheckUnused(runtimeRootDirectory, plan.ComponentName);
                 await journal.PublishAsync(plan, MatchesAsync).ConfigureAwait(false);
                 RuntimesChanged?.Invoke();
                 return FindJavaExecutable(plan.TargetDirectory) ?? throw new IOException("Java 安装缺少可执行文件。");
@@ -102,6 +106,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
 
             int total = Math.Max(plan.Files.Count, 1);
             int completed = 0;
+            JavaRuntimeManagedStore.CheckUnused(runtimeRootDirectory, plan.ComponentName);
             progress?.Report(new JavaRuntimeInstallProgress("prepare", 0.02d, 0, total, plan.VersionName));
 
             operation?.Stage("verify_and_download_files", $"count={plan.Files.Count} target={plan.TargetDirectory}");
@@ -127,7 +132,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
                 }
                 else
                 {
-                    await DownloadFileAsync(file, cancellationToken).ConfigureAwait(false);
+                    await DownloadFileAsync(file, bandwidth, cancellationToken).ConfigureAwait(false);
                 }
 
                 completed++;
@@ -207,7 +212,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
         return string.Equals(actual, file.Sha1, StringComparison.OrdinalIgnoreCase);
     }
 
-    private async Task DownloadFileAsync(JavaRuntimeDownloadFile file, CancellationToken cancellationToken)
+    private async Task DownloadFileAsync(JavaRuntimeDownloadFile file, Nexa.Services.Downloads.DownloadBandwidthBudget? bandwidth, CancellationToken cancellationToken)
     {
         _log?.Debug("Java", $"Downloading runtime file path={file.RelativePath}");
         using HttpResponseMessage response = await _httpClient.GetAsync(
@@ -221,8 +226,20 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
             await using (Stream network = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
             await using (FileStream output = new(temporary, FileMode.Create, FileAccess.Write, FileShare.None, 64 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan))
             {
-                await Nexa.Services.Files.ArchiveReadBudget.CopyAsync(network, output, file.Size,
-                    512L * 1024 * 1024, new(file.Size), cancellationToken).ConfigureAwait(false);
+                if (file.Size is < 0 or > 512L * 1024 * 1024) throw new InvalidDataException("Java 下载文件大小超过限制。");
+                byte[] buffer = new byte[64 * 1024];
+                long received = 0;
+                while (true)
+                {
+                    int count = (int)Math.Min(Math.Min(buffer.Length, bandwidth?.MaximumReadBytes ?? buffer.Length), file.Size - received + 1);
+                    int read = await network.ReadAsync(buffer.AsMemory(0, count), cancellationToken).ConfigureAwait(false);
+                    if (read == 0) break;
+                    if (read > file.Size - received) throw new InvalidDataException("Java 下载文件实际长度与声明不一致。");
+                    if (bandwidth is not null) await bandwidth.WaitAsync(read, cancellationToken).ConfigureAwait(false);
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    received += read;
+                }
+                if (received != file.Size) throw new InvalidDataException("Java 下载文件读取不完整。");
                 await output.FlushAsync(cancellationToken).ConfigureAwait(false);
                 output.Flush(true);
             }

@@ -9,7 +9,8 @@ Global `diagnostics.log-lines` controls the bounded in-memory/state log history,
 50–2000 entries (default 500). Reducing the limit immediately removes oldest entries;
 increasing it affects subsequent writes without resurrecting discarded entries.
 The logger's construction capacity remains a hard ceiling. Disk log retention is
-separate and remains pending: this control must not promise to delete/archive files.
+separate and is delivered by [XSR-787](XSR-787-disk-log-preferences.md); this UI-history
+control does not delete or archive disk files.
 
 Settings stores and resolves these values through its existing sealed contracts.
 The Foundation composition owns a disposable committed-settings subscriber that

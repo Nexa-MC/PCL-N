@@ -14,6 +14,7 @@ internal static partial class Program
         AssertTrue(policy.Set(new("game.width", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "1500"), second)).IsSuccess);
         AssertTrue(policy.Set(new("appearance.low-power", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
         AssertTrue(policy.Set(new("network.proxy-password", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "keep-private"))).IsSuccess);
+        AssertTrue(policy.Set(new("java.compatibility", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "false"))).IsSuccess);
         AssertTrue(policy.Set(new("appearance.animation-fps", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "144"))).IsSuccess);
         long revision = store.Revision;
         var instance = policy.PreviewReset(new(first));
@@ -25,7 +26,8 @@ internal static partial class Program
         AssertEqual("1500", Effective(policy, "game.width", second).Value.Value);
         var global = policy.PreviewReset(new());
         AssertTrue(global.Changes.All(change => change.Layer == SettingsLayer.Global && change.InstanceId is null));
-        AssertFalse(global.Changes.Any(change => change.Key == "network.proxy-password"));
+        AssertTrue(global.Changes.Any(change => change.Key == "network.proxy-password"));
+        AssertFalse(global.Changes.Any(change => change.Key == "java.compatibility"));
         AssertTrue(global.Changes.Any(change => change.Key == "appearance.low-power"));
         AssertEqual("1024", Effective(policy, "game.width").Value.Value);
         AssertTrue(policy.ApplyReset(new(global.Revision)).IsSuccess);
@@ -33,7 +35,8 @@ internal static partial class Program
         AssertEqual(59, store.GetValue<int>("UiAniFPS").Value);
         AssertEqual("false", Effective(policy, "appearance.low-power").Value.Value);
         AssertEqual(false, store.GetValue<bool>("UiUltraLowPowerMode").Value);
-        AssertEqual("keep-private", Effective(policy, "network.proxy-password").Value.Value);
+        AssertEqual("", Effective(policy, "network.proxy-password").Value.Value);
+        AssertEqual("false", Effective(policy, "java.compatibility").Value.Value);
         var (_, reopened) = PolicyFixture(port);
         AssertEqual("854", Effective(reopened, "game.width", first).Value.Value);
         AssertEqual("1500", Effective(reopened, "game.width", second).Value.Value);

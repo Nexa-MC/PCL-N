@@ -9,6 +9,9 @@ public sealed class XsrUiTextInput
     internal string Preedit { get; set; } = string.Empty;
     public string Placeholder { get; set; } = string.Empty;
     public bool IsPassword { get; init; }
+    public int MaximumLength { get; init; } = 2048;
+    /// <summary>Retains script indentation for trusted command-line editors only.</summary>
+    public bool PreserveTabs { get; init; }
     public int SelectionStart { get; internal set; }
     public int SelectionEnd { get; internal set; }
 
@@ -44,11 +47,13 @@ public sealed class XsrUiTextInput
         Placeholder, IsPassword, SelectionStart, SelectionEnd,
         IsPassword ? new string('•', Preedit.Length) : Preedit);
 
-    private static string Sanitize(string value)
+    private string Sanitize(string value)
     {
-        string singleLine = string.Concat(value.Where(character => !char.IsControl(character)));
-        if (singleLine.Length <= 2048) return singleLine;
-        int end = StringInfo.ParseCombiningCharacters(singleLine).Last(position => position <= 2048);
+        string singleLine = string.Concat(value.Where(character => !char.IsControl(character)
+            || PreserveTabs && !IsPassword && character == '\t'));
+        int limit = Math.Clamp(MaximumLength, 1, 32768);
+        if (singleLine.Length <= limit) return singleLine;
+        int end = StringInfo.ParseCombiningCharacters(singleLine).LastOrDefault(position => position <= limit);
         return singleLine[..end];
     }
 }

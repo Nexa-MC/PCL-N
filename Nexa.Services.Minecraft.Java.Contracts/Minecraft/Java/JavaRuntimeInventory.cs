@@ -13,11 +13,16 @@ public sealed record JavaRuntimeInventorySnapshot(IReadOnlyList<JavaRuntimeCandi
 {
     public long RegistryRevision { get; init; }
     public IReadOnlyList<JavaRuntimeRegistration> Registrations { get; init; } = [];
+    public IReadOnlyList<JavaRuntimeManagedEntry> ManagedRuntimes { get; init; } = [];
 }
 public sealed record JavaRuntimeRegistration(string Executable, bool Enabled = true, bool Custom = true);
 public sealed record JavaRuntimeRegistrySnapshot(long Revision, IReadOnlyList<JavaRuntimeRegistration> Registrations);
-public enum JavaRuntimeManagementAction { Add, Remove, Enable, Disable }
-public sealed record JavaRuntimeManageCommand(string Executable, JavaRuntimeManagementAction Action, long ExpectedRevision);
+public sealed record JavaRuntimeManagedEntry(string Executable, string Directory, string Identity);
+public enum JavaRuntimeManagementAction { Add, Remove, Enable, Disable, DeleteManaged }
+public sealed record JavaRuntimeManageCommand(string Executable, JavaRuntimeManagementAction Action, long ExpectedRevision)
+{
+    public string? ExpectedManagedIdentity { get; init; }
+}
 public interface IJavaRuntimeRegistrationStore
 {
     JavaRuntimeRegistrySnapshot Read();

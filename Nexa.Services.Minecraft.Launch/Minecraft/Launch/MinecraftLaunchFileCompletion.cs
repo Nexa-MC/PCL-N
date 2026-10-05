@@ -23,6 +23,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
     private readonly DownloadService _downloads;
     private readonly LogService? _log;
     private readonly HttpClient _http = PooledHttpClient.Create();
+    public HttpClient? Transport { get; init; }
     private readonly MinecraftFileVerificationCache _verification = new();
     private readonly Func<string, IDownloadConnection>? _connectionFactory;
     private readonly SettingsPolicyService? _settingsPolicy;
@@ -284,7 +285,7 @@ public sealed class MinecraftLaunchFileCompletion : IDisposable
                 AllowResume = allowResume,
                 ConnectionFactory = _connectionFactory is { } factory
                     ? source => factory(source)
-                    : source => new HttpConnectionAdapter(_http, source),
+                    : source => new HttpConnectionAdapter(Transport ?? _http, source),
             },
             progress,
             cancellationToken);

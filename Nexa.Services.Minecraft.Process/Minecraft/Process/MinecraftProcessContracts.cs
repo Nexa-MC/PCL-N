@@ -251,6 +251,7 @@ public sealed class MinecraftProcessService : IAsyncDisposable
             cancellationToken.ThrowIfCancellationRequested();
             if (_jvmHostExecutable is null && !_port.UsesPrivateArgumentTransport)
                 throw new InvalidOperationException("Missing private Minecraft argument transport. Repair the complete launcher installation before launching.");
+            IReadOnlyList<string> wrapper = Minecraft.Launch.MinecraftLaunchHooks.ParseWrapper(plan.WrapperCommand);
             ProcessStartInfo startInfo = plan.ToStartInfo();
             if (bootstrap is not null)
             {
@@ -260,6 +261,16 @@ public sealed class MinecraftProcessService : IAsyncDisposable
                 startInfo.ArgumentList.Clear();
                 startInfo.ArgumentList.Add("--jvm-host");
                 startInfo.RedirectStandardInput = true;
+            }
+            if (wrapper.Count > 0)
+            {
+                string wrappedExecutable = startInfo.FileName;
+                string[] wrappedArguments = startInfo.ArgumentList.ToArray();
+                startInfo.FileName = wrapper[0];
+                startInfo.ArgumentList.Clear();
+                foreach (string argument in wrapper.Skip(1)) startInfo.ArgumentList.Add(argument);
+                startInfo.ArgumentList.Add(wrappedExecutable);
+                foreach (string argument in wrappedArguments) startInfo.ArgumentList.Add(argument);
             }
             operation?.Stage("os_start", $"executable={startInfo.FileName} working_directory={startInfo.WorkingDirectory} argument_count={startInfo.ArgumentList.Count}");
             System.Diagnostics.Process process = await _port.StartAsync(startInfo, cancellationToken).ConfigureAwait(false);
@@ -292,12 +303,14 @@ public sealed class MinecraftProcessService : IAsyncDisposable
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             startedSession?.Cancel();
+            if (startedSession is not null) await startedSession.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
             operation?.Cancel();
             throw;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException)
         {
             startedSession?.Cancel();
+            if (startedSession is not null) await startedSession.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
             operation?.Fail(exception);
             throw;
         }

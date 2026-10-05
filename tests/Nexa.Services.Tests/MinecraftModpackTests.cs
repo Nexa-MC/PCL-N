@@ -275,9 +275,14 @@ internal static partial class Program
             var preview = await MinecraftModpackArchive.InspectAsync(source);
             using var cancellation = new CancellationTokenSource();
             int downloads = 0;
+            var (_, settings) = PolicyFixture();
+            AssertTrue(settings.Set(new("network.file-concurrency", Nexa.Services.Settings.SettingsLayer.Global,
+                new(Nexa.Services.Settings.SettingsOverrideMode.Custom, "1"))).IsSuccess);
+            // Interrupt only after the first file has a verified durable receipt. Parallel
+            // workers can otherwise be canceled together before either receipt is committed.
             using (var fixture = new InstallFixture(PackMetadata(), connectionFactory: url =>
                 url.StartsWith("https://cdn.modrinth.com/", StringComparison.Ordinal) && Interlocked.Increment(ref downloads) == 2
-                    ? new CancelPackConnection(cancellation) : new ServingConnection(PayloadFor(url))))
+                    ? new CancelPackConnection(cancellation) : new ServingConnection(PayloadFor(url)), settingsPolicy: settings))
             {
                 AssertFalse((await fixture.Install.InstallModpackAsync(new(preview, root, true), cancellation.Token)).IsSuccess);
                 AssertFalse(Directory.Exists(Path.Combine(root, "versions", preview.InstanceId)));
@@ -292,7 +297,7 @@ internal static partial class Program
             {
                 if (url.StartsWith("https://cdn.modrinth.com/", StringComparison.Ordinal)) Interlocked.Increment(ref resumedDownloads);
                 return new ServingConnection(PayloadFor(url));
-            });
+            }, settingsPolicy: settings);
             var result = await resumed.Install.RecoverPendingAsync(new([root]));
             AssertTrue(result.IsSuccess, result.Error?.Message ?? "recovery failed");
             AssertEqual(0, metadata.VanillaReads);
@@ -388,4 +393,3 @@ internal static partial class Program
         public ValueTask StopAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
     }
 }
-

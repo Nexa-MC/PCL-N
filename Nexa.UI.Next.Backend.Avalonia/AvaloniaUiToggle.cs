@@ -30,13 +30,14 @@ internal sealed partial class AvaloniaUiSceneNodeControl
     {
         if (rect.Width <= 4 || rect.Height <= 4) return;
         double progress = Math.Clamp(PresentedToggleProgress, 0, 1);
-        var accent = style.Border.Alpha > 0 ? style.Border : style.Foreground;
+        var accent = ToggleFill(style);
+        var surface = _node.ColorScheme.Project(OwnedToggleSurface);
         if (_node.Role == XsrUiSemanticRole.Switch)
         {
             double height = Math.Min(28, rect.Height - 4);
             double width = Math.Min(48, rect.Width - 4);
             Rect rail = new((rect.Width - width) / 2, (rect.Height - height) / 2, width, height);
-            context.DrawRectangle(Brush(new(218, 225, 234)), null, new RoundedRect(rail, new CornerRadius(height / 2)));
+            context.DrawRectangle(Brush(_node.ColorScheme.Project(OwnedToggleRail).Background), null, new RoundedRect(rail, new CornerRadius(height / 2)));
             using (context.PushOpacity(progress))
                 context.DrawRectangle(Brush(accent), null, new RoundedRect(rail, new CornerRadius(height / 2)));
             double diameter = height - 4;
@@ -46,7 +47,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl
         else
         {
             Rect box = new(2, (rect.Height - 20) / 2, 20, 20);
-            context.DrawRectangle(Brush(new(255, 255, 255)), new Pen(Brush(new(178, 189, 204)), 1),
+            context.DrawRectangle(Brush(surface.Background), new Pen(Brush(surface.Border), 1),
                 new RoundedRect(box, new CornerRadius(5)));
             using (context.PushOpacity(progress))
             {
@@ -58,7 +59,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl
             if (_node.Text is { Length: > 0 }) DrawText(context, style, 32);
         }
         if (_node.IsFocusVisible)
-            context.DrawRectangle(null, new Pen(Brush(accent), 2),
+            context.DrawRectangle(null, new Pen(Brush(_node.ColorScheme.AccentText), 2),
                 new RoundedRect(rect.Deflate(1), new CornerRadius(_node.Role == XsrUiSemanticRole.Switch ? 16 : 6)));
     }
 }

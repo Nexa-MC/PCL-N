@@ -34,6 +34,8 @@ internal sealed class SettingsLoggingSession : IDisposable
             _log.MaximumLevel = int.TryParse(level, CultureInfo.InvariantCulture, out int severity) && severity is >= 0 and <= 4 ? (LogLevel)severity : _defaultLevel;
             var lines = snapshot.Values.FirstOrDefault(item => item.Key == "diagnostics.log-lines" && item.ValidationError is null)?.Value.Value;
             if (int.TryParse(lines, CultureInfo.InvariantCulture, out int count) && count is >= 50 and <= 2000) _log.RetentionLimit = count;
+            var days = snapshot.Values.FirstOrDefault(item => item.Key == "diagnostics.disk-log-days" && item.ValidationError is null)?.Value.Value;
+            if (int.TryParse(days, CultureInfo.InvariantCulture, out int retention) && retention is >= 1 and <= 90) _log.DiskRetentionDays = retention;
         }
     }
 

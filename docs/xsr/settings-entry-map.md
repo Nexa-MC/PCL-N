@@ -26,8 +26,8 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.general.7354b59155bf | global / general / 系统集成 | Windows Jump List | State | — | False |
 | global.general.7fb116563a13 | global / general / 系统集成 | 系统通知操作 | Setting | reserved | False |
 | global.appearance.0078a26f82d8 | global / appearance / 主题 | 主题 | Group | — | False |
-| global.appearance.d7137f424ce4 | global / appearance / 主题 | 系统 / 浅色 / 深色 | Setting | reserved | False |
-| global.appearance.dc9cc5ed3077 | global / appearance / 主题 | 强调色 | Setting | reserved | False |
+| global.appearance.d7137f424ce4 | global / appearance / 主题 | 系统 / 浅色 / 深色 | Setting | appearance.theme-mode | False |
+| global.appearance.dc9cc5ed3077 | global / appearance / 主题 | 强调色 | Setting | appearance.accent | False |
 | global.appearance.81b6d3198ecc | global / appearance / 主题 | 自定义主题 | Setting | reserved | False |
 | global.appearance.5644596ca649 | global / appearance / 主题 | Launcher Logo | Setting | reserved | False |
 | global.appearance.ed1f59b5ae3e | global / appearance / 背景 | 背景 | Group | — | False |
@@ -62,20 +62,20 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.game.42cb17c26e70 | global / game / 默认资源配置 | 内存策略 | Setting | reserved | False |
 | global.game.a015362a3b3b | global / game / 默认资源配置 | 默认内存 | Setting | game.memory | False |
 | global.game.56d6a5a2ff73 | global / game / 默认资源配置 | GPU / Renderer | Setting | reserved | False |
-| global.game.980b1535d671 | global / game / 默认资源配置 | 进程优先级 | Setting | reserved | False |
+| global.game.980b1535d671 | global / game / 默认资源配置 | 进程优先级 | Setting | game.process-priority | False |
 | global.game.1cf65ca0a095 | global / game / 游戏窗口 | 游戏窗口 | Group | — | False |
 | global.game.736cc8decfb4 | global / game / 游戏窗口 | 默认窗口模式 | Setting | game.window-mode | False |
 | global.game.e50f31850521 | global / game / 游戏窗口 | 默认宽度 | Setting | game.width | False |
 | global.game.be97685d3414 | global / game / 游戏窗口 | 默认高度 | Setting | game.height | False |
 | global.game.2d098079e2b7 | global / game / 游戏窗口 | 默认窗口标题 | Setting | game.title | False |
 | global.game.519289dc7549 | global / game / 启动行为 | 启动行为 | Group | — | False |
-| global.game.d8816b9ba07a | global / game / 启动行为 | Minecraft 启动后 Nexa 行为 | Setting | reserved | False |
+| global.game.d8816b9ba07a | global / game / 启动行为 | Minecraft 启动后 Nexa 行为 | Setting | game.launcher-visibility | False |
 | global.game.eecd18a1df09 | global / game / 启动行为 | 游戏退出后 Nexa 行为 | Setting | reserved | False |
 | global.game.a0a1c7543f09 | global / game / 启动行为 | 启动提示 | Setting | reserved | False |
 | global.game.f98b60511c9c | global / game / 启动行为 | 自动修复 | Setting | game.auto-repair | False |
 | global.game.2fc72ad5a99f | global / game / 启动行为 | Game Resource Handoff | Setting | reserved | False |
 | global.game.2a9b6563042d | global / game / 实例 | 实例 | Group | — | False |
-| global.game.e24bf83fc5d5 | global / game / 实例 | 默认实例隔离 | Setting | reserved | False |
+| global.game.e24bf83fc5d5 | global / game / 实例 | 默认实例隔离 | Setting | game.default-isolation | False |
 | global.game.b176ae552c3b | global / game / 实例 | 默认游戏目录策略 | Setting | reserved | False |
 | global.game.8238cd399639 | global / game / 实例 | Assets 验证策略 | Setting | reserved | False |
 | global.game.e9780c3f4978 | global / game / 智能启动 | 智能启动 | Group | — | False |
@@ -128,11 +128,11 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.java.2fb41ba03e43 | global / java / Detected Modules | Detected Modules | State | — | True |
 | global.java.ea5ffef60a9e | global / java / Raw Runtime Information | Raw Runtime Information | State | — | True |
 | global.network.4ca4fbf70bee | global / network / 下载 | 下载 | Group | — | False |
-| global.network.a1296e090a28 | global / network / 下载 | 下载源策略 | Setting | reserved | False |
-| global.network.48ce222474c2 | global / network / 下载 | 下载线程 | Setting | reserved | False |
-| global.network.0c6b42629eb3 | global / network / 下载 | 下载速度限制 | Setting | reserved | False |
+| global.network.a1296e090a28 | global / network / 下载 | 游戏文件下载源 | Setting | network.game-source | False |
+| global.network.48ce222474c2 | global / network / 下载 | 游戏文件并发数 | Setting | network.file-concurrency | False |
+| global.network.0c6b42629eb3 | global / network / 下载 | 下载速度限制 | Setting | network.bandwidth-kib | False |
 | global.network.b6a315a0224d | global / network / 下载 | 后台下载 | Setting | reserved | False |
-| global.network.ad7bf51a43d1 | global / network / 下载 | 自动重试 | Setting | reserved | False |
+| global.network.ad7bf51a43d1 | global / network / 下载 | 游戏文件失败重试 | Setting | network.file-retry | False |
 | global.network.47c8ce074515 | global / network / 下载 | 自动安装依赖 | Setting | reserved | False |
 | global.network.221b5fccc8ba | global / network / 内容来源 | 内容来源 | Group | — | False |
 | global.network.fb11a5bd57dd | global / network / 内容来源 | Mojang | Setting | reserved | False |
@@ -141,7 +141,7 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.network.4f68f579c79b | global / network / 内容来源 | 镜像源 | Setting | reserved | False |
 | global.network.271cd2983917 | global / network / 内容来源 | 来源优先级 | Setting | reserved | False |
 | global.network.abf85d83507b | global / network / 网络 | 网络 | Group | — | False |
-| global.network.b2d990613011 | global / network / 网络 | 首选 IP 栈 | Setting | reserved | False |
+| global.network.b2d990613011 | global / network / 网络 | 首选 IP 栈 | Setting | network.ip-stack | False |
 | global.network.1c40ec59e81e | global / network / 网络 | DNS over HTTPS | Setting | network.doh | False |
 | global.network.d963a6e0b46d | global / network / 网络 | 网络自动检测 | Setting | reserved | False |
 | global.network.1bb75025c08e | global / network / 网络 | 网络故障诊断 | Setting | reserved | False |
@@ -149,7 +149,7 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.network.d0dc18a116ac | global / network / 代理 | 不使用 | Choice | — | False |
 | global.network.0952d66c5180 | global / network / 代理 | 跟随系统 | Choice | — | False |
 | global.network.d05c9f0df6ef | global / network / 代理 | 自定义 | Group | — | False |
-| global.network.92a9bfe92c4c | global / network / 代理 | 地址 | Setting | reserved | False |
+| global.network.92a9bfe92c4c | global / network / 代理 | 地址 | Setting | network.proxy-address | False |
 | global.network.fc76daf8059d | global / network / 代理 | 用户名 | Setting | network.proxy-user | False |
 | global.network.663af85795c8 | global / network / 代理 | 密码 | Setting | network.proxy-password | False |
 | global.network.4099bfafe908 | global / network / Endpoint 状态 | Endpoint 状态 | State | — | True |
@@ -178,7 +178,7 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.storage.2466a31fd706 | global / storage / 存储优化 | Integrity Verification | Setting | reserved | False |
 | global.storage.e54a4c664f84 | global / storage / 清理 | 清理 | Group | — | False |
 | global.storage.0114892ad6d0 | global / storage / 清理 | 下载缓存 | Setting | reserved | False |
-| global.storage.5ac61e098807 | global / storage / 清理 | 临时文件 | Setting | reserved | False |
+| global.storage.5ac61e098807 | global / storage / 清理 | 清理过期临时文件 | Action | — | False |
 | global.storage.7170d2a7255a | global / storage / 清理 | 无引用内容 | Setting | reserved | False |
 | global.storage.97fa31c2bbb3 | global / storage / 清理 | 旧 Snapshot | Setting | reserved | False |
 | global.storage.43b0e1b7d84d | global / storage / 清理 | 存储优化建议 | Setting | reserved | False |
@@ -205,9 +205,9 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.privacy.09cef506324c | global / privacy / 数据与隐私 | Crash Report | Setting | reserved | False |
 | global.privacy.6b6d7c5093d2 | global / privacy / 数据与隐私 | Diagnostic Data | Setting | reserved | False |
 | global.privacy.c68cf1d3e3d2 | global / privacy / 日志 | 日志 | Group | — | False |
-| global.privacy.15f7c98cd9de | global / privacy / 日志 | 日志等级 | Setting | reserved | False |
-| global.privacy.35d95a7c9d2d | global / privacy / 日志 | 日志保留 | Setting | reserved | False |
-| global.privacy.64bbcd6cfb99 | global / privacy / 日志 | 最大日志数量 | Setting | reserved | False |
+| global.privacy.15f7c98cd9de | global / privacy / 日志 | 日志等级 | Setting | diagnostics.log-level | False |
+| global.privacy.35d95a7c9d2d | global / privacy / 日志 | 日志保留 | Setting | diagnostics.disk-log-days | False |
+| global.privacy.64bbcd6cfb99 | global / privacy / 日志 | 最大日志数量 | Setting | diagnostics.log-lines | False |
 | global.privacy.ea4ad91ab2ba | global / privacy / 日志 | 打开日志目录 | Action | — | False |
 | global.privacy.25ff9ed3a4bf | global / privacy / 日志 | 导出日志 | Action | — | False |
 | global.privacy.6e8c77bf30bf | global / privacy / 隐私保护 | 隐私保护 | Group | — | False |
@@ -242,7 +242,7 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.privacy.25c2ac9fa4ed | global / privacy / Launch Trace | Launch Trace | State | — | True |
 | global.privacy.c3667ce23f3b | global / privacy / Raw Diagnostic Data | Raw Diagnostic Data | Setting | reserved | True |
 | global.advanced.f152873176d7 | global / advanced / Nexa 更新 | Nexa 更新 | Group | — | False |
-| global.advanced.3256b2eff654 | global / advanced / Nexa 更新 | 自动检查更新 | Setting | reserved | False |
+| global.advanced.3256b2eff654 | global / advanced / Nexa 更新 | 自动检查更新 | Setting | updates.auto-check | False |
 | global.advanced.1cb852864ed6 | global / advanced / Nexa 更新 | 更新通道 | Setting | updates.channel | False |
 | global.advanced.c23d1969c6c0 | global / advanced / Nexa 更新 | Stable | Choice | — | False |
 | global.advanced.212580f8dfa6 | global / advanced / Nexa 更新 | Beta | Choice | — | False |
@@ -268,10 +268,10 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | global.advanced.d9987876215e | global / advanced / 实验功能 | Next Render Backend | Setting | reserved | False |
 | global.advanced.46c60fc2f8f9 | global / advanced / 实验功能 | Launch Shortcuts | Setting | reserved | False |
 | global.advanced.b3697e87e175 | global / advanced / 实验功能 | Minecraft AI Repair | Setting | reserved | False |
-| global.advanced.b05e9746f990 | global / advanced / 设置数据 | 设置数据 | Group | — | False |
-| global.advanced.0a2a572d1179 | global / advanced / 设置数据 | 导入设置 | Action | — | False |
-| global.advanced.f629377e6bbc | global / advanced / 设置数据 | 导出设置 | Action | — | False |
-| global.advanced.c9b13355b1bc | global / advanced / 设置数据 | 恢复默认 | Action | — | False |
+| global.advanced.b05e9746f990 | global / storage / 设置数据 | 设置数据 | Group | — | False |
+| global.advanced.0a2a572d1179 | global / storage / 设置数据 | 导入设置 | Action | — | False |
+| global.advanced.f629377e6bbc | global / storage / 设置数据 | 导出设置 | Action | — | False |
+| global.advanced.c9b13355b1bc | global / storage / 设置数据 | 恢复默认 | Action | — | False |
 | global.advanced.ac3f1de1da0e | global / advanced / 开发者选项 | 开发者选项 | Group | — | False |
 | global.advanced.115156b4d96e | global / advanced / 开发者选项 | [ Off / On ] | Setting | developer.enabled | False |
 | global.advanced.bc11fed7a65b | global / advanced / Debug Mode | Debug Mode | Setting | reserved | True |
@@ -413,7 +413,7 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | instance-settings.window.0f518f9f7f9f | instance-settings / window / 启动时 | 启动时 | Group | — | False |
 | instance-settings.window.b28c9d125ee6 | instance-settings / window / 启动时 | Nexa 保持显示 | Setting | reserved | False |
 | instance-settings.window.44effed05745 | instance-settings / window / 启动时 | 最小化 | Setting | reserved | False |
-| instance-settings.window.9ff25c818325 | instance-settings / window / 启动时 | 隐藏 | Setting | reserved | False |
+| instance-settings.window.9ff25c818325 | instance-settings / window / 启动时 | 启动器窗口 | Setting | game.launcher-visibility | False |
 | instance-settings.window.0322e116710e | instance-settings / window / 启动时 | 关闭 | Setting | reserved | False |
 | instance-settings.window.bb58bd6e61d7 | instance-settings / window / 游戏结束 | 游戏结束 | Group | — | False |
 | instance-settings.window.f7c129eae162 | instance-settings / window / 游戏结束 | Nexa 恢复行为 | Setting | reserved | False |
@@ -425,8 +425,8 @@ This checked-in map reserves final positions. `reserved` means no value contract
 | instance-settings.hooks.0beb2cd090d6 | instance-settings / hooks / Wrapper | Wrapper | Group | — | False |
 | instance-settings.hooks.361d4ddf309e | instance-settings / hooks / Wrapper | Wrapper Command | Setting | game.wrapper | False |
 | instance-settings.hooks.932881441271 | instance-settings / hooks / Pre-launch | Pre-launch | Group | — | False |
-| instance-settings.hooks.40aa4034e8d4 | instance-settings / hooks / Pre-launch | Command | Setting | reserved | False |
-| instance-settings.hooks.5f3baf5fd6e4 | instance-settings / hooks / Pre-launch | Wait for Completion | Setting | reserved | False |
+| instance-settings.hooks.40aa4034e8d4 | instance-settings / hooks / Pre-launch | Command | Setting | game.pre-launch | False |
+| instance-settings.hooks.5f3baf5fd6e4 | instance-settings / hooks / Pre-launch | Wait for Completion | Setting | game.pre-launch-wait | False |
 | instance-settings.hooks.58acb0984829 | instance-settings / hooks / Post-exit | Post-exit | Group | — | False |
 | instance-settings.hooks.27198ce02cfc | instance-settings / hooks / Post-exit | Command | Setting | reserved | False |
 | instance-settings.hooks.10c620ce1c99 | instance-settings / hooks / Native Compatibility | Native Compatibility | Group | — | False |
@@ -540,3 +540,11 @@ This checked-in map reserves final positions. `reserved` means no value contract
 ## Platform Features extension
 
 The ninth global category `platform` (平台功能) presents the Machine Capability Registry snapshot through `machine.capabilities.query`, with explicit refresh through `machine.capabilities.refresh`. Its read-only rows are generated from capability definitions (system, CPU, memory, runtime and not-yet-connected providers), rather than durable settings. No cloud controls are introduced.
+| instance.recovery.keep-history | instance / recovery / 快照保留 | 保留历史快照 | Setting | recovery.keep-history | False |
+| global.network.install-inherit-vanilla | global / network / 版本安装 | 作为原版的附属版本安装 | Setting | install.inherit-vanilla | False |
+| global.game.default-server | global / game / 启动行为 | 默认服务器 | Setting | game.server | False |
+| global.game.pre-launch-wait | global / game / 默认高级启动 | 等待启动前命令完成 | Setting | game.pre-launch-wait | False |
+| global.network.proxy-mode | global / network / 代理 | 代理模式 | Setting | network.proxy-mode | False |
+| global.storage.launcher-data | global / storage / 数据位置 | 启动器数据目录 | State | — | False |
+| global.storage.move-launcher-data | global / storage / 数据位置 | 迁移启动器数据 | Action | — | False |
+| global.storage.finished-tasks | global / storage / 清理 | 清除成功任务卡片 | Action | — | False |

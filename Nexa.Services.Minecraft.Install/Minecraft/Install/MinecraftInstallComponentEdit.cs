@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Nexa.Services.Downloads;
 using Nexa.Services.Minecraft.Downloads;
 using Nexa.Services.Minecraft.Launch;
+using Nexa.Services.Settings;
 using Nexa.Services.Tasks;
 
 namespace Nexa.Services.Minecraft.Install;
@@ -12,6 +13,7 @@ public sealed partial class MinecraftInstallService
     private async Task PrepareComponentEditAsync(MinecraftInstallCommand command, MinecraftInstallEditSnapshot original,
         MinecraftInstallEditPlan plan, string stage, ITaskCenterTask task, CancellationToken token)
     {
+        MinecraftDownloadPolicy downloadPolicy = MinecraftDownloadPolicy.Read(_settingsPolicy);
         string relative = $"versions/{original.InstanceId}/{original.InstanceId}.json";
         var profile = await MinecraftVersionJsonReader.ReadAsync(Nexa.Core.PathIdentity.Contained(original.RootDirectory, relative), token).ConfigureAwait(false);
         var managed = original.ManagedMods.Where(file => file.Loader is null || !plan.ChangedLoaders.Contains(file.Loader.Value)).ToList();
@@ -24,14 +26,23 @@ public sealed partial class MinecraftInstallService
             string path = Nexa.Core.PathIdentity.Contained(stage, original.ModsRelativeDirectory + "/" + SafeName(first.FileName));
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             task.Report(StagePlan[3], "正在更新 " + LoaderDisplayName(addon.Kind), 0.5, 0, downloads.Count, 0);
-            var result = await _downloads.DownloadAsync(new DownloadRequest
+            var request = new DownloadRequest
             {
                 AllowResume = !string.IsNullOrWhiteSpace(first.Sha1),
                 Sources = downloads.Where(file => string.IsNullOrWhiteSpace(first.Sha1) || file.Sha1 == first.Sha1).Select(file => file.Url.ToString()).ToArray(),
                 DestinationPath = path,
                 ConnectionFactory = url => _connectionFactory?.Invoke(url) ?? new HttpConnection(_http, url),
-            }, cancellationToken: token).ConfigureAwait(false);
-            if (!result.Success || !await MinecraftFileVerifier.VerifyAsync(new(path, first.Size > 0 ? first.Size : null, first.Sha1), token).ConfigureAwait(false))
+            };
+            bool verified = false;
+            for (int attempt = 0; attempt < (downloadPolicy.Retry ? 2 : 1); attempt++)
+            {
+                if (attempt > 0) await Task.Delay(FileRetryDelay, token).ConfigureAwait(false);
+                var result = await _downloads.DownloadAsync(request, cancellationToken: token).ConfigureAwait(false);
+                if (result.Success && await MinecraftFileVerifier.VerifyAsync(new(path, first.Size > 0 ? first.Size : null, first.Sha1), token).ConfigureAwait(false))
+                { verified = true; break; }
+                if (result.Success) File.Delete(path);
+            }
+            if (!verified)
                 throw new IOException("附属组件下载或校验失败：" + first.FileName);
             await using var stream = File.OpenRead(path);
             string hash = Convert.ToHexString(await SHA256.HashDataAsync(stream, token).ConfigureAwait(false));

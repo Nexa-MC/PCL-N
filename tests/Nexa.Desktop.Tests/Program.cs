@@ -42,6 +42,22 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("appearance session applies committed modes and survives failed saves", AppearanceSessionAppliesCommittedModesAndSurvivesFailedSaves),
+        ("appearance scene preserves colors geometry and caching", AppearanceSceneProjectionPreservesColorsGeometryAndCaching),
+        ("appearance controls use confirmed accessible modes", AppearanceControlsUseConfirmedAccessibleModes),
+        ("disk log controls apply policy with explicit actions", DiskLogControlsApplyPolicyAndRequireExplicitActions),
+        ("disk log export coalesces cancellation and shutdown", DiskLogExportCoalescesOffersCancellationAndCancelsOnDispose),
+        ("disk log action failures hide exception paths", DiskLogActionFailuresHideExceptionPaths),
+        ("launch hook settings send exact commands and wait policy", LaunchHookSettingsEditorsSendExactCommandsAndWaitPolicy),
+        ("launch hook lines preserve separators tabs drafts and paging", LaunchHookLinesPreserveExactSeparatorsTabsDraftsAndPaging),
+        ("launch wrapper editor preserves bounded long commands", LaunchWrapperEditorPreservesBoundedLongCommands),
+        ("launch hook failed save retains multiline draft and committed script", LaunchHookSaveFailureKeepsMultilineDraftAndCommittedScript),
+        ("launch hook failed inheritance preserves drafts across revisions and can apply", LaunchHookFailedInheritancePreservesDraftAcrossRevisionsAndCanApply),
+        ("managed Java deletion confirms captured identity and retires", ManagedJavaDeletionConfirmsCapturedIdentityAndRetiresOnNavigation),
+        ("storage settings preview cancel and queue before closing", StorageSettingsPreviewsCancelsAndQueuesBeforeClosing),
+        ("storage settings retire late confirmation on navigation", StorageSettingsNavigationRetiresLateConfirmation),
+        ("storage cleanup requires preview and preserves recovery cards", StorageCleanupRequiresPreviewConfirmationAndPreservesRecoveryCards),
+        ("proxy drafts apply atomically and reject stale revisions", ProxyDraftsApplyAtomicallyRejectStaleRevisionsAndMaskCredentials),
         ("log preferences use settings controls and apply immediately", LogPreferencesUseSettingsControlsAndApplyImmediately),
         ("game window preferences supervise hidden and overlapping sessions", GameWindowPreferencesSuperviseHiddenAndOverlappingSessions),
         ("game window preferences use settings selectors", GameWindowPreferencesUseSettingsSelectors),

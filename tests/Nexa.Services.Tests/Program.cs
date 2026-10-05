@@ -4,6 +4,53 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("appearance preferences retain legacy modes and durable failures", Sync(AppearancePreferencesRetainLegacyModesRestartAndDurableFailures)),
+        ("disk logs rotate within physical bounds", DiskLogsRotateWithinPhysicalBounds),
+        ("disk retention protects current unrelated files and links", DiskRetentionProtectsCurrentUnrelatedFilesAndLinks),
+        ("disk retention enforces archive count and byte ceilings", DiskRetentionEnforcesArchiveCountAndByteCeilings),
+        ("disk log policy applies committed changes without rendering", DiskLogPolicyAppliesCommittedChangesWithoutRendering),
+        ("disk retention changes do not wait for log publication", DiskRetentionChangesDoNotWaitForLogPublication),
+        ("disk log export includes archives and excludes private text", DiskLogExportIncludesArchivedFactsAndExcludesPrivateText),
+        ("disk log export bounds history and cleans cancelled reads", DiskLogExportBoundsHistoryAndCleansCancelledDiskRead),
+        ("disk log export snapshot survives rotation and pruning", DiskLogExportSnapshotSurvivesConcurrentRotationAndPruning),
+        ("disk log export rejects oversized inputs and keeps sink usable", DiskLogExportBudgetRejectionPreservesLiveSink),
+        ("launch hooks capture scoped legacy and empty overrides", Sync(LaunchHooksCaptureScopedLegacyAndEmptyOverrides)),
+        ("launch wrapper syntax is bounded and path compatible", Sync(LaunchWrapperSyntaxIsBoundedAndPathCompatible)),
+        ("launch wrapper preserves private bootstrap transport", LaunchWrapperPreservesPrivateBootstrapTransport),
+        ("launch hooks execute in order and own failure cancellation", LaunchHooksExecuteInOrderAndOwnFailureCancellation),
+        ("launch hook platform reaps and kills owned commands", LaunchHookPlatformReapsAndKillsOwnedCommands),
+        ("launch hook platform kills children after shell exit", LaunchHookPlatformKillsChildrenAfterShellExit),
+        ("launch hook platform startup failure kills waited background children", LaunchHookPlatformStartupFailureKillsWaitedBackgroundChildren),
+        ("launch hook platform detach retains children and reaps worker", LaunchHookPlatformDetachRetainsChildrenAndReapsWorker),
+        ("launch wrapper forwards real private bootstrap and exit", LaunchWrapperRealProcessForwardsPrivateBootstrapAndExit),
+        ("managed Java removal preserves external files", ManagedJavaRemovalCommitsOwnershipAndPreservesExternalFiles),
+        ("managed Java removal rejects stale ownership receipts", ManagedJavaRemovalRejectsStaleOwnershipReceipts),
+        ("managed Java removal rejects changed extra and linked files", ManagedJavaRemovalRejectsChangedExtraAndLinkedFiles),
+        ("managed Java removal rolls back persistence and cancellation", ManagedJavaRemovalRollsBackPersistenceAndCancellation),
+        ("managed Java removal excludes active uses and installers", ManagedJavaRemovalExcludesActiveUsesAndInstallers),
+        ("direct managed Java launch owns use lease until process exit", ManagedJavaDirectLaunchOwnsUseLeaseUntilProcessExit),
+        ("bound managed Java lease survives owner release until process exit", ManagedJavaBoundLeaseSurvivesOwnerReleaseUntilProcessExit),
+        ("managed Java lease rejects unknown and malformed records", ManagedJavaLeaseRejectsUnknownAndMalformedRecords),
+        ("managed Java lease reclaims only proven exited process identities", ManagedJavaLeaseReclaimsOnlyProvenExitedProcessIdentities),
+        ("network transport captures preferences and retains active responses", NetworkTransportCapturesCommittedPreferencesAndRetainsActiveResponses),
+        ("foundation network preferences reach actual requests and managed Java roots", FoundationNetworkPreferencesReachActualRequestsAndManagedJavaRoots),
+        ("bandwidth policy preserves legacy slider and exact values", Sync(BandwidthPolicyPreservesLegacySliderAndExactNewValues)),
+        ("consumer catalog requires contracts and keeps future features reserved", Sync(ConsumerCatalogRequiresRealContractsAndKeepsFutureFeaturesReserved)),
+        ("network proxy modes and IP preferences preserve trust", NetworkProxyModesAndIpPreferencesPreserveTrust),
+        ("DNS over HTTPS bounds records caches and regional fallback", DnsOverHttpsBoundsRecordsCachesAndUsesRegionalFallback),
+        ("download bandwidth captures generations and serializes reads", DownloadBandwidthCapturesGenerationsAndSerializesBodyReads),
+        ("download engine captures bandwidth and cleans cancellation", DownloadEngineUsesCapturedBandwidthAndCleansUpOnCancellation),
+        ("loader and modpack transfers consume retry concurrency settings", LoaderAndModpackTransfersConsumeRetryAndConcurrencySettings),
+        ("storage migration queues copies before startup consumers", StorageMigrationQueuesAndCopiesBeforeStartupConsumers),
+        ("storage migration rejects stale occupied locked cancelled requests", StorageMigrationRejectsStaleOccupiedLockedAndCancelledRequests),
+        ("storage migration preserves source when locator commit fails", StorageMigrationFailedLocatorCommitPreservesSourceAndRetries),
+        ("storage cleanup removes only eligible temporaries and successful cards", StorageCleanupOnlyRemovesEligibleTemporariesAndSuccessfulCards),
+        ("storage cleanup startup restores interrupted renames", StorageCleanupStartupRestoresInterruptedRenames),
+        ("storage interrupted stages retry and published copies cancel safely", StorageInterruptedStagesRetryAndPublishedCopiesCanCancelSafely),
+        ("storage cleanup rolls back renames when idle guard changes", StorageCleanupRollsBackRenamesWhenIdleGuardChanges),
+        ("storage malformed records and cleanup kinds reject without mutation", StorageMalformedRecordsAndCleanupKindsRejectWithoutMutation),
+        ("storage migration rejects installed Java receipts and preserves lifecycle", StorageMigrationRejectsInstalledJavaReceiptsAndPreservesLifecycle),
+        ("storage migration rejects root-bound records and preserves external stores", StorageMigrationRejectsRootBoundGameRecordsAndLeavesExternalStoresAlone),
         ("log preferences apply committed state and dispose", Sync(LogPreferencesApplyCommittedStateAndDispose)),
         ("log retention changes never wait for observers", LogRetentionChangesDoNotWaitForObservers),
         ("log preferences retain legacy values and bounds", Sync(LogPreferencesRetainLegacyValuesAndBounds)),
@@ -566,6 +613,8 @@ internal static partial class Program
 
     private static async Task<int> Main(string[] args)
     {
+        if (args is [Nexa.Services.Minecraft.Process.MinecraftLaunchHookWorker.WorkerArgument])
+            return await Nexa.Services.Minecraft.Process.MinecraftLaunchHookWorker.RunWorkerAsync().ConfigureAwait(false);
         if (args is ["--delta-publisher-smoke", var deltaFixture]) return await RunPublisherDeltaFixture(deltaFixture);
         if (args is ["--update-server-smoke"]) { await AutomaticUpdateLoopbackHttpTransaction(); return 0; }
         if (args is ["--serve-update-fixture"]) return await ServeAutomaticUpdateFixture();

@@ -132,6 +132,8 @@ public static class MinecraftLaunchPlanner
         // unknown ones remain visible to the strict validation below.
         ReplaceArguments(args, tokenContext);
         EnsureNoUnresolvedTokens(args);
+        _ = MinecraftLaunchHooks.ParseWrapper(request.WrapperCommand);
+        MinecraftLaunchHooks.ValidatePreLaunch(request.PreLaunchCommand);
         return new MinecraftLaunchPlan(request.JavaExecutablePath, instance, args, classpath.Entries, libraries, loader)
         {
             MainClassIndex = gameArgumentStart - 1,
@@ -144,6 +146,9 @@ public static class MinecraftLaunchPlanner
             ProcessPriority = request.ProcessPriority,
             WindowTitle = request.WindowTitle,
             LauncherVisibility = request.LauncherVisibility,
+            WrapperCommand = request.WrapperCommand,
+            PreLaunchCommand = request.PreLaunchCommand,
+            WaitForPreLaunchCommand = request.WaitForPreLaunchCommand,
             HeapLimitMiB = args.Count(static arg => arg.StartsWith("-Xmx", StringComparison.Ordinal)) == 1
                 ? Math.Max(256, request.MemoryMegabytes) : -1,
             IsInheritedClientJar = clientJarResolution.IsInherited,

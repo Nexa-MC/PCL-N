@@ -154,6 +154,31 @@ public sealed class TaskCenterService
         return removed.Count;
     }
 
+    /// <summary>A registration snapshot for read-only previews, independent of publication timing.</summary>
+    public IReadOnlyList<TaskCenterEntry> ReadEntries()
+    {
+        lock (_gate) return Array.AsReadOnly(_registrations.Values.Select(item => item.Entry).ToArray());
+    }
+
+    /// <summary>Atomically dismisses the exact successful history captured by a cleanup preview.</summary>
+    public bool DismissFinished(IReadOnlyList<TaskCenterEntry> expected)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        lock (_gate)
+        {
+            var current = _registrations.Values.Where(item => item.Entry.State == TaskCenterEntryState.Finished)
+                .Select(item => item.Entry).OrderBy(item => item.TaskId, StringComparer.Ordinal).ToArray();
+            if (!current.SequenceEqual(expected.OrderBy(item => item.TaskId, StringComparer.Ordinal))) return false;
+            foreach (var entry in current)
+            {
+                Enqueue(_registrations[entry.TaskId], remove: true);
+                _registrations.Remove(entry.TaskId);
+            }
+        }
+        DrainPublications();
+        return true;
+    }
+
     internal void Report(Registration registration, string stage, string detail, double progress,
         int completedFiles, int totalFiles, long speedBytesPerSecond)
     {

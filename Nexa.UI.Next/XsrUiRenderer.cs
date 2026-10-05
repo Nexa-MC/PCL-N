@@ -1449,7 +1449,7 @@ public sealed partial class XsrUiRenderer
             enabled && (input?.IsFocused ?? false),
             animation?.Progress,
             animation is { Keyframes.Count: > 0 } ? animation.Value : null,
-            visualStyle?.Snapshot() ?? default,
+            ProjectStyle(visualStyle),
             selection?.IsSelected ?? false,
             enabled && (input?.Focusable ?? false),
             enabled && (input?.Clickable ?? false),
@@ -1475,8 +1475,9 @@ public sealed partial class XsrUiRenderer
             scrollSnapshot,
             components.Get<XsrUiSegmentReveal>() is { } reveal ? new(reveal.Expanded, reveal.Progress) : null,
             components.Get<XsrUiScrollGesture>() is { } motion ? new(motion.Revision, motion.Dragging, motion.Velocity) : null,
-            IsStableContent(entity), text?.Runs)
+            IsStableContent(entity), ProjectTextRuns(text?.Runs))
         {
+            ColorScheme = _colorScheme,
             Graph = components.Get<XsrUiGraph>()?.Snapshot(),
             IsChecked = components.Get<XsrUiToggle>()?.IsChecked,
             IsSelectionRequired = components.Get<XsrUiSelectionGroup>()?.IsSelectionRequired ?? true,
@@ -1503,10 +1504,11 @@ public sealed partial class XsrUiRenderer
             XsrUiRect presented = target with { X = track.Dragging ? track.DragX : target.X + thumbTransition.PresentedOffsetX };
             nodes.Add(new XsrUiSceneNode(track.Thumb, presented, depth + 1, XsrUiSemanticRole.None,
                 null, null, null, false, null, null,
-                _tree.GetComponent<XsrUiVisualStyle>(track.Thumb)?.Snapshot() ?? default,
+                ProjectStyle(_tree.GetComponent<XsrUiVisualStyle>(track.Thumb)),
                 IsEnabled: false, ClipRect: Intersect(visibleClip ?? rect, presented), IsAccessible: false,
                 TransitionKey: thumbTransition.Key, TransitionOffsetX: thumbTransition.OffsetX,
-                TransitionPresentedOffsetX: thumbTransition.PresentedOffsetX));
+                TransitionPresentedOffsetX: thumbTransition.PresentedOffsetX)
+            { ColorScheme = _colorScheme });
         }
 
         XsrUiPager? pageContainer = components.Get<XsrUiPager>();

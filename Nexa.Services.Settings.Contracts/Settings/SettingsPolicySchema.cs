@@ -32,6 +32,22 @@ public sealed record SettingsPolicyDefinition(string Key, SettingsValueKind Kind
             return "Expected a server host with an optional port, without spaces or a URI scheme.";
         if (Key == "game.title" && (raw.Length > 512 || raw.Any(char.IsControl)))
             return "Window title must be at most 512 characters without controls.";
+        if (Key is "game.wrapper" or "game.pre-launch")
+        {
+            try
+            {
+                if (Key == "game.wrapper") _ = Minecraft.Launch.MinecraftLaunchHooks.ParseWrapper(raw);
+                else Minecraft.Launch.MinecraftLaunchHooks.ValidatePreLaunch(raw);
+            }
+            catch (ArgumentException error) { return error.Message; }
+        }
+        if (Key == "network.proxy-address" && raw.Length > 0 &&
+            (!Uri.TryCreate(raw, UriKind.Absolute, out var proxy) || proxy.Scheme is not ("http" or "https" or "socks5")
+                || string.IsNullOrEmpty(proxy.Host) || proxy.UserInfo.Length != 0 || proxy.AbsolutePath != "/"
+                || proxy.Query.Length != 0 || proxy.Fragment.Length != 0 || raw.Any(char.IsControl)))
+            return "Expected a proxy endpoint without credentials, path, query or fragment.";
+        if (Key is "network.proxy-user" or "network.proxy-password" && (raw.Length > 1024 || raw.Any(char.IsControl)))
+            return "Proxy credentials must be at most 1024 characters without line breaks.";
         return Kind switch
         {
             SettingsValueKind.Boolean when raw is not ("true" or "false") => "Expected true or false.",
@@ -56,6 +72,8 @@ public static class SettingsPolicySchema
         new("appearance.animation-fps", SettingsValueKind.Number, "60", false, false, null, SettingsApplyTiming.Immediate, "fps", 1, 240),
         new("appearance.lock-window", SettingsValueKind.Boolean, "false", false, false, "UiLockWindowSize", SettingsApplyTiming.Immediate),
         new("appearance.low-power", SettingsValueKind.Boolean, "false", false, false, "UiUltraLowPowerMode", SettingsApplyTiming.Immediate),
+        new("appearance.theme-mode", SettingsValueKind.Enum, "2", false, false, "UiDarkMode", SettingsApplyTiming.Immediate, Choices: "2|0|1"),
+        new("appearance.accent", SettingsValueKind.Enum, "blue", false, false, "UiAccentColor", SettingsApplyTiming.Immediate, Choices: "blue|purple|green|orange"),
         new("java.runtime", SettingsValueKind.Path, "", true, true, null, SettingsApplyTiming.NextLaunch, Exportable: false),
         new("java.auto-install", SettingsValueKind.Boolean, "false", true, false, null, SettingsApplyTiming.NextLaunch),
         new("java.vendor", SettingsValueKind.Enum, "", true, false, null, SettingsApplyTiming.NextLaunch,
@@ -75,6 +93,7 @@ public static class SettingsPolicySchema
         new("game.arguments", SettingsValueKind.Text, "", true, false, "LaunchAdvanceGame", SettingsApplyTiming.NextLaunch, Exportable: false),
         new("game.wrapper", SettingsValueKind.Text, "", true, false, "LaunchWrapperCommand", SettingsApplyTiming.NextLaunch, Exportable: false),
         new("game.pre-launch", SettingsValueKind.Text, "", true, false, "LaunchAdvanceRun", SettingsApplyTiming.NextLaunch, Exportable: false),
+        new("game.pre-launch-wait", SettingsValueKind.Boolean, "true", true, false, "LaunchAdvanceRunWait", SettingsApplyTiming.NextLaunch),
         new("game.auto-repair", SettingsValueKind.Boolean, "true", true, false, "LaunchAutoRepairGame", SettingsApplyTiming.NextLaunch),
         new("game.server", SettingsValueKind.Text, "", true, false, null, SettingsApplyTiming.NextLaunch),
         new("game.process-priority", SettingsValueKind.Enum, "normal", true, false, null, SettingsApplyTiming.NextLaunch,
@@ -84,6 +103,8 @@ public static class SettingsPolicySchema
         new("network.proxy-user", SettingsValueKind.Text, "", false, false, "SystemHttpProxyCustomUsername", SettingsApplyTiming.NextTask, Exportable: false),
         new("network.proxy-password", SettingsValueKind.Text, "", false, false, "SystemHttpProxyCustomPassword", SettingsApplyTiming.NextTask, Exportable: false),
         new("network.doh", SettingsValueKind.Boolean, "true", false, false, "SystemNetEnableDoH", SettingsApplyTiming.NextTask),
+        new("network.ip-stack", SettingsValueKind.Enum, "auto", false, false, null, SettingsApplyTiming.NextTask, Choices: "auto|ipv4|ipv6"),
+        new("network.bandwidth-kib", SettingsValueKind.Number, "0", false, false, null, SettingsApplyTiming.NextTask, "KiB/s", 0, 1048576),
         new("network.file-concurrency", SettingsValueKind.Number, "8", false, false, null, SettingsApplyTiming.NextTask, "files", 1, 64),
         new("network.file-retry", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
         new("network.game-source", SettingsValueKind.Enum, "official-first", false, false, null, SettingsApplyTiming.NextTask,
@@ -92,6 +113,7 @@ public static class SettingsPolicySchema
         new("diagnostics.telemetry", SettingsValueKind.Boolean, "false", false, false, "TelemetryExperienceProgram", SettingsApplyTiming.Immediate),
         new("diagnostics.log-level", SettingsValueKind.Enum, "auto", false, false, null, SettingsApplyTiming.Immediate, Choices: "auto|0|1|2|3|4"),
         new("diagnostics.log-lines", SettingsValueKind.Number, "500", false, false, null, SettingsApplyTiming.Immediate, "entries", 50, 2000),
+        new("diagnostics.disk-log-days", SettingsValueKind.Number, "7", false, false, null, SettingsApplyTiming.Immediate, "days", 1, 90),
         new("updates.channel", SettingsValueKind.Enum, "build", false, false, null, SettingsApplyTiming.NextTask, Choices: "build|stable|alpha|beta|ci"),
         new("updates.auto-check", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
         new("developer.enabled", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),

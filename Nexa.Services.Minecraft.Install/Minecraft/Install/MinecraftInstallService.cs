@@ -39,6 +39,7 @@ public sealed partial class MinecraftInstallService : IDisposable
     private readonly Func<bool>? _inheritVanilla;
     private readonly SettingsPolicyService? _settingsPolicy;
     private readonly XsrStateStore? _hostStore;
+    public Func<bool, HttpClient>? HttpClientFactory { get; init; }
 
     public MinecraftInstallService(
         TaskCenterService tasks,
@@ -59,7 +60,7 @@ public sealed partial class MinecraftInstallService : IDisposable
         _http = http ?? PooledHttpClient.Create();
         _metadata = metadata ?? new HttpMinecraftInstallMetadataSource(_http);
         _connectionFactory = connectionFactory;
-        _loaderInstaller = loaderInstaller ?? new ForgeInstallService(_downloads, _http, connectionFactory);
+        _loaderInstaller = loaderInstaller ?? new ForgeInstallService(_downloads, _http, connectionFactory) { SettingsPolicy = settingsPolicy };
         _inheritVanilla = inheritVanilla;
         _settingsPolicy = settingsPolicy; _hostStore = hostStore;
     }

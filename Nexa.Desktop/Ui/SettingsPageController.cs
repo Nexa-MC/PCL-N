@@ -82,7 +82,7 @@ internal sealed partial class SettingsPageController : IDisposable
     private void OnIntent(object? sender, DesktopUiIntentEventArgs args)
     {
         if (_shell.Stage.Navigation.Current != Page) return;
-        if (IsJavaInventoryIntent(args.Intent.Command) || IsSettingsTransferIntent(args.Intent.Command) || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
+        if (IsHookIntent(args.Intent.Command) || IsProxyIntent(args.Intent.Command) || IsStoragePreferencesIntent(args.Intent.Command) || IsJavaInventoryIntent(args.Intent.Command) || IsSettingsTransferIntent(args.Intent.Command) || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
         else if (args.Intent.Command == RemediationExecuted) OnPlatformRemediation(sender, args);
     }
     private void OnFrame(object? sender, EventArgs args)
@@ -95,13 +95,14 @@ internal sealed partial class SettingsPageController : IDisposable
             if (visible) { _previousContentPadding = content.Padding; content.Padding = default; }
             else
             {
-                content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); CancelSettingsTransfer(); CancelJavaInventory();
+                content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences();
                 ReleaseContentGraph();
             }
             _visible = visible;
             _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
         }
         UpdateReleaseCheck();
+        UpdateStoragePreferences();
         if (!visible) return;
         string? instance = _instanceDirectory?.Invoke();
         if (_instanceDirectory is not null && string.IsNullOrWhiteSpace(instance))
@@ -148,8 +149,12 @@ internal sealed partial class SettingsPageController : IDisposable
             }
             else { _revision = revision; _feedback.Error("无法读取设置，请重新打开设置页。"); }
         }
+        UpdateHookInheritance();
         while (_pending.TryDequeue(out var intent))
         {
+            if (IsHookIntent(intent.Command)) { HandleHookIntent(intent); continue; }
+            if (IsProxyIntent(intent.Command)) { HandleProxyIntent(intent); continue; }
+            if (IsStoragePreferencesIntent(intent.Command)) { HandleStoragePreferences(intent.Command, intent.Source); continue; }
             if (IsJavaInventoryIntent(intent.Command)) { HandleJavaInventory(intent.Command, intent.Source); continue; }
             if (IsSettingsTransferIntent(intent.Command)) { HandleSettingsTransfer(intent.Command, intent.Source); continue; }
             if (intent.Command == ManagementAction && _managementActions.TryGetValue(intent.Source, out var action)) { action(); continue; }
@@ -158,6 +163,7 @@ internal sealed partial class SettingsPageController : IDisposable
                 && _writing is null && _commands.TryResolve(SettingsPolicyContract.SetCommand, out var inheritRoute))
             {
                 _writing = SaveAsync(inheritRoute, new(inheritKey, SettingsLayer.Instance, new(SettingsOverrideMode.Inherit), _instance));
+                TrackHookInheritance(inheritKey, _writing);
                 continue;
             }
             if (intent.Command == RefreshPlatform) { RefreshPlatformCapabilities(); continue; }
@@ -184,6 +190,7 @@ internal sealed partial class SettingsPageController : IDisposable
         UpdateModRemovalPreview();
         UpdateContentGraph(); UpdateServers(); UpdateExport();
         UpdateSettingsTransfer(); UpdateJavaInventory();
+        UpdateProxyPreferences(); UpdateDiskLogActions();
         int index = _shell.Tree.GetComponent<XsrUiPager>(_pager)!.PageIndex;
         if (index >= 0 && index < Pages.Count && Pages[index].Id != _selected)
             SwitchPage(Pages[index].Id);
@@ -197,7 +204,7 @@ internal sealed partial class SettingsPageController : IDisposable
 
     private void SwitchPage(string page)
     {
-        CancelSettingsTransfer(); CancelJavaInventory();
+        CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences();
         _scrollPositions[_selected] = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY;
         if (_selected == "contentgraph")
         {
@@ -275,7 +282,8 @@ internal sealed partial class SettingsPageController : IDisposable
 
     private void BuildSections(bool navigating = false)
     {
-
+        var hookDrafts = CaptureHookDrafts(navigating);
+        ResetProxyPreferences(preserveDraft: !navigating);
         string? focus = !navigating && _shell.Tree.IsAlive(_shell.Renderer.Focused) ? _shell.Tree.Name(_shell.Renderer.Focused) : null;
         var drafts = !navigating ? _editors.Values.Where(item => item.Input.IsAssigned).ToDictionary(item => item.Entry.Id,
             item => _shell.Tree.GetComponent<XsrUiTextInput>(item.Input)!.ReadDraft()) : [];
@@ -284,6 +292,7 @@ internal sealed partial class SettingsPageController : IDisposable
         _javaChoices.Clear();
         _javaInventoryGroup = default;
         _editors.Clear(); _inheritButtons.Clear(); _selectors.Clear(); _autoModes.Clear(); _argumentEditors.Clear(); _argumentActions.Clear(); _choices.Clear();
+        _hookEditors.Clear(); _hookActions.Clear();
         _managementActions.Clear(); _contentSearch = default; _contentList = default; _contentWindowStart = -1;
         _graphSearch = _graphBody = default; _graphActions.Clear();
         if (_instanceDirectory is not null && _selected != "game")
@@ -305,7 +314,8 @@ internal sealed partial class SettingsPageController : IDisposable
             && (item.Page == _selected || _instanceDirectory is not null && _selected == "game" && item.Page == "java")
             && (_instanceDirectory is null || item.Definition?.InstanceOverride == true) && !item.IsRuntimeDetail && (_developer || !item.DeveloperOnly)).ToArray();
         var available = entries.Where(item => item.Kind == SettingsCatalogEntryKind.Setting
-            && item.Availability == SettingsCapabilityAvailability.Available && item.Definition is not null).ToArray();
+            && item.Availability == SettingsCapabilityAvailability.Available && item.Definition is not null
+            && item.SettingKey is not ("network.proxy-mode" or "network.proxy-address" or "network.proxy-user" or "network.proxy-password")).ToArray();
         if (available.Length == 0 && _selected != "advanced" && !transfer)
         {
             Text(_sections, Pages.First(page => page.Id == _selected).Label, 20, Ink, height: 30, weight: 600);
@@ -325,12 +335,16 @@ internal sealed partial class SettingsPageController : IDisposable
             }
             if (_instanceDirectory is not null && section.Key.Section == "Java 与内存") BuildJavaInventory(cardContent);
         }
+        if (_instanceDirectory is null && _selected == "network") BuildProxyPreferences();
+        if (_instanceDirectory is null && _selected == "privacy") BuildDiskLogActions();
+        if (_instanceDirectory is null && _selected == "storage") BuildStoragePreferences();
         if (transfer) BuildSettingsTransfer();
         BuildJavaInventory();
         var scroll = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!;
         scroll.OffsetY = _scrollPositions.GetValueOrDefault(_selected);
         _shell.Tree.GetComponent<XsrUiTransition>(_sections)!.Key = _selected + ":" + _developer;
         _shell.Tree.MarkDirty(_sections, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
+        RestoreHookDrafts(hookDrafts);
         foreach (var editor in _editors.Values)
         {
             if (editor.Input.IsAssigned && drafts.TryGetValue(editor.Entry.Id, out var draft)) _shell.Renderer.SetTextInputValue(editor.Input, draft);
@@ -387,6 +401,11 @@ internal sealed partial class SettingsPageController : IDisposable
             _inheritButtons[inherit] = entry.SettingKey!;
         }
         var definition = entry.Definition!;
+        if (entry.SettingKey == "game.pre-launch")
+        {
+            _shell.Tree.GetComponent<XsrUiElement>(label)!.VerticalAlignment = XsrUiAlignment.Start;
+            BuildHookEditor(row, entry); return;
+        }
         if (entry.SettingKey is "game.jvm" or "game.arguments")
         {
             _shell.Tree.GetComponent<XsrUiElement>(label)!.VerticalAlignment = XsrUiAlignment.Start;
@@ -406,6 +425,7 @@ internal sealed partial class SettingsPageController : IDisposable
             _shell.Tree.GetComponent<XsrUiElement>(input)!.Weight = 1;
             _shell.Tree.SetComponent(input, new XsrUiTextInput
             {
+                MaximumLength = entry.SettingKey is "game.wrapper" or "game.pre-launch" ? 32768 : 2048,
                 Placeholder = entry.SettingKey switch
                 { "java.runtime" => "自动选择，或输入 Java 可执行文件路径", "game.memory" => "自动分配，或输入 MiB", _ => entry.Label }
             });
@@ -428,6 +448,7 @@ internal sealed partial class SettingsPageController : IDisposable
         "updates.auto-check" => "启动时检查一次；关闭后仍可手动检查。安装更新前需要确认。",
         "diagnostics.log-level" => "立即生效；自动沿用当前构建的日志等级。",
         "diagnostics.log-lines" => "界面保留的日志条数，50–2000；不会删除磁盘日志。",
+        "diagnostics.disk-log-days" => "历史磁盘日志保留 1–90 天；只清理启动器拥有的日志。",
         "game.process-priority" => "下次启动生效；系统可能拒绝提高优先级。",
         "game.title" => "下次启动生效；留空保留游戏标题。",
         "game.default-isolation" => "只影响新安装版本；不移动已有存档、模组等内容。",
@@ -435,17 +456,25 @@ internal sealed partial class SettingsPageController : IDisposable
         "game.jvm" => "每行一个参数，应用后用于下次启动。",
         "install.inherit-vanilla" => "关闭时安装独立版本；开启后依赖原版。下次安装生效。",
         "game.arguments" => "传递给 Minecraft 的额外启动参数。",
+        "game.wrapper" => "包装 Java 宿主的程序与参数；留空直接启动。",
+        "game.pre-launch" => "游戏启动前执行的本机命令；留空不执行。",
+        "game.pre-launch-wait" => "等待命令成功后启动游戏；关闭时与启动流程并行执行。",
         "game.memory" => "使用 MiB；自动模式按现有内存策略分配。",
         "java.auto-install" => "缺少兼容 Java 时自动下载；关闭时先询问。",
         "java.vendor" => "优先选择兼容的发行版；未找到时使用其他兼容 Java。",
         "network.file-concurrency" => "同时处理的游戏文件数，1–64；新安装和启动前补全生效。",
         "network.file-retry" => "失败后额外重试一次；不影响来源切换与文件校验。",
         "network.game-source" => "游戏文件与运行库的下载顺序；海外使用原始来源。",
+        "network.bandwidth-kib" => "下载共享速度上限，单位 KiB/s；0 不限速，新任务生效。",
+        "network.ip-stack" => "优先尝试所选地址族；保留其他地址族的连接回退。",
+        "network.doh" => "直接连接使用加密 DNS；代理连接由代理解析。",
         "game.server" => "默认地址，可带端口；版本单独设置与临时加入优先。",
         "game.auto-repair" => "启动前补全缺失或损坏的游戏文件；不关闭预检。",
         "appearance.animations-disabled" => "减少界面切换和展开时的动态效果。",
         "appearance.animation-fps" => "动画时钟的目标帧率，1–240 fps；不改变动画时长。",
         "appearance.low-power" => "窗口在后台且没有任务时降低动画帧率，返回后自动恢复。",
+        "appearance.theme-mode" => "立即应用浅色、深色或系统主题。",
+        "appearance.accent" => "立即应用界面强调色。",
         _ => null,
     };
 
@@ -466,12 +495,18 @@ internal sealed partial class SettingsPageController : IDisposable
             string label = value?.Source == SettingsLayer.Instance ? "恢复继承" : "继承中";
             if (text.Content != label) { text.Content = label; _shell.Tree.MarkDirty(button, XsrUiDirtyKinds.Paint); }
         }
-        UpdateNavigationWidths(); UpdateShiftSelectors(); UpdateAutomaticModes(); UpdateArgumentEditors();
+        UpdateNavigationWidths(); UpdateShiftSelectors(); UpdateAutomaticModes(); UpdateArgumentEditors(); UpdateHookEditors();
     }
 
     private void Save(Editor editor, string? selectedValue = null)
     {
         if (!_commands.TryResolve(SettingsPolicyContract.SetCommand, out var route) || _values is null) return;
+        if (_hookEditors.TryGetValue(editor.Button, out var hook))
+        {
+            _writing = SaveAsync(route, new(editor.Entry.SettingKey!, _instanceDirectory is null ? SettingsLayer.Global : SettingsLayer.Instance,
+                new(SettingsOverrideMode.Custom, ReadHookDraft(hook)), _instance));
+            return;
+        }
         if (_argumentEditors.TryGetValue(editor.Button, out var arguments))
         {
             _writing = SaveAsync(route, new(editor.Entry.SettingKey!, (_instanceDirectory is null ? SettingsLayer.Global : SettingsLayer.Instance),
@@ -575,6 +610,6 @@ internal sealed partial class SettingsPageController : IDisposable
     };
     public void Dispose()
     {
-        _disposed = true; CancelSettingsTransfer(); CancelJavaInventory(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _updateCheckStop?.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
+        _disposed = true; CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _updateCheckStop?.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }
 }

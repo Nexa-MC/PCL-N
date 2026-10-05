@@ -10,3 +10,9 @@ public interface ILogSink
 {
     void Write(LogEntry entry, string formattedLine);
 }
+
+/// <summary>A disk mirror that applies retention asynchronously, outside log publication.</summary>
+public interface ILogRetentionSink
+{
+    void SetRetentionDays(int days);
+}

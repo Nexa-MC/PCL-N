@@ -6,6 +6,7 @@ namespace Nexa.Services.Downloads;
 /// </summary>
 public sealed record DownloadRequest
 {
+    internal DownloadBandwidthBudget? BandwidthBudget { get; init; }
     /// <summary>False restarts each source from zero when no reliable artifact identity exists.</summary>
     public bool AllowResume { get; init; } = true;
     public required IReadOnlyList<string> Sources { get; init; }

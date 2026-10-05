@@ -4,6 +4,7 @@ using Nexa.Services.Foundation;
 using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Minecraft.Management;
 using Nexa.Services.Settings;
+using Nexa.Services.Setup;
 using Nexa.Services.Telemetry;
 using Nexa.Xsr.Runtime;
 
@@ -49,13 +50,35 @@ public static class FoundationRuntimeComposer
     public static FoundationRuntime Compose(
         FoundationHost host,
         IXsrDispatchObserver? observer = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null) => ComposeCore(host, observer, timeProvider, null);
+
+    public static FoundationRuntime ComposeWithStorage(
+        FoundationHost host,
+        StoragePreferencesService storagePreferences,
+        IXsrDispatchObserver? observer = null,
+        TimeProvider? timeProvider = null) => ComposeCore(host, observer, timeProvider,
+            storagePreferences ?? throw new ArgumentNullException(nameof(storagePreferences)));
+
+    private static FoundationRuntime ComposeCore(
+        FoundationHost host,
+        IXsrDispatchObserver? observer,
+        TimeProvider? timeProvider,
+        StoragePreferencesService? storagePreferences)
     {
         ArgumentNullException.ThrowIfNull(host);
 
         IXsrDispatchObserver dispatchObserver = observer ?? NullDispatchObserver.Instance;
 
         XsrCommandRouterBuilder commands = new();
+        if (storagePreferences is not null)
+        {
+            commands.Register<StorageMigrationCommand>(StoragePreferencesContract.Migrate,
+                async (command, token) => await storagePreferences.QueueMigrationAsync(command, token).ConfigureAwait(false));
+            commands.Register<StorageMigrationCancelCommand>(StoragePreferencesContract.CancelMigration,
+                async (command, token) => await storagePreferences.CancelQueuedMigrationAsync(command, token).ConfigureAwait(false));
+            commands.Register<StorageCleanupCommand>(StoragePreferencesContract.Cleanup,
+                async (command, token) => await storagePreferences.CleanupAsync(command, token).ConfigureAwait(false));
+        }
         var recovery = new InstanceRecoveryService(host.SettingsPolicy, host.StateStore, host.Logging);
         var exporter = new InstanceModpackExportService(host.Tasks, host.StateStore);
         commands.Register<InstanceModpackExportCommand>(InstanceModpackExportContract.Export,
@@ -115,12 +138,21 @@ public static class FoundationRuntimeComposer
                     Nexa.Xsr.XsrSemanticId.Parse("machine.capabilities.remediation.rejected"),
                     result.Message));
         });
-        var javaManagement = new Nexa.Services.Minecraft.Java.JavaRuntimeManagementService(host.JavaLocator, host.JavaRegistrations);
+        var javaManagement = new Nexa.Services.Minecraft.Java.JavaRuntimeManagementService(host.JavaLocator, host.JavaRegistrations, host.JavaManagedRuntimeRoots);
         commands.Register<Nexa.Services.Minecraft.Java.JavaRuntimeManageCommand>(Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.Manage, javaManagement.ManageAsync);
         XsrCommandRouter commandRouter = commands.Build(dispatchObserver, timeProvider);
 
         XsrQueryRouterBuilder queries = new();
-        var javaInventory = new Nexa.Services.Minecraft.Java.JavaRuntimeInventoryService(host.JavaLocator, host.JavaRegistrations);
+        if (storagePreferences is not null)
+        {
+            queries.Register<StoragePreferencesQuery, StoragePreferencesStatus>(StoragePreferencesContract.Status,
+                (_, _) => ValueTask.FromResult(storagePreferences.ReadStatus()));
+            queries.Register<StorageMigrationQuery, StorageMigrationPreview>(StoragePreferencesContract.MigrationPreview,
+                async (query, token) => await storagePreferences.PreviewMigrationAsync(query, token).ConfigureAwait(false));
+            queries.Register<StorageCleanupQuery, StorageCleanupPreview>(StoragePreferencesContract.CleanupPreview,
+                async (query, token) => await storagePreferences.PreviewCleanupAsync(query, token).ConfigureAwait(false));
+        }
+        var javaInventory = new Nexa.Services.Minecraft.Java.JavaRuntimeInventoryService(host.JavaLocator, host.JavaRegistrations, host.JavaManagedRuntimeRoots);
         queries.Register<Nexa.Services.Minecraft.Java.JavaRuntimeInventoryQuery, Nexa.Services.Minecraft.Java.JavaRuntimeInventorySnapshot>(
             Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.Query, javaInventory.ReadAsync);
         queries.Register<InstanceModpackExportQuery, InstanceModpackExportPreview>(InstanceModpackExportContract.Preview,

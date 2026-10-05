@@ -34,10 +34,10 @@ internal static partial class Program
     {
         SettingsSchema schema = LauncherDefaults.CreateSchema();
         // Legacy defaults remain intact; XSR adds independent library, policy, widget and Java registry state.
-        AssertEqual(107, schema.Count);
+        AssertEqual(108, schema.Count);
         AssertEqual(44, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Bool));
         AssertEqual(43, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.I32));
-        AssertEqual(17, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Text
+        AssertEqual(18, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Text
             && definition.Key.Value != Nexa.Services.Minecraft.MinecraftLibraryService.SettingKey
             && definition.Key.Value != SettingsPolicySchema.StorageKey
             && definition.Key.Value != Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.RegistryKey));
@@ -51,6 +51,10 @@ internal static partial class Program
             && width.DefaultValue == "854");
         AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse("SystemDebugMode")) is { } debug
             && debug.DefaultValue == "false");
+        AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse("LaunchAdvanceRunWait")) is { } wait
+            && wait.ValueType == SettingValueType.Bool && wait.DefaultValue == "true");
+        AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse("UiAccentColor")) is { } accent
+            && accent.ValueType == SettingValueType.Text && accent.DefaultValue == "blue");
         AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse("UiLanguage")) is { } language
             && language.DefaultValue == "auto");
         AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse("LoginMsAuthType")) is { } auth

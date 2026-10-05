@@ -19,6 +19,7 @@ namespace Nexa.Services.Downloads;
 public sealed class DownloadService
 {
     public IWorkScheduler? WorkScheduler { get; init; }
+    public DownloadBandwidthLimiter? BandwidthLimiter { get; internal set; }
     internal TimeProvider ProgressClock { get; init; } = TimeProvider.System;
 
     public const string OwnerName = "Nexa.Services.Downloads";
@@ -81,6 +82,7 @@ public sealed class DownloadService
         CancellationToken cancellationToken = default)
     {
         ValidateRequest(request);
+        request = request with { BandwidthBudget = BandwidthLimiter?.Capture() };
         string destinationPath = Path.GetFullPath(request.DestinationPath);
         _log?.Info(LogModuleName, $"Download requested destination={destinationPath} sources={request.Sources.Count}");
         Lazy<DownloadOperation> lazyOperation = _active.GetOrAdd(
@@ -239,12 +241,15 @@ public sealed class DownloadService
                     while (true)
                     {
                         int read = await connection
-                            .ReadAsync(buffer.AsMemory(0, _bufferSize), cancellationToken)
+                            .ReadAsync(buffer.AsMemory(0, Math.Min(_bufferSize, request.BandwidthBudget?.MaximumReadBytes ?? int.MaxValue)), cancellationToken)
                             .ConfigureAwait(false);
                         if (read == 0)
                         {
                             break;
                         }
+
+                        if (request.BandwidthBudget is { } bandwidth)
+                            await bandwidth.WaitAsync(read, cancellationToken).ConfigureAwait(false);
 
                         if (!request.AllowResume && connectionInfo.Length >= 0 && read > connectionInfo.Length - sessionRead)
                             throw new InvalidDataException("Download response exceeds its declared length.");
@@ -524,7 +529,7 @@ public sealed class DownloadService
                 long expected = end - begin + 1;
                 while (segmentBytes[segmentIndex] < expected)
                 {
-                    int requested = (int)Math.Min(_bufferSize, expected - segmentBytes[segmentIndex]);
+                    int requested = (int)Math.Min(Math.Min(_bufferSize, request.BandwidthBudget?.MaximumReadBytes ?? int.MaxValue), expected - segmentBytes[segmentIndex]);
                     int read = await connection
                         .ReadAsync(buffer.AsMemory(0, requested), cancellationToken)
                         .ConfigureAwait(false);
@@ -532,6 +537,9 @@ public sealed class DownloadService
                     {
                         break;
                     }
+
+                    if (request.BandwidthBudget is { } bandwidth)
+                        await bandwidth.WaitAsync(read, cancellationToken).ConfigureAwait(false);
 
                     await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
                     Interlocked.Add(ref segmentBytes[segmentIndex], read);

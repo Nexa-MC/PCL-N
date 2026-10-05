@@ -31,6 +31,8 @@ public sealed class AvaloniaUiShellWindow : Window
     private readonly AvaloniaNativeWindowActions _windowActions;
     private readonly Border _shadowSurface;
     private readonly Border _chromeSurface;
+    private XsrUiColor? _committedTitleBackground;
+    private XsrUiColor? _committedWindowBackground;
     private readonly Grid _maskedContent;
     private readonly Grid _root;
     private readonly Bitmap? _closeIcon;
@@ -588,8 +590,8 @@ public sealed class AvaloniaUiShellWindow : Window
             _shell.PublishWindowMetrics(AvaloniaMacWindow.ConfigureAndMeasure(this), WindowState == WindowState.FullScreen, 0);
             // An opaque native window still paints behind the rounded scene clip. Match the
             // title region as well as the body so DWM's smaller corner mask reveals no white rim.
-            var title = _shell.Palette.TitleBarBackground;
-            var body = _shell.Palette.WindowBackground;
+            var title = _committedTitleBackground ?? _shell.Palette.TitleBarBackground;
+            var body = _committedWindowBackground ?? _shell.Palette.WindowBackground;
             double split = Math.Clamp(XsrUiShell.TitleBarHeight / Math.Max(1, Bounds.Height), 0, 1);
             var opaqueBackground = new LinearGradientBrush
             {
@@ -660,7 +662,14 @@ public sealed class AvaloniaUiShellWindow : Window
 
     private void OnSceneCommitted(object? sender, AvaloniaUiSceneCommittedEventArgs e)
     {
-
+        var title = e.Scene.Nodes.FirstOrDefault(node => node.Role == XsrUiSemanticRole.TitleBar).VisualStyle.Background;
+        var body = e.Scene.Nodes.FirstOrDefault(node => node.Entity == _shell.Root).VisualStyle.Background;
+        if (!_disposed && (title != _committedTitleBackground || body != _committedWindowBackground))
+        {
+            _committedTitleBackground = title;
+            _committedWindowBackground = body;
+            UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
+        }
         if (_awaitingFirstSceneCommit && !_disposed)
         {
             _awaitingFirstSceneCommit = false;

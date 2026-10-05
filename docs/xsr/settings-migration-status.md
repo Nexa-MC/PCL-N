@@ -2,8 +2,16 @@
 
 This ledger records working consumers, rather than the number of stored legacy keys.
 The read-only dev checkout supplies behavior requirements. The active catalog has ten
-global categories, nine instance destinations and ten reserved instance setting groups.
-Cloud and cloud sync are excluded. Version settings merge Java into Game.
+global navigation categories (eight currently populated in the entry map), nine instance
+destinations and ten instance-settings groups.
+Cloud and cloud sync are excluded. Version settings merge Java into Game. The current
+catalog has 540 positions, including five consumer-backed additions since the
+535-position XSR-764 baseline: global pre-launch wait, proxy mode, the storage-root
+fact, data-location migration, and finished task-card cleanup. This count describes
+IA positions, not 540 implemented capabilities. The value schema declares 46
+definitions, of which 45 have available consumers. `java.compatibility` remains
+unavailable: compatibility checks are mandatory, and the retained definition does
+not expose a switch that bypasses them.
 
 ## Delivered launch-policy slice
 
@@ -28,8 +36,8 @@ than claiming to change resource/Java/loader budgets or global HTTP admission.
 XSR-764 delivers default-server policy and scoped automatic game-file repair. Launch
 preparation captures its effective settings once. Instance metadata and explicit Join
 server intents retain priority over a global default; empty instance Custom disables join.
-Turning off automatic repair does not disable preflight or Java validation. The current
-catalog has 535 positions, including the new default-server form field.
+Turning off automatic repair does not disable preflight or Java validation. Its historical
+catalog baseline had 535 positions, including the new default-server form field.
 
 XSR-765 delivers a scoped Java distribution preference as a soft tie-break among
 compatible installed runtimes. Explicit Java paths remain authoritative. Long setting
@@ -95,14 +103,88 @@ Managed addons and instance metadata are published together into the selected
 shared or isolated directory; edits, packs and existing instances keep their own
 layout. Killed-downloader recovery reuses the captured policy.
 
+## Current-capability closure: XSR-783–789
+
+[XSR-783](XSR-783-launch-hooks.md) captures scoped wrapper, pre-launch command and
+wait preferences in each immutable launch plan. Wrapper arguments preserve the
+private JVM bootstrap transport. Hooks run in the game working directory, waiting
+hooks gate launch on a successful exit, and cancellation/startup failure stops owned
+process groups/Jobs, including descendants of an already-exited shell. A nonwaiting
+hook detaches only after successful game creation. Command text remains local-only
+and is neither interpolated with credentials nor logged.
+
+[XSR-784](XSR-784-network-preferences.md) connects direct/system/custom proxy, DoH,
+IP-family preference and a captured shared transfer-body budget. Proxy fields commit
+as one revision-checked batch; passwords use sensitive inputs and stay out of settings
+exports. Request generations retain their transport for active responses. DoH retains
+system-DNS fallback, the IP preference orders rather than disables address families,
+and TLS, redirects, digests and regional source authority retain their existing rules.
+The shared download consumer and independently streamed managed Java installer share
+the application budget; safe loader/component/modpack paths capture existing source,
+retry and concurrency policy where their planners support it. This does not claim
+provider enable/disable, background-download policy, automatic network diagnostics,
+OS traffic limits, external tools or update-helper traffic.
+
+[XSR-785](XSR-785-managed-java-removal.md) delivers confirmed managed-runtime deletion
+only for completed installer-owned components. Revalidated plan identity, tree hashes,
+registration revision and runtime-use leases protect changed files, active sessions
+and ongoing installs. The executor acquires the use lease before native extraction
+and hooks, and binds it to the actual process identity after creation. Durable bound
+records retain exclusion when the launcher lock closes while the game is alive;
+malformed or unresolved records cannot prove exit. External runtime removal
+unregisters without deleting files. Quarantine precedes the durable write;
+pre-commit failure/cancellation restores the
+component, and committed cleanup can retry. Mandatory Java compatibility remains.
+
+[XSR-786](XSR-786-appearance-preferences.md) applies system/light/dark mode and a
+bounded accent palette from committed settings while Settings is closed. UI.Next
+projects colors into scenes without rewriting stored component colors, including
+backend-owned text, focus, selection and control decorations. Native system
+notifications wake a frame and explicit mode remains authoritative. Native requested
+theme applies to dialogs/controls. Arbitrary imported themes, multimedia backgrounds
+and unrelated OS integrations remain reserved.
+
+[XSR-787](XSR-787-disk-log-preferences.md) connects committed 1–90 day retention to
+the real file sink, which rotates active logs at 4 MiB and bounds owned archives to
+32 files / 64 MiB. Cleanup preserves the active log, unrelated files and links. The
+privacy page opens the configured directory and explicitly exports current plus
+retained disk log facts to a user-selected ZIP. Export captures bounded read handles
+at the writer barrier, preserving admitted records across rotation or pruning.
+Bounded parsing retains validated local time/severity/built-in modules, excludes
+free text and paths, and reports that
+the existing disk format has no UTC date or typed operation facts. Export is cancellable,
+stages atomically and refuses overwrite. The existing diagnostic bundle remains separate.
+
+[XSR-788](XSR-788-storage-preferences.md) delivers preview-confirmed launcher data
+location migration through a queued bootstrap transaction. The Host must be idle and
+environment-pinned roots cannot move. The next startup hashes and stages the copy before
+changing the locator; the source is preserved and stored Minecraft paths are not rebased.
+Preview and startup refuse populated root-bound installation and recovery records
+inside launcher data, including completed Java receipts. External game and Java
+roots retain their original paths and ownership records.
+Stale queued requests can be canceled explicitly. Separate conservative cleanup previews
+cover only known old atomic-write temporaries or successfully finished visible task cards;
+user files, failed/canceled tasks, install/recovery records and ordinary caches remain.
+
+[XSR-789](XSR-789-settings-consumer-closure.md) integrates those six consumer slices
+into the existing sealed contracts, forms, routes and composition. These implementations
+do not mark the remaining future IA positions available. The integrated Linux x64
+worktree passed the managed Services (583), Desktop (161), renderer (97), backend
+(15), architecture (70 projects), formatting and renderer benchmark gates. Full
+NativeAOT Services (583), NativeAOT Desktop shell/first-run probes and trimmed
+Desktop shell/first-run probes also passed; see the
+[integration evidence](XSR-789-settings-consumer-closure.md#integration-evidence). Native backend rendering
+checks and display-free probes are reported separately; Windows/macOS manual GUI
+and live online acceptance remain unverified.
+
 | Slice | Remaining integration |
 |---|---|
-| Java | Managed-runtime deletion; compatibility checks remain mandatory until a separate safe policy exists |
-| Game | Wrapper/hooks; each needs scope-correct consumers and failure/cancellation semantics |
-| Download and network | Bandwidth, proxy and DNS; other download kinds need their own budget and source policies |
-| Appearance/general | Theme and supported system integration; platform actions belong to Host |
-| Privacy/advanced | Disk log retention/export; existing telemetry policy and update actions retain their security boundaries |
-| Storage | Storage-location migration preview and cleanup; use existing service commands and transaction contracts |
+| Java | Optional compatibility policy needs a separate safe contract; current compatibility checks remain mandatory |
+| Game | Arbitrary launch profiles/temporary overlays and future hooks need their own ownership and cancellation contracts |
+| Download and network | Content-provider enable/disable, background-download policy, automatic diagnostics and additional source policies need consumers; transfer budgets do not bound all network traffic |
+| Appearance/general | Autostart, tray lifetime, single-instance activation, URI/file associations, native notifications, arbitrary themes and multimedia need supported Host consumers |
+| Privacy/advanced | Persistent richer diagnostic histories and future diagnostic tools remain reserved; existing telemetry and update security boundaries remain authoritative |
+| Storage | Reference-aware CAS collection, cloud synchronization, profile relocation, snapshot pruning and automatic deletion are independent capabilities |
 
 Reserved IA positions are not a statement that dev already implements every capability.
 Each next slice must first define its value and application timing, then connect a real

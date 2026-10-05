@@ -34,7 +34,7 @@ public static class MinecraftInstallRuntimeComposer
         IInstallCatalogSource? catalogSource = null,
         IXsrDispatchObserver? observer = null)
     {
-        HttpClient http = new();
+        HttpClient http = host.CreateHttpClient();
         MinecraftInstallService service = new(
             host.Tasks,
             host.Downloads,
@@ -42,7 +42,8 @@ public static class MinecraftInstallRuntimeComposer
             http,
             inheritVanilla: () => host.SettingsPolicy.Read(new()).Value?.Values
                 .FirstOrDefault(value => value.Key == "install.inherit-vanilla")?.Value.Value == "true",
-            settingsPolicy: host.SettingsPolicy, hostStore: host.StateStore);
+            settingsPolicy: host.SettingsPolicy, hostStore: host.StateStore)
+        { HttpClientFactory = host.CreateHttpClient };
         host.MinecraftRemediations.BindInstall(service);
         XsrCommandRouterBuilder commands = new();
         commands.Register<MinecraftInstallStopCommand>(MinecraftInstallRoutes.Stop,

@@ -48,6 +48,8 @@ public sealed class LogService : ILogWriter, IDisposable
     private readonly TimeSpan _publicationInterval;
     private bool _pending, _publicationScheduled, _disposed;
     private readonly List<ILogSink> _sinks = [];
+    private ILogRetentionSink[] _retentionSinks = [];
+    private int _diskRetentionDays = 7, _diskRetentionConfigured;
 
     /// <summary>
     /// Two-phase composition, declaration phase: registers the ordered entries collection
@@ -93,10 +95,30 @@ public sealed class LogService : ILogWriter, IDisposable
         lock (_gate)
         {
             _sinks.Add(sink);
+            if (sink is ILogRetentionSink retention)
+            {
+                Volatile.Write(ref _retentionSinks, [.. _retentionSinks, retention]);
+                if (Volatile.Read(ref _diskRetentionConfigured) != 0)
+                    retention.SetRetentionDays(Volatile.Read(ref _diskRetentionDays));
+            }
         }
     }
 
     public int Capacity => _capacity;
+
+    /// <summary>Committed disk retention policy. Applying it never performs IO or waits for publication.</summary>
+    public int DiskRetentionDays
+    {
+        get => Volatile.Read(ref _diskRetentionDays);
+        set
+        {
+            if (value is < 1 or > 90) throw new ArgumentOutOfRangeException(nameof(value));
+            if (Volatile.Read(ref _disposed)) return;
+            Volatile.Write(ref _diskRetentionDays, value);
+            Volatile.Write(ref _diskRetentionConfigured, 1);
+            foreach (var sink in Volatile.Read(ref _retentionSinks)) sink.SetRetentionDays(value);
+        }
+    }
 
     /// <summary>Bounded retained history; reducing it discards oldest entries immediately.</summary>
     public int RetentionLimit

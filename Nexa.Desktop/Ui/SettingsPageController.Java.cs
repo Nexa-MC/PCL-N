@@ -98,6 +98,18 @@ internal sealed partial class SettingsPageController
             DesktopLiteralText.Preserve(_shell.Tree, Text(labels, entry.Executable, 11, Muted, 32));
             BuildJavaManagement(row, entry.Executable, entry.Enabled);
         }
+        foreach (var managed in _javaInventory.ManagedRuntimes.Where(entry => !_javaInventory.Runtimes.Any(candidate =>
+            Nexa.Core.PathIdentity.Comparer.Equals(entry.Executable, candidate.Installation.JavaExecutablePath))
+            && !_javaInventory.Registrations.Any(registered => registered.Custom && Nexa.Core.PathIdentity.Comparer.Equals(registered.Executable, entry.Executable))))
+        {
+            var row = Stack(group, "SettingsJavaManagedMissing", XsrUiOrientation.Horizontal, 12);
+            var labels = Stack(row, "SettingsJavaManagedMissing.Label", XsrUiOrientation.Vertical, 3);
+            _shell.Tree.GetComponent<XsrUiElement>(labels)!.Weight = 1;
+            Text(labels, "托管 Java 不可用", 13, Muted, 24);
+            DesktopLiteralText.Preserve(_shell.Tree, Text(labels, managed.Executable, 11, Muted, 32));
+            BuildJavaManagement(row, managed.Executable, _javaInventory.Registrations.FirstOrDefault(entry =>
+                Nexa.Core.PathIdentity.Comparer.Equals(entry.Executable, managed.Executable))?.Enabled ?? true);
+        }
         UpdateJavaChoices();
         if (focus is not null) _shell.Tree.Walk(group, entity =>
         { if (_shell.Tree.Name(entity) == focus) _shell.Renderer.Focus(entity, showIndicator: false); return true; });
@@ -123,20 +135,37 @@ internal sealed partial class SettingsPageController
                     });
             });
         }
+        if (_javaInventory.ManagedRuntimes.FirstOrDefault(entry => Nexa.Core.PathIdentity.Comparer.Equals(entry.Executable, executable)) is { } managed)
+        {
+            var remove = ActionButton(row, "SettingsJavaDelete." + executable, "删除托管 Java", ManagementAction, 108);
+            RegisterContentAction(remove, () =>
+            {
+                long revision = _javaInventory.RegistryRevision;
+                long generation = _javaRegistryGeneration;
+                _feedback.ShowDialog("java.managed.delete", "删除托管 Java", "删除此启动器安装的 Java 文件。正在使用、已修改或包含额外文件的运行时会保留。\n" + managed.Directory,
+                    "删除", "取消", accepted =>
+                    {
+                        if (accepted && generation == _javaRegistryGeneration && IsJavaInventoryPage && _instanceDirectory is null && _javaInventory?.RegistryRevision == revision
+                            && _javaInventory.ManagedRuntimes.Any(entry => entry == managed))
+                            ManageJava(executable, JavaRuntimeManagementAction.DeleteManaged, revision, managed.Identity);
+                    });
+            });
+        }
         _shell.Tree.Walk(row, entity =>
         {
-            if (_shell.Tree.GetComponent<XsrUiInput>(entity) is { } input) input.Enabled = !JavaManagementBusy;
+            if (_shell.Tree.GetComponent<XsrUiInput>(entity) is { } input) input.Enabled = !JavaManagementBusy && _javaInventoryRead is null;
             return true;
         });
     }
 
-    private void ManageJava(string executable, JavaRuntimeManagementAction action, long? expectedRevision = null)
+    private void ManageJava(string executable, JavaRuntimeManagementAction action, long? expectedRevision = null, string? managedIdentity = null)
     {
         if (_instanceDirectory is not null || !IsJavaInventoryPage || JavaManagementBusy || _javaInventory is null
             || !_commands.TryResolve(JavaRuntimeInventoryContract.Manage, out var route)) return;
         _javaManagementStop ??= new();
         _javaManagementWrite = _commands.Dispatch(route, new JavaRuntimeManageCommand(executable, action,
-            expectedRevision ?? _javaInventory.RegistryRevision), cancellationToken: _javaManagementStop.Token).Completion;
+            expectedRevision ?? _javaInventory.RegistryRevision)
+        { ExpectedManagedIdentity = managedIdentity }, cancellationToken: _javaManagementStop.Token).Completion;
         ObserveTransfer(_javaManagementWrite); BuildJavaInventory();
     }
 
@@ -191,7 +220,7 @@ internal sealed partial class SettingsPageController
         if (_javaManagementWrite is { IsCompleted: true } writing)
         {
             _javaManagementWrite = null;
-            if (!PendingQuery.Succeeded(writing)) _feedback.Error(writing.IsCompletedSuccessfully ? writing.Result.Error?.Message ?? "Java 管理未完成。" : "Java 管理未完成。");
+            if (!writing.IsCanceled && !PendingQuery.Succeeded(writing)) _feedback.Error(writing.IsCompletedSuccessfully ? writing.Result.Error?.Message ?? "Java 管理未完成。" : "Java 管理未完成。");
             CancelJavaInventory(); StartJavaInventory(refresh: true); BuildJavaInventory();
         }
         if (!_javaInventoryRequested) { StartJavaInventory(refresh: false); BuildJavaInventory(); }

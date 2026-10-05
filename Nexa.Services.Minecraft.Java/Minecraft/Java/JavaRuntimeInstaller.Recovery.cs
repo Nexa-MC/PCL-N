@@ -24,6 +24,7 @@ public sealed partial class JavaRuntimeInstaller
                     string path = Path.Combine(root, ".nexa-java.lock");
                     Nexa.Services.Minecraft.Management.RecoveryBlobStore.CheckLinks(path);
                     using var lease = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                    JavaRuntimeManagedStore.CheckUnused(root, journal.Intent.Component);
                     await journal.CancelAsync(MatchesAsync).ConfigureAwait(false);
                     continue;
                 }
@@ -49,7 +50,10 @@ public sealed partial class JavaRuntimeInstaller
         Nexa.Services.Minecraft.Management.RecoveryBlobStore.CheckLinks(path);
         using var lease = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         foreach (var journal in await PendingAsync(root, CancellationToken.None).ConfigureAwait(false))
+        {
+            JavaRuntimeManagedStore.CheckUnused(root, journal.Intent.Component);
             await journal.CancelAsync(MatchesAsync).ConfigureAwait(false);
+        }
     }
 
     private static async Task<JavaInstallJournal?> FindPendingAsync(string root, string component, CancellationToken token)

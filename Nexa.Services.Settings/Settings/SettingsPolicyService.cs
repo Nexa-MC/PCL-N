@@ -120,6 +120,12 @@ public sealed partial class SettingsPolicyService
             if (inherited is null && definition.Key == "network.game-source"
                 && raw.GetValueOrDefault("ToolDownloadSource") is "0" or "2")
                 inherited = new(SettingsOverrideMode.Custom, raw["ToolDownloadSource"] == "0" ? "mirrors-first" : "official-only");
+            if (inherited is null && definition.Key == "network.bandwidth-kib"
+                && int.TryParse(raw.GetValueOrDefault("ToolDownloadSpeed"), out int speed) && speed is >= 0 and < 42)
+            {
+                double mib = speed switch { <= 14 => (speed + 1) * 0.1, <= 31 => (speed - 11) * 0.5, _ => speed - 21 };
+                inherited = new(SettingsOverrideMode.Custom, ((long)Math.Round(mib * 1024)).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
             if (inherited is null && definition.Key == "network.file-concurrency"
                 && raw.GetValueOrDefault("ToolDownloadThread") is { } threadSlider && threadSlider != "63"
                 && int.TryParse(threadSlider, out int threads))
@@ -195,6 +201,8 @@ public sealed partial class SettingsPolicyService
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.file-concurrency")
                 writes["ToolDownloadThread"] = mutation.Value.Mode == SettingsOverrideMode.Inherit ? "63"
                     : (int.Parse(mutation.Value.Value!, System.Globalization.CultureInfo.InvariantCulture) - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (mutation.Layer == SettingsLayer.Global && mutation.Key == "network.bandwidth-kib" && mutation.Value.Mode == SettingsOverrideMode.Inherit)
+                writes["ToolDownloadSpeed"] = "42";
             if (mutation.Layer == SettingsLayer.Global && mutation.Key == "game.memory" && mutation.Value.Mode != SettingsOverrideMode.Custom)
                 writes["LaunchRamType"] = "0";
         }

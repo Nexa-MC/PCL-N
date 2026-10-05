@@ -6,6 +6,7 @@ using Nexa.Services.Minecraft.Downloads;
 using Nexa.Services.Minecraft.Java;
 using Nexa.Services.Minecraft.Launch;
 using Nexa.Services.Minecraft.Libraries;
+using Nexa.Services.Settings;
 
 namespace Nexa.Services.Minecraft.Install;
 
@@ -15,6 +16,7 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
     Func<MinecraftLoaderInstallRequest, CancellationToken, Task<string>>? resolveJava = null,
     Func<ProcessStartInfo, CancellationToken, Task>? runProcess = null) : IMinecraftLoaderInstaller
 {
+    public SettingsPolicyService? SettingsPolicy { get; init; }
     public static string InstallerUrl(InstallLoader loader, string game, string build)
     {
         if (loader is not (InstallLoader.Forge or InstallLoader.NeoForge or InstallLoader.Cleanroom or InstallLoader.OptiFine)) throw new ArgumentException("Unsupported installer.");
@@ -34,6 +36,7 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
 
     public async Task<JsonObject> InstallAsync(MinecraftLoaderInstallRequest request, IProgress<string>? progress, CancellationToken token)
     {
+        MinecraftDownloadPolicy downloadPolicy = MinecraftDownloadPolicy.Read(SettingsPolicy);
         string url = InstallerUrl(request.Loader, request.Game, request.Build);
         string root = Path.GetFullPath(request.Root);
         string stage = Path.Combine(root, ".nexa-install", Guid.NewGuid().ToString("N"));
@@ -68,7 +71,7 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
                         if (sha.Length != 40 || !sha.All(char.IsAsciiHexDigit)) throw new InvalidDataException("安装器校验信息无效。");
                     }
                     progress?.Report("正在下载安装器");
-                    await TransferAsync(url, installer, sha, 0, token,
+                    await TransferAsync(url, installer, sha, 0, downloadPolicy, token,
                         officialInstaller: request.Loader is InstallLoader.Forge or InstallLoader.NeoForge).ConfigureAwait(false);
                 }
                 if (sha256 is not null)
@@ -113,8 +116,8 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
                     }
                 }
             progress?.Report("正在准备安装器依赖");
-            await PrefetchAsync(profile, root, stage, token).ConfigureAwait(false);
-            await PrefetchAsync(version, root, stage, token).ConfigureAwait(false);
+            await PrefetchAsync(profile, root, stage, downloadPolicy, token).ConfigureAwait(false);
+            await PrefetchAsync(version, root, stage, downloadPolicy, token).ConfigureAwait(false);
             if (request.Loader != InstallLoader.OptiFine && profile["versionInfo"] is not JsonObject)
             {
                 var javaRequest = request.Loader == InstallLoader.Cleanroom
@@ -138,7 +141,7 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
             }
             if (string.IsNullOrWhiteSpace(version["mainClass"]?.ToString())) throw new InvalidDataException("安装器没有生成启动入口。");
             if (version["inheritsFrom"] is { } parent && parent.ToString() != request.Game) throw new InvalidDataException("安装器生成了不同 Minecraft 版本的配置。");
-            await PrefetchAsync(version, root, stage, token).ConfigureAwait(false);
+            await PrefetchAsync(version, root, stage, downloadPolicy, token).ConfigureAwait(false);
             // Every runtime artifact, including processor outputs with empty download URLs, must exist.
             foreach (var library in Libraries(version, stage))
                 if (!await MinecraftFileVerifier.VerifyAsync(new(library.LocalPath, library.Size > 0 ? library.Size : null, library.Sha1), token).ConfigureAwait(false))
@@ -164,7 +167,7 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
         }
     }
 
-    private async Task PrefetchAsync(JsonObject document, string root, string stage, CancellationToken token)
+    private async Task PrefetchAsync(JsonObject document, string root, string stage, MinecraftDownloadPolicy downloadPolicy, CancellationToken token)
     {
         foreach (var library in Libraries(document, stage))
         {
@@ -176,7 +179,7 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
                 File.Copy(original, library.LocalPath, true);
             }
             else if (!string.IsNullOrWhiteSpace(library.Url))
-                await TransferAsync(library.Url, library.LocalPath, library.Sha1, library.Size, token).ConfigureAwait(false);
+                await TransferAsync(library.Url, library.LocalPath, library.Sha1, library.Size, downloadPolicy, token).ConfigureAwait(false);
         }
     }
 
@@ -194,20 +197,27 @@ public sealed partial class ForgeInstallService(DownloadService downloads, HttpC
         });
     }
 
-    private async Task TransferAsync(string url, string path, string? sha, long size, CancellationToken token, bool officialInstaller = false)
+    private async Task TransferAsync(string url, string path, string? sha, long size, MinecraftDownloadPolicy downloadPolicy, CancellationToken token, bool officialInstaller = false)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != "https") throw new InvalidDataException("安装器依赖必须使用 HTTPS。");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        string[] sources = officialInstaller ? [url] : MinecraftDownloadSourcePlanner.GetLibrarySources(url, true, sha).Append(url).Distinct(StringComparer.Ordinal).ToArray();
-        var result = await downloads.DownloadAsync(new DownloadRequest
+        string[] sources = officialInstaller ? [url] : downloadPolicy.SelectSources(url, MinecraftDownloadSourcePlanner.GetLibrarySources(url, true, sha).Append(url));
+        var transfer = new DownloadRequest
         {
+            AllowResume = !string.IsNullOrEmpty(sha),
             Sources = sources,
             DestinationPath = path,
             ConnectionFactory = source => connectionFactory?.Invoke(source) ?? new MinecraftInstallService.HttpConnection(http, source,
                 officialInstaller ? uri : null),
-        }, cancellationToken: token).ConfigureAwait(false);
-        if (!result.Success || !await MinecraftFileVerifier.VerifyAsync(new(path, size > 0 ? size : null, sha), token).ConfigureAwait(false))
-            throw new IOException("加载器文件下载或校验失败：" + Path.GetFileName(path));
+        };
+        for (int attempt = 0; attempt < (downloadPolicy.Retry ? 2 : 1); attempt++)
+        {
+            if (attempt > 0) await Task.Delay(TimeSpan.FromSeconds(3), token).ConfigureAwait(false);
+            var result = await downloads.DownloadAsync(transfer, cancellationToken: token).ConfigureAwait(false);
+            if (result.Success && await MinecraftFileVerifier.VerifyAsync(new(path, size > 0 ? size : null, sha), token).ConfigureAwait(false)) return;
+            if (result.Success) File.Delete(path);
+        }
+        throw new IOException("加载器文件下载或校验失败：" + Path.GetFileName(path));
     }
 
     private static JsonObject ReadJson(ZipArchive archive, string name)

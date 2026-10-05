@@ -2,8 +2,32 @@
 
 本文保留 2026-09-12 的历史规划。当前完成情况、已启用消费者和后续迁移顺序以
 [设置迁移清单](settings-migration-status.md) 为准；下文早期节点数量及 Cloud 规划不代表当前产品范围。
+当前目录为 540 个位置、46 个基础值契约，其中 45 个具有可用消费者。
+`java.compatibility` 的可选策略仍未开放，现有兼容性检查保持强制。
+位置数量包含分组、选项、操作和事实，
+不表示所有 IA 能力均已实现。
 
-交付入口：[目录与继承契约](migrations/settings-catalog-and-inheritance.md)、[完整 IA 条目表](settings-entry-map.md)、[基础值契约表](settings-value-contracts.md)。566 个 IA 节点已保留最终位置；29 个基础值契约已声明。未来能力的设置仍显式保留为 reserved / NotImplemented，不伪造默认值或开启控件。当前阶段未实现设置页面，也未宣称新设置已接通所有运行消费者。
+交付入口：[目录与继承契约](migrations/settings-catalog-and-inheritance.md)、[完整 IA 条目表](settings-entry-map.md)、[基础值契约表](settings-value-contracts.md)。历史起点为 566 个 IA 节点和 29 个基础值契约。当前设置页、继承表单和已交付消费者已经接通；未来能力仍保留为 reserved / NotImplemented，不通过保存旧键或开启控件宣称完成。
+
+## 当前追加交付：XSR-783–789
+
+XSR-783–788 完成六个当前能力切片，XSR-789 负责统一目录、值契约、Host 接线和验收。
+这些能力的详细执行边界以各自契约文档和迁移清单为准：
+
+- [启动 Wrapper 与预启动命令](XSR-783-launch-hooks.md)：按实例捕获命令及等待策略，保留私密 JVM 引导传输；失败和取消停止仍由启动器拥有的进程。
+- [下载与网络策略](XSR-784-network-preferences.md)：代理表单原子提交、DoH 与系统 DNS 回退、IP 地址族优先顺序，以及已接入下载消费者共用的正文带宽预算；新请求/传输捕获策略，不承诺限制全部网络流量。
+- [托管 Java 删除](XSR-785-managed-java-removal.md)：安装日志证明所有权，重新校验完整树和活动使用租约；执行器在 Hooks 前获取租约，进程身份记录在启动器关闭后仍保护运行中的 JVM；确认后隔离与持久化，外部 Java 只解除注册。
+- [主题和强调色](XSR-786-appearance-preferences.md)：提交后的系统/浅色/深色及有限强调色即时投影到场景与原生窗口，不改写组件保存的颜色。
+- [磁盘日志](XSR-787-disk-log-preferences.md)：实际轮转、年龄/数量/字节保留限制，以及用户选择目录的有界日志事实导出；写入屏障固定只读句柄和字节范围，轮转/裁剪不丢已纳入快照的记录；正文、异常和路径不进入 ZIP，取消/失败不留下半成品。
+- [存储位置与保守清理](XSR-788-storage-preferences.md)：空闲时预览并排队，下次启动验证复制后提交定位器，保留来源；含游戏/Java 路径授权安装与恢复记录的数据树拒绝迁移，外部游戏和 Java 存储保留原路径；临时文件和成功任务卡片使用独立预览与清理事务。
+
+本轮 Linux x64 集成验证已通过：managed Services 583、Desktop 161、renderer 97、
+原生 backend 15、架构 70 个项目，以及格式与 renderer benchmark 门禁。
+完整 NativeAOT Services 583、NativeAOT Desktop 与 trimmed Desktop 的 shell/首次运行
+探测均通过；详见 [XSR-789 验证证据](XSR-789-settings-consumer-closure.md#integration-evidence)。
+原生平台的人工交互与线上验收仍单独报告，不由无显示的 shell 探测替代。Cloud、CAS、
+任意启动配置与覆盖、没有 Host 消费者的系统集成、未来网络诊断及其他保留能力
+仍按独立契约推进；六个切片完成不表示整份历史 IA 完成。
 
 依据：用户提供的《Nexa 2.x 设置系统最终 IA.md》。本文将附件作为产品设计输入，整理实现顺序，不把附件中的未来能力视为已经存在，也不替代已锁定的 XSR 架构契约。
 
