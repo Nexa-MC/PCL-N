@@ -198,7 +198,8 @@ internal static partial class Program
 
     private static async ValueTask FunctionPatchTerminalPathsRetirePrograms()
     {
-        foreach (var ending in new[] { SidecarMessageType.Shutdown, SidecarMessageType.Crash, SidecarMessageType.CommandResult })
+        // CommandRequest exercises the invalid peer-to-Host direction.
+        foreach (var ending in new[] { SidecarMessageType.Shutdown, SidecarMessageType.Crash, SidecarMessageType.CommandRequest })
         {
             XsrFunctionPatchRuntime runtime = new(CaptionPoint);
             var (session, plugin) = await PatchSession(runtime,
@@ -209,7 +210,7 @@ internal static partial class Program
                 AssertEqual("patched", runtime.Invoke(runtime.Resolve(CaptionPoint), "v", static value => value));
                 Task receive = session.RunReceiveLoopAsync().AsTask();
                 await plugin.SendAsync(new(SidecarProtocol.Version, ending, SidecarFrameTraits.Final,
-                    SidecarCorrelationId.Create(), ending == SidecarMessageType.CommandResult ? new byte[] { 255 } : Array.Empty<byte>()));
+                    SidecarCorrelationId.Create(), Array.Empty<byte>()));
                 await receive.WaitAsync(TimeSpan.FromSeconds(5));
                 AssertEqual("v", runtime.Invoke(runtime.Resolve(CaptionPoint), "v", static value => value));
             }

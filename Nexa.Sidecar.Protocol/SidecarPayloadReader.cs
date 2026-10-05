@@ -38,7 +38,12 @@ public readonly ref struct SidecarPayloadField
 
     public SidecarFieldTag Tag { get; }
 
-    public bool ReadBoolean() => Require(SidecarFieldTag.Boolean, 1)[0] != 0;
+    public bool ReadBoolean()
+    {
+        byte value = Require(SidecarFieldTag.Boolean, 1)[0];
+        if (value > 1) throw new SidecarProtocolException("A Boolean field must be zero or one.");
+        return value == 1;
+    }
 
     public uint ReadUInt32() => BinaryPrimitives.ReadUInt32LittleEndian(Require(SidecarFieldTag.U32, 4));
 
@@ -50,7 +55,11 @@ public readonly ref struct SidecarPayloadField
 
     public Guid ReadGuid() => new(Require(SidecarFieldTag.Id128, 16));
 
-    public string ReadString() => Encoding.UTF8.GetString(Require(SidecarFieldTag.Str, null));
+    public string ReadString()
+    {
+        try { return SidecarWireCodecs.Utf8.GetString(Require(SidecarFieldTag.Str, null)); }
+        catch (DecoderFallbackException) { throw new SidecarProtocolException("A string field is not valid UTF-8."); }
+    }
 
     public byte[] ReadBytes() => Require(SidecarFieldTag.Bytes, null).ToArray();
 
@@ -80,10 +89,13 @@ public readonly ref struct SidecarPayloadField
 public ref struct SidecarPayloadReader
 {
     private ReadOnlySpan<byte> _remaining;
+    private ushort _lastFieldId;
 
     public SidecarPayloadReader(ReadOnlySpan<byte> payload)
     {
+        if (payload.Length > SidecarProtocol.MaxPayloadLength) throw new SidecarProtocolException("The payload exceeds the protocol maximum.");
         _remaining = payload;
+        _lastFieldId = 0;
     }
 
     /// <summary>
@@ -108,6 +120,7 @@ public ref struct SidecarPayloadReader
         {
             throw new SidecarProtocolException("Field ID zero is reserved.");
         }
+        if (id <= _lastFieldId) throw new SidecarProtocolException("Payload fields must be strictly ascending and unique.");
 
         var tag = (SidecarFieldTag)_remaining[2];
         if (!Enum.IsDefined(tag))
@@ -124,6 +137,7 @@ public ref struct SidecarPayloadReader
 
         SidecarPayloadField field = new(id, tag, _remaining.Slice(5, length));
         _remaining = _remaining[(5 + length)..];
+        _lastFieldId = id;
         return field;
     }
 }

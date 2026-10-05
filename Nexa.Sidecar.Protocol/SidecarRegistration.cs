@@ -19,6 +19,7 @@ public enum SidecarRegistrationKind : uint
     IntentCatch = 10,
     IntentWait = 11,
     FunctionPatch = 12,
+    Stream = 13,
 }
 
 /// <summary>
@@ -38,6 +39,9 @@ public readonly record struct SidecarRegistrationItem(
     string? RequiredResources = null,
     string? TargetSemanticId = null)
 {
+    /// <summary>The result codec, or the stream chunk codec. Missing TLV 9 retains codec zero.</summary>
+    public uint ResultCodecId { get; init; }
+
     // Preserve the original seven-field CLR constructor/deconstruction for existing SDK binaries.
     public SidecarRegistrationItem(SidecarRegistrationKind kind, string semanticId, uint flags, uint codecId,
         byte[]? payload, byte[]? contentHash, string? requiredResources)
@@ -68,17 +72,18 @@ public static class SidecarRegistration
 
     public static uint DecodeBegin(ReadOnlySpan<byte> payload)
     {
+        uint? count = null;
         SidecarPayloadReader reader = new(payload);
         while (reader.HasMore)
         {
             SidecarPayloadField field = reader.ReadNext();
             if (field.Id == 1)
             {
-                return field.ReadUInt32();
+                count = field.ReadUInt32();
             }
         }
 
-        throw new SidecarProtocolException("The REGISTER_BEGIN payload carries no item count.");
+        return count ?? throw new SidecarProtocolException("The REGISTER_BEGIN payload carries no item count.");
     }
 
     public static byte[] EncodeItem(in SidecarRegistrationItem item)
@@ -103,6 +108,7 @@ public static class SidecarRegistration
             writer.WriteString(7, resources);
         }
         if (item.TargetSemanticId is { } target) writer.WriteString(8, target);
+        if (item.ResultCodecId != 0) writer.WriteUInt32(9, item.ResultCodecId);
 
         return writer.ToArray();
     }
@@ -117,6 +123,7 @@ public static class SidecarRegistration
         byte[]? hash = null;
         string? requiredResources = null;
         string? target = null;
+        uint resultCodec = 0;
         SidecarPayloadReader reader = new(payload);
         while (reader.HasMore)
         {
@@ -147,6 +154,7 @@ public static class SidecarRegistration
                 case 8:
                     target = field.ReadString();
                     break;
+                case 9: resultCodec = field.ReadUInt32(); break;
             }
         }
 
@@ -161,11 +169,16 @@ public static class SidecarRegistration
         }
 
         var declaredKind = (SidecarRegistrationKind)kind;
-        if (codecId != 0 && declaredKind != SidecarRegistrationKind.State)
+        if (codecId != 0 && declaredKind is not (SidecarRegistrationKind.State or SidecarRegistrationKind.Command
+            or SidecarRegistrationKind.Query or SidecarRegistrationKind.Event or SidecarRegistrationKind.Stream))
         {
             throw new SidecarProtocolException(
-                "Only state declarations carry a payload codec contract.");
+                "This registration kind cannot carry a payload codec contract.");
         }
+        if (!SidecarWireCodecs.IsSupported(codecId) || !SidecarWireCodecs.IsSupported(resultCodec))
+            throw new SidecarProtocolException("Registration declares an unsupported value codec.");
+        if (resultCodec != 0 && declaredKind is not (SidecarRegistrationKind.Command or SidecarRegistrationKind.Query or SidecarRegistrationKind.Stream))
+            throw new SidecarProtocolException("This registration kind cannot carry a result codec contract.");
 
         if (declaredKind is SidecarRegistrationKind.UiModule or SidecarRegistrationKind.Resource || IsExtension(declaredKind))
         {
@@ -188,7 +201,8 @@ public static class SidecarRegistration
             content,
             hash,
             requiredResources,
-            target);
+            target)
+        { ResultCodecId = resultCodec };
     }
 
     public static bool IsExtension(SidecarRegistrationKind kind) => kind is
@@ -196,6 +210,12 @@ public static class SidecarRegistration
         or SidecarRegistrationKind.IntentCatch or SidecarRegistrationKind.IntentWait or SidecarRegistrationKind.FunctionPatch;
 
     public static byte[] EncodeEnd() => [];
+
+    public static void DecodeEnd(ReadOnlySpan<byte> payload)
+    {
+        var reader = new SidecarPayloadReader(payload);
+        while (reader.HasMore) _ = reader.ReadNext();
+    }
 }
 
 /// <summary>
@@ -214,17 +234,18 @@ public static class SidecarStateSnapshot
 
     public static uint DecodeBegin(ReadOnlySpan<byte> payload)
     {
+        uint? count = null;
         SidecarPayloadReader reader = new(payload);
         while (reader.HasMore)
         {
             SidecarPayloadField field = reader.ReadNext();
             if (field.Id == 1)
             {
-                return field.ReadUInt32();
+                count = field.ReadUInt32();
             }
         }
 
-        throw new SidecarProtocolException("The STATE_SNAPSHOT_BEGIN payload carries no item count.");
+        return count ?? throw new SidecarProtocolException("The STATE_SNAPSHOT_BEGIN payload carries no item count.");
     }
 
     /// <summary>
@@ -273,11 +294,15 @@ public static class SidecarStateSnapshot
 
     public static byte[] EncodeEnd() => [];
 
+    public static void DecodeEnd(ReadOnlySpan<byte> payload) => SidecarRegistration.DecodeEnd(payload);
+
     /// <summary>
     /// Encodes the CANCEL payload: the correlation ID of the exchange to abort and a reason.
     /// </summary>
     public static byte[] EncodeCancel(Guid correlationId, string reason)
     {
+        if (correlationId == Guid.Empty) throw new SidecarProtocolException("The CANCEL payload requires an assigned correlation ID.");
+        SidecarControlMessages.ValidateText(reason);
         SidecarPayloadWriter writer = new();
         writer.WriteGuid(1, correlationId);
         writer.WriteString(2, reason);
@@ -307,6 +332,7 @@ public static class SidecarStateSnapshot
         {
             throw new SidecarProtocolException("The CANCEL payload carries no correlation ID.");
         }
+        SidecarControlMessages.ValidateText(reason);
 
         return (correlationId, reason);
     }

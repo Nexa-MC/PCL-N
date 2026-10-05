@@ -8,9 +8,18 @@ namespace Nexa.Xsr.State;
 public sealed class XsrStateStore
 {
     private readonly XsrRegistrySnapshot<XsrStateDescriptor> _registry;
-    private readonly XsrStateNode[] _nodes;
+    private XsrStateNode[] _nodes;
     private readonly IXsrStateObserver? _observer;
     private long _changeStamp;
+    private readonly object _initialCommitGate = new();
+    // Zero admits initial commit; ordinary mutation permanently closes that option. Readers
+    // use the node table directly and never take this gate.
+    private int _initialCommitPhase;
+    private const int OrdinaryMutationPhase = 1;
+    private const int InitialCommitPhase = 2;
+    private const int InitialCommittedPhase = 3;
+    private const int MaximumInitialCells = 4096;
+    private const long MaximumInitialByteArrayBytes = 32 * 1024 * 1024;
 
     /// <summary>Applied changes only. Subscribers queue work; callbacks may run on any publisher thread.</summary>
     public event Action<XsrStateChange>? Changed;
@@ -46,6 +55,53 @@ public sealed class XsrStateStore
     }
 
     public int Count => _registry.Count;
+
+    /// <summary>
+    /// Commits one complete primitive-cell snapshot into a previously unpublished store. Store
+    /// identity and subscriptions survive; this is a one-time initialization, not a transaction.
+    /// </summary>
+    public void CommitInitialSnapshot(XsrStateStore candidate)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        if (ReferenceEquals(this, candidate))
+            throw new InvalidOperationException("The initial snapshot must be a separate candidate store.");
+        XsrStateChange[] changes;
+        lock (_initialCommitGate)
+        {
+            if (Interlocked.CompareExchange(ref _initialCommitPhase, InitialCommitPhase, 0) != 0)
+                throw new InvalidOperationException("The store has already admitted a writer or initial snapshot.");
+            try
+            {
+                XsrStateNode[] original = Volatile.Read(ref _nodes);
+                XsrStateNode[] source = Volatile.Read(ref candidate._nodes);
+                if (original.Length != source.Length || original.Length > MaximumInitialCells)
+                    throw new InvalidOperationException("The initial snapshot topology or item budget does not match.");
+                XsrStateNode[] owned = new XsrStateNode[original.Length];
+                changes = new XsrStateChange[original.Length];
+                long remainingBytes = MaximumInitialByteArrayBytes;
+                for (int index = 0; index < original.Length; index++)
+                {
+                    XsrStateNode target = original[index];
+                    XsrStateNode value = source[index];
+                    if (target is not IXsrStateCellNode cell || !cell.IsUnpublished
+                        || target.SemanticId != value.SemanticId || target.RuntimeId != value.RuntimeId
+                        || target.Descriptor != value.Descriptor)
+                        throw new InvalidOperationException("The initial snapshot requires matching unpublished cell topology and ownership.");
+                    owned[index] = cell.CloneInitialFrom(value, NextChangeStamp(), ref remainingBytes);
+                    changes[index] = new(new(target.RuntimeId), target.SemanticId, XsrStateKind.Cell,
+                        1, XsrStateAvailability.Available, XsrStateChangeReason.ValuePublished);
+                }
+                Volatile.Write(ref _nodes, owned);
+                Volatile.Write(ref _initialCommitPhase, InitialCommittedPhase);
+            }
+            catch
+            {
+                Volatile.Write(ref _initialCommitPhase, 0);
+                throw;
+            }
+        }
+        foreach (XsrStateChange change in changes) Notify(change);
+    }
 
     public bool TryResolve(XsrSemanticId semanticId, out XsrStateId stateId)
     {
@@ -110,6 +166,7 @@ public sealed class XsrStateStore
     public long Publish<TValue>(XsrStateId stateId, TValue value, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        AdmitOrdinaryMutation();
         XsrStateNode node = RequireNode(stateId);
 
         if (node is not XsrStateCellNode<TValue> cell)
@@ -135,6 +192,7 @@ public sealed class XsrStateStore
     /// </summary>
     public void PublishCoalesced<TValue>(XsrStateId stateId, TValue value)
     {
+        AdmitOrdinaryMutation();
         XsrStateNode node = RequireNode(stateId);
 
         if (node is not XsrStateCellNode<TValue> cell)
@@ -243,6 +301,7 @@ public sealed class XsrStateStore
     {
         ArgumentNullException.ThrowIfNull(delta);
         cancellationToken.ThrowIfCancellationRequested();
+        AdmitOrdinaryMutation();
         XsrStateNode node = RequireNode(stateId);
 
         if (node is not XsrStateCollectionNode<TItem, TKey> collection)
@@ -265,6 +324,7 @@ public sealed class XsrStateStore
     /// </summary>
     public bool MarkAvailability(XsrStateId stateId, XsrStateAvailability availability)
     {
+        AdmitOrdinaryMutation();
         XsrStateNode node = RequireNode(stateId);
 
         if (node is IXsrStateDerivedNode)
@@ -286,12 +346,13 @@ public sealed class XsrStateStore
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        XsrStateSnapshotEntry[] entries = new XsrStateSnapshotEntry[_nodes.Length];
-        for (int index = 0; index < _nodes.Length; index++)
+        XsrStateNode[] nodes = Volatile.Read(ref _nodes);
+        XsrStateSnapshotEntry[] entries = new XsrStateSnapshotEntry[nodes.Length];
+        for (int index = 0; index < nodes.Length; index++)
         {
-            XsrStateId stateId = new(_nodes[index].RuntimeId);
-            FlushNode(_nodes[index], stateId);
-            entries[index] = _nodes[index].Capture(stateId);
+            XsrStateId stateId = new(nodes[index].RuntimeId);
+            FlushNode(nodes[index], stateId);
+            entries[index] = nodes[index].Capture(stateId);
         }
 
         return new XsrStateSnapshot(entries);
@@ -336,12 +397,30 @@ public sealed class XsrStateStore
 
     internal XsrStateNode RequireNode(XsrStateId stateId)
     {
-        if (!stateId.IsAssigned || stateId.Value.Value > (uint)_nodes.Length)
+        XsrStateNode[] nodes = Volatile.Read(ref _nodes);
+        if (!stateId.IsAssigned || stateId.Value.Value > (uint)nodes.Length)
         {
             throw new ArgumentException($"The XSR state identifier '{stateId}' is not registered.", nameof(stateId));
         }
 
-        return _nodes[(int)stateId.Value.Value - 1];
+        return nodes[(int)stateId.Value.Value - 1];
+    }
+
+    private void AdmitOrdinaryMutation()
+    {
+        while (true)
+        {
+            int phase = Volatile.Read(ref _initialCommitPhase);
+            if (phase is OrdinaryMutationPhase or InitialCommittedPhase) return;
+            if (phase == 0)
+            {
+                if (Interlocked.CompareExchange(ref _initialCommitPhase, OrdinaryMutationPhase, 0) == 0) return;
+                continue;
+            }
+            // Initial cloning has a fixed cell/byte budget and invokes no user code. Wait only
+            // on this cold path, then resolve the published node generation for the write.
+            lock (_initialCommitGate) { }
+        }
     }
 
     private static InvalidOperationException MismatchedContract(

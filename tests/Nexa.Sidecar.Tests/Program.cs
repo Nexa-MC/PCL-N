@@ -7,6 +7,18 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("portable API preserves legacy and negotiates extensions", Sync(PortableApiPreservesLegacyAndNegotiatesExtensions)),
+        ("portable values and data messages round trip", Sync(PortableValuesAndDataMessagesRoundTrip)),
+        ("portable messages reject ambiguous malformed values", Sync(PortableMessagesRejectAmbiguousAndMalformedValues)),
+        ("portable control and stream messages round trip", Sync(PortableControlAndStreamMessagesRoundTrip)),
+        ("frame headers validate metadata and combined traits", Sync(FrameHeadersValidateMetadataAndCombinedTraits)),
+        ("invalid frame header fails before body read", InvalidFrameHeaderFailsBeforeBodyRead),
+        ("partial frame read cancellation poisons connection", PartialFrameReadCancellationPoisonsConnection),
+        ("partial frame write cancellation poisons connection", PartialFrameWriteCancellationPoisonsConnection),
+        ("pre-read cancellation preserves connection", PreReadCancellationPreservesConnection),
+        ("write admission and wait cancellation preserve connection", WriteAdmissionAndWaitCancellationPreserveConnection),
+        ("IPC accept cancellation and disposal own resources", IpcAcceptCancellationAndDisposalOwnResources),
+        ("failed Unix connect does not leak sockets", FailedUnixConnectDoesNotLeakSockets),
         ("bootstrap rejects wrong and truncated challenges", BootstrapRejectsWrongChallenge),
         ("extensions require target and content", Sync(ExtensionsRequireTargetAndContent)),
         ("accepted stream outlives listener", AcceptedStreamOutlivesListener),

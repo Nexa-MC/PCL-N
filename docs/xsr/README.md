@@ -47,6 +47,8 @@ The user-requested constraints take precedence:
 - [renderer-model.md](renderer-model.md) — UI.Next and backend boundaries
 - [capability-fabric.md](capability-fabric.md) — provider discovery, dependencies and permissions
 - [sidecar-protocol.md](sidecar-protocol.md) — Sidecar Fabric control/data planes
+- [sidecar-host-api.md](sidecar-host-api.md) — complete PCL-N Host routes, Protocol/Transport API inventory, lifecycle and independent SDK boundary
+- [XSR-790-sidecar-host-completion.md](XSR-790-sidecar-host-completion.md) — negotiated binary values, health/streams, supervision and end-to-end Host acceptance
 - [versioning.md](versioning.md) — XSR product-version grammar and compatibility surfaces
 - [migration-map.md](migration-map.md) — waves, closed work units, and cutover gates
 - [source-reference.md](source-reference.md) — clean-slate rules for consulting legacy code

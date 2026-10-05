@@ -12,3 +12,7 @@ $taskProject = Join-Path $taskRepo 'tests/Nexa.Sidecar.Tests/Nexa.Sidecar.Tests.
 # dedicated CI publishes/runs NativeAOT separately. Do not alter antivirus or allow lists.
 & dotnet run --project $taskProject --configuration $Configuration -p:PublishAot=false -p:UseAppHost=false
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$taskHostProject = Join-Path $taskRepo 'tests/Nexa.Xsr.Runtime.Tests/Nexa.Xsr.Runtime.Tests.csproj'
+# Physical Host fixtures rename this apphost to .nsc and authenticate over real IPC.
+& dotnet run --project $taskHostProject --configuration $Configuration -p:PublishAot=false -p:UseAppHost=true
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -88,7 +88,8 @@ public sealed class SidecarConnection : IDisposable
             }
         }
 
-        _stream.Close();
+        try { _stream.Close(); }
+        finally { _transport.Dispose(); }
     }
 
     public void Dispose() => Close();
@@ -99,7 +100,7 @@ public sealed class SidecarConnection : IDisposable
         {
             await _transport.SendAsync(frame, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (exception is not OperationCanceledException and not SidecarTransportBackpressureException and not SidecarProtocolException)
         {
             Fail(exception);
             throw;
@@ -117,7 +118,8 @@ public sealed class SidecarConnection : IDisposable
             }
         }
 
-        _stream.Close();
+        try { _stream.Close(); }
+        finally { _transport.Dispose(); }
     }
 
     private void ThrowIfNotUsable()

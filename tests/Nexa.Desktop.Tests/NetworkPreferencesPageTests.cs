@@ -32,7 +32,7 @@ internal static partial class Program
         // An unrelated durable change makes the draft revision stale.
         AssertTrue(policy.Set(new("network.doh", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "false"))).IsSuccess);
         Pump(); Click("ui.settings.proxy.apply", "SettingsProxyApply");
-        AssertTrue(SpinWait.SpinUntil(() => { Pump(); return fixture.Feedback.Snapshot().Notifications.Any(note => note.Message.StartsWith("代理配置未保存", StringComparison.Ordinal)); }, TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() => { Pump(); return !settings.SettingsWritePending && fixture.Feedback.Snapshot().Notifications.Any(note => note.Message.StartsWith("代理配置未保存", StringComparison.Ordinal)); }, TimeSpan.FromSeconds(5)));
         AssertEqual("1", Read("network.proxy-mode")); AssertEqual("", Read("network.proxy-address"));
         AssertEqual("private-password", input.ReadDraft());
 
@@ -40,12 +40,20 @@ internal static partial class Program
         Click("ui.settings.proxy.mode", "SettingsProxyMode.2");
         Draft("network.proxy-address", "http://localhost:8181"); Draft("network.proxy-user", "proxy-user"); Draft("network.proxy-password", "private-password");
         Click("ui.settings.proxy.apply", "SettingsProxyApply");
-        AssertTrue(SpinWait.SpinUntil(() => { Pump(); return Read("network.proxy-mode") == "2"; }, TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() => { Pump(); return !settings.SettingsWritePending && Read("network.proxy-mode") == "2"; }, TimeSpan.FromSeconds(5)));
         AssertEqual("http://localhost:8181", Read("network.proxy-address"));
         AssertEqual("proxy-user", Read("network.proxy-user")); AssertEqual("private-password", Read("network.proxy-password"));
-        Pump(); Pump();
+        // Durable values become visible before the asynchronous save and UI query settle.
+        // Reload until the controls confirm the committed batch before starting the next edit.
+        AssertTrue(SpinWait.SpinUntil(() =>
+        {
+            Click("ui.settings.proxy.reload", "SettingsProxyReload");
+            return !settings.SettingsWritePending
+                && fixture.Shell.Tree.GetComponent<XsrUiSelection>(Find("SettingsProxyMode.2"))!.IsSelected
+                && fixture.Shell.Tree.GetComponent<XsrUiTextInput>(Find("SettingsInput.network.proxy-address"))!.ReadDraft() == "http://localhost:8181";
+        }, TimeSpan.FromSeconds(5)));
         Draft("network.proxy-address", "http://localhost:8181/path"); Click("ui.settings.proxy.apply", "SettingsProxyApply");
-        AssertTrue(SpinWait.SpinUntil(() => { Pump(); return fixture.Feedback.Snapshot().Notifications.Count(note => note.Message.StartsWith("代理配置未保存", StringComparison.Ordinal)) >= 2; }, TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() => { Pump(); return !settings.SettingsWritePending && fixture.Feedback.Snapshot().Notifications.Count(note => note.Message.StartsWith("代理配置未保存", StringComparison.Ordinal)) >= 2; }, TimeSpan.FromSeconds(5)));
         AssertEqual("http://localhost:8181", Read("network.proxy-address"));
         AssertEqual("http://localhost:8181/path", fixture.Shell.Tree.GetComponent<XsrUiTextInput>(Find("SettingsInput.network.proxy-address"))!.ReadDraft());
 

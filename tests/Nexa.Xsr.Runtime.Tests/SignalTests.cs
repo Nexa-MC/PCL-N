@@ -111,7 +111,8 @@ internal static partial class Program
 
     private static async ValueTask SignalTerminalPathsRetireAndBufferedActivationCannotResurrect()
     {
-        foreach (var ending in new[] { SidecarMessageType.Shutdown, SidecarMessageType.Crash, SidecarMessageType.CommandResult })
+        // CommandRequest exercises the invalid peer-to-Host direction.
+        foreach (var ending in new[] { SidecarMessageType.Shutdown, SidecarMessageType.Crash, SidecarMessageType.CommandRequest })
         {
             var runtime = SignalRuntime();
             var point = runtime.Resolve(SignalIntent);
@@ -123,7 +124,7 @@ internal static partial class Program
                 AssertTrue(runtime.Emit(point, "before")); await ReceiveSignal(peer);
                 var loop = session.RunReceiveLoopAsync().AsTask();
                 await peer.SendAsync(new(SidecarProtocol.Version, ending, SidecarFrameTraits.Final,
-                    SidecarCorrelationId.Create(), ending == SidecarMessageType.CommandResult ? new byte[] { 255 } : Array.Empty<byte>()));
+                    SidecarCorrelationId.Create(), Array.Empty<byte>()));
                 await loop.WaitAsync(TimeSpan.FromSeconds(5));
                 AssertFalse(runtime.Emit(point, "after"));
             }

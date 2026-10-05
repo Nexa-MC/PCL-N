@@ -73,7 +73,9 @@ internal static partial class Program
             ValueTask Send(SidecarMessageType type, byte[] bytes) => plugin.SendAsync(new(SidecarProtocol.Version, type,
                 SidecarFrameTraits.None, SidecarCorrelationId.Create(), bytes));
             var handshake = session.HandshakeAsync(); var hello = await plugin.ReceiveAsync();
-            await Send(SidecarMessageType.Welcome, SidecarHandshake.EncodeWelcome(SidecarProtocol.Version, Guid.NewGuid()));
+            await plugin.SendAsync(new(SidecarProtocol.Version, SidecarMessageType.Welcome,
+                SidecarFrameTraits.None, hello.CorrelationId,
+                SidecarHandshake.EncodeWelcome(SidecarProtocol.Version, Guid.NewGuid())));
             await handshake;
             var registration = session.AcceptRegistrationAsync();
             declarations ??= [new(SidecarRegistrationKind.FunctionPatch,

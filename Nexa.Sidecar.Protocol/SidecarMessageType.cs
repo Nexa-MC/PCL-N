@@ -23,7 +23,10 @@ public enum SidecarMessageType : ushort
     StateSnapshotItem = 15,
     StateSnapshotEnd = 18,
     Cancel = 19,
+    Unregister = 20,
+    Unregistered = 21,
     Crash = 24,
+    Error = 25,
     Shutdown = 30,
 
     // Data plane.
@@ -35,6 +38,9 @@ public enum SidecarMessageType : ushort
     Event = 73,
     HookSignal = 74,
     StreamChunk = 80,
+    StreamOpen = 81,
+    StreamEnd = 82,
+    StreamCredit = 83,
 }
 
 /// <summary>

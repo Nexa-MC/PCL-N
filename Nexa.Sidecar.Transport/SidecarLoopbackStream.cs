@@ -47,6 +47,12 @@ public sealed class SidecarLoopbackStream : Stream
     {
     }
 
+    public override Task FlushAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
+    }
+
     public override int Read(byte[] buffer, int offset, int count)
     {
         Validate(buffer, offset, count);
@@ -68,6 +74,7 @@ public sealed class SidecarLoopbackStream : Stream
         ReadOnlyMemory<byte> buffer,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ThrowIfClosed();
         WritePeer(buffer.Span);
         return ValueTask.CompletedTask;
@@ -135,6 +142,7 @@ public sealed class SidecarLoopbackStream : Stream
             TaskCompletionSource? waiter;
             lock (_gate)
             {
+                if (_writerClosed) throw new IOException("The loopback peer is closed.");
                 foreach (byte value in bytes)
                 {
                     _bytes.Enqueue(value);
@@ -162,6 +170,8 @@ public sealed class SidecarLoopbackStream : Stream
 
         public async ValueTask<int> ReadAsync(Memory<byte> target, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (target.Length == 0) return 0;
             while (true)
             {
                 TaskCompletionSource? wait;

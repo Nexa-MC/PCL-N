@@ -115,6 +115,10 @@ internal abstract class XsrStateNode
 internal interface IXsrStateCellNode
 {
     object? ReadApplied(XsrStateId id, long flushStamp, out XsrStateChange? flushed);
+
+    bool IsUnpublished { get; }
+
+    XsrStateNode CloneInitialFrom(XsrStateNode source, long changeStamp, ref long remainingByteArrayBytes);
 }
 
 /// <summary>
@@ -153,6 +157,44 @@ internal sealed class XsrStateCellNode<TValue> : XsrStateNode, IXsrStateCellNode
     /// Counts coalesced publications that were replaced before they became a revision.
     /// </summary>
     public override long CoalescedCount => Volatile.Read(ref _coalescedCount);
+
+    public bool IsUnpublished
+    {
+        get
+        {
+            lock (Gate)
+                return CurrentRevisionLocked == 0 && AvailabilityLocked == XsrStateAvailability.Unavailable
+                    && !_hasValue && !_hasPending;
+        }
+    }
+
+    public XsrStateNode CloneInitialFrom(XsrStateNode source, long changeStamp, ref long remainingByteArrayBytes)
+    {
+        if (source is not XsrStateCellNode<TValue> candidate)
+            throw new InvalidOperationException("The initial snapshot cell value types do not match.");
+        if (typeof(TValue) != typeof(string) && typeof(TValue) != typeof(bool) && typeof(TValue) != typeof(int)
+            && typeof(TValue) != typeof(long) && typeof(TValue) != typeof(double) && typeof(TValue) != typeof(byte[]))
+            throw new InvalidOperationException("The initial snapshot value type has no owned primitive copy contract.");
+
+        lock (candidate.Gate)
+        {
+            if (candidate.CurrentRevisionLocked != 1 || candidate.AvailabilityLocked != XsrStateAvailability.Available
+                || !candidate._hasValue || candidate._hasPending || candidate._value is null)
+                throw new InvalidOperationException("The initial snapshot requires one complete available publication per cell.");
+            TValue value = candidate._value!;
+            if (value is byte[] bytes)
+            {
+                if (bytes.Length > remainingByteArrayBytes)
+                    throw new InvalidOperationException("The initial snapshot exceeds its owned byte-array budget.");
+                remainingByteArrayBytes -= bytes.Length;
+                value = (TValue)(object)bytes.ToArray();
+            }
+            XsrStateCellNode<TValue> owned = new(SemanticId, RuntimeId, Descriptor)
+            { _value = value, _hasValue = true };
+            owned.AdvanceLocked(changeStamp, XsrStateAvailability.Available);
+            return owned;
+        }
+    }
 
     public XsrStateValue<TValue> Read(
         XsrStateId id,

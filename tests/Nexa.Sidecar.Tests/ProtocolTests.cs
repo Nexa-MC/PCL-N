@@ -135,7 +135,8 @@ internal static partial class Program
     private static void UnknownMessageTypesAreRejected()
     {
         SidecarFrame frame = BuildFrame();
-        byte[] wire = EncodeFrame(frame with { MessageType = (SidecarMessageType)999 });
+        byte[] wire = EncodeFrame(frame);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(wire.AsSpan(8, 2), 999);
         AssertThrows<SidecarProtocolException>(() => SidecarFrameCodec.Decode(wire));
     }
 

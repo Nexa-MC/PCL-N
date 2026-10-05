@@ -224,8 +224,9 @@ internal static partial class Program
         DesktopFunctionPatches functionPatches = new();
         DesktopSidecarSignals sidecarSignals = new();
         DesktopSidecarUiPatches sidecarUi = new(host.StateStore);
-        using var sidecars = SidecarStartup.Create(host.Logging, functionPatches.Admission, sidecarSignals.Admission, sidecarUi.Admission, sidecarUi.ModuleAdmission);
-        _ = SidecarStartup.StartAsync(sidecars, host.Logging);
+        await using var sidecars = SidecarStartup.Create(host.Logging, functionPatches.Admission, sidecarSignals.Admission, sidecarUi.Admission, sidecarUi.ModuleAdmission);
+        SidecarHostApi sidecarApi = new(sidecars, operationLog.Dispatch);
+        await using var sidecarLifetime = SidecarStartup.StartLifetime(sidecars, host.Logging);
         // The session lifecycle narrates startup/shutdown milestones at Info: every subsystem
         // the composition root brings up (and later stops) is a phase on one shared timeline.
         XsrLifecycle session = new("LauncherSession", operationLog.Lifecycle);
@@ -402,7 +403,7 @@ internal static partial class Program
             $"Nexa foundation composed: {runtime.Host.Services.Count} services, "
             + $"{runtime.Commands.Count} command routes, {runtime.Queries.Count} query routes over one host state store; "
             + $"Minecraft routes: {minecraft.Commands.Count} commands/{minecraft.Queries.Count} queries; "
-            + $"UI style: {shell.Style}.");
+            + $"Sidecar routes: {sidecarApi.Commands.Count} commands/{sidecarApi.Queries.Count} queries; UI style: {shell.Style}.");
         if (args.Any(argument => string.Equals(argument, "--validate-shell", StringComparison.OrdinalIgnoreCase)))
         {
             setStage("validate_shell");
@@ -413,7 +414,15 @@ internal static partial class Program
             setStage("shutdown");
             session.Enter(XsrLifecyclePhase.Stopping);
             session.Enter(XsrLifecyclePhase.Stopped);
+            appearanceSession.Dispose();
             launchPage.Dispose();
+            accountForm.Dispose();
+            settingsPage.Dispose();
+            versionSettings.Dispose();
+            resourcesPage.Dispose();
+            taskCenterPage.Dispose();
+            dropController.Dispose();
+            await sidecarLifetime.DisposeAsync().ConfigureAwait(false);
             await launchPage.DisposeAsync().ConfigureAwait(false);
             await host.Accounts.DisposeAsync().ConfigureAwait(false);
             return 0;
@@ -452,6 +461,7 @@ internal static partial class Program
             taskCenterPage.Dispose();
             dropController.Dispose();
             installRecovery.Dispose();
+            await sidecarLifetime.DisposeAsync().ConfigureAwait(false);
             await Task.WhenAll(launchPage.DisposeAsync().AsTask(), installRecovery.DisposeAsync().AsTask()).ConfigureAwait(false);
             await host.Accounts.DisposeAsync().ConfigureAwait(false);
             await telemetry.DisposeAsync().ConfigureAwait(false);

@@ -1,5 +1,12 @@
 # XSR state model
 
+Sidecar initial registration snapshots may use the one-time, cell-only initial
+commit defined in [XSR-790](XSR-790-sidecar-host-completion.md). It preserves store
+identity and existing subscriptions; matching topology and value types are fully
+validated before atomic node-table publication. It cannot replace an already
+written store or race ordinary writers, and it does not introduce a general
+transaction API or a render-time IPC path.
+
 ## Principle
 
 State is the observable truth of the running system. A ViewModel property, renderer-local business field, service-private mirror, or remote Sidecar object is not an alternative source of truth.

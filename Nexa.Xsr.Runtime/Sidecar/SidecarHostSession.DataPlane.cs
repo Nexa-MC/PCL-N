@@ -1,391 +1,439 @@
 using Nexa.Sidecar.Protocol;
 using Nexa.Sidecar.Transport;
-using Nexa.Xsr;
 using Nexa.Xsr.State;
 
 namespace Nexa.Xsr.Runtime;
 
-/// <summary>
-/// Data-plane behavior of the host session: command and query forwarding by session-local
-/// contract ID, state deltas applied to the mirror, ordered event delivery, bounded pending
-/// exchanges, and cancellation that reaches the sidecar. The data plane is a capability
-/// boundary: a semantic that was not registered under the requested kind is rejected locally
-/// with the stable route-not-found error and never touches the wire. The receive loop is the
-/// session's single reader; renderer reads stay local to the mirror store and perform no IPC.
-/// </summary>
+/// <summary>One numeric, bounded data plane. The receive loop is the connection's only runtime reader.</summary>
 public sealed partial class SidecarHostSession
 {
-    private readonly Dictionary<Guid, TaskCompletionSource<SidecarExchangeOutcome>> _pending = [];
+    private readonly Dictionary<Guid, PendingExchange> _pending = [];
     private readonly CancellationTokenSource _sessionEnded = new();
-    private bool _stopped;
+    private CancellationTokenSource _activationEnded = new();
+    private bool _stopped, _activationAccepting, _admissionClosed;
     private readonly object _mirrorGate = new();
     private readonly int _maxPending;
+    private int _receiveLoopStarted;
     private ISidecarSessionEventObserver? _eventObserver;
+    private ISidecarSessionBinaryEventObserver? _binaryEventObserver;
 
-    /// <summary>
-    /// Gets the number of exchanges waiting for their correlated result.
-    /// </summary>
-    public int PendingCount
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _pending.Count;
-            }
-        }
-    }
+    public int PendingCount { get { lock (_gate) return _pending.Count; } }
 
-    private string LastValue { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Attaches the event observer. Call once before activation.
-    /// </summary>
+    /// <summary>Installs a host observer. Callback failures do not change ordered delivery.</summary>
     public void AttachEventObserver(ISidecarSessionEventObserver observer)
     {
         ArgumentNullException.ThrowIfNull(observer);
-        _eventObserver = observer;
+        Volatile.Write(ref _eventObserver, observer);
     }
 
-    /// <summary>
-    /// Forwards one command to the sidecar by its session-local contract ID. Unregistered
-    /// semantics are rejected locally without IPC. Cancellation sends CANCEL so the sidecar
-    /// aborts the operation instead of running it to completion.
-    /// </summary>
-    public async ValueTask<XsrResult> SendCommandAsync(
-        XsrSemanticId command,
-        string? argument = null,
-        TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default)
+    public void AttachBinaryEventObserver(ISidecarSessionBinaryEventObserver observer)
     {
-        ThrowState(SidecarSessionState.Active);
-        SidecarRegistrationEntry? entry = RequireContract(SidecarRegistrationKind.Command, command);
-        if (entry is null)
-        {
-            return XsrResult.Failure(XsrRuntimeErrors.RouteNotFound());
-        }
-
-        SidecarExchangeOutcome outcome =
-            await RunExchangeAsync(SidecarMessageType.CommandRequest, entry, argument, timeout, cancellationToken)
-                .ConfigureAwait(false);
-        return OutcomeToResult(outcome);
+        ArgumentNullException.ThrowIfNull(observer);
+        Volatile.Write(ref _binaryEventObserver, observer);
     }
 
-    /// <summary>
-    /// Forwards one query to the sidecar by contract ID and returns its string-encoded result.
-    /// </summary>
-    public async ValueTask<XsrResult<string>> SendQueryAsync(
-        XsrSemanticId query,
-        string? argument = null,
-        TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default)
+    public ValueTask<XsrResult> SendCommandAsync(XsrSemanticId command, string? argument = null,
+        TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
+        SendStringCommandAsync(ResolveContract(SidecarRegistrationKind.Command, command), argument, timeout, cancellationToken);
+
+    public ValueTask<XsrResult> SendCommandByIdAsync(uint contractId, string? argument = null,
+        TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
+        SendStringCommandAsync(ResolveContract(SidecarRegistrationKind.Command, contractId), argument, timeout, cancellationToken);
+
+    private async ValueTask<XsrResult> SendStringCommandAsync(SidecarRegistrationEntry? entry,
+        string? argument, TimeSpan? timeout, CancellationToken cancellationToken)
     {
-        ThrowState(SidecarSessionState.Active);
-        SidecarRegistrationEntry? entry = RequireContract(SidecarRegistrationKind.Query, query);
-        if (entry is null)
-        {
-            return XsrResult.Failure<string>(XsrRuntimeErrors.RouteNotFound());
-        }
-
-        SidecarExchangeOutcome outcome =
-            await RunExchangeAsync(SidecarMessageType.QueryRequest, entry, argument, timeout, cancellationToken)
-                .ConfigureAwait(false);
-        if (outcome.Success)
-        {
-            LastValue = outcome.Value;
-            return XsrResult.Success(outcome.Value);
-        }
-
-        return XsrResult.Failure<string>(OutcomeToResult(outcome).Error!);
+        var result = await SendStringAsync(SidecarMessageType.CommandRequest, entry, argument, timeout, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? XsrResult.Success() : XsrResult.Failure(result.Error!);
     }
 
-    /// <summary>
-    /// Runs the receive loop for the active session: results complete pending exchanges, state
-    /// deltas publish into the mirror, events deliver in order without coalescing, a crash or
-    /// stream failure marks the session failed and the mirror unavailable, and SHUTDOWN closes
-    /// the session. Unknown correlations are dropped as late results.
-    /// </summary>
+    public ValueTask<XsrResult<string>> SendQueryAsync(XsrSemanticId query, string? argument = null,
+        TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
+        SendStringAsync(SidecarMessageType.QueryRequest, ResolveContract(SidecarRegistrationKind.Query, query), argument, timeout, cancellationToken);
+
+    public ValueTask<XsrResult<string>> SendQueryByIdAsync(uint contractId, string? argument = null,
+        TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
+        SendStringAsync(SidecarMessageType.QueryRequest, ResolveContract(SidecarRegistrationKind.Query, contractId), argument, timeout, cancellationToken);
+
+    private async ValueTask<XsrResult<string>> SendStringAsync(SidecarMessageType requestType,
+        SidecarRegistrationEntry? entry, string? argument, TimeSpan? timeout, CancellationToken cancellationToken)
+    {
+        XsrError? rejected = ValidateRequest(entry, binary: false, cancellationToken);
+        if (rejected is not null) return XsrResult.Failure<string>(rejected);
+        byte[] payload;
+        try { payload = SidecarDataMessages.EncodeRequest(entry!.ContractId, argument); }
+        catch (Exception error) when (error is ArgumentException or SidecarProtocolException)
+        { return XsrResult.Failure<string>(XsrRuntimeErrors.ContractMismatch()); }
+        ExchangeOutcome outcome = await RunExchangeAsync(requestType, entry!, payload, timeout, cancellationToken).ConfigureAwait(false);
+        return outcome.Success ? XsrResult.Success(outcome.Value!.CodecId == 0
+            ? System.Text.Encoding.UTF8.GetString(outcome.Value.Span) : string.Empty)
+            : XsrResult.Failure<string>(ExchangeError(outcome.ErrorCode));
+    }
+
+    public ValueTask<XsrResult<SidecarBinaryValue>> SendBinaryCommandAsync(XsrSemanticId command,
+        SidecarBinaryValue? argument = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
+        SendBinaryAsync(SidecarMessageType.CommandRequest, ResolveContract(SidecarRegistrationKind.Command, command), argument, timeout, cancellationToken);
+
+    public ValueTask<XsrResult<SidecarBinaryValue>> SendBinaryCommandByIdAsync(uint contractId,
+        SidecarBinaryValue? argument = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
+        SendBinaryAsync(SidecarMessageType.CommandRequest, ResolveContract(SidecarRegistrationKind.Command, contractId), argument, timeout, cancellationToken);
+
+    public ValueTask<XsrResult<SidecarBinaryValue>> SendBinaryQueryAsync(XsrSemanticId query,
+        SidecarBinaryValue? argument = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
+        SendBinaryAsync(SidecarMessageType.QueryRequest, ResolveContract(SidecarRegistrationKind.Query, query), argument, timeout, cancellationToken);
+
+    public ValueTask<XsrResult<SidecarBinaryValue>> SendBinaryQueryByIdAsync(uint contractId,
+        SidecarBinaryValue? argument = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
+        SendBinaryAsync(SidecarMessageType.QueryRequest, ResolveContract(SidecarRegistrationKind.Query, contractId), argument, timeout, cancellationToken);
+
+    private async ValueTask<XsrResult<SidecarBinaryValue>> SendBinaryAsync(SidecarMessageType requestType,
+        SidecarRegistrationEntry? entry, SidecarBinaryValue? argument, TimeSpan? timeout, CancellationToken cancellationToken)
+    {
+        XsrError? rejected = ValidateRequest(entry, binary: true, cancellationToken);
+        if (rejected is not null) return XsrResult.Failure<SidecarBinaryValue>(rejected);
+        argument ??= new(0, []);
+        if (argument.CodecId != entry!.CodecId) return XsrResult.Failure<SidecarBinaryValue>(XsrRuntimeErrors.ContractMismatch());
+        byte[] payload;
+        try { payload = SidecarDataMessages.EncodeBinaryRequest(entry.ContractId, argument); }
+        catch (Exception error) when (error is ArgumentException or SidecarProtocolException)
+        { return XsrResult.Failure<SidecarBinaryValue>(XsrRuntimeErrors.ContractMismatch()); }
+        ExchangeOutcome outcome = await RunExchangeAsync(requestType, entry, payload, timeout, cancellationToken).ConfigureAwait(false);
+        return outcome.Success ? XsrResult.Success(outcome.Value!) : XsrResult.Failure<SidecarBinaryValue>(ExchangeError(outcome.ErrorCode));
+    }
+
+    private SidecarRegistrationEntry? ResolveContract(SidecarRegistrationKind kind, XsrSemanticId semantic)
+    { lock (_gate) return _registration?.TryResolve(kind, semantic); }
+
+    private SidecarRegistrationEntry? ResolveContract(SidecarRegistrationKind kind, uint contractId)
+    { lock (_gate) return _registration?.TryResolveId(kind, contractId); }
+
+    private bool Accepting => !_stopped && !_admissionClosed && _activationAccepting && _state == SidecarSessionState.Active;
+
+    private XsrError? ValidateRequest(SidecarRegistrationEntry? entry, bool binary, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested) return XsrRuntimeErrors.Cancelled();
+        lock (_gate)
+        {
+            if (!Accepting) return ExchangeError("xsr.unavailable");
+            if (entry is null) return XsrRuntimeErrors.RouteNotFound();
+            if (binary && !NegotiatedFeatures.HasFlag(SidecarFeatures.BinaryPayloads)) return ExchangeError("xsr.feature_unavailable");
+            if (!binary && (entry.CodecId != 0 || entry.ResultCodecId != 0)) return XsrRuntimeErrors.ContractMismatch();
+            return null;
+        }
+    }
+
     public async ValueTask RunReceiveLoopAsync(CancellationToken cancellationToken = default)
     {
-        try { await RunReceiveLoopCoreAsync(cancellationToken).ConfigureAwait(false); }
+        if (State is not (SidecarSessionState.Ready or SidecarSessionState.Active))
+            throw new InvalidOperationException("The receive loop requires a ready or active session.");
+        if (Interlocked.CompareExchange(ref _receiveLoopStarted, 1, 0) != 0)
+            throw new InvalidOperationException("The session already owns a receive loop.");
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _sessionEnded.Token);
+        try { await RunReceiveLoopCoreAsync(linked.Token).ConfigureAwait(false); }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         { FailWithMirrorUnavailable("The sidecar receive loop terminated."); }
     }
 
     private async ValueTask RunReceiveLoopCoreAsync(CancellationToken cancellationToken)
     {
-        while (true)
+        while (!Volatile.Read(ref _stopped))
         {
-            SidecarFrame frame;
-            try
-            {
-                frame = await _connection.ReceiveAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                FailWithMirrorUnavailable($"The sidecar stream failed: {exception.Message}");
-                return;
-            }
-
+            SidecarFrame frame = await _connection.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+            RecordReceivedFrame(frame);
             switch (frame.MessageType)
             {
-                case SidecarMessageType.CommandResult or SidecarMessageType.QueryResult:
-                    CompleteExchange(frame);
-                    break;
-                case SidecarMessageType.StateDelta:
-                    ApplyStateDelta(frame.Payload.Span);
-                    break;
-                case SidecarMessageType.Event:
-                    DeliverEvent(frame.Payload.Span);
-                    break;
+                case SidecarMessageType.CommandResult or SidecarMessageType.QueryResult: CompleteExchange(frame); break;
+                case SidecarMessageType.StateDelta: ApplyStateDelta(frame.Payload.Span); break;
+                case SidecarMessageType.Event: DeliverEvent(frame.Payload.Span); break;
+                case SidecarMessageType.HealthPing: await RespondToHealthPingAsync(frame, cancellationToken).ConfigureAwait(false); break;
+                case SidecarMessageType.HealthPong: CompleteHealthPing(frame); break;
+                case SidecarMessageType.StreamChunk: AcceptStreamChunk(frame); break;
+                case SidecarMessageType.StreamEnd: AcceptStreamEnd(frame); break;
+                case SidecarMessageType.Unregister or SidecarMessageType.Unregistered:
+                    await HandleLifecycleControlAsync(frame, cancellationToken).ConfigureAwait(false); break;
+                case SidecarMessageType.Error:
+                    HandleRemoteFailure(frame, crashed: false); break;
                 case SidecarMessageType.Crash:
-                    FailWithMirrorUnavailable("The sidecar reported a crash.");
-                    return;
+                    HandleRemoteFailure(frame, crashed: true); return;
                 case SidecarMessageType.Shutdown:
-                    Transition(SidecarSessionState.Closed);
-                    EndPending();
-                    _connection.Close();
-                    return;
-                default:
-                    FailWithMirrorUnavailable($"The data plane received unexpected message {frame.MessageType}.");
-                    return;
+                    Transition(SidecarSessionState.Closed); EndPending(); _connection.Close(); return;
+                default: throw new SidecarProtocolException("Unexpected sidecar runtime message.");
             }
         }
     }
 
-    private SidecarRegistrationEntry? RequireContract(SidecarRegistrationKind kind, XsrSemanticId semantic) =>
-        _registration?.TryResolve(kind, semantic);
-
-    private async ValueTask<SidecarExchangeOutcome> RunExchangeAsync(
-        SidecarMessageType requestType,
-        SidecarRegistrationEntry entry,
-        string? argument,
-        TimeSpan? timeout,
-        CancellationToken cancellationToken)
+    private async ValueTask<ExchangeOutcome> RunExchangeAsync(SidecarMessageType requestType,
+        SidecarRegistrationEntry entry, byte[] payload, TimeSpan? timeout, CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested) return ExchangeOutcome.Failed("xsr.cancelled");
         TimeSpan bounded = timeout ?? TimeSpan.FromSeconds(30);
-        if (bounded <= TimeSpan.Zero) return SidecarExchangeOutcome.TimedOut();
-        using var timeoutSource = new CancellationTokenSource(bounded);
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _sessionEnded.Token, timeoutSource.Token);
+        if (bounded <= TimeSpan.Zero) return ExchangeOutcome.Failed("xsr.timed_out");
+        // Preserve the original positive timeout range accepted by .NET timers.
+        if (bounded.TotalMilliseconds > uint.MaxValue - 1d) return ExchangeOutcome.Failed("xsr.contract_mismatch");
+        using var timeoutSource = new CancellationTokenSource(bounded, _timeProvider);
         SidecarCorrelationId correlation = SidecarCorrelationId.Create();
-        TaskCompletionSource<SidecarExchangeOutcome> completion =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        PendingExchange exchange = new(requestType == SidecarMessageType.CommandRequest
+            ? SidecarMessageType.CommandResult : SidecarMessageType.QueryResult, entry.ResultCodecId);
+        CancellationToken activationToken;
         lock (_gate)
         {
-            if (_stopped || _state != SidecarSessionState.Active) return UnavailableExchange();
-            if (_pending.Count >= _maxPending) return SidecarExchangeOutcome.Backpressure();
-            _pending[correlation.Value] = completion;
+            if (!Accepting) return ExchangeOutcome.Failed("xsr.unavailable");
+            if (_pending.Count + _healthPending.Count >= _maxPending)
+            { Interlocked.Increment(ref _backpressureCount); return ExchangeOutcome.Failed("xsr.backpressure"); }
+            activationToken = _activationEnded.Token;
+            _pending.Add(correlation.Value, exchange);
+            Interlocked.Increment(ref _exchangesStarted);
         }
-        bool sent = false;
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _sessionEnded.Token, activationToken, timeoutSource.Token);
         try
         {
-            await _connection.SendAsync(new SidecarFrame(SidecarProtocol.Version, requestType,
-                SidecarFrameTraits.None, correlation, SidecarDataPlane.EncodeRequest(entry.ContractId, argument)),
-                deadline.Token).ConfigureAwait(false);
-            sent = true;
-            return await completion.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
+            await SendTrackedAsync(new(SidecarProtocol.Version, requestType, SidecarFrameTraits.None, correlation, payload), deadline.Token).ConfigureAwait(false);
+            exchange.Sent = true;
+            return await exchange.Completion.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
         }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         {
+            if (error is SidecarTransportBackpressureException)
+            { Interlocked.Increment(ref _backpressureCount); return ExchangeOutcome.Failed("xsr.backpressure"); }
             bool expired = timeoutSource.IsCancellationRequested || cancellationToken.IsCancellationRequested;
-            bool stopped = _sessionEnded.IsCancellationRequested;
-            if ((!sent && error is not OperationCanceledException) || (sent && !expired))
+            bool stopped = _sessionEnded.IsCancellationRequested || activationToken.IsCancellationRequested;
+            if ((!exchange.Sent && error is not OperationCanceledException) || (exchange.Sent && !expired && !stopped))
                 FailWithMirrorUnavailable("The sidecar exchange could not be transmitted or completed.");
-            else if (sent && !stopped)
+            else if (exchange.Sent && !stopped)
             {
                 using var cancelDeadline = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
                 await SendCancelAsync(correlation, "host exchange ended", cancelDeadline.Token).ConfigureAwait(false);
             }
-            if (cancellationToken.IsCancellationRequested) return SidecarExchangeOutcome.Cancelled();
-            return timeoutSource.IsCancellationRequested ? SidecarExchangeOutcome.TimedOut() : UnavailableExchange();
+            if (cancellationToken.IsCancellationRequested)
+            { Interlocked.Increment(ref _cancelledCount); return ExchangeOutcome.Failed("xsr.cancelled"); }
+            if (timeoutSource.IsCancellationRequested)
+            { Interlocked.Increment(ref _timedOutCount); return ExchangeOutcome.Failed("xsr.timed_out"); }
+            return ExchangeOutcome.Failed("xsr.unavailable");
         }
-        finally { RemovePending(correlation.Value); }
+        finally { lock (_gate) _pending.Remove(correlation.Value); }
     }
 
-    /// <summary>
-    /// Sends CANCEL for one exchange so the sidecar aborts the operation. Best-effort: a
-    /// failure to deliver the cancel never changes the host's outcome.
-    /// </summary>
-    private async ValueTask SendCancelAsync(
-        SidecarCorrelationId correlation,
-        string reason,
-        CancellationToken cancellationToken)
+    private async ValueTask SendCancelAsync(SidecarCorrelationId correlation, string reason, CancellationToken cancellationToken)
     {
         try
         {
-            await _connection.SendAsync(new SidecarFrame(
-                SidecarProtocol.Version,
-                SidecarMessageType.Cancel,
-                SidecarFrameTraits.None,
-                correlation,
-                SidecarStateSnapshot.EncodeCancel(correlation.Value, reason)),
-                cancellationToken).ConfigureAwait(false);
+            await SendTrackedAsync(new(SidecarProtocol.Version, SidecarMessageType.Cancel, SidecarFrameTraits.None,
+            correlation, SidecarStateSnapshot.EncodeCancel(correlation.Value, reason)), cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException)
-        {
-            FailWithMirrorUnavailable("The sidecar cancellation could not be delivered.");
-        }
+        catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+        { FailWithMirrorUnavailable("The sidecar cancellation could not be delivered."); }
+    }
+
+    private async Task CancelBestEffortAsync(Guid correlation, string reason)
+    {
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        await SendCancelAsync(new(correlation), reason, deadline.Token).ConfigureAwait(false);
     }
 
     private void CompleteExchange(SidecarFrame frame)
     {
-        (bool Success, string Value, string ErrorCode) decoded =
-            SidecarDataPlane.DecodeResult(frame.Payload.Span);
-        CompletePending(frame.CorrelationId.Value, new SidecarExchangeOutcome(
-            decoded.Success,
-            decoded.Value,
-            decoded.ErrorCode));
+        PendingExchange? exchange;
+        lock (_gate)
+        {
+            if (!_pending.TryGetValue(frame.CorrelationId.Value, out exchange))
+            { Interlocked.Increment(ref _lateResults); return; }
+        }
+        if (frame.MessageType != exchange.ExpectedResult)
+            throw new SidecarProtocolException("Sidecar result message does not match its request.");
+        var decoded = SidecarDataMessages.DecodeBinaryResultDetails(frame.Payload.Span);
+        if (decoded.IsBinary && !NegotiatedFeatures.HasFlag(SidecarFeatures.BinaryPayloads))
+            throw new SidecarProtocolException("Binary sidecar results were not negotiated.");
+        if (decoded.Success && decoded.Value.CodecId != exchange.ResultCodecId)
+            throw new SidecarProtocolException("Sidecar result codec does not match its declared contract.");
+        string code = decoded.Success ? string.Empty : NormalizeRemoteError(decoded.ErrorCode);
+        lock (_gate)
+        {
+            if (!_pending.Remove(frame.CorrelationId.Value)) return;
+            Interlocked.Increment(ref _exchangesCompleted);
+        }
+        exchange.Completion.TrySetResult(new(decoded.Success, decoded.Value, code));
     }
 
     private void ApplyStateDelta(ReadOnlySpan<byte> payload)
     {
-        (uint contractId, byte[] encodedValue) = SidecarDataPlane.DecodeStateDelta(payload);
-        SidecarRegistrationEntry? entry = _registration?.Entries.FirstOrDefault(
-            candidate => candidate.Kind == SidecarRegistrationKind.State && candidate.ContractId == contractId);
-        if (entry is null || _mirror is null)
-        {
-            // A delta for an undeclared contract is dropped; the mirror only carries declared
-            // cells.
-            return;
-        }
-
+        lock (_gate) { if (!Accepting) return; }
+        var decoded = SidecarDataMessages.DecodeStateDelta(payload);
+        var entry = ResolveContract(SidecarRegistrationKind.State, decoded.ContractId);
+        if (entry is null) return;
         lock (_mirrorGate)
         {
-            if (Volatile.Read(ref _stopped)) return;
-            _mirror.PublishFromWire(entry, encodedValue);
+            lock (_gate) { if (!Accepting) return; }
+            _mirror?.PublishFromWire(entry, decoded.EncodedValue);
+            Interlocked.Increment(ref _stateDeltas);
         }
     }
 
     private void DeliverEvent(ReadOnlySpan<byte> payload)
     {
-        (uint contractId, string payloadText) = SidecarDataPlane.DecodeEvent(payload);
-        SidecarRegistrationEntry? entry = _registration?.Entries.FirstOrDefault(
-            candidate => candidate.Kind == SidecarRegistrationKind.Event && candidate.ContractId == contractId);
-        if (entry is null)
-        {
-            return;
-        }
-
+        lock (_gate) { if (!Accepting) return; }
+        var decoded = SidecarDataMessages.DecodeBinaryEventDetails(payload);
+        var entry = ResolveContract(SidecarRegistrationKind.Event, decoded.ContractId);
+        if (entry is null) return;
+        if (decoded.Value.CodecId != entry.CodecId || (decoded.IsBinary && !NegotiatedFeatures.HasFlag(SidecarFeatures.BinaryPayloads)))
+            throw new SidecarProtocolException("Sidecar event codec does not match its contract.");
+        lock (_gate) { if (!Accepting) return; }
+        Interlocked.Increment(ref _eventsDelivered);
         try
         {
-            _eventObserver?.OnEvent(entry.SemanticId, payloadText);
+            Volatile.Read(ref _binaryEventObserver)?.OnEvent(entry.SemanticId, decoded.Value);
         }
-        catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException)
+        catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException) { }
+        if (decoded.Value.CodecId == 0)
         {
-            // Event delivery must not be changed by an observer failure.
+            try { Volatile.Read(ref _eventObserver)?.OnEvent(entry.SemanticId, System.Text.Encoding.UTF8.GetString(decoded.Value.Span)); }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException) { }
         }
     }
 
-    private void FailWithMirrorUnavailable(string reason)
+    private void HandleRemoteFailure(SidecarFrame frame, bool crashed)
     {
-        Fail(reason);
-        InvalidateMirror();
+        // Legacy CRASH has no payload; retain that peer contract.
+        var failure = frame.Payload.IsEmpty ? (Code: "xsr.handler_faulted", Message: string.Empty)
+            : SidecarControlMessages.DecodeFailure(frame.Payload.Span);
+        string code = NormalizeRemoteError(failure.Code);
+        lock (_gate) _lastRemoteError = code;
+        if (crashed) { Interlocked.Increment(ref _crashes); FailWithMirrorUnavailable("The sidecar reported a crash."); }
+        else
+        {
+            PendingExchange? exchange;
+            PendingHealth? health;
+            SidecarHostStream? stream;
+            lock (_gate)
+            {
+                _pending.Remove(frame.CorrelationId.Value, out exchange);
+                _healthPending.Remove(frame.CorrelationId.Value, out health);
+                _streams.TryGetValue(frame.CorrelationId.Value, out stream);
+            }
+            if (exchange is not null) Interlocked.Increment(ref _exchangesCompleted);
+            exchange?.Completion.TrySetResult(ExchangeOutcome.Failed(code));
+            if (health is not null) RecordHealthOutcome(false);
+            health?.Completion.TrySetResult(XsrResult.Failure<TimeSpan>(ExchangeError(code)));
+            if (stream is not null) _ = ObserveBackgroundCleanupAsync(CancelStreamAsync(stream, code, notify: false, preserveCompleted: true).AsTask());
+        }
     }
+
+    private static string NormalizeRemoteError(string code) =>
+        code.Length is > 0 and <= 128 && XsrSemanticId.TryParse(code, out _) ? code : "xsr.handler_faulted";
+
+    private static XsrError ExchangeError(string code)
+    {
+        string valid = NormalizeRemoteError(code);
+        var kind = valid switch
+        {
+            "xsr.cancelled" => XsrErrorKind.Cancelled,
+            "xsr.timed_out" => XsrErrorKind.TimedOut,
+            "xsr.unavailable" or "xsr.feature_unavailable" => XsrErrorKind.Unavailable,
+            "xsr.backpressure" => XsrErrorKind.Backpressure,
+            "xsr.contract_mismatch" => XsrErrorKind.ContractMismatch,
+            "xsr.route_not_found" => XsrErrorKind.NotFound,
+            "xsr.handler_faulted" => XsrErrorKind.Faulted,
+            _ => XsrErrorKind.Rejected,
+        };
+        return new(kind, XsrSemanticId.Parse(valid), "The sidecar operation could not complete.");
+    }
+
+    private void FailWithMirrorUnavailable(string reason) { Fail(reason); InvalidateMirror(); }
 
     private void InvalidateMirror()
     {
         lock (_mirrorGate)
         {
-            if (_mirror is { } mirror && _registration is { } registration)
+            if (_mirror is not { } mirror || _registration is not { } registration) return;
+            foreach (var entry in registration.Entries)
+                if (entry.Kind == SidecarRegistrationKind.State && mirror.TryResolve(entry.SemanticId) is { } id)
+                    mirror.Store.MarkAvailability(id, XsrStateAvailability.Unavailable);
+        }
+    }
+
+    private void CloseAdmission() { lock (_gate) _admissionClosed = true; }
+
+    private void OnActivated()
+    {
+        lock (_gate)
+        {
+            if (_stopped || _admissionClosed) return;
+            _activationEnded = new();
+            _activationAccepting = true;
+        }
+        lock (_mirrorGate)
+        {
+            lock (_gate) { if (!Accepting) return; }
+            if (_mirror is not { } mirror || _registration is not { } registration) return;
+            foreach (var entry in registration.Entries)
             {
-                foreach (SidecarRegistrationEntry entry in registration.Entries
-                             .Where(entry => entry.Kind == SidecarRegistrationKind.State))
-                {
-                    if (mirror.TryResolve(entry.SemanticId) is { } stateId)
-                    {
-                        mirror.Store.MarkAvailability(stateId, XsrStateAvailability.Unavailable);
-                    }
-                }
+                lock (_gate) { if (!Accepting) return; }
+                if (entry.Kind == SidecarRegistrationKind.State && mirror.TryResolve(entry.SemanticId) is { } id)
+                    mirror.Store.MarkAvailability(id, XsrStateAvailability.Available);
             }
         }
     }
 
-    private bool RemovePending(Guid correlation)
+    private void OnDeactivated()
     {
+        KeyValuePair<Guid, PendingExchange>[] pending;
+        CancellationTokenSource ended;
         lock (_gate)
         {
-            return _pending.Remove(correlation);
+            _activationAccepting = false;
+            ended = _activationEnded;
+            pending = _pending.ToArray();
+            _pending.Clear();
         }
-    }
-
-    private void CompletePending(Guid correlation, SidecarExchangeOutcome outcome)
-    {
-        TaskCompletionSource<SidecarExchangeOutcome>? completion;
-        lock (_gate)
+        ended.Cancel();
+        foreach (var (id, exchange) in pending)
         {
-            if (!_pending.Remove(correlation, out completion))
-            {
-                return;
-            }
+            exchange.Completion.TrySetResult(ExchangeOutcome.Failed("xsr.unavailable"));
+            if (exchange.Sent && !Volatile.Read(ref _stopped)) _ = CancelBestEffortAsync(id, "sidecar deactivated");
         }
-
-        completion.TrySetResult(outcome);
+        EndHealthPings();
+        EndStreams("xsr.unavailable");
+        InvalidateMirror();
     }
-
-    private static XsrResult OutcomeToResult(SidecarExchangeOutcome outcome)
-    {
-        if (outcome.Success)
-        {
-            return XsrResult.Success();
-        }
-
-        return XsrResult.Failure(new XsrError(
-            XsrErrorKind.Rejected,
-            XsrSemanticId.Parse(outcome.ErrorCode.Length == 0 ? "xsr.handler_faulted" : outcome.ErrorCode),
-            "The sidecar rejected the exchange."));
-    }
-
-    private static SidecarExchangeOutcome UnavailableExchange() => new(false, string.Empty, "xsr.unavailable");
 
     private void EndPending()
     {
-        TaskCompletionSource<SidecarExchangeOutcome>[] pending;
-        XsrUiPatchRuntime.CaptionLease? captionLease;
-        XsrUiModuleRuntime.ModuleLease? moduleLease;
+        XsrUiPatchRuntime.CaptionLease? captions;
+        XsrUiModuleRuntime.ModuleLease? modules;
         lock (_gate)
         {
-            pending = _stopped ? [] : _pending.Values.ToArray();
             _stopped = true;
-            _pending.Clear();
-            _functionPatchLease?.Dispose();
-            _functionPatchLease = null;
-            _functionPatches = [];
-            _signalLease?.Dispose();
-            _signalLease = null;
-            _signals = [];
-            captionLease = _uiPatchLease;
-            _uiPatchLease = null;
-            _uiPatches = [];
-            moduleLease = _uiModuleLease;
-            _uiModuleLease = null;
-            _uiModules = [];
+            _admissionClosed = true;
+            _functionPatchLease?.Dispose(); _functionPatchLease = null; _functionPatches = [];
+            _signalLease?.Dispose(); _signalLease = null; _signals = [];
+            captions = _uiPatchLease; _uiPatchLease = null; _uiPatches = [];
+            modules = _uiModuleLease; _uiModuleLease = null; _uiModules = [];
             Extensions = new();
         }
-        captionLease?.Dispose();
-        moduleLease?.Dispose();
-        InvalidateMirror();
-        foreach (var completion in pending) completion.TrySetResult(UnavailableExchange());
+        captions?.Dispose(); modules?.Dispose();
+        OnDeactivated();
+        EndLifecycleControls();
         _sessionEnded.Cancel();
     }
+
+    private sealed class PendingExchange(SidecarMessageType expectedResult, uint resultCodecId)
+    {
+        internal SidecarMessageType ExpectedResult { get; } = expectedResult;
+        internal uint ResultCodecId { get; } = resultCodecId;
+        internal volatile bool Sent;
+        internal TaskCompletionSource<ExchangeOutcome> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    private sealed record ExchangeOutcome(bool Success, SidecarBinaryValue? Value, string ErrorCode)
+    { internal static ExchangeOutcome Failed(string code) => new(false, null, code); }
 }
 
-/// <summary>
-/// One concluded exchange: success with a value, or failure with the stable error code.
-/// </summary>
+/// <summary>Compatibility outcome contract retained for existing callers.</summary>
 public sealed record SidecarExchangeOutcome(bool Success, string Value, string ErrorCode)
 {
     public static SidecarExchangeOutcome TimedOut() => new(false, string.Empty, "xsr.timed_out");
-
     public static SidecarExchangeOutcome Cancelled() => new(false, string.Empty, "xsr.cancelled");
-
     internal static SidecarExchangeOutcome Backpressure() => new(false, string.Empty, "xsr.backpressure");
 }
 
-/// <summary>
-/// Delivers sidecar events to the host. Events are transient facts delivered in order and never
-/// coalesced.
-/// </summary>
-public interface ISidecarSessionEventObserver
-{
-    void OnEvent(XsrSemanticId SemanticId, string Payload);
-}
+public interface ISidecarSessionEventObserver { void OnEvent(XsrSemanticId SemanticId, string Payload); }
+public interface ISidecarSessionBinaryEventObserver { void OnEvent(XsrSemanticId semanticId, SidecarBinaryValue value); }

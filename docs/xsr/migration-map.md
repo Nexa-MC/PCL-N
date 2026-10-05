@@ -127,6 +127,7 @@ PXML vertical slices continue over the shared shell.
 | XSR-742 | follow-up | retained actual 2h/schema-3 and 30min/schema-4 NativeAOT fixture records, compressed samples and exact analysis replay; [migration](migrations/XSR-742-retained-idle-soak-evidence.md) |
 | XSR-743 | follow-up | installed-version visible window, logical transfer ranges and validated collection focus traversal; [migration](migrations/XSR-743-version-list-visible-window.md) |
 | XSR-744 | follow-up | bounded hit-test scratch and allocation-free structural input validation; [migration](migrations/XSR-744-input-scratch-allocation.md) |
+| XSR-790 | follow-up | complete negotiated Sidecar Host lifecycle, supervision and API; [migration](XSR-790-sidecar-host-completion.md), [API reference](sidecar-host-api.md) |
 
 ## Closed migration unit
 
@@ -223,6 +224,14 @@ Wave 3 is complete. The parser enforces a deterministic XML boundary, the compil
 | XSR-406 | transactional snapshot, typed codec registry, UiModule/Resource content cache | complete |
 
 Wave 4 is complete. The Sidecar Fabric provides the versioned binary protocol with unknown-field skipping, the framed transport with an explicit connection lifecycle, the host session over the locked handshake and registration flow, the per-session state mirror the renderer reads with zero IPC, the bounded data plane with correlated results and stable errors, ordered event delivery, and crash/reconnect semantics where a new session replaces the mirror only after a coherent snapshot. XSR-405 hardened the wave per review: the data plane executes by session-local contract ID (semantic strings never cross the wire hot path), READY is a real wire message emitted only after the pre-activation snapshot commits, the registration table is an enforced capability boundary with local rejection at zero wire bytes, CANCEL reaches the sidecar, DEACTIVATE returns to Ready, and the protocol is explicitly 1.0-draft pending the Plugin SDK freeze. Exit evidence: the protocol, transport, session, and data-plane suites pass under CoreCLR and NativeAOT, the architecture gate carries the Sidecar project graph with reflection tokens forbidden in Compiler and Runtime, and CI runs the full sequence on every push.
+
+[XSR-790](XSR-790-sidecar-host-completion.md) completes the PCL-N Host follow-up:
+five Command and nine Query routes, independently consumable binary codecs,
+negotiated health/credit streams/unregistration, numeric session APIs and
+bounded package stop/restart/reload/recovery. The complete current public API
+inventory and independent execution-engine/SDK boundary are in
+[Sidecar Host API](sidecar-host-api.md). This does not close Wave 8's Plugin
+SDK, package/manifest or stable Plugin UI IR freeze.
 
 ## Cutover gate
 

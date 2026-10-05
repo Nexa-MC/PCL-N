@@ -10,13 +10,18 @@ public sealed record SidecarExtensionRegistration(SidecarRegistrationKind Kind, 
 public sealed class SidecarExtensionRegistry
 {
     private readonly List<SidecarExtensionRegistration> _entries = [];
-    public IReadOnlyList<SidecarExtensionRegistration> Entries => _entries.AsReadOnly();
+    public IReadOnlyList<SidecarExtensionRegistration> Entries => Array.AsReadOnly(_entries.Select(
+        static entry => entry with { Payload = entry.Payload.ToArray() }).ToArray());
 
     internal void Add(SidecarRegistrationEntry entry, SidecarRegistrationItem item)
     {
-        if (!CryptographicOperations.FixedTimeEquals(SHA256.HashData(item.Payload!), item.ContentHash!))
+        byte[] owned = item.Payload?.ToArray()
+            ?? throw new SidecarProtocolException("Extension payload is missing.");
+        byte[] hash = item.ContentHash?.ToArray()
+            ?? throw new SidecarProtocolException("Extension payload hash is missing.");
+        if (!CryptographicOperations.FixedTimeEquals(SHA256.HashData(owned), hash))
             throw new SidecarProtocolException("Extension payload hash mismatch.");
         _entries.Add(new(entry.Kind, entry.SemanticId, XsrSemanticId.Parse(item.TargetSemanticId!),
-            entry.ContractId, entry.Flags, item.Payload!.ToArray()));
+            entry.ContractId, entry.Flags, owned));
     }
 }

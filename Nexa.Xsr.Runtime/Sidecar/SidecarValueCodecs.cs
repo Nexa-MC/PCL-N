@@ -1,5 +1,3 @@
-using System.Buffers.Binary;
-using System.Text;
 using Nexa.Sidecar.Protocol;
 
 namespace Nexa.Xsr.Runtime;
@@ -52,13 +50,13 @@ public static class SidecarValueCodecs
 
     private static readonly Dictionary<uint, ISidecarValueCodec> Codecs = new()
     {
-        [Utf8String] = new SimpleCodec(Utf8String, typeof(string), null, static raw => Encoding.UTF8.GetString(raw), static value => Encoding.UTF8.GetBytes((string)value)),
-        [Bool] = new SimpleCodec(Bool, typeof(bool), 1, static raw => raw[0] != 0, static value => [(bool)value ? (byte)1 : (byte)0]),
-        [I32] = new SimpleCodec(I32, typeof(int), 4, static raw => BinaryPrimitives.ReadInt32LittleEndian(raw), static value => { byte[] b = new byte[4]; BinaryPrimitives.WriteInt32LittleEndian(b, (int)value); return b; }),
-        [I64] = new SimpleCodec(I64, typeof(long), 8, static raw => BinaryPrimitives.ReadInt64LittleEndian(raw), static value => { byte[] b = new byte[8]; BinaryPrimitives.WriteInt64LittleEndian(b, (long)value); return b; }),
-        [F64] = new SimpleCodec(F64, typeof(double), 8, static raw => BinaryPrimitives.ReadDoubleLittleEndian(raw), static value => { byte[] b = new byte[8]; BinaryPrimitives.WriteDoubleLittleEndian(b, (double)value); return b; }),
-        [Bytes] = new SimpleCodec(Bytes, typeof(byte[]), null, static raw => raw.ToArray(), static value => (byte[])value),
-        [GeneratedDto] = new SimpleCodec(GeneratedDto, typeof(byte[]), null, static raw => raw.ToArray(), static value => (byte[])value),
+        [Utf8String] = new PortableCodec(Utf8String, typeof(string)),
+        [Bool] = new PortableCodec(Bool, typeof(bool)),
+        [I32] = new PortableCodec(I32, typeof(int)),
+        [I64] = new PortableCodec(I64, typeof(long)),
+        [F64] = new PortableCodec(F64, typeof(double)),
+        [Bytes] = new PortableCodec(Bytes, typeof(byte[])),
+        [GeneratedDto] = new PortableCodec(GeneratedDto, typeof(byte[])),
     };
 
     public static ISidecarValueCodec Get(uint id) =>
@@ -76,32 +74,18 @@ public static class SidecarValueCodecs
     /// </summary>
     public static object Decode(uint id, ReadOnlySpan<byte> raw) => Get(id).Decode(raw);
 
-    private sealed class SimpleCodec(
-        uint id,
-        Type valueType,
-        int? fixedLength,
-        Func<ReadOnlySpan<byte>, object> decode,
-        Func<object, byte[]> encode) : ISidecarValueCodec
+    public static byte[] Encode(uint id, object value) => Get(id).Encode(value);
+
+    private sealed class PortableCodec(uint id, Type valueType) : ISidecarValueCodec
     {
         public uint Id { get; } = id;
 
         public Type ValueType { get; } = valueType;
 
-        public void Validate(ReadOnlySpan<byte> raw)
-        {
-            if (fixedLength is { } length && raw.Length != length)
-            {
-                throw new SidecarProtocolException(
-                    $"Codec {Id} requires exactly {length} bytes; the value carries {raw.Length}.");
-            }
-        }
+        public void Validate(ReadOnlySpan<byte> raw) => SidecarWireCodecs.Validate(Id, raw);
 
-        public object Decode(ReadOnlySpan<byte> raw)
-        {
-            Validate(raw);
-            return decode(raw);
-        }
+        public object Decode(ReadOnlySpan<byte> raw) => SidecarWireCodecs.Decode(Id, raw);
 
-        public byte[] Encode(object value) => encode(value);
+        public byte[] Encode(object value) => SidecarWireCodecs.Encode(Id, value);
     }
 }

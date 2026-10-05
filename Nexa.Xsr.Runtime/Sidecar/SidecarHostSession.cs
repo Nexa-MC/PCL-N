@@ -13,6 +13,7 @@ namespace Nexa.Xsr.Runtime;
 public sealed partial class SidecarHostSession : IDisposable
 {
     private readonly object _gate = new();
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
 
     private readonly SidecarConnection _connection;
     private readonly ISidecarSessionObserver? _observer;
@@ -20,6 +21,7 @@ public sealed partial class SidecarHostSession : IDisposable
     private SidecarSessionState _state = SidecarSessionState.Handshaking;
     private string? _failureReason;
     private Guid _sessionId;
+    private SidecarFeatures _negotiatedFeatures;
     private SidecarRegistrationSet? _registration;
     private SidecarStateMirror? _mirror;
     private readonly SidecarSessionLimits _limits;
@@ -80,11 +82,14 @@ public sealed partial class SidecarHostSession : IDisposable
         }
     }
 
-    public Guid SessionId => _sessionId;
+    public Guid SessionId { get { lock (_gate) return _sessionId; } }
 
-    public SidecarRegistrationSet? Registration => _registration;
+    /// <summary>Features accepted by both peers. Missing negotiation fields mean legacy behavior.</summary>
+    public SidecarFeatures NegotiatedFeatures { get { lock (_gate) return _negotiatedFeatures; } }
 
-    public SidecarStateMirror? Mirror => _mirror;
+    public SidecarRegistrationSet? Registration { get { lock (_gate) return _registration; } }
+
+    public SidecarStateMirror? Mirror => Volatile.Read(ref _mirror);
 
     /// <summary>
     /// Gets the content cache populated at registration: UI modules and resources are served
@@ -97,26 +102,38 @@ public sealed partial class SidecarHostSession : IDisposable
     /// </summary>
     public async ValueTask HandshakeAsync(CancellationToken cancellationToken = default)
     {
-        ThrowState(SidecarSessionState.Handshaking);
-        await _connection.SendAsync(new SidecarFrame(
-            SidecarProtocol.Version,
-            SidecarMessageType.Hello,
-            SidecarFrameTraits.None,
-            SidecarCorrelationId.Create(),
-            SidecarHandshake.EncodeHello(SidecarProtocol.Version, PluginName)),
-            cancellationToken).ConfigureAwait(false);
-
-        SidecarFrame welcome = await ReceiveOrFail(
-            SidecarMessageType.Welcome,
-            cancellationToken).ConfigureAwait(false);
-        (uint negotiated, Guid sessionId) = SidecarHandshake.DecodeWelcome(welcome.Payload.Span);
-        if (negotiated != SidecarProtocol.Version)
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            throw Fail($"The sidecar negotiated protocol version {negotiated}; {SidecarProtocol.Version} is required.");
+            ThrowState(SidecarSessionState.Handshaking);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _sessionEnded.Token);
+            deadline.CancelAfter(_limits.HandshakeTimeout);
+            try
+            {
+                SidecarCorrelationId correlation = SidecarCorrelationId.Create();
+                await SendTrackedAsync(new SidecarFrame(
+                    SidecarProtocol.Version, SidecarMessageType.Hello, SidecarFrameTraits.None,
+                    correlation, SidecarHandshake.EncodeHello(SidecarProtocol.Version, PluginName, SidecarFeatures.All)),
+                    deadline.Token).ConfigureAwait(false);
+                SidecarFrame welcome = await ReceiveOrFail(SidecarMessageType.Welcome, deadline.Token).ConfigureAwait(false);
+                if (welcome.CorrelationId != correlation) throw Fail("The WELCOME correlation does not match HELLO.");
+                var details = SidecarHandshake.DecodeWelcomeDetails(welcome.Payload.Span);
+                if (details.NegotiatedVersion != SidecarProtocol.Version)
+                    throw Fail($"The sidecar negotiated protocol version {details.NegotiatedVersion}; {SidecarProtocol.Version} is required.");
+                if ((details.Features & ~SidecarFeatures.All) != SidecarFeatures.None)
+                    throw Fail("The sidecar selected features not offered by the Host.");
+                lock (_gate)
+                {
+                    if (_stopped) throw new SidecarProtocolException("The session ended before handshake publication.");
+                    _sessionId = details.SessionId;
+                    _negotiatedFeatures = details.Features;
+                }
+                Transition(SidecarSessionState.Registering);
+            }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+            { throw Fail("Sidecar handshake failed or exceeded its budget."); }
         }
-
-        _sessionId = sessionId;
-        Transition(SidecarSessionState.Registering);
+        finally { _lifecycleGate.Release(); }
     }
 
     /// <summary>
@@ -127,11 +144,18 @@ public sealed partial class SidecarHostSession : IDisposable
     /// </summary>
     public async ValueTask<SidecarStateMirror> AcceptRegistrationAsync(CancellationToken cancellationToken = default)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(_limits.RegistrationTimeout);
-        try { return await AcceptRegistrationCoreAsync(deadline.Token).ConfigureAwait(false); }
-        catch (Exception error) when (error is IOException or ArgumentException or OperationCanceledException or SidecarProtocolException)
-        { throw Fail("Sidecar registration failed or exceeded its budget."); }
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowState(SidecarSessionState.Registering);
+            if (_registration is not null) throw new InvalidOperationException("The session already accepted its registration.");
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _sessionEnded.Token);
+            deadline.CancelAfter(_limits.RegistrationTimeout);
+            try { return await AcceptRegistrationCoreAsync(deadline.Token).ConfigureAwait(false); }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+            { throw Fail("Sidecar registration failed or exceeded its budget."); }
+        }
+        finally { _lifecycleGate.Release(); }
     }
 
     private async ValueTask<SidecarStateMirror> AcceptRegistrationCoreAsync(CancellationToken cancellationToken)
@@ -156,6 +180,12 @@ public sealed partial class SidecarHostSession : IDisposable
                 cancellationToken).ConfigureAwait(false);
             ConsumeBudget(ref remaining, itemFrame);
             SidecarRegistrationItem item = SidecarRegistration.DecodeItem(itemFrame.Payload.Span);
+            if (item.Kind == SidecarRegistrationKind.Stream && !NegotiatedFeatures.HasFlag(SidecarFeatures.Streams))
+                throw Fail("Stream registration requires negotiated streams.");
+            if (item.Kind is SidecarRegistrationKind.Command or SidecarRegistrationKind.Query or SidecarRegistrationKind.Event
+                && (item.CodecId != 0 || item.ResultCodecId != 0)
+                && !NegotiatedFeatures.HasFlag(SidecarFeatures.BinaryPayloads))
+                throw Fail("Binary registration requires negotiated binary payloads.");
             if (XsrSignalAdmission.IsSignal(item.Kind) && item.CodecId != 0)
                 throw Fail("Signal registration codec must be zero.");
             if (item.Kind == SidecarRegistrationKind.UiPatch && item.CodecId != 0)
@@ -172,7 +202,8 @@ public sealed partial class SidecarHostSession : IDisposable
             ordinals[item.Kind] = ordinals.TryGetValue(item.Kind, out uint ordinal) ? ordinal + 1 : 1;
             uint contractId = ordinals[item.Kind];
             declarations[semantic] = item;
-            entries.Add(new SidecarRegistrationEntry(item.Kind, semantic, contractId, item.Flags, item.CodecId));
+            entries.Add(new SidecarRegistrationEntry(item.Kind, semantic, contractId, item.Flags, item.CodecId)
+            { ResultCodecId = item.ResultCodecId });
         }
 
         ConsumeBudget(ref remaining, await ReceiveOrFail(SidecarMessageType.RegisterEnd, cancellationToken).ConfigureAwait(false));
@@ -210,17 +241,24 @@ public sealed partial class SidecarHostSession : IDisposable
             entries.Where(entry => entry.Kind == SidecarRegistrationKind.State).ToList());
         var cache = new SidecarHostCache();
         var extensions = new SidecarExtensionRegistry();
+        // Resources are admitted before modules so required resource references are verified
+        // against the complete local cache, independent of declaration order.
+        foreach (SidecarRegistrationEntry entry in entries.Where(entry => entry.Kind == SidecarRegistrationKind.Resource))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SidecarRegistrationItem declaration = declarations[entry.SemanticId];
+            cache.AddResource(entry.SemanticId, declaration.Payload!, declaration.ContentHash!);
+        }
         foreach (SidecarRegistrationEntry entry in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
             SidecarRegistrationItem declaration = declarations[entry.SemanticId];
             if (entry.Kind == SidecarRegistrationKind.UiModule && declaration.Payload is { } module)
             {
-                cache.AddUiModule(entry.SemanticId, module, declaration.ContentHash!);
-            }
-            else if (entry.Kind == SidecarRegistrationKind.Resource && declaration.Payload is { } resource)
-            {
-                cache.AddResource(entry.SemanticId, resource, declaration.ContentHash!);
+                XsrSemanticId[] references = declaration.RequiredResources?
+                    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(XsrSemanticId.Parse).ToArray() ?? [];
+                cache.AddUiModule(entry.SemanticId, module, declaration.ContentHash!, references);
             }
             else if (SidecarRegistration.IsExtension(entry.Kind)) extensions.Add(entry, declaration);
         }
@@ -252,11 +290,17 @@ public sealed partial class SidecarHostSession : IDisposable
     /// </summary>
     public async ValueTask AcceptStateSnapshotAsync(CancellationToken cancellationToken = default)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(_limits.RegistrationTimeout);
-        try { await AcceptStateSnapshotCoreAsync(deadline.Token).ConfigureAwait(false); }
-        catch (Exception error) when (error is IOException or ArgumentException or OperationCanceledException or SidecarProtocolException)
-        { throw Fail("Sidecar snapshot failed or exceeded its budget."); }
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowState(SidecarSessionState.Registering);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _sessionEnded.Token);
+            deadline.CancelAfter(_limits.RegistrationTimeout);
+            try { await AcceptStateSnapshotCoreAsync(deadline.Token).ConfigureAwait(false); }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+            { throw Fail("Sidecar snapshot failed or exceeded its budget."); }
+        }
+        finally { _lifecycleGate.Release(); }
     }
 
     private async ValueTask AcceptStateSnapshotCoreAsync(CancellationToken cancellationToken)
@@ -292,8 +336,7 @@ public sealed partial class SidecarHostSession : IDisposable
                     cancellationToken).ConfigureAwait(false);
                 ConsumeBudget(ref remaining, itemFrame);
                 (uint contractId, byte[] encodedValue) = SidecarStateSnapshot.DecodeItem(itemFrame.Payload.Span);
-                SidecarRegistrationEntry? entry = stateEntries.FirstOrDefault(
-                    candidate => candidate.ContractId == contractId);
+                SidecarRegistrationEntry? entry = _registration.TryResolveId(SidecarRegistrationKind.State, contractId);
                 if (entry is null)
                 {
                     throw Fail($"The snapshot references unknown state contract {contractId}.");
@@ -337,17 +380,19 @@ public sealed partial class SidecarHostSession : IDisposable
             throw Fail($"The snapshot failed: {exception.Message}");
         }
 
+        var candidate = SidecarStateMirror.Create(PluginName, stateEntries);
+        foreach ((SidecarRegistrationEntry entry, byte[] encodedValue) in collected.Values)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            candidate.PublishFromWire(entry, encodedValue);
+        }
         lock (_mirrorGate)
         {
             if (Volatile.Read(ref _stopped)) throw new SidecarProtocolException("The session ended before snapshot publication.");
-            foreach ((SidecarRegistrationEntry entry, byte[] encodedValue) in collected.Values)
-            {
-                if (Volatile.Read(ref _stopped)) throw new SidecarProtocolException("The session ended during snapshot publication.");
-                _mirror.PublishFromWire(entry, encodedValue);
-            }
+            _mirror.AdoptSnapshot(candidate);
         }
 
-        await _connection.SendAsync(new SidecarFrame(
+        await SendTrackedAsync(new SidecarFrame(
             SidecarProtocol.Version,
             SidecarMessageType.Ready,
             SidecarFrameTraits.None,
@@ -362,26 +407,34 @@ public sealed partial class SidecarHostSession : IDisposable
     /// </summary>
     public async ValueTask ActivateAsync(CancellationToken cancellationToken = default)
     {
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _sessionEnded.Token);
+            deadline.CancelAfter(_limits.RegistrationTimeout);
+            await ActivateCoreAsync(deadline.Token).ConfigureAwait(false);
+        }
+        finally { _lifecycleGate.Release(); }
+    }
+
+    private async ValueTask ActivateCoreAsync(CancellationToken cancellationToken)
+    {
         ThrowState(SidecarSessionState.Ready);
         if (_mirror is null)
         {
             throw Fail("The session cannot activate before registration.");
         }
 
-        await _connection.SendAsync(new SidecarFrame(
-            SidecarProtocol.Version,
-            SidecarMessageType.Activate,
-            SidecarFrameTraits.None,
-            SidecarCorrelationId.Create(),
-            Array.Empty<byte>()),
-            cancellationToken).ConfigureAwait(false);
         XsrUiPatchRuntime.CaptionLease? captionLease = null;
         XsrUiModuleRuntime.ModuleLease? moduleLease = null;
         try
         {
+            await SendTrackedAsync(new SidecarFrame(
+                SidecarProtocol.Version, SidecarMessageType.Activate, SidecarFrameTraits.None,
+                SidecarCorrelationId.Create(), Array.Empty<byte>()), cancellationToken).ConfigureAwait(false);
             lock (_gate)
             {
-                if (_stopped || _state != SidecarSessionState.Ready)
+                if (_stopped || _admissionClosed || _state != SidecarSessionState.Ready)
                     throw new SidecarProtocolException("Session ended or changed before activation publication.");
                 _functionPatchLease = FunctionPatchAdmission?.Runtime.Activate(_functionPatches);
                 _signalLease = SignalAdmission?.Runtime.Activate(_signals);
@@ -393,8 +446,10 @@ public sealed partial class SidecarHostSession : IDisposable
                 if (_signalLease is { } lease)
                     _ = Task.Run(() => lease.PumpAsync(SendHookSignalAsync, () => Fail("Sidecar signal delivery failed or overflowed.")), CancellationToken.None);
             }
+            OnActivated();
         }
-        catch (SidecarProtocolException error) { throw Fail(error.Message); }
+        catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+        { throw Fail("The Sidecar activation could not be published."); }
         finally { captionLease?.Publish(); moduleLease?.Publish(); }
         Transition(SidecarSessionState.Active);
     }
@@ -405,64 +460,25 @@ public sealed partial class SidecarHostSession : IDisposable
     /// </summary>
     public async ValueTask DeactivateAsync(CancellationToken cancellationToken = default)
     {
-        ThrowState(SidecarSessionState.Active);
-        await _connection.SendAsync(new SidecarFrame(
-            SidecarProtocol.Version,
-            SidecarMessageType.Deactivate,
-            SidecarFrameTraits.None,
-            SidecarCorrelationId.Create(),
-            Array.Empty<byte>()),
-            cancellationToken).ConfigureAwait(false);
-        XsrUiPatchRuntime.CaptionLease? captionLease;
-        XsrUiModuleRuntime.ModuleLease? moduleLease;
-        lock (_gate)
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            _functionPatchLease?.Dispose();
-            _functionPatchLease = null;
-            _signalLease?.Dispose();
-            _signalLease = null;
-            captionLease = _uiPatchLease;
-            _uiPatchLease = null;
-            moduleLease = _uiModuleLease;
-            _uiModuleLease = null;
+            ThrowState(SidecarSessionState.Active);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _sessionEnded.Token);
+            deadline.CancelAfter(_limits.RegistrationTimeout);
+            try { await DeactivateCoreAsync(deadline.Token).ConfigureAwait(false); }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+            { throw Fail("The Sidecar deactivation could not be transmitted."); }
         }
-        captionLease?.Dispose();
-        moduleLease?.Dispose();
-        Transition(SidecarSessionState.Ready);
+        finally { _lifecycleGate.Release(); }
     }
 
     /// <summary>
     /// Sends SHUTDOWN and closes the connection.
     /// </summary>
-    public async ValueTask ShutdownAsync(CancellationToken cancellationToken = default)
+    public ValueTask ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        EndPending();
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromMilliseconds(100));
-        try
-        {
-            await _connection.SendAsync(new SidecarFrame(
-                SidecarProtocol.Version,
-                SidecarMessageType.Shutdown,
-                SidecarFrameTraits.Final,
-                SidecarCorrelationId.Create(),
-                Array.Empty<byte>()),
-                deadline.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            // Shutdown is bounded and best effort; cleanup below remains authoritative.
-        }
-        catch (Exception error) when (error is IOException or InvalidOperationException)
-        {
-            // Ending pending work may close the receive transport before this final send.
-            // An already closed peer must not turn normal host teardown into a failure.
-        }
-        finally
-        {
-            Transition(SidecarSessionState.Closed);
-            _connection.Close();
-        }
+        lock (_gate) return new ValueTask(_shutdownTask ??= ShutdownCoreAsync(cancellationToken));
     }
 
     public void Dispose()
@@ -477,10 +493,13 @@ public sealed partial class SidecarHostSession : IDisposable
         CancellationToken cancellationToken)
     {
         SidecarFrame frame = await _connection.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+        RecordReceivedFrame(frame);
         if (frame.MessageType != expected)
         {
             throw Fail($"The session expected {expected} but received {frame.MessageType}.");
         }
+        if (expected == SidecarMessageType.RegisterEnd) SidecarRegistration.DecodeEnd(frame.Payload.Span);
+        else if (expected == SidecarMessageType.StateSnapshotEnd) SidecarStateSnapshot.DecodeEnd(frame.Payload.Span);
 
         return frame;
     }
@@ -543,6 +562,6 @@ public sealed partial class SidecarHostSession : IDisposable
     }
 
     private ValueTask SendHookSignalAsync(SidecarHookSignal signal, CancellationToken cancellationToken) =>
-        _connection.SendAsync(new(SidecarProtocol.Version, SidecarMessageType.HookSignal,
+        SendTrackedAsync(new(SidecarProtocol.Version, SidecarMessageType.HookSignal,
             SidecarFrameTraits.None, SidecarCorrelationId.Create(), signal.Encode()), cancellationToken);
 }

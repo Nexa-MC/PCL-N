@@ -184,6 +184,8 @@ internal static partial class Program
         SidecarConnection plugin;
         SidecarStateMirror mirror;
         (session, plugin, mirror, _) = await ActivatedSingleState(SidecarValueCodecs.GeneratedDto);
+        await session.ActivateAsync();
+        AssertEqual(SidecarMessageType.Activate, (await plugin.ReceiveAsync()).MessageType);
         Task loop = session.RunReceiveLoopAsync().AsTask();
 
         await plugin.SendAsync(new SidecarFrame(

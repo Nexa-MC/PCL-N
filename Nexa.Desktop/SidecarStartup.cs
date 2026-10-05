@@ -24,4 +24,16 @@ internal static class SidecarStartup
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         { log.Warn("Sidecar", "Sidecar discovery failed: " + error.Message); }
     }
+
+    public static Lifetime StartLifetime(SidecarSupervisor supervisor, LogService log) => new(supervisor, StartAsync(supervisor, log));
+
+    /// <summary>Joins discovery diagnostics before the Desktop releases logging/state dependencies.</summary>
+    internal sealed class Lifetime(SidecarSupervisor supervisor, Task startup) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            await supervisor.ShutdownAsync().ConfigureAwait(false);
+            await startup.ConfigureAwait(false);
+        }
+    }
 }

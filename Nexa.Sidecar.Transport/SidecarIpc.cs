@@ -20,6 +20,7 @@ public sealed class SidecarIpcListener : IDisposable
     private NamedPipeServerStream? _windowsServer;
     private Socket? _unixSocket;
     private bool _disposed;
+    private bool _accepting;
 
     private SidecarIpcListener(string pipeName, string? unixDirectory)
     {
@@ -62,11 +63,20 @@ public sealed class SidecarIpcListener : IDisposable
     /// </summary>
     public async ValueTask<Stream> AcceptAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (OperatingSystem.IsWindows())
+        cancellationToken.ThrowIfCancellationRequested();
+        NamedPipeServerStream? pipe = null;
+        Socket? unixSocket;
+        lock (_gate)
         {
-            NamedPipeServerStream pipe = CreateWindowsPipe();
-            try
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_accepting) throw new InvalidOperationException("The sidecar listener already has an outstanding accept.");
+            if (OperatingSystem.IsWindows()) pipe = CreateWindowsPipe();
+            unixSocket = _unixSocket;
+            _accepting = true;
+        }
+        try
+        {
+            if (pipe is not null)
             {
                 await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
                 lock (_gate)
@@ -77,20 +87,33 @@ public sealed class SidecarIpcListener : IDisposable
                 }
                 return pipe;
             }
-            catch { pipe.Dispose(); throw; }
+            if (unixSocket is not null)
+            {
+                Socket accepted = await unixSocket.AcceptAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    lock (_gate) ObjectDisposedException.ThrowIf(_disposed, this);
+                    return new NetworkStream(accepted, ownsSocket: true);
+                }
+                catch { accepted.Dispose(); throw; }
+            }
+            throw new PlatformNotSupportedException("No local IPC transport on this platform.");
         }
-
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        catch { pipe?.Dispose(); throw; }
+        finally
         {
-            Socket accepted = await _unixSocket!.AcceptAsync(cancellationToken).ConfigureAwait(false);
-            return new NetworkStream(accepted, ownsSocket: true);
+            lock (_gate)
+            {
+                _accepting = false;
+                if (ReferenceEquals(_windowsServer, pipe)) _windowsServer = null;
+            }
         }
-
-        throw new PlatformNotSupportedException("No local IPC transport on this platform.");
     }
 
     public void Dispose()
     {
+        NamedPipeServerStream? windowsServer;
+        Socket? unixSocket;
         lock (_gate)
         {
             if (_disposed)
@@ -99,15 +122,19 @@ public sealed class SidecarIpcListener : IDisposable
             }
 
             _disposed = true;
+            windowsServer = _windowsServer;
+            _windowsServer = null;
+            unixSocket = _unixSocket;
+            _unixSocket = null;
         }
 
         if (OperatingSystem.IsWindows())
         {
-            _windowsServer?.Dispose();
+            windowsServer?.Dispose();
         }
         else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
         {
-            _unixSocket?.Dispose();
+            unixSocket?.Dispose();
             try
             {
                 if (File.Exists(SocketPath))
@@ -120,7 +147,7 @@ public sealed class SidecarIpcListener : IDisposable
                     Directory.Delete(_unixDirectory);
                 }
             }
-            catch (IOException)
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
             {
                 // The socket file and directory are best-effort cleanup.
             }
@@ -155,9 +182,7 @@ public sealed class SidecarIpcListener : IDisposable
         string directory = Path.Combine(
             Path.GetTempPath(),
             "pcl-n-sidecar-" + Guid.NewGuid().ToString("N"));
-        _ = Directory.CreateDirectory(directory);
-        File.SetUnixFileMode(
-            directory,
+        _ = Directory.CreateDirectory(directory,
             UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return directory;
     }
@@ -166,6 +191,7 @@ public sealed class SidecarIpcListener : IDisposable
     {
         lock (_gate)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
             _windowsServer?.Dispose();
             _windowsServer = new NamedPipeServerStream(
                 _pipeName,
@@ -188,6 +214,8 @@ public static class SidecarIpcConnector
         string pipeName,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pipeName);
+        cancellationToken.ThrowIfCancellationRequested();
         if (OperatingSystem.IsWindows())
         {
             NamedPipeClientStream pipe = new(
@@ -195,8 +223,12 @@ public static class SidecarIpcConnector
                 pipeName,
                 PipeDirection.InOut,
                 PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-            await pipe.ConnectAsync(timeout: 10_000, cancellationToken).ConfigureAwait(false);
-            return pipe;
+            try
+            {
+                await pipe.ConnectAsync(timeout: 10_000, cancellationToken).ConfigureAwait(false);
+                return pipe;
+            }
+            catch { pipe.Dispose(); throw; }
         }
 
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
@@ -205,9 +237,13 @@ public static class SidecarIpcConnector
                 AddressFamily.Unix,
                 SocketType.Stream,
                 ProtocolType.Unspecified);
-            await socket.ConnectAsync(new UnixDomainSocketEndPoint(pipeName), cancellationToken)
-                .ConfigureAwait(false);
-            return new NetworkStream(socket, ownsSocket: true);
+            try
+            {
+                await socket.ConnectAsync(new UnixDomainSocketEndPoint(pipeName), cancellationToken)
+                    .ConfigureAwait(false);
+                return new NetworkStream(socket, ownsSocket: true);
+            }
+            catch { socket.Dispose(); throw; }
         }
 
         throw new PlatformNotSupportedException("No local IPC transport on this platform.");

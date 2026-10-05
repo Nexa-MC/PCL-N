@@ -28,22 +28,65 @@ public sealed record SidecarRegistrationEntry(
     XsrSemanticId SemanticId,
     uint ContractId,
     uint Flags,
-    uint CodecId);
+    uint CodecId)
+{
+    /// <summary>Gets the declared result or stream-chunk codec; zero preserves the legacy string contract.</summary>
+    public uint ResultCodecId { get; init; }
+}
 
 /// <summary>
 /// The accepted registration of one session with the session-local contract table.
 /// </summary>
 public sealed class SidecarRegistrationSet
 {
+    private const int MaximumEntries = 4096;
+    private const uint MaximumKind = 13;
     private readonly Dictionary<(SidecarRegistrationKind Kind, XsrSemanticId Semantic), SidecarRegistrationEntry> _byContract;
+    private readonly SidecarRegistrationEntry?[][] _byNumericId;
 
     public SidecarRegistrationSet(IReadOnlyList<SidecarRegistrationEntry> entries)
     {
-        Entries = entries;
-        _byContract = [];
-        foreach (SidecarRegistrationEntry entry in entries)
+        ArgumentNullException.ThrowIfNull(entries);
+        if (entries.Count > MaximumEntries)
+            throw new SidecarProtocolException("The registration table exceeds its item budget.");
+
+        SidecarRegistrationEntry[] owned = new SidecarRegistrationEntry[entries.Count];
+        int[] counts = new int[MaximumKind + 1];
+        HashSet<XsrSemanticId> semantics = [];
+        for (int index = 0; index < owned.Length; index++)
         {
-            _byContract[(entry.Kind, entry.SemanticId)] = entry;
+            SidecarRegistrationEntry entry = entries[index]
+                ?? throw new SidecarProtocolException("A registration table entry is missing.");
+            uint kind = (uint)entry.Kind;
+            if (kind is 0 or > MaximumKind || !entry.SemanticId.IsAssigned
+                || entry.SemanticId.Value.Length > 256 || !semantics.Add(entry.SemanticId))
+                throw new SidecarProtocolException("A registration kind or semantic identity is invalid or duplicated.");
+            if (entry.CodecId > SidecarValueCodecs.GeneratedDto || entry.ResultCodecId > SidecarValueCodecs.GeneratedDto)
+                throw new SidecarProtocolException("A registration codec is unknown.");
+            if (entry.Kind is not (SidecarRegistrationKind.Command or SidecarRegistrationKind.Query
+                or SidecarRegistrationKind.State or SidecarRegistrationKind.Event or SidecarRegistrationKind.Stream)
+                && entry.CodecId != 0)
+                throw new SidecarProtocolException("This registration kind cannot declare a value codec.");
+            if (entry.Kind is not (SidecarRegistrationKind.Command or SidecarRegistrationKind.Query or SidecarRegistrationKind.Stream)
+                && entry.ResultCodecId != 0)
+                throw new SidecarProtocolException("This registration kind cannot declare a result codec.");
+            owned[index] = entry;
+            counts[kind]++;
+        }
+
+        _byNumericId = new SidecarRegistrationEntry?[MaximumKind + 1][];
+        for (int kind = 0; kind < counts.Length; kind++)
+            _byNumericId[kind] = new SidecarRegistrationEntry?[counts[kind] + 1];
+
+        Entries = Array.AsReadOnly(owned);
+        _byContract = [];
+        foreach (SidecarRegistrationEntry entry in owned)
+        {
+            SidecarRegistrationEntry?[] table = _byNumericId[(uint)entry.Kind];
+            if (entry.ContractId == 0 || entry.ContractId >= table.Length || table[entry.ContractId] is not null)
+                throw new SidecarProtocolException("Registration numeric IDs must be unique contiguous per-kind ordinals starting at one.");
+            table[entry.ContractId] = entry;
+            _byContract.Add((entry.Kind, entry.SemanticId), entry);
         }
     }
 
@@ -61,12 +104,23 @@ public sealed class SidecarRegistrationSet
 
     public IEnumerable<XsrSemanticId> Resources => OfKind(SidecarRegistrationKind.Resource);
 
+    public IEnumerable<XsrSemanticId> Streams => OfKind(SidecarRegistrationKind.Stream);
+
     /// <summary>
     /// Resolves one declared contract to its session-local entry, or null when the semantic was
     /// not registered under that kind — the capability boundary for the data plane.
     /// </summary>
     public SidecarRegistrationEntry? TryResolve(SidecarRegistrationKind kind, XsrSemanticId semantic) =>
         _byContract.TryGetValue((kind, semantic), out SidecarRegistrationEntry? entry) ? entry : null;
+
+    /// <summary>Resolves a session-local numeric contract without scanning or allocating.</summary>
+    public SidecarRegistrationEntry? TryResolveId(SidecarRegistrationKind kind, uint contractId)
+    {
+        uint numericKind = (uint)kind;
+        if (numericKind is 0 or > MaximumKind) return null;
+        SidecarRegistrationEntry?[] table = _byNumericId[numericKind];
+        return contractId > 0 && contractId < table.Length ? table[contractId] : null;
+    }
 
     private IEnumerable<XsrSemanticId> OfKind(SidecarRegistrationKind kind) =>
         Entries.Where(entry => entry.Kind == kind).Select(entry => entry.SemanticId);
@@ -90,6 +144,15 @@ public sealed class SidecarStateMirror
     public string PluginName { get; }
 
     public XsrStateStore Store { get; }
+
+    /// <summary>Publishes a privately completed initial snapshot while preserving the accepted mirror identity.</summary>
+    internal void AdoptSnapshot(SidecarStateMirror candidate)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        if (!StringComparer.Ordinal.Equals(PluginName, candidate.PluginName))
+            throw new SidecarProtocolException("The initial snapshot belongs to another plugin.");
+        Store.CommitInitialSnapshot(candidate.Store);
+    }
 
     public XsrStateId? TryResolve(XsrSemanticId semantic) =>
         Store.TryResolve(semantic, out XsrStateId stateId) ? stateId : null;

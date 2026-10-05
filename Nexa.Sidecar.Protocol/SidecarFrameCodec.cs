@@ -12,7 +12,12 @@ public static class SidecarFrameCodec
     /// <summary>
     /// Gets the exact encoded size of one frame.
     /// </summary>
-    public static int GetFrameSize(int payloadLength) => SidecarProtocol.HeaderSize + payloadLength;
+    public static int GetFrameSize(int payloadLength)
+    {
+        if (payloadLength is < 0 or > SidecarProtocol.MaxPayloadLength)
+            throw new SidecarProtocolException("The frame payload length is outside its bound.");
+        return SidecarProtocol.HeaderSize + payloadLength;
+    }
 
     /// <summary>
     /// Encodes one frame into <paramref name="buffer"/>. The buffer must be exactly
@@ -37,6 +42,7 @@ public static class SidecarFrameCodec
         {
             throw new SidecarProtocolException("Every frame carries an assigned correlation ID.");
         }
+        ValidateMetadata(frame.ProtocolVersion, (ushort)frame.MessageType, frame.Flags, frame.CorrelationId);
 
         BinaryPrimitives.WriteUInt32LittleEndian(buffer, SidecarProtocol.Magic);
         BinaryPrimitives.WriteUInt16LittleEndian(buffer[4..], SidecarProtocol.Version);
@@ -60,6 +66,26 @@ public static class SidecarFrameCodec
                 $"A frame needs at least {SidecarProtocol.HeaderSize} bytes for the header.");
         }
 
+        int payloadLength = ValidateHeader(buffer[..SidecarProtocol.HeaderSize]);
+        if (buffer.Length != SidecarProtocol.HeaderSize + payloadLength)
+        {
+            throw new SidecarProtocolException(
+                $"The frame declares {payloadLength} payload bytes but carries {buffer.Length - SidecarProtocol.HeaderSize}.");
+        }
+
+        byte[] payload = buffer.Slice(SidecarProtocol.HeaderSize).ToArray();
+        return new SidecarFrame(
+            BinaryPrimitives.ReadUInt16LittleEndian(buffer[6..]),
+            (SidecarMessageType)BinaryPrimitives.ReadUInt16LittleEndian(buffer[8..]),
+            (SidecarFrameTraits)BinaryPrimitives.ReadUInt16LittleEndian(buffer[10..]),
+            new SidecarCorrelationId(new Guid(buffer.Slice(12, 16))),
+            payload);
+    }
+
+    /// <summary>Validates the complete header before any payload allocation or IO; returns its bounded length.</summary>
+    public static int ValidateHeader(ReadOnlySpan<byte> buffer)
+    {
+        if (buffer.Length != SidecarProtocol.HeaderSize) throw new SidecarProtocolException("A Sidecar header must contain exactly 32 bytes.");
         uint magic = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         if (magic != SidecarProtocol.Magic)
         {
@@ -74,44 +100,37 @@ public static class SidecarFrameCodec
         }
 
         ushort protocolVersion = BinaryPrimitives.ReadUInt16LittleEndian(buffer[6..]);
-        if (protocolVersion != SidecarProtocol.Version)
-        {
-            throw new SidecarProtocolException(
-                $"The frame protocol version {protocolVersion} does not match the negotiated version {SidecarProtocol.Version}.");
-        }
-
         ushort messageType = BinaryPrimitives.ReadUInt16LittleEndian(buffer[8..]);
-        if (!Enum.IsDefined((SidecarMessageType)messageType))
-        {
-            throw new SidecarProtocolException($"The message type {messageType} is unknown to this protocol version.");
-        }
-
         var flags = (SidecarFrameTraits)BinaryPrimitives.ReadUInt16LittleEndian(buffer[10..]);
-        if (!Enum.IsDefined(flags))
-        {
-            throw new SidecarProtocolException("The frame flags carry undefined bits.");
-        }
-
         var correlationId = new SidecarCorrelationId(new Guid(buffer.Slice(12, 16)));
+        ValidateMetadata(protocolVersion, messageType, flags, correlationId);
         uint payloadLength = BinaryPrimitives.ReadUInt32LittleEndian(buffer[28..]);
         if (payloadLength > SidecarProtocol.MaxPayloadLength)
         {
             throw new SidecarProtocolException(
                 $"The declared payload of {payloadLength} bytes exceeds the protocol maximum.");
         }
+        return (int)payloadLength;
+    }
 
-        if (buffer.Length != SidecarProtocol.HeaderSize + (int)payloadLength)
+    private static void ValidateMetadata(ushort protocolVersion, ushort messageType, SidecarFrameTraits flags, SidecarCorrelationId correlationId)
+    {
+        if (protocolVersion != SidecarProtocol.Version)
         {
             throw new SidecarProtocolException(
-                $"The frame declares {payloadLength} payload bytes but carries {buffer.Length - SidecarProtocol.HeaderSize}.");
+                $"The frame protocol version {protocolVersion} does not match the negotiated version {SidecarProtocol.Version}.");
         }
 
-        byte[] payload = buffer.Slice(SidecarProtocol.HeaderSize).ToArray();
-        return new SidecarFrame(
-            protocolVersion,
-            (SidecarMessageType)messageType,
-            flags,
-            correlationId,
-            payload);
+        if (!Enum.IsDefined((SidecarMessageType)messageType))
+        {
+            throw new SidecarProtocolException($"The message type {messageType} is unknown to this protocol version.");
+        }
+
+        if ((flags & ~(SidecarFrameTraits.Compressed | SidecarFrameTraits.Final)) != 0)
+        {
+            throw new SidecarProtocolException("The frame flags carry undefined bits.");
+        }
+
+        if (!correlationId.IsAssigned) throw new SidecarProtocolException("Every frame carries an assigned correlation ID.");
     }
 }

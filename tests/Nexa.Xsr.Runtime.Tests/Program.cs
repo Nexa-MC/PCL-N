@@ -4,6 +4,43 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("Host facade preserves admission cancellation and shutdown errors", HostFacadePreservesAdmissionCancellationAndShutdownErrors),
+        ("Host facade returns stable catalog budget failure", HostFacadeReloadReturnsStableFailureForCatalogBudget),
+        ("initial snapshot preserves store and owns candidate values", Sync(CoreInitialSnapshotPreservesStoreAndOwnsCandidateValues)),
+        ("initial snapshot rejects invalid candidates without publication", Sync(CoreInitialSnapshotRejectsInvalidCandidatesWithoutPublication)),
+        ("initial snapshot races writers and readers without lost writes", CoreInitialSnapshotRacesWritersAndReadersWithoutLosingWrites),
+        ("physical Sidecar Host API completes lifecycle", PhysicalSidecarHostApiCompletesLifecycle),
+        ("physical Sidecar recovery is bounded and isolated", PhysicalSidecarRecoveryIsBoundedAndIsolated),
+        ("physical Sidecar reload reverifies admitted packages", PhysicalSidecarReloadReverifiesAdmittedPackages),
+        ("Sidecar disposal cancels unpublished startup", SupervisorDisposalCancelsUnpublishedStartup),
+        ("Sidecar handshake owns deadline and terminal cleanup", SessionHandshakeOwnsDeadlineAndTerminalCleanup),
+        ("Sidecar lifecycle serializes initial reader phases", SessionLifecycleSerializesInitialReaderPhases),
+        ("Sidecar registration requires negotiated binary stream features", SessionRegistrationRequiresNegotiatedBinaryAndStreamFeatures),
+        ("Sidecar initial snapshot publishes one coherent store", SessionInitialSnapshotPublishesOneCoherentStore),
+        ("Sidecar deactivation pauses data and supports reactivation", SessionDeactivationPausesDataPlaneAndSupportsReactivation),
+        ("Sidecar graceful shutdown preserves ordered wire controls", SessionGracefulShutdownPreservesOrderedWireControls),
+        ("Sidecar shutdown without unregister reply still sends shutdown", SessionShutdownWithoutUnregisterReplyStillSendsShutdown),
+        ("Sidecar explicit and peer unregister retire session", SessionExplicitAndPeerUnregistrationRetireTheSession),
+        ("Sidecar binary data API uses numeric contracts", SidecarBinaryDataApiUsesDeclaredNumericContracts),
+        ("Sidecar data API rejects unavailable features and pre-cancel locally", SidecarDataApiRejectsUnavailableFeaturesAndPreCancellationLocally),
+        ("Sidecar data API binds response message and codec", SidecarDataApiBindsResultMessageAndCodec),
+        ("Sidecar data API ignores malformed late results and normalizes errors", SidecarDataApiIgnoresMalformedLateResultsAndNormalizesErrors),
+        ("Sidecar health correlates nonce and ignores late pong", SidecarHealthApiCorrelatesNonceAndIgnoresLatePong),
+        ("Sidecar health times out and stops on deactivation", SidecarHealthApiTimesOutAndStopsPendingOnDeactivation),
+        ("Sidecar health rejects mismatched nonce and retires all checks", SidecarHealthApiRejectsMismatchedNonceAndRetiresAllChecks),
+        ("Sidecar remote error completes only correlated exchange", SidecarRemoteErrorCompletesOnlyItsCorrelatedExchange),
+        ("legacy Sidecar rejects binary codec zero representation", SidecarLegacySessionRejectsBinaryCodecZeroRepresentation),
+        ("Sidecar streams return credit and drain in order", SidecarStreamsReturnCreditAndDrainInOrder),
+        ("Sidecar streams finish before open flush completes", SidecarStreamsCanFinishBeforeTheOpenFlushCompletes),
+        ("Sidecar completed streams retain unread chunks after retirement", SidecarCompletedStreamsPreserveUnreadChunksAcrossSessionRetirement),
+        ("Sidecar streams reject sequence codec and credit violations", SidecarStreamsRejectSequenceCodecAndCreditViolations),
+        ("Sidecar streams bound bytes and count", SidecarStreamsBoundSessionBytesAndStreamCount),
+        ("Sidecar streams cancel timeout and enforce one consumer", SidecarStreamsCancelTimeoutAndEnforceOneConsumer),
+        ("sidecar registration tables own and index declarations", Sync(SidecarRegistrationTablesOwnAndIndexDeclarations)),
+        ("sidecar registration tables reject malformed declarations", Sync(SidecarRegistrationTablesRejectMalformedDeclarations)),
+        ("sidecar value codecs reject malformed values and own bytes", Sync(SidecarRuntimeCodecsRejectMalformedValuesAndOwnBytes)),
+        ("sidecar verified caches own public arrays", Sync(SidecarVerifiedCacheOwnsAllPublicArrays)),
+        ("sidecar registered content reads locally without aliases", SidecarRegisteredContentAndExtensionsReadLocallyWithoutAliases),
         ("modules publish immutable state and restore live predecessor", ModulesPublishImmutableStateAndRestoreLivePredecessor),
         ("modules reject unauthorized malformed and over budget batches", ModulesRejectUnauthorizedMalformedAndOverBudgetBatches),
         ("module publications remain ordered under reentrancy and blocked observers", ModulePublicationsRemainOrderedUnderReentrancyAndBlockedObservers),
@@ -138,7 +175,9 @@ internal static partial class Program
 
     private static async Task<int> Main(string[] args)
     {
-        if (args is ["--nexa-sidecar", "--endpoint", var endpoint]) return await RunSupervisorChildAsync(endpoint);
+        if (args is ["--nexa-sidecar", "--endpoint", var endpoint])
+            return File.Exists(Path.Combine(AppContext.BaseDirectory, "sidecar-full.fixture"))
+                ? await RunCompleteSupervisorChildAsync(endpoint) : await RunSupervisorChildAsync(endpoint);
         int passed = 0;
         foreach ((string name, Func<ValueTask> body) in TestCases)
         {

@@ -130,7 +130,8 @@ internal static partial class Program
 
     private static async ValueTask CaptionTerminalPathsRestoreAndBufferedActivationCannotResurrect()
     {
-        foreach (var ending in new[] { SidecarMessageType.Shutdown, SidecarMessageType.Crash, SidecarMessageType.CommandResult })
+        // CommandRequest exercises the invalid peer-to-Host direction.
+        foreach (var ending in new[] { SidecarMessageType.Shutdown, SidecarMessageType.Crash, SidecarMessageType.CommandRequest })
         {
             var (store, runtime, state) = CaptionRuntime();
             var (session, peer) = await CaptionSession(runtime, [CaptionItem("caption.terminal", "Changed")]);
@@ -139,7 +140,7 @@ internal static partial class Program
                 await SnapshotAll(session, peer); await session.ActivateAsync(); await DataPlaneReceiveAsync(peer);
                 var loop = session.RunReceiveLoopAsync().AsTask();
                 await peer.SendAsync(new(SidecarProtocol.Version, ending, SidecarFrameTraits.Final,
-                    SidecarCorrelationId.Create(), ending == SidecarMessageType.CommandResult ? new byte[] { 255 } : Array.Empty<byte>()));
+                    SidecarCorrelationId.Create(), Array.Empty<byte>()));
                 await loop.WaitAsync(TimeSpan.FromSeconds(5));
                 AssertTrue(store.Read<XsrUiPatchSnapshot>(state).Value!.CaptionAt(0) is null);
             }

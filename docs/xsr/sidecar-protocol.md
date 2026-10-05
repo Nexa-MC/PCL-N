@@ -1,5 +1,9 @@
 # XSR Sidecar Fabric v2
 
+The additive Host completion contract is locked in
+[XSR-790](XSR-790-sidecar-host-completion.md). It covers the PCL-N Host APIs and
+portable wire libraries; the independently owned Plugin SDK is outside this delivery.
+
 ## Host resource admission (SEC-04)
 
 Executable discovery, pinned signature verification, bootstrap authentication and extension

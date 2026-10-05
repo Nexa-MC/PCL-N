@@ -1,5 +1,3 @@
-using System.Buffers.Binary;
-
 using Nexa.Sidecar.Protocol;
 
 namespace Nexa.Sidecar.Transport;
@@ -24,6 +22,12 @@ public sealed class SidecarFrameTransport : IDisposable
 {
     private readonly Stream _stream;
     private readonly SemaphoreSlim _writeGate = new(1, 1);
+    private readonly SemaphoreSlim _readGate = new(1, 1);
+    private readonly object _lifetimeGate = new();
+    private int _operations;
+    private int _pendingWrites;
+    private bool _disposed;
+    public const int MaximumPendingWrites = 64;
 
     public SidecarFrameTransport(Stream stream)
     {
@@ -41,13 +45,24 @@ public sealed class SidecarFrameTransport : IDisposable
         SidecarFrame frame,
         CancellationToken cancellationToken = default)
     {
-        byte[] wire = new byte[SidecarFrameCodec.GetFrameSize(frame.Payload.Length)];
-        SidecarFrameCodec.Encode(frame, wire);
-
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        BeginOperation();
+        bool admitted = false;
+        bool ownsWriteGate = false;
         try
         {
+            if (Interlocked.Increment(ref _pendingWrites) > MaximumPendingWrites)
+            {
+                Interlocked.Decrement(ref _pendingWrites);
+                throw new SidecarTransportBackpressureException();
+            }
+            admitted = true;
+            await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            ownsWriteGate = true;
             cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+            byte[] wire = new byte[SidecarFrameCodec.GetFrameSize(frame.Payload.Length)];
+            SidecarFrameCodec.Encode(frame, wire);
             try
             {
                 await _stream.WriteAsync(wire, cancellationToken).ConfigureAwait(false);
@@ -59,10 +74,17 @@ public sealed class SidecarFrameTransport : IDisposable
                 _stream.Close();
                 throw new IOException("The sidecar frame write was interrupted.", error);
             }
+            catch
+            {
+                _stream.Close();
+                throw;
+            }
         }
         finally
         {
-            _writeGate.Release();
+            if (ownsWriteGate) _writeGate.Release();
+            if (admitted) Interlocked.Decrement(ref _pendingWrites);
+            EndOperation();
         }
     }
 
@@ -71,26 +93,41 @@ public sealed class SidecarFrameTransport : IDisposable
     /// </summary>
     public async ValueTask<SidecarFrame> ReceiveAsync(CancellationToken cancellationToken = default)
     {
-        byte[] header = new byte[SidecarProtocol.HeaderSize];
-        await ReadExactAsync(header, cancellationToken).ConfigureAwait(false);
-        uint magic = BinaryPrimitives.ReadUInt32LittleEndian(header);
-        if (magic != SidecarProtocol.Magic)
+        cancellationToken.ThrowIfCancellationRequested();
+        BeginOperation();
+        bool ownsReadGate = false;
+        try
         {
-            throw new SidecarProtocolException("The stream delivered bytes that are not a Sidecar frame.");
+            await _readGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            ownsReadGate = true;
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+            try
+            {
+                byte[] header = new byte[SidecarProtocol.HeaderSize];
+                await ReadExactAsync(header, cancellationToken).ConfigureAwait(false);
+                int payloadLength = SidecarFrameCodec.ValidateHeader(header);
+                byte[] wire = new byte[SidecarProtocol.HeaderSize + payloadLength];
+                header.CopyTo(wire, 0);
+                await ReadExactAsync(wire.AsMemory(SidecarProtocol.HeaderSize), cancellationToken).ConfigureAwait(false);
+                return SidecarFrameCodec.Decode(wire);
+            }
+            catch (OperationCanceledException error)
+            {
+                _stream.Close();
+                throw new IOException("The sidecar frame read was interrupted.", error);
+            }
+            catch
+            {
+                _stream.Close();
+                throw;
+            }
         }
-
-        uint payloadLength = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(28));
-        if (payloadLength > SidecarProtocol.MaxPayloadLength)
+        finally
         {
-            throw new SidecarProtocolException(
-                $"The declared payload of {payloadLength} bytes exceeds the protocol maximum.");
+            if (ownsReadGate) _readGate.Release();
+            EndOperation();
         }
-
-        // Decode over the complete frame: header plus payload as one contiguous buffer.
-        byte[] wire = new byte[SidecarProtocol.HeaderSize + payloadLength];
-        header.CopyTo(wire, 0);
-        await ReadExactAsync(wire.AsMemory(SidecarProtocol.HeaderSize), cancellationToken).ConfigureAwait(false);
-        return SidecarFrameCodec.Decode(wire);
     }
 
     private async ValueTask ReadExactAsync(Memory<byte> buffer, CancellationToken cancellationToken)
@@ -110,7 +147,50 @@ public sealed class SidecarFrameTransport : IDisposable
     }
 
     /// <summary>
-    /// Releases the write gate. The transport is single-use after this.
+    /// Rejects new operations and retires both gates when admitted operations have finished.
     /// </summary>
-    public void Dispose() => _writeGate.Dispose();
+    public void Dispose()
+    {
+        lock (_lifetimeGate)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            if (_operations == 0) DisposeGates();
+        }
+    }
+
+    private void BeginOperation()
+    {
+        lock (_lifetimeGate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _operations++;
+        }
+    }
+
+    private void ThrowIfDisposed()
+    {
+        lock (_lifetimeGate) ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
+    private void EndOperation()
+    {
+        lock (_lifetimeGate)
+        {
+            _operations--;
+            if (_disposed && _operations == 0) DisposeGates();
+        }
+    }
+
+    private void DisposeGates()
+    {
+        _writeGate.Dispose();
+        _readGate.Dispose();
+    }
+}
+
+/// <summary>Bounded local write admission rejected the frame before any bytes were sent.</summary>
+public sealed class SidecarTransportBackpressureException : InvalidOperationException
+{
+    public SidecarTransportBackpressureException() : base("The sidecar transport write admission limit was reached.") { }
 }

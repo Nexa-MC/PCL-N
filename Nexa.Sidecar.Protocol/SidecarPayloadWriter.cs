@@ -63,7 +63,14 @@ public sealed class SidecarPayloadWriter : IDisposable
     public void WriteString(ushort fieldId, string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        WriteVariable(fieldId, SidecarFieldTag.Str, Encoding.UTF8.GetBytes(value));
+        if (value.Length > ushort.MaxValue) throw new SidecarProtocolException("A string payload field exceeds its byte budget.");
+        try
+        {
+            if (SidecarWireCodecs.Utf8.GetByteCount(value) > ushort.MaxValue)
+                throw new SidecarProtocolException("A string payload field exceeds its byte budget.");
+            WriteVariable(fieldId, SidecarFieldTag.Str, SidecarWireCodecs.Utf8.GetBytes(value));
+        }
+        catch (EncoderFallbackException) { throw new SidecarProtocolException("A string field contains invalid UTF-16."); }
     }
 
     public void WriteBytes(ushort fieldId, ReadOnlySpan<byte> value)
