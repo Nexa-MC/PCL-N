@@ -13,6 +13,7 @@
     <EmbeddedResource Include="Assets/Avatars/Alex.png" />
     <EmbeddedResource Include="Assets/Versions/*.png" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
     <ProjectReference Include="../Nexa.UI.Next/Nexa.UI.Next.csproj" />
   </ItemGroup>
 </Project>

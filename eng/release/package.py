@@ -90,6 +90,7 @@ def macos(payload, output, work, base, version, prefix, arch):
         plistlib.dump(dict(CFBundleName="NexaCL", CFBundleDisplayName="NexaCL", CFBundleIdentifier="org.nexacl.launcher",
                           CFBundleExecutable="Nexa.Desktop", CFBundlePackageType="APPL", CFBundleIconFile="Launcher.icns",
                           CFBundleShortVersionString=prefix, CFBundleVersion=prefix, NexaProductVersion=version,
+                          CFBundleURLTypes=[dict(CFBundleURLName="org.nexacl.launcher", CFBundleURLSchemes=["nexacl"])],
                           NSHighResolutionCapable=True, LSMinimumSystemVersion="12.0"), stream)
     # Ad-hoc signing seals the complete bundle, including all NativeAOT/Skia libraries.
     run("codesign", "--force", "--deep", "--sign", "-", app)

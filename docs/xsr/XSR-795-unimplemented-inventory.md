@@ -40,6 +40,10 @@ XSR-791–794 和 XSR-796 已完成当前生产接入，集成执行证据见本
 83 Available / 457 原始 NotImplemented。余项按下面的消费者映射与独立规划保留，
 不将原始目录计数当作独立产品缺口数。
 
+2026-10-07 的 [XSR-798](XSR-798-desktop-integration.md) 接入四项桌面策略；
+单实例默认开启，托盘启用/关闭到托盘/最小化到托盘具有实际消费者。协议使用
+`nexacl://`，不是旧规划中的 `nexa://`。原始目录剩余计数见该切片执行证据。
+
 ## 历史缺口的关闭映射
 
 | 旧条目/文档 | 基准已交付消费者 | 仍开放的范围 |
@@ -66,7 +70,7 @@ XSR-791–794 和 XSR-796 已完成当前生产接入，集成执行证据见本
 
 | Scope/page | 原始 NI 数 | 已有消费者/展示 | 仍未来或不可等同的能力 |
 |---|---:|---|---|
-| global/general | 19 | 界面语言、区域格式、developer 可见性 | autostart、single-instance 激活、tray/后台生命周期、关闭/启动行为策略、通知、剪贴板自动探测、URI/文件关联/Jump List |
+| global/general | 19 | 界面语言、区域格式、developer 可见性；XSR-798 单实例、托盘、关闭/最小化到托盘及 nexacl:// 关联 | autostart、其他启动行为策略、通知、剪贴板自动探测、文件关联/Jump List |
 | global/appearance | 27 | 系统/浅/深主题、有限强调色、动画/帧率/窗口锁、低功耗、现有 Reduced Motion 机制 | 任意主题/Logo、多媒体背景/音乐、窗口透明/模糊；独立减少动态效果设置及此页四项 developer 诊断未接 |
 | global/game | 23 | 内存/Java/窗口/参数、启动器呈现、隔离、server、priority、强制 preflight/修复与 quiet 基础 | GPU 选择、任意默认 renderer/native 兼容开关、资产验证绕过、额外资源 handoff/提示策略和启动模板；强制检查不是可关闭选项 |
 | global/java | 19 | 库存/扫描/选择、runtime 事实、注册/启停、外部解除注册、受所有权保护的托管删除、兼容优先级/获取 | 独立全量 probe/module/raw 页；可选兼容策略不可用，扫描时校验不等于每个同名独立操作入口 |

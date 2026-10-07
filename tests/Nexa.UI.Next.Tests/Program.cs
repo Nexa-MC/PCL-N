@@ -6,6 +6,8 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("settled list entries do not replay after refresh or scroll", Sync(SettledListEntriesDoNotReplayAfterUnrelatedFramesOrScrolling)),
+        ("context menus resolve parents and reject retired commands", Sync(ContextMenusResolveParentsAndRetireCommands)),
         ("horizontal card wheel preserves axes and bubbles at boundaries", Sync(HorizontalCardWheelPreservesAxesAndBubblesAtBoundaries)),
         ("text input bounds preserve script tabs unicode and password sanitization", Sync(TextInputBoundsPreserveScriptTabsAndUnicodeWithoutChangingPasswords)),
         ("localization remeasures and preserves input and literal content", Sync(LocalizationRemeasuresWithoutChangingInputOrLiteralContent)),

@@ -188,7 +188,7 @@ and live online acceptance remain unverified.
 | Java | Optional compatibility policy needs a separate safe contract; current compatibility checks remain mandatory |
 | Game | Arbitrary launch profiles/temporary overlays and future hooks need their own ownership and cancellation contracts |
 | Download and network | Content-provider enable/disable, background-download policy, automatic diagnostics and additional source policies need consumers; transfer budgets do not bound all network traffic |
-| Appearance/general | Autostart, tray lifetime, single-instance activation, URI/file associations, native notifications, arbitrary themes and multimedia need supported Host consumers |
+| Appearance/general | XSR-798 closes tray lifetime, single-instance activation and nexacl:// navigation/registration. Autostart, file associations, native notifications, arbitrary themes and multimedia remain open |
 | Privacy/advanced | Persistent richer diagnostic histories and future diagnostic tools remain reserved; existing telemetry and update security boundaries remain authoritative |
 | Storage | Reference-aware CAS collection, cloud synchronization, profile relocation, snapshot pruning and automatic deletion are independent capabilities |
 

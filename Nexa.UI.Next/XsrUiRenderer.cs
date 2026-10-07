@@ -1483,6 +1483,7 @@ public sealed partial class XsrUiRenderer
         {
             ColorScheme = _colorScheme,
             Graph = components.Get<XsrUiGraph>()?.Snapshot(),
+            ContextMenu = ProjectContextMenu(entity, components.Get<XsrUiContextMenu>()),
             IsChecked = components.Get<XsrUiToggle>()?.IsChecked,
             IsSelectionRequired = components.Get<XsrUiSelectionGroup>()?.IsSelectionRequired ?? true,
             SegmentScroll = components.Get<XsrUiSegmentedTrack>() is { Dragging: false, ScrollTargetX: { } targetX } segmentTrack

@@ -103,9 +103,9 @@
     "section": "启动器行为",
     "label": "单实例运行",
     "kind": "Setting",
-    "key": null,
+    "key": "general.single-instance",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.c47c7f1742cc",
@@ -125,11 +125,11 @@
     "scope": "global",
     "page": "general",
     "section": "启动器行为",
-    "label": "最小化行为",
+    "label": "最小化到托盘",
     "kind": "Setting",
-    "key": null,
+    "key": "general.minimize-to-tray",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.79e1995bccb4",
@@ -137,11 +137,11 @@
     "scope": "global",
     "page": "general",
     "section": "启动器行为",
-    "label": "关闭按钮行为",
+    "label": "关闭时最小化到托盘",
     "kind": "Setting",
-    "key": null,
+    "key": "general.close-to-tray",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.65aedbdb1011",
@@ -149,11 +149,11 @@
     "scope": "global",
     "page": "general",
     "section": "启动器行为",
-    "label": "后台运行",
+    "label": "启用系统托盘",
     "kind": "Setting",
-    "key": null,
+    "key": "general.tray",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.f5c04528a6dd",

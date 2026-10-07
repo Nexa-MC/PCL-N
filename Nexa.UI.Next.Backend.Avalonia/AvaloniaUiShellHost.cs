@@ -2,6 +2,7 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 using Nexa.UI.Next;
 
@@ -71,6 +72,7 @@ public static class AvaloniaUiShellHost
     {
         public override void OnFrameworkInitializationCompleted()
         {
+            Styles.Add(new FluentTheme());
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 // A second stream per consumer: the splash, the taskbar icon, and the
@@ -81,6 +83,12 @@ public static class AvaloniaUiShellHost
                     TryOpenProductAsset("Nexa.Desktop.Assets.icon.png"),
                     TryOpenProductAsset("Nexa.Desktop.Assets.icon.png"));
                 _platformActions?.Attach(window);
+                if (this.TryGetFeature<IActivatableLifetime>() is { } activation)
+                    activation.Activated += (_, args) =>
+                    {
+                        if (args is ProtocolActivatedEventArgs protocol) _platformActions?.OnProtocolActivated(protocol.Uri.AbsoluteUri);
+                        else if (args.Kind == ActivationKind.Reopen) _platformActions?.RestoreWindow();
+                    };
             }
 
             base.OnFrameworkInitializationCompleted();

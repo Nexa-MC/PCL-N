@@ -249,4 +249,8 @@ the `dev` profile rail, full player previews, skin/cape card tracks, local histo
 LittleSkin public library and provider-specific application rules. Its source
 reference and external NCloud capability boundary are recorded explicitly.
 
+[XSR-798](XSR-798-desktop-integration.md) adds user-level single-instance activation,
+native tray policies, nexacl:// registration/navigation, semantic context menus and
+Firefly Alpha 6 branding; entry motion follows navigation/key changes, not scene revisions.
+
 Before XSR replaces the legacy architecture, startup, downloads, instances, Minecraft launch, accounts, settings, updates, cloud, online play, plugins, OOBE, crash recovery, AOT, and trim must pass. Plugin SDK 1.0, Sidecar Protocol v1, Manifest/Package v1, and Plugin UI IR v1 must be frozen with compatibility tests.

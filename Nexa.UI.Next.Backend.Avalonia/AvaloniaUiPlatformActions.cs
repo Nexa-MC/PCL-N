@@ -33,6 +33,7 @@ public sealed partial class AvaloniaUiPlatformActions
         DragDrop.AddDragOverHandler(owner, OnDragOver);
         DragDrop.AddDropHandler(owner, OnDrop);
         if (owner is Window window) window.Deactivated += (_, _) => _doubleClick.Cancel();
+        AttachDesktopIntegration(owner);
     }
 
     /// <summary>Returns false to defer closing while the product resolves pending work.</summary>

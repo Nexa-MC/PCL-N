@@ -116,6 +116,12 @@ internal sealed partial class VersionSelectionController
                     VersionKindLabel(instance.Version.Kind) + " · " + instance.VersionId, false, VersionIcon(instance.Version.Kind));
                 _windowRows.Add(instance.Id, row);
                 _versions.Add(row, (snapshot.RootDirectory, instance.Id));
+                _actions[row] = (snapshot.RootDirectory, instance.Id);
+                _shell.Tree.SetComponent(row, new XsrUiContextMenu([
+                    new("修改版本", XsrSemanticId.Parse("ui.versions.modify")),
+                    new("版本设置", XsrSemanticId.Parse("ui.versions.settings")),
+                    new("删除版本", XsrSemanticId.Parse("ui.versions.delete")),
+                ]));
                 _shell.Tree.SetComponent(row, new XsrUiModifiedClick(XsrSemanticId.Parse("ui.versions.toggle-transfer"),
                     XsrSemanticId.Parse("ui.versions.extend-transfer"), XsrSemanticId.Parse("ui.versions.add-range")));
                 _shell.Tree.Walk(row, entity =>

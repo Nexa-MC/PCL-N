@@ -196,6 +196,8 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     private int _presentedJavaInstallPage = -1;
     private string _activeJavaInstallPage = "JavaMinecraftPage";
     private readonly Dictionary<string, XsrUiEntityId> _titleEntities = [];
+    private XsrUiEntityId _titleTransitionPage;
+    private int _titleTransitionEpoch;
     private int _titleNavigationDepth = 1;
     private readonly Stack<XsrUiEntityId> _returnFocus = [];
     private readonly Dictionary<string, XsrUiEntityId> _pageEntities;

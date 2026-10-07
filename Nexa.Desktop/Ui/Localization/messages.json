@@ -1,4 +1,8 @@
 [
+  {"source":"启用系统托盘","en":"Enable system tray","zh-Hant":"啟用系統匣"},
+  {"source":"关闭时最小化到托盘","en":"Close to tray","zh-Hant":"關閉時最小化到系統匣"},
+  {"source":"最小化到托盘","en":"Minimize to tray","zh-Hant":"最小化到系統匣"},
+  {"source":"显示主窗口","en":"Show main window","zh-Hant":"顯示主視窗"},
   {"source":"类型：","en":"Kind: ","zh-Hant":"類型："},
   {"source":"修订：","en":"Revision: ","zh-Hant":"修訂："},
   {"source":"可用性：","en":"Availability: ","zh-Hant":"可用性："},

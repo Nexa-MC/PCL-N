@@ -98,8 +98,8 @@ live controls, native source notifications, explicit-mode priority, disposal,
 original-color preservation, contrast and scene caching. Architecture gates and
 the normal Desktop trimmed publish cover the expanded renderer/backend surface.
 
-Autostart, tray/background lifetime, single-instance activation, `nexa://`, file
+[XSR-798](XSR-798-desktop-integration.md) subsequently delivers tray lifetime,
+single-instance activation and `nexacl://` registration/navigation. Autostart, file
 associations, native notifications/Jump Lists, arbitrary theme imports, custom
 logos, multimedia backgrounds, blur and music remain independent capabilities.
-The current Host has no registered consumers for those IA positions; they remain
-explicitly reserved instead of becoming inert switches.
+Those remaining IA positions stay reserved until their Host consumers are implemented.

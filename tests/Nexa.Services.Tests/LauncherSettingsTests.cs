@@ -33,9 +33,15 @@ internal static partial class Program
     internal static ValueTask LauncherSchemaMatchesLegacyDefaults()
     {
         SettingsSchema schema = LauncherDefaults.CreateSchema();
-        // Legacy defaults remain intact; XSR adds independent library, policy, widget and Java registry state.
-        AssertEqual(108, schema.Count);
-        AssertEqual(44, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Bool));
+        // Legacy defaults remain intact; four desktop lifecycle preferences are additive.
+        string[] desktopKeys = ["SystemSingleInstance", "UiTrayEnabled", "UiCloseToTray", "UiMinimizeToTray"];
+        AssertEqual(112, schema.Count);
+        AssertEqual(108, schema.Definitions.Count(definition => !desktopKeys.Contains(definition.Key.Value, StringComparer.Ordinal)));
+        AssertEqual(44, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Bool
+            && !desktopKeys.Contains(definition.Key.Value, StringComparer.Ordinal)));
+        foreach (string key in desktopKeys)
+            AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse(key)) is { ValueType: SettingValueType.Bool } item
+                && item.DefaultValue == (key is "SystemSingleInstance" or "UiTrayEnabled" ? "true" : "false"));
         AssertEqual(43, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.I32));
         AssertEqual(18, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Text
             && definition.Key.Value != Nexa.Services.Minecraft.MinecraftLibraryService.SettingKey

@@ -4,7 +4,7 @@ The original IA enumerated 566 positions. The current catalog has 540 after remo
 consumer-backed additions; see [settings migration status](settings-migration-status.md)
 for working consumers. Groups, choices, actions and facts do not own persisted values.
 Reserved settings remain `NotImplemented` until a real consumer exists. There are
-46 value definitions and 45 available consumers; the retained `java.compatibility`
+50 value definitions and 49 available consumers; the retained `java.compatibility`
 definition remains unavailable while compatibility checks stay mandatory.
 
 The following foundation contracts are declared in `SettingsPolicySchema`. Owner: `Nexa.Services.Settings`. Scope `G/I` permits global and instance overrides; `G` is global only. `Auto` is a payload-free mode; reset means remove the override. Enum strings are stable encodings, not localized labels.
@@ -13,6 +13,10 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 |---|---|---|---|---|---|---|
 | general.language | Enum (auto, zh-Hans, zh-Hant, en) | auto | G | UiLanguage | Immediate | Yes |
 | general.region | Named formatting culture / auto / follow-language (legacy ui-language accepted) | auto | G | UiFormatCulture | Restart | Yes |
+| general.single-instance | Bool | true | G | New SystemSingleInstance | Restart | Yes |
+| general.tray | Bool | true | G | New UiTrayEnabled | Immediate | Yes |
+| general.close-to-tray | Bool | false | G | New UiCloseToTray | Immediate | Yes |
+| general.minimize-to-tray | Bool | false | G | New UiMinimizeToTray | Immediate | Yes |
 | appearance.animations-disabled | Bool | false | G | SystemDisableUiAnimations | Immediate | Yes |
 | appearance.animation-fps | Number, 1–240 actual fps | 60 | G | UiAniFPS + 1 (write fps - 1) | Immediate | Yes |
 | appearance.lock-window | Bool | false | G | UiLockWindowSize | Immediate | Yes |

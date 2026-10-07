@@ -5,8 +5,10 @@ public sealed partial class XsrUiRenderer
     private void PrepareTransition(XsrUiEntityId entity, XsrUiTransition transition, string? key,
         XsrUiRect bounds, XsrUiRect? parentClip)
     {
-        bool changed = transition.HasPresentedKey && transition.PresentedKey != key
-            || transition.MovesSelf && _scene is not null && transition.LastSceneVersion != _scene.Version;
+        // Scene revisions also advance for paint, focus, scrolling and state refreshes.
+        // They are not navigation epochs and must never restart a settled entry track.
+        bool changed = transition.HasPresentedKey ? transition.PresentedKey != key
+            : transition.MovesSelf && _scene is not null && key is not null;
         if (changed && !EffectiveReducedMotion)
         {
             transition.Outgoing = CaptureOutgoing(entity, transition);

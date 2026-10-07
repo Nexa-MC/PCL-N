@@ -197,6 +197,7 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
         }
 
         AvaloniaUiMotion.CancelAll(this);
+        _contextMenu?.Close();
         _shell.Tree.RenderInvalidated -= OnTreeRenderInvalidated;
         _shell.NavigationExpandedChanged -= OnNavigationExpandedChanged;
         if (_shell.StateBridge is not null)
@@ -248,8 +249,16 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        if (e.Handled) return;
         Point position = e.GetPosition(this);
         XsrUiPoint point = new(position.X, position.Y);
+        if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+        {
+            e.Handled = ShowContextMenu(point);
+            return;
+        }
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        _contextMenu?.Close();
         bool handled = _shell.Renderer.PointerPressed(point);
         TrackFileDrag(e, position);
         CommitScene();
@@ -271,6 +280,8 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+        if (e.Handled) return;
+        if (e.InitialPressMouseButton != MouseButton.Left) return;
         _fileDragPress = null;
         if (_fileDragActive) { _fileDragReleased = true; e.Handled = true; return; }
         Point position = e.GetPosition(this);
@@ -337,6 +348,9 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if (e.Handled) return;
+        if (e.Key == Key.Apps || e.Key == Key.F10 && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        { e.Handled = ShowContextMenu(default, keyboard: true); return; }
         if (e.Key == Key.Escape && (_fileDragActive || _fileDragPress is not null))
         {
             _fileDragReleased = true;

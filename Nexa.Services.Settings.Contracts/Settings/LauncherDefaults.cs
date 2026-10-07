@@ -15,6 +15,10 @@ public static class LauncherDefaults
         ["SystemDisableHardwareAcceleration"] = false,
         // Disable UI motion when compositor/GPU timers misbehave (OOBE / page transitions).
         ["SystemDisableUiAnimations"] = false,
+        ["SystemSingleInstance"] = true,
+        ["UiTrayEnabled"] = true,
+        ["UiCloseToTray"] = false,
+        ["UiMinimizeToTray"] = false,
         ["SystemNetEnableDoH"] = true,
         ["SystemDebugMode"] = false,
         ["SystemDebugDelay"] = false,

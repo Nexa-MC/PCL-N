@@ -68,6 +68,10 @@ public static class SettingsPolicySchema
     public static IReadOnlyList<SettingsPolicyDefinition> Definitions { get; } = Array.AsReadOnly<SettingsPolicyDefinition>([
         new("general.language", SettingsValueKind.Enum, "auto", false, false, "UiLanguage", SettingsApplyTiming.Immediate, Choices: "auto|zh-Hans|zh-Hant|en"),
         new("general.region", SettingsValueKind.Text, "auto", false, false, "UiFormatCulture", SettingsApplyTiming.Restart),
+        new("general.single-instance", SettingsValueKind.Boolean, "true", false, false, "SystemSingleInstance", SettingsApplyTiming.Restart),
+        new("general.tray", SettingsValueKind.Boolean, "true", false, false, "UiTrayEnabled", SettingsApplyTiming.Immediate),
+        new("general.close-to-tray", SettingsValueKind.Boolean, "false", false, false, "UiCloseToTray", SettingsApplyTiming.Immediate),
+        new("general.minimize-to-tray", SettingsValueKind.Boolean, "false", false, false, "UiMinimizeToTray", SettingsApplyTiming.Immediate),
         new("appearance.animations-disabled", SettingsValueKind.Boolean, "false", false, false, "SystemDisableUiAnimations", SettingsApplyTiming.Immediate),
         new("appearance.animation-fps", SettingsValueKind.Number, "60", false, false, null, SettingsApplyTiming.Immediate, "fps", 1, 240),
         new("appearance.lock-window", SettingsValueKind.Boolean, "false", false, false, "UiLockWindowSize", SettingsApplyTiming.Immediate),

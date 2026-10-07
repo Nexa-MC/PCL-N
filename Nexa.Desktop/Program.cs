@@ -102,6 +102,7 @@ internal static partial class Program
             return await Nexa.Services.Processes.OwnedInstallerProcess.RunWorkerAsync().ConfigureAwait(false);
         LogService? log = null;
         FileLogSink? fileSink = null;
+        DesktopSingleInstance? instance = null;
         string stage = "resolve_folders";
         int exitCode = 1;
         void OnUnhandled(object sender, UnhandledExceptionEventArgs e) => log?.Error(
@@ -114,6 +115,20 @@ internal static partial class Program
         try
         {
             AppFolders folders = AppFolders.ResolveDefault();
+            bool validation = args.Contains("--validate-shell", StringComparer.OrdinalIgnoreCase)
+                || args.Contains("--validate-setup", StringComparer.OrdinalIgnoreCase);
+            DesktopDestination destination = DesktopDestination.Activate;
+            if (args.FirstOrDefault(argument => argument.StartsWith("nexacl:", StringComparison.OrdinalIgnoreCase)) is { } uri
+                && !DesktopActivation.TryParse(uri, out destination))
+            {
+                Console.Error.WriteLine("不支持的 nexacl:// 链接。");
+                return 2;
+            }
+            if (!validation && SingleInstanceEnabled(folders.Root))
+            {
+                instance = await DesktopSingleInstance.AcquireAsync(Path.GetDirectoryName(LauncherStorageLocation.LocatorPath)!, destination).ConfigureAwait(false);
+                if (instance is null) { exitCode = 0; return 0; }
+            }
             bool locationLocked = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NEXA_DATA_DIR")
                 ?? Environment.GetEnvironmentVariable("PCL_NEXA_DATA_DIR"));
             stage = "complete_storage_transaction";
@@ -129,7 +144,7 @@ internal static partial class Program
                 catch (IOException) { }
             }
             exitCode = await Nexa.Platform.ApplicationSession.RunAsync(() => RunAsync(args, logging => log = logging,
-                sink => fileSink = sink, value => stage = value, folders, locationLocked, storageStartup.Error)).ConfigureAwait(false);
+                sink => fileSink = sink, value => stage = value, folders, locationLocked, storageStartup.Error, instance)).ConfigureAwait(false);
             return exitCode;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException)
@@ -155,11 +170,13 @@ internal static partial class Program
             log?.Info("Launcher", $"Session ended pid={Environment.ProcessId} exit_code={exitCode} last_stage={stage}");
             log?.Dispose();
             if (fileSink is not null) await fileSink.DisposeAsync().ConfigureAwait(false);
+            if (instance is not null) await instance.DisposeAsync().ConfigureAwait(false);
+            if (exitCode == 0) _restartAfterExit?.Invoke();
         }
     }
 
     private static async Task<int> RunAsync(string[] args, Action<LogService> onLogReady, Action<FileLogSink> onSinkReady,
-        Action<string> setStage, AppFolders folders, bool locationLocked, Nexa.Xsr.XsrError? storageStartupError)
+        Action<string> setStage, AppFolders folders, bool locationLocked, Nexa.Xsr.XsrError? storageStartupError, DesktopSingleInstance? instance)
     {
         // Composition root: the two-phase foundation composition. Phase one declares every
         // foundation module's state into one shared builder; phase two builds the store once
@@ -171,7 +188,7 @@ internal static partial class Program
         if (validateSetup || (storageStartupError is null && !args.Contains("--validate-shell", StringComparer.OrdinalIgnoreCase) && setup.Read().Required))
         {
             setStage("first_run");
-            return RunFirstRun(args, setup, validateSetup);
+            return RunFirstRun(args, setup, validateSetup, instance);
         }
         string logFilePath = Path.Combine(folders.EnsureFolder(FolderNames.Logs), "launcher.log");
         FileLogSink sink = new(logFilePath);
@@ -282,7 +299,7 @@ internal static partial class Program
             uiRuntime,
             new XsrUiShellOptions
             {
-                Title = "NexaCL",
+                Title = ProductDisplayTitle(buildInfo.ProductVersion),
                 Version = buildInfo.ProductVersion,
             },
             uiIntents);
@@ -455,6 +472,8 @@ internal static partial class Program
             message => host.Logging.Warn("Install", message), minecraft.Commands, runtime.Commands);
         var installExit = new DesktopInstallExitCoordinator(host.StateStore, installRun.Commands, feedback, platformActions.RequestClose, minecraft.Commands);
         platformActions.CloseRequested = installExit.CanClose;
+        await using var desktopIntegration = new DesktopIntegrationSession(shell, uiIntents, host.StateStore, platformActions, instance, args,
+            message => { host.Logging.Warn("Desktop", message); feedback.Warn(message); });
         setStage("gui_lifetime");
         host.Logging.Info("Launcher", "Entering Avalonia GUI lifetime.");
         int exitCode;
@@ -488,24 +507,37 @@ internal static partial class Program
         host.Logging.Info("Launcher", $"GUI lifetime completed exit_code={exitCode}; releasing session resources.");
         session.Enter(XsrLifecyclePhase.Stopping);
         session.Enter(XsrLifecyclePhase.Stopped);
-        if (restartAfterUpdate && exitCode == 0) automaticUpdate.Restart();
+        if (restartAfterUpdate && exitCode == 0) _restartAfterExit = automaticUpdate.Restart;
         return exitCode;
     }
 
-    private static int RunFirstRun(string[] args, FirstRunService service, bool validate)
+    private static int RunFirstRun(string[] args, FirstRunService service, bool validate, DesktopSingleInstance? instance)
     {
         XsrUiRuntimeContext context = new();
         XsrStateStoreBuilder builder = new();
         LaunchPageState.DeclareState(builder);
         var store = builder.Build(context.StateBridge);
         DesktopUiIntentSink intents = new();
-        var shell = PxmlShellComposer.Compose(store, context, new XsrUiShellOptions { Title = "NexaCL" }, intents);
+        var shell = PxmlShellComposer.Compose(store, context, new XsrUiShellOptions
+        { Title = ProductDisplayTitle(ResolveInformationalVersion()), Version = ResolveInformationalVersion() }, intents);
         using var languageSession = new DesktopLanguageSession(shell, store);
         var runtime = FirstRunRuntimeComposer.Compose(service);
         runtime.Queries.TryResolve(FirstRunContract.Status, out var read);
         var status = runtime.Queries.QueryAsync<FirstRunQuery, FirstRunStatus>(read, new()).AsTask().GetAwaiter().GetResult();
         if (!status.IsSuccess) throw new IOException(status.Error?.Message ?? "无法读取初始设置。");
         AvaloniaUiPlatformActions platform = new();
+        platform.ProtocolActivated += uri =>
+        {
+            if (DesktopActivation.TryParse(uri, out DesktopDestination requested))
+            {
+                if (instance is not null) instance.QueueActivation(requested);
+                else _setupDestination = requested;
+                platform.RestoreWindow();
+            }
+        };
+        if (instance is not null) instance.Wake = () => platform.PostToWindow(() =>
+        { platform.RestoreWindow(); });
+        if (instance is not null) platform.WindowClosed += instance.BeginShutdown;
         using var appearanceSession = new DesktopAppearanceSession(shell, store, platform);
         using var controller = new FirstRunController(shell, intents, store, runtime, status.Value!, platform.PickDirectoryAsync, platform.RequestClose);
         if (validate)
@@ -526,8 +558,16 @@ internal static partial class Program
             { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = AppContext.BaseDirectory };
             if (Path.GetFileNameWithoutExtension(start.FileName).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
                 start.ArgumentList.Add(Environment.GetCommandLineArgs()[0]);
-            foreach (string argument in args) start.ArgumentList.Add(argument);
-            System.Diagnostics.Process.Start(start)?.Dispose();
+            DesktopDestination nextDestination = _setupDestination;
+            if (instance is not null)
+            {
+                while (instance.TryTake(out DesktopDestination requested))
+                    if (requested != DesktopDestination.Activate) nextDestination = requested;
+            }
+            foreach (string argument in args)
+                if (nextDestination == DesktopDestination.Activate || !argument.StartsWith("nexacl:", StringComparison.OrdinalIgnoreCase)) start.ArgumentList.Add(argument);
+            if (nextDestination != DesktopDestination.Activate) start.ArgumentList.Add("nexacl://" + nextDestination.ToString().ToLowerInvariant());
+            _restartAfterExit = () => System.Diagnostics.Process.Start(start)?.Dispose();
         }
         return result;
     }

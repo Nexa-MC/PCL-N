@@ -100,6 +100,11 @@ public static class PxmlShellComposer
                 titleText.Content = options.Title;
                 tree.MarkDirty(child, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
             }
+            if (tree.Name(child) == "TitleVersion" && tree.GetComponent<XsrUiText>(child) is { } versionText)
+            {
+                versionText.Content = "v" + options.Version;
+                tree.SetComponent(child, new XsrUiVisualStyle { FontSize = 11 });
+            }
             return true;
         });
 

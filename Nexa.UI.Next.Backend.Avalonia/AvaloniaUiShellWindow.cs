@@ -42,6 +42,8 @@ public sealed class AvaloniaUiShellWindow : Window
     private ScaleTransform? _closeIconScale;
     private bool _awaitingFirstSceneCommit;
     private bool _closeAnimationStarted;
+    private bool _explicitCloseRequested;
+    private bool _hasOpened;
     private bool _disposed;
     private bool _updatingChrome;
     private bool _nativeFrameUpdateQueued;
@@ -113,7 +115,7 @@ public sealed class AvaloniaUiShellWindow : Window
         };
         _windowActions.MinimizeRequested += (_, _) => WindowState = WindowState.Minimized;
         _windowActions.MaximizeRequested += OnMaximizeRequested;
-        _windowActions.CloseRequested += (_, _) => RequestClose();
+        _windowActions.CloseRequested += (_, _) => RequestWindowClose();
 
         // This overlay has no application layout. The scene surface below remains the sole
         // projection of PXML/UI.Next entities; these controls are native window affordances.
@@ -178,6 +180,8 @@ public sealed class AvaloniaUiShellWindow : Window
         base.OnOpened(e);
         _surface.SetRasterPresentationEnabled(WindowState != WindowState.Minimized);
         _shell.PublishWindowActivity(IsActive, WindowState == WindowState.Minimized);
+        if (_hasOpened) return;
+        _hasOpened = true;
         _ = AvaloniaWindowsFrame.SuppressBorder(this);
         UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
         if (_shell.Renderer.EffectiveReducedMotion)
@@ -200,11 +204,13 @@ public sealed class AvaloniaUiShellWindow : Window
     }
 
     internal Func<bool>? CloseGuard { get; set; }
+    internal Func<bool>? HideToTrayRequested { get; set; }
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
         if (e.Cancel) return;
+        if (!_explicitCloseRequested && !_closeAnimationStarted && HideToTrayRequested?.Invoke() == true) { e.Cancel = true; return; }
         if (!_closeAnimationStarted && CloseGuard?.Invoke() == false) { e.Cancel = true; return; }
         if (_closeAnimationStarted || _shell.Renderer.EffectiveReducedMotion)
         {
@@ -226,6 +232,7 @@ public sealed class AvaloniaUiShellWindow : Window
     internal void RequestClose()
     {
         if (!_closeAnimationStarted && CloseGuard?.Invoke() == false) return;
+        _explicitCloseRequested = true;
         if (_closeAnimationStarted || _shell.Renderer.EffectiveReducedMotion)
         {
             Close();
@@ -234,6 +241,12 @@ public sealed class AvaloniaUiShellWindow : Window
 
         _closeAnimationStarted = true;
         PlayCloseCollapse();
+    }
+
+    internal void RequestWindowClose()
+    {
+        if (!_closeAnimationStarted && HideToTrayRequested?.Invoke() == true) return;
+        RequestClose();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -545,10 +558,10 @@ public sealed class AvaloniaUiShellWindow : Window
     private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
         if (e.Property == CanResizeProperty) _windowActions.SetResizeEnabled(CanResize);
-        if (e.Property == WindowStateProperty)
-            _surface.SetRasterPresentationEnabled(WindowState != WindowState.Minimized);
-        if (e.Property == IsActiveProperty || e.Property == WindowStateProperty)
-            _shell.PublishWindowActivity(IsActive, WindowState == WindowState.Minimized);
+        if (e.Property == WindowStateProperty || e.Property == IsVisibleProperty)
+            _surface.SetRasterPresentationEnabled(IsVisible && WindowState != WindowState.Minimized);
+        if (e.Property == IsActiveProperty || e.Property == WindowStateProperty || e.Property == IsVisibleProperty)
+            _shell.PublishWindowActivity(IsActive && IsVisible, !IsVisible || WindowState == WindowState.Minimized);
         // Avalonia 12 has no public Visual.RenderScalingProperty; the scaling fact lives on
         // TopLevel as a plain property, so subscribe to the TypedVisualTreeMutation/Bounds
         // signals that accompany a DPI change instead — Bounds covers the common reflow, and

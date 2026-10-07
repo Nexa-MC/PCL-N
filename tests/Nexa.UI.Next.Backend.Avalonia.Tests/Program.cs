@@ -323,6 +323,7 @@ internal static partial class Program
 
         public override void OnFrameworkInitializationCompleted()
         {
+            Styles.Add(new global::Avalonia.Themes.Fluent.FluentTheme());
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 XsrStateStore store = new XsrStateStoreBuilder().Build();
@@ -408,6 +409,8 @@ internal static partial class Program
         {
             await Task.Delay(30).ConfigureAwait(true);
             VerifyTypefaceRenderingAndInput();
+            VerifyNativeContextMenusPreserveLeftClickAndPasswordRules();
+            VerifyTrayCloseAndExplicitExitAdmission(window, shell);
             VerifyAccessibleContentAndNativeFocus(window, shell, surface);
             VerifyPointerCursorProjection(window, shell, surface);
             VerifyPostNavigationDoubleClickRouting(window);

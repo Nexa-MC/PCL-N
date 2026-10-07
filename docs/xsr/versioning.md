@@ -22,7 +22,11 @@ ci     = stable ".ci." six-lowercase-hex-digits
 
 The six CI digits are the lowercase first six hexadecimal characters of the source commit. A CI build with an unknown commit is invalid for publication.
 
-The initial migration build is `2.0.0.alpha.1`. Promotion is monotonic within a stage. Stable `2.0.0` contains no `stable`, `release`, or numeric fourth component.
+The initial migration build was `2.0.0.alpha.1`. The current default development build is
+`2.0.0.alpha.6`, codename **Firefly**. Its product UI title is
+`NexaCL Firefly Alpha 6` with the canonical subtitle `v2.0.0.alpha.6`.
+CI, beta and stable titles derive their stage from the actual informational version.
+The codename is presentation metadata and does not change update or compatibility identity. Promotion is monotonic within a stage. Stable `2.0.0` contains no `stable`, `release`, or numeric fourth component.
 
 ## .NET and NuGet projection
 

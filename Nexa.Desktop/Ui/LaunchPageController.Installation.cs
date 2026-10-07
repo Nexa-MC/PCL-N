@@ -174,6 +174,20 @@ internal sealed partial class LaunchPageController
     private void UpdateTitleBar()
     {
         int depth = _shell.Stage.Navigation.Depth;
+        if (_titleTransitionPage != _shell.Stage.Navigation.Current)
+        {
+            _titleTransitionPage = _shell.Stage.Navigation.Current;
+            string epoch = "title-navigation:" + ++_titleTransitionEpoch;
+            foreach (string key in new[] { "TitleMain", "TitleBack", "TitleSubpage" })
+            {
+                var transition = _shell.Tree.GetComponent<XsrUiTransition>(_titleEntities[key])!;
+                // A title can leave and return with the same caption. Give actual navigation
+                // an explicit epoch instead of treating unrelated scene revisions as entry.
+                transition.BoundKey = default;
+                transition.Key = epoch;
+                _shell.Tree.SetComponent(_titleEntities[key], transition);
+            }
+        }
         XsrUiTransition main = _shell.Tree.GetComponent<XsrUiTransition>(_titleEntities["TitleMain"])!;
         XsrUiTransition title = _shell.Tree.GetComponent<XsrUiTransition>(_titleEntities["TitleSubpage"])!;
         main.Source = _titleEntities["TitleSubpage"];
@@ -184,6 +198,9 @@ internal sealed partial class LaunchPageController
             _titleNavigationDepth = depth;
         }
         bool subpage = _shell.Stage.Navigation.Depth > 1;
+        _shell.Tree.GetComponent<XsrUiElement>(_titleEntities["TitleBrand"])!.IsVisible = !subpage;
+        _shell.Tree.GetComponent<XsrUiVisualStyle>(_titleEntities["TitleVersion"])!.Foreground = _shell.Palette.TitleBarText;
+        _shell.Tree.MarkDirty(_titleEntities["TitleBrand"], XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
         Publish(LaunchPageState.TitleTransitionKey, subpage
             ? _shell.Tree.GetComponent<XsrUiSemantic>(_shell.Stage.Navigation.Current)?.Label ?? string.Empty : "NexaCL");
         foreach (string key in new[] { "TitleMain", "TitleBack", "TitleSubpage" })

@@ -63,7 +63,7 @@ public sealed class XsrUiShellOptions
 
     public string Title { get; init; } = "NexaCL";
 
-    public string Version { get; init; } = "2.0.0.alpha.1";
+    public string Version { get; init; } = "2.0.0.alpha.6";
 
     public IReadOnlyList<XsrUiShellNavigationItem>? NavigationItems { get; init; }
 

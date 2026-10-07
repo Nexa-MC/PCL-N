@@ -10,11 +10,11 @@ This checked-in map reserves final positions. `reserved` means no editable value
 | global.general.7abc4abe665d | global / general / 语言与区域 | 跟随系统 | Choice | — | False |
 | global.general.be7df665521d | global / general / 启动器行为 | 启动器行为 | Group | — | False |
 | global.general.13a5ea9202aa | global / general / 启动器行为 | 开机启动 | Setting | reserved | False |
-| global.general.308624e46ea7 | global / general / 启动器行为 | 单实例运行 | Setting | reserved | False |
+| global.general.308624e46ea7 | global / general / 启动器行为 | 单实例运行 | Setting | general.single-instance | False |
 | global.general.c47c7f1742cc | global / general / 启动器行为 | 启动时行为 | Setting | reserved | False |
-| global.general.289fddae96dd | global / general / 启动器行为 | 最小化行为 | Setting | reserved | False |
-| global.general.79e1995bccb4 | global / general / 启动器行为 | 关闭按钮行为 | Setting | reserved | False |
-| global.general.65aedbdb1011 | global / general / 启动器行为 | 后台运行 | Setting | reserved | False |
+| global.general.289fddae96dd | global / general / 启动器行为 | 最小化到托盘 | Setting | general.minimize-to-tray | False |
+| global.general.79e1995bccb4 | global / general / 启动器行为 | 关闭时最小化到托盘 | Setting | general.close-to-tray | False |
+| global.general.65aedbdb1011 | global / general / 启动器行为 | 启用系统托盘 | Setting | general.tray | False |
 | global.general.f5c04528a6dd | global / general / 交互 | 交互 | Group | — | False |
 | global.general.d3abe2892c94 | global / general / 交互 | 启动提示 | Setting | reserved | False |
 | global.general.38dfb6023189 | global / general / 交互 | 通知 | Setting | reserved | False |

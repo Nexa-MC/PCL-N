@@ -19,6 +19,13 @@ internal static partial class Program
 {
     public static void Main(string[] args)
     {
+        if (args is ["--desktop-instance-peer", var directory])
+        {
+            var primary = Nexa.Desktop.DesktopSingleInstance.AcquireAsync(directory, Nexa.Desktop.DesktopDestination.Settings).GetAwaiter().GetResult();
+            Environment.ExitCode = primary is null ? 0 : 11;
+            primary?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            return;
+        }
         if (Environment.GetEnvironmentVariable("NEXA_COUNTRY") is null) Environment.SetEnvironmentVariable("NEXA_COUNTRY", "CN");
         if (args.Contains("--soak"))
         {
@@ -42,6 +49,10 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("single instance waits for closing owner before reopening", DesktopSingleInstanceWaitsForClosingOwner),
+        ("desktop branding and safe default single-instance bootstrap", DesktopBrandAndBootstrapDefaults),
+        ("desktop protocol routes and registration preserve arguments", DesktopProtocolRoutesAndRegistrationCommands),
+        ("single instance forwards across processes bounds queue and releases", DesktopSingleInstanceForwardsAcrossProcessesAndReleases),
         ("wardrobe locale captions preserve dynamic arguments", WardrobeLocalesTranslateDynamicCaptionsAndPreserveArguments),
         ("wardrobe localized scenes preserve literal provider names", WardrobeScenesLocalizeControlsAndKeepProviderNamesLiteral),
         ("wardrobe library previews visible rows and preserves views", WardrobeLibraryLoadsOnlyVisiblePublicPreviewsAndPreservesViews),
