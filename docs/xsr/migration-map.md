@@ -244,4 +244,9 @@ log, wardrobe, platform-probe, developer-diagnostics and Bedrock handoff placeho
 their validation is recorded in the individual delivery notes. This does not close the
 independent roadmap or physical acceptance requirements.
 
+[XSR-797](XSR-797-wardrobe-dev-parity.md) replaces the initial wardrobe form with
+the `dev` profile rail, full player previews, skin/cape card tracks, local history,
+LittleSkin public library and provider-specific application rules. Its source
+reference and external NCloud capability boundary are recorded explicitly.
+
 Before XSR replaces the legacy architecture, startup, downloads, instances, Minecraft launch, accounts, settings, updates, cloud, online play, plugins, OOBE, crash recovery, AOT, and trim must pass. Plugin SDK 1.0, Sidecar Protocol v1, Manifest/Package v1, and Plugin UI IR v1 must be frozen with compatibility tests.

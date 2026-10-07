@@ -420,6 +420,7 @@ internal static partial class Program
             VerifyReentrantRemovalCommit(shell, surface);
             await VerifyTransitionGroupsAndMedia(shell, surface);
             VerifySharedRasterBudget();
+            VerifyCompositeRasterDrawing();
             VerifyWindowActionFeedback(window, surface);
             await VerifySpringIgnoresStaleSceneReads().ConfigureAwait(true);
             await VerifyCapsuleGeometryClock(shell, surface).ConfigureAwait(true);

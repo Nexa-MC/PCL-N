@@ -51,6 +51,12 @@ see [native font compatibility](migrations/native-font-compatibility.md).
 
 Services own business facts and effects. Renderer-local state is limited to ephemeral presentation mechanics such as hover, focus, an in-progress gesture, or animation progress. It cannot become a duplicate account, download, launch, or selection model.
 
+Horizontal appearance card tracks may opt into mapping the conventional wheel
+axis to horizontal scrolling. Explicit trackpad horizontal movement takes
+precedence. The renderer clamps against measured horizontal bounds and bubbles
+an unconsumed boundary scroll to its ancestor; ordinary vertical containers keep
+their existing axis. This is ephemeral input policy, not account state.
+
 ## Plugin UI
 
 Plugin PXML compiles to a stable Plugin UI IR. The Host registers and locally instantiates that IR. Opening a registered plugin page performs zero Sidecar IPC; bindings read the Host state mirror and commands resolve to runtime IDs.

@@ -18,6 +18,7 @@
     <EmbeddedResource Include="Ui/JavaChoicePage.pxml" />
     <EmbeddedResource Include="Ui/ProcessLogPage.pxml" />
     <EmbeddedResource Include="Ui/WardrobePage.pxml" />
+    <EmbeddedResource Include="Ui/WardrobeLibraryPage.pxml" />
     <EmbeddedResource Include="Ui/InstallPage.pxml" />
     <EmbeddedResource Include="Ui/JavaInstallPage.pxml" />
     <EmbeddedResource Include="Ui/BedrockInstallPage.pxml" />

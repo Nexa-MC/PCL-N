@@ -26,6 +26,14 @@ public static class AccountOnboardingRuntimeComposer
         AccountOnboardingOptions? options = null, LegacyProfileImport? imports = null,
         IMicrosoftMinecraftAuthService? microsoft = null, ILittleSkinOAuthService? littleSkin = null,
         IXsrDispatchObserver? observer = null)
+        => ComposeWithAppearance(host, null, client: client, options: options, imports: imports,
+            microsoft: microsoft, littleSkin: littleSkin, observer: observer);
+
+    public static AccountOnboardingRuntime ComposeWithAppearance(FoundationHost host, string? dataDirectory,
+        INCloudWardrobePort? cloud = null, HttpClient? client = null,
+        AccountOnboardingOptions? options = null, LegacyProfileImport? imports = null,
+        IMicrosoftMinecraftAuthService? microsoft = null, ILittleSkinOAuthService? littleSkin = null,
+        IXsrDispatchObserver? observer = null)
     {
         HttpClient http = client ?? host.CreateHttpClient(allowAutoRedirect: false);
         if (client is null) http.Timeout = TimeSpan.FromSeconds(30);
@@ -48,13 +56,22 @@ public static class AccountOnboardingRuntimeComposer
         commands.Register<AccountImportCommand>(AccountOnboardingRoutes.Import, (command, _) => ValueTask.FromResult(service.Import(command)));
         commands.Register<AccountDiscoverImportsCommand>(AccountOnboardingRoutes.DiscoverImports,
             async (_, cancellation) => await Task.Run(service.DiscoverImports, cancellation).ConfigureAwait(false));
-        AccountWardrobeService wardrobe = new(host.Accounts, http, skins, microsoftService,
-            resolvedOptions.MicrosoftClientId, littleSkinService, resolvedOptions.LittleSkin, host.Logging);
+        WardrobeCatalogService catalog = new(http);
+        AccountWardrobeService wardrobe = new(host.Accounts, http, skins, new WardrobeHistoryStore(dataDirectory),
+            cloud, microsoftService, resolvedOptions.MicrosoftClientId, littleSkinService, resolvedOptions.LittleSkin,
+            host.Logging, catalog);
         commands.Register<AccountWardrobeUploadSkinCommand>(AccountWardrobeContract.UploadSkin, wardrobe.UploadSkinAsync);
         commands.Register<AccountWardrobeSetCapeCommand>(AccountWardrobeContract.SetCape, wardrobe.SetCapeAsync);
+        commands.Register<AccountWardrobeApplyCardCommand>(AccountWardrobeContract.ApplyCard, wardrobe.ApplyCardAsync);
+        commands.Register<AccountWardrobeApplyPublicCommand>(AccountWardrobeContract.ApplyPublic, wardrobe.ApplyPublicAsync);
         XsrQueryRouterBuilder queries = new();
         queries.Register<AccountWardrobeQuery, AccountWardrobeSnapshot>(AccountWardrobeContract.Read, wardrobe.ReadAsync);
         queries.Register<AccountWardrobeSkinQuery, AccountWardrobeSkinPreview>(AccountWardrobeContract.ValidateSkin, wardrobe.ValidateSkinAsync);
+        queries.Register<AccountWardrobeTextureQuery, AccountWardrobeResolvedTextures>(AccountWardrobeContract.ReadTexture, wardrobe.ReadTextureAsync);
+        queries.Register<WardrobeCatalogSitesQuery, IReadOnlyList<WardrobeCatalogSite>>(WardrobeCatalogContract.Sites, catalog.SitesAsync);
+        queries.Register<WardrobeCatalogQuery, WardrobeCatalogPage>(WardrobeCatalogContract.Read, catalog.ReadAsync);
+        queries.Register<WardrobeCatalogResolveQuery, WardrobeCatalogItem>(WardrobeCatalogContract.Resolve, catalog.ResolveAsync);
+        queries.Register<WardrobeCatalogPreviewQuery, AccountWardrobeResolvedTextures>(WardrobeCatalogContract.Preview, catalog.PreviewAsync);
         IAccountLaunchIdentityResolver resolver = new AccountLaunchIdentityResolver(
             host.Accounts,
             microsoftService,

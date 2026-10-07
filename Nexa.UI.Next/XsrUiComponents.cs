@@ -247,6 +247,9 @@ public sealed class XsrUiScroll
 
     public double OffsetY { get; set; }
 
+    /// <summary>Route conventional wheel movement along a horizontal card track.</summary>
+    public bool UseVerticalWheelForHorizontalScroll { get; set; }
+
     /// <summary>
     /// Keeps the viewport attached to its lower edge while content changes, unless the user has
     /// explicitly scrolled away from that edge.
@@ -257,6 +260,7 @@ public sealed class XsrUiScroll
     public bool ShowsVerticalIndicator { get; set; }
 
     internal double MaximumOffsetY { get; set; }
+    internal double MaximumOffsetX { get; set; }
 }
 
 /// <summary>Immutable continuous-scroll facts projected into a render scene.</summary>

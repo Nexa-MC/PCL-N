@@ -116,8 +116,9 @@ internal static partial class Program
         using var failureHandler = new WardrobeHttp { RejectAll = true }; using var failureHttp = new HttpClient(failureHandler);
         using var failureSkins = new AccountSkinService(failureAccounts, failureHttp);
         var failed = await new AccountWardrobeService(failureAccounts, failureHttp, failureSkins).ReadAsync(new());
-        AssertFalse(failed.IsSuccess);
-        AssertFalse(failed.Error!.Message.Contains("REMOTE-PRIVATE-TOKEN", StringComparison.Ordinal));
+        AssertTrue(failed.IsSuccess);
+        AssertEqual(AccountWardrobeCapeState.LoadFailed, failed.Value.CapeState);
+        AssertFalse(failed.Value.ToString().Contains("REMOTE-PRIVATE-TOKEN", StringComparison.Ordinal));
     }
     private static async ValueTask WardrobeLittleSkinUsesProviderAndGameTokensAndClearsCape()
     {
@@ -151,14 +152,17 @@ internal static partial class Program
             using var handler = new WardrobeHttp { OversizedProfile = chunked, ExcessiveCapes = !chunked };
             using var http = new HttpClient(handler); using var skins = new AccountSkinService(accounts, http);
             var result = await new AccountWardrobeService(accounts, http, skins).ReadAsync(new());
-            AssertFalse(result.IsSuccess);
-            AssertEqual(1, handler.Requests.Count);
+            AssertTrue(result.IsSuccess);
+            AssertEqual(AccountWardrobeCapeState.LoadFailed, result.Value.CapeState);
+            AssertEqual(0, result.Value.Capes.Count);
+            AssertEqual(1, handler.Requests.Count(request => request.Uri.AbsolutePath == "/minecraft/profile"));
         }
     }
     private sealed class WardrobeHttp : HttpMessageHandler
     {
         internal readonly List<(string Method, Uri Uri, string? Token, byte[] Body)> Requests = [];
         internal bool PauseUpload, RejectAll, RenameLittleSkin, OversizedProfile, ExcessiveCapes;
+        internal long LittleSkinSkinId = 11, LittleSkinCapeId = 22;
         internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal TaskCompletionSource UploadDone { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -169,6 +173,12 @@ internal static partial class Program
             if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "api.minecraftservices.com" && PauseUpload)
             { Entered.TrySetResult(); await UploadDone.Task; } // Deliberately ignores cancellation to exercise admission.
             string path = request.RequestUri!.AbsolutePath;
+            if (path == "/api/players/7/textures")
+            {
+                string form = Encoding.UTF8.GetString(body);
+                if (form.StartsWith("cape=", StringComparison.Ordinal)) LittleSkinCapeId = long.Parse(form[5..], System.Globalization.CultureInfo.InvariantCulture);
+                if (form.StartsWith("skin=", StringComparison.Ordinal)) LittleSkinSkinId = long.Parse(form[5..], System.Globalization.CultureInfo.InvariantCulture);
+            }
             if (path == "/minecraft/profile" && OversizedProfile)
                 return new(HttpStatusCode.OK) { Content = new StreamContent(new UnseekableWardrobeStream(new byte[1_048_577])) };
             if (path == "/minecraft/profile" && ExcessiveCapes)
@@ -182,7 +192,9 @@ internal static partial class Program
                 "/minecraft/profile" => """{"capes":[{"id":"owned-1","alias":"First","url":"https://textures.minecraft.net/1","state":"ACTIVE"},{"id":"owned-2","alias":"Second","url":"https://textures.minecraft.net/2","state":"INACTIVE"}]}""",
                 "/minecraft/profile/skins" => """{"skins":[{"url":"https://textures.minecraft.net/texture/updated","state":"ACTIVE"}]}""",
                 "/api/yggdrasil/authserver/oauth" => """{"accessToken":"GAME","clientToken":"CLIENT","selectedProfile":{"id":"0123456789abcdef0123456789abcdef","name":"Alice"}}""",
-                "/api/players" => """[{"pid":7,"name":"Alice","tid_skin":11,"tid_cape":22}]""",
+                "/api/players" => $$"""[{"pid":7,"name":"Alice","tid_skin":{{LittleSkinSkinId}},"tid_cape":{{LittleSkinCapeId}}}]""",
+                "/api/closet" when request.RequestUri.Query.Contains("category=skin", StringComparison.Ordinal) =>
+                    """{"last_page":1,"data":[{"tid":11,"hash":"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB","type":"alex","pivot":{"item_name":"Skin"}}]}""",
                 "/api/closet" => """{"last_page":1,"data":[{"tid":22,"hash":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","type":"cape","pivot":{"item_name":"Cape"}}]}""",
                 "/api/players/7/textures" => """{"code":0,"message":"ok"}""",
                 _ => "{}"

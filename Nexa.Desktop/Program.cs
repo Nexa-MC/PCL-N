@@ -11,6 +11,7 @@ using Nexa.Services.Settings;
 using Nexa.Services.Setup;
 using Nexa.UI.Next;
 using Nexa.UI.Next.Backend.Avalonia;
+using Nexa.Xsr;
 using Nexa.Xsr.Runtime;
 using Nexa.Xsr.State;
 
@@ -245,8 +246,9 @@ internal static partial class Program
         FoundationRuntime runtime = FoundationRuntimeComposer.ComposeWithStorage(host, storagePreferences, operationLog.Dispatch);
         // Public provider client IDs are embedded at publish time. Passing them here arms both
         // onboarding device flows and the launch identity resolver's refresh capability.
-        using AccountOnboardingRuntime accounts = AccountOnboardingRuntimeComposer.Compose(
+        using AccountOnboardingRuntime accounts = AccountOnboardingRuntimeComposer.ComposeWithAppearance(
             host,
+            folders.Root,
             options: ComposeAccountOnboardingOptions(),
             observer: operationLog.Dispatch);
         string jvmHostPath = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "Nexa.Jvm.Host.exe" : "Nexa.Jvm.Host");
@@ -338,6 +340,11 @@ internal static partial class Program
         launchPage.CopyProcessLogText = platformActions.CopyTextAsync;
         using WardrobePageController wardrobePage = new(shell, uiIntents, accounts.Queries!, accounts.Commands, host.StateStore, feedback);
         wardrobePage.ConfigureFilePicker(platformActions.PickSkinFileAsync);
+        wardrobePage.ConfigureOpenUrl(platformActions.OpenHttpsUri);
+        using WardrobeLibraryPageController wardrobeLibrary = new(shell, uiIntents, accounts.Queries!, accounts.Commands, host.StateStore, feedback);
+        wardrobeLibrary.ConfigureOpenUrl(platformActions.OpenHttpsUri);
+        wardrobeLibrary.ConfigureBack(() => uiIntents.Emit(XsrSemanticId.Parse("ui.page.back"), wardrobeLibrary.Page, XsrCorrelationId.Create()));
+        wardrobePage.ConfigureLibrary(() => launchPage.OpenWardrobeLibraryPage(wardrobeLibrary.Page, wardrobePage.LibraryButton));
         launchPage.WardrobePage = wardrobePage.Page;
         using BedrockInstallPageController bedrockPage = new(shell, uiIntents, host.StateStore, feedback, platformActions.OpenMinecraftStore, platformActions.OpenHttpsUri);
         launchPage.BedrockInstallPage = bedrockPage.Page;

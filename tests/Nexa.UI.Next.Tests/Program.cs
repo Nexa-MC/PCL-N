@@ -6,6 +6,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("horizontal card wheel preserves axes and bubbles at boundaries", Sync(HorizontalCardWheelPreservesAxesAndBubblesAtBoundaries)),
         ("text input bounds preserve script tabs unicode and password sanitization", Sync(TextInputBoundsPreserveScriptTabsAndUnicodeWithoutChangingPasswords)),
         ("localization remeasures and preserves input and literal content", Sync(LocalizationRemeasuresWithoutChangingInputOrLiteralContent)),
         ("file drag cancels click and rejects retired sources", Sync(FileDragCancelsClickAndRejectsRetiredSources)),

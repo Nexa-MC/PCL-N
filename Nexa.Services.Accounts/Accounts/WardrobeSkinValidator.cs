@@ -13,15 +13,24 @@ public static class WardrobeSkinValidator
     /// <summary>Accepts static 64×64 skins and classic 64×32 skins with complete image data.</summary>
     /// <exception cref="InvalidDataException">The image is malformed or unsupported for the selected model.</exception>
     public static PngImage Validate(byte[] bytes, bool isSlim)
+        => ValidateCore(bytes, AccountWardrobeTextureKind.Skin, isSlim, upload: true);
+
+    /// <summary>Validates bounded static skin/cape previews, including 64–512 pixel HD texture atlases.</summary>
+    public static PngImage ValidateTexture(byte[] bytes, AccountWardrobeTextureKind kind, bool isSlim = false)
+        => ValidateCore(bytes, kind, isSlim, upload: false);
+
+    private static PngImage ValidateCore(byte[] bytes, AccountWardrobeTextureKind textureKind, bool isSlim, bool upload)
     {
         ArgumentNullException.ThrowIfNull(bytes);
+        if (textureKind is not (AccountWardrobeTextureKind.Skin or AccountWardrobeTextureKind.Cape))
+            throw new ArgumentOutOfRangeException(nameof(textureKind));
         if (bytes.Length > MaximumBytes) throw Invalid("皮肤文件不能超过 1 MiB。");
         // Freeze caller-owned bytes so the returned carrier describes the same image we validated.
         byte[] encoded = bytes.ToArray();
         if (encoded.Length < 45 || !encoded.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
             throw Invalid("皮肤文件不是完整的 PNG。");
 
-        int height = 0, colorType = 0, bitDepth = 0, paletteEntries = 0;
+        int width = 0, height = 0, colorType = 0, bitDepth = 0, paletteEntries = 0;
         bool headerSeen = false, paletteSeen = false, transparencySeen = false, dataSeen = false, dataEnded = false, endSeen = false;
         using MemoryStream compressed = new();
         for (int offset = 8; offset < encoded.Length;)
@@ -44,11 +53,18 @@ public static class WardrobeSkinValidator
             if (kind.SequenceEqual("IHDR"u8))
             {
                 if (headerSeen || length != 13) throw Invalid("PNG IHDR 数据块无效。");
-                uint width = BinaryPrimitives.ReadUInt32BigEndian(payload[..4]);
+                uint imageWidth = BinaryPrimitives.ReadUInt32BigEndian(payload[..4]);
                 uint imageHeight = BinaryPrimitives.ReadUInt32BigEndian(payload[4..8]);
-                if (width != 64 || imageHeight is not (32 or 64)) throw Invalid("皮肤尺寸必须为 64×64 或 64×32。");
-                if (isSlim && imageHeight == 32) throw Invalid("纤细模型不支持旧式 64×32 皮肤。");
-                height = (int)imageHeight; bitDepth = payload[8]; colorType = payload[9];
+                if (upload && (imageWidth != 64 || imageHeight is not (32 or 64)))
+                    throw Invalid("皮肤尺寸必须为 64×64 或 64×32。");
+                if (!upload && (imageWidth is < 64 or > 512 || imageWidth % 64 != 0
+                    || (textureKind == AccountWardrobeTextureKind.Skin
+                        ? imageHeight != imageWidth && imageHeight * 2 != imageWidth
+                        : imageHeight * 2 != imageWidth)))
+                    throw Invalid("皮肤或披风预览尺寸无效。");
+                if (textureKind == AccountWardrobeTextureKind.Skin && isSlim && imageHeight * 2 == imageWidth)
+                    throw Invalid("纤细模型不支持旧式 64×32 皮肤。");
+                width = (int)imageWidth; height = (int)imageHeight; bitDepth = payload[8]; colorType = payload[9];
                 if (!((colorType is 2 or 6 && bitDepth == 8) || (colorType == 3 && bitDepth is 1 or 2 or 4 or 8))
                     || payload[10] != 0 || payload[11] != 0 || payload[12] != 0)
                     throw Invalid("皮肤 PNG 必须使用非交错的 RGB、RGBA 或调色板格式。");
@@ -87,14 +103,14 @@ public static class WardrobeSkinValidator
             offset += (int)length + 12;
         }
         if (!endSeen || compressed.Length == 0) throw Invalid("PNG 缺少完整图像数据或结束数据块。");
-        ValidateImageData(compressed.ToArray(), height, colorType, bitDepth, paletteEntries);
+        ValidateImageData(compressed.ToArray(), width, height, colorType, bitDepth, paletteEntries);
         return PngImage.TryCreate(encoded) ?? throw Invalid("PNG 图像载体创建失败。");
     }
 
-    private static void ValidateImageData(byte[] compressed, int height, int colorType, int bitDepth, int paletteEntries)
+    private static void ValidateImageData(byte[] compressed, int width, int height, int colorType, int bitDepth, int paletteEntries)
     {
         int channels = colorType switch { 2 => 3, 6 => 4, _ => 1 };
-        int rowBytes = (64 * channels * bitDepth + 7) / 8;
+        int rowBytes = (width * channels * bitDepth + 7) / 8;
         int bytesPerPixel = Math.Max(1, channels * bitDepth / 8);
         byte[] scanline = new byte[rowBytes + 1], previous = new byte[rowBytes];
         using ExactCompressedInput input = new(compressed);
@@ -129,7 +145,7 @@ public static class WardrobeSkinValidator
                     pixels[index] = unchecked((byte)(pixels[index] + predicted));
                 }
                 if (colorType == 3)
-                    for (int pixel = 0; pixel < 64; pixel++)
+                    for (int pixel = 0; pixel < width; pixel++)
                     {
                         int bit = pixel * bitDepth;
                         int paletteIndex = (pixels[bit / 8] >> (8 - bitDepth - bit % 8)) & ((1 << bitDepth) - 1);

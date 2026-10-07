@@ -573,6 +573,7 @@ public sealed partial class XsrUiRenderer
                 ? maxOffsetY
                 : Math.Clamp(scroll.OffsetY, 0, maxOffsetY);
             scroll.MaximumOffsetY = maxOffsetY;
+            scroll.MaximumOffsetX = maxOffsetX;
         }
 
         double scrollX = scroll?.OffsetX ?? 0;
@@ -1156,8 +1157,11 @@ public sealed partial class XsrUiRenderer
                 {
                     StopScrollMotion(entity);
                     StopSegmentScroll(entity);
-                    double targetX = Math.Max(0, scroll.OffsetX + deltaX);
-                    double targetY = Math.Clamp(scroll.OffsetY + deltaY, 0, scroll.MaximumOffsetY);
+                    bool horizontalWheel = scroll.UseVerticalWheelForHorizontalScroll;
+                    double horizontalDelta = horizontalWheel && deltaX == 0 ? deltaY : deltaX;
+                    double targetX = Math.Clamp(scroll.OffsetX + horizontalDelta, 0, scroll.MaximumOffsetX);
+                    double targetY = horizontalWheel ? scroll.OffsetY
+                        : Math.Clamp(scroll.OffsetY + deltaY, 0, scroll.MaximumOffsetY);
                     if (Math.Abs(targetX - scroll.OffsetX) > .001
                         || Math.Abs(targetY - scroll.OffsetY) > .001)
                     {

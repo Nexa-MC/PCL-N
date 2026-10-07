@@ -25,7 +25,7 @@
 | 基准候选 | 源码事实 | 处置与边界 |
 |---|---|---|
 | 游戏进程日志 | `LaunchPageController.Process.cs` 的日志按钮显示“尚未实现”且不可执行 | [XSR-791](XSR-791-process-log-view.md) 接入有界进程输出查询与 UI；本轮验证单列，不能把自由文本输出加入遥测/诊断包 |
-| 账户更衣橱 | 账户入口可到达未迁移页面 | [XSR-793](XSR-793-account-wardrobe.md) 按真实账户提供方能力接入；没有账户凭据或线上结果时不宣称在线换肤验收 |
+| 账户更衣橱 | 账户入口可到达未迁移页面 | [XSR-793](XSR-793-account-wardrobe.md) 首先接入在线上传/披风表单；[XSR-797](XSR-797-wardrobe-dev-parity.md) 再按 dev 重写完整角色栏、皮肤/披风卡片、历史与皮肤库。没有账户凭据或线上结果时不宣称在线换肤验收 |
 | Bedrock 安装 | `BedrockInstallPage.pxml` 显示迁移说明，没有安装命令/消费者 | [XSR-796](XSR-796-bedrock-store-installation.md) 交付官方安装交接：Windows 固定 Minecraft for Windows 产品 `9NBLGGH2JHXJ` 的 Microsoft Store 与官方 HTTPS 页面；其他 OS 只开放官方信息页并明确不支持该 Windows 客户端。Store 负责获取/授权/安装，不伪造安装进度或结果 |
 | Linux 显示事实 | `MachineEnvironmentProviders.cs` 的 display count/internal/refresh 使用固定 NotImplemented | [XSR-792](XSR-792-platform-capability-completion.md) 接入受限 XRandR 查询；Wayland/无图形会话及查询失败保留诚实状态 |
 | macOS 电源事实 | `MachineHardwareCapabilityProvider.cs` 的五个 power 字段返回 NotImplemented | XSR-792 接入公开 IOPS/系统策略证据；值未知不填 false/0，真实电源设备验收另行记录 |

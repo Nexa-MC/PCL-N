@@ -43,7 +43,11 @@ internal static partial class Program
         }, TimeSpan.FromSeconds(5)));
         AssertEqual("false", fixture.Foundation.Host.SettingsPolicy.Read(new(instance)).Value!.Values.Single(v => v.Key == "game.auto-repair").Value.Value);
         AssertEqual("true", fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(v => v.Key == "game.auto-repair").Value.Value);
-        AssertEqual(toggle.Entity, fixture.Shell.Renderer.Focused);
+        // Initial instance-management replies can rebuild the section while preserving
+        // its semantic focus target. Check the live option after those replies.
+        var selectedToggle = FindByKey(fixture.Shell, scene, "SettingsOption.game.auto-repair.false");
+        AssertEqual(selectedToggle.Entity, fixture.Shell.Renderer.Focused);
+        AssertTrue(selectedToggle.IsSelected == true && selectedToggle.IsFocused && selectedToggle.IsFocusVisible);
         Emit(fixture.Intents, "ui.settings.inherit", FindByKey(fixture.Shell, scene, "SettingsInherit.game.auto-repair").Entity);
         AssertTrue(SpinWait.SpinUntil(() =>
         {

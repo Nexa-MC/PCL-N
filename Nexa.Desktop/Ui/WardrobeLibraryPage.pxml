@@ -1,0 +1,45 @@
+<Page xmlns="https://pcln.dev/pxml/2026" Key="WardrobeLibraryPage" Label="皮肤库">
+  <StackPanel Key="WardrobeLibraryLayout" Orientation="Horizontal" Weight="1" StretchLastChild="true">
+    <StackPanel Key="WardrobeLibraryRail" Orientation="Vertical" Width="268" Padding="12,14,12,20" Spacing="8" Scroll="true">
+      <Button Key="WardrobeLibraryBack" Label="返回更衣橱" Content="返回更衣橱" Command="ui.wardrobe.library.back" Height="34" />
+      <Text Content="皮肤站" Height="24" />
+      <StackPanel Key="WardrobeLibrarySites" Orientation="Vertical" Spacing="6" />
+      <Text Key="WardrobeLibraryAccountNotice" Content="正在读取当前账户…" Height="100" />
+      <Button Key="WardrobeLibraryManage" Label="前往皮肤站授权与管理" Content="前往皮肤站管理" Command="ui.wardrobe.library.manage" Height="38" IsVisible="false" />
+    </StackPanel>
+    <StackPanel Key="WardrobeLibraryContent" Orientation="Vertical" Weight="1" MaxWidth="1320" Padding="28,18,28,20" Spacing="12">
+      <Text Key="WardrobeLibrarySiteName" Content="皮肤库" Height="28" />
+      <Text Key="WardrobeLibrarySiteStatus" Content="正在读取皮肤站 API…" Height="32" />
+      <StackPanel Orientation="Horizontal" Spacing="8" Height="34">
+        <Button Key="WardrobeLibraryDocs" Label="皮肤站 API 文档" Content="API 文档" Command="ui.wardrobe.library.docs" Width="94" Height="34" />
+        <Button Key="WardrobeLibraryOpenSite" Label="打开皮肤站" Content="打开皮肤站" Command="ui.wardrobe.library.site" Width="94" Height="34" />
+        <Button Key="WardrobeLibraryRefresh" Label="刷新皮肤库" Content="刷新" Command="ui.wardrobe.library.refresh" Width="64" Height="34" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="10" Height="36">
+        <TextInput Key="WardrobeLibrarySearch" Label="搜索皮肤名称或上传者" Placeholder="搜索皮肤名称或上传者" Weight="1" Height="36" />
+        <Button Key="WardrobeLibrarySearchButton" Label="搜索皮肤库" Content="搜索" Command="ui.wardrobe.library.search" Width="64" Height="36" />
+      </StackPanel>
+      <StackPanel Key="WardrobeLibraryFilters" Orientation="Horizontal" Spacing="6" Height="36" Scroll="true">
+        <Button Key="WardrobeLibrarySkin" Label="查看皮肤" Content="皮肤" Command="ui.wardrobe.library.skin" Width="68" Height="36" />
+        <Button Key="WardrobeLibraryCape" Label="查看披风" Content="披风" Command="ui.wardrobe.library.cape" Width="68" Height="36" />
+        <Button Key="WardrobeLibraryTime" Label="按时间排序" Content="按时间" Command="ui.wardrobe.library.time" Width="76" Height="36" />
+        <Button Key="WardrobeLibraryLikes" Label="按点赞排序" Content="按点赞" Command="ui.wardrobe.library.likes" Width="76" Height="36" />
+      </StackPanel>
+      <Text Key="WardrobeLibraryOperationStatus" Content="" Height="44" IsVisible="false" />
+      <StackPanel Key="WardrobeLibraryBody" Orientation="Vertical" Weight="1" MinHeight="100" Spacing="12" Scroll="true">
+        <Text Key="WardrobeLibraryLoading" Content="正在读取皮肤站 API…" Height="90" />
+        <StackPanel Key="WardrobeLibraryEmpty" Orientation="Vertical" Spacing="9" Padding="12" IsVisible="false">
+          <Text Key="WardrobeLibraryEmptyTitle" Content="没有找到皮肤" Height="28" />
+          <Text Key="WardrobeLibraryEmptyMessage" Content="试试其他关键词或切换分类。" Height="72" />
+        </StackPanel>
+        <StackPanel Key="WardrobeLibraryItems" Orientation="Vertical" Spacing="12" IsVisible="false" />
+      </StackPanel>
+      <Text Key="WardrobeLibraryHelp" Content="皮肤库使用皮肤站公开 API；上传与应用外观需要账户对应的独立授权。" Height="44" />
+      <StackPanel Orientation="Horizontal" Spacing="8" Height="34">
+        <Text Key="WardrobeLibraryPageNumber" Content="第 1 页" Weight="1" Height="34" />
+        <Button Key="WardrobeLibraryPrevious" Label="上一页皮肤库" Content="上一页" Command="ui.wardrobe.library.previous" Width="82" Height="34" />
+        <Button Key="WardrobeLibraryNext" Label="下一页皮肤库" Content="下一页" Command="ui.wardrobe.library.next" Width="82" Height="34" />
+      </StackPanel>
+    </StackPanel>
+  </StackPanel>
+</Page>

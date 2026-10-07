@@ -162,6 +162,11 @@ internal sealed partial class LaunchPageController
         _shell.Renderer.Focus(_titleEntities["TitleBack"], keyboard);
     }
 
+    internal void OpenWardrobeLibraryPage(XsrUiEntityId page, XsrUiEntityId source)
+    {
+        if (_shell.Stage.Navigation.Current == _wardrobePage)
+            OpenSubpage(page, source);
+    }
 
     private void OnShellStyleChanged(object? sender, EventArgs e) => UpdateTitleBar();
 
