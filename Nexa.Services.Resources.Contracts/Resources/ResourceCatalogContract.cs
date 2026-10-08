@@ -17,6 +17,9 @@ public static class ResourceCatalogContract
     public static readonly XsrSemanticId ContentOnline = XsrSemanticId.Parse("resources.content.online");
     public static readonly XsrSemanticId ContentOnlineBatch = XsrSemanticId.Parse("resources.content.online-batch");
     public static readonly XsrSemanticId UpdateContent = XsrSemanticId.Parse("resources.content.update");
+    public static readonly XsrSemanticId UpdateContentBatch = XsrSemanticId.Parse("resources.content.update-batch");
+    public static readonly XsrSemanticId Changelog = XsrSemanticId.Parse("resources.catalog.changelog");
+    public static readonly XsrSemanticId NetworkPolicy = XsrSemanticId.Parse("resources.network.policy");
     public const int PageSize = 20;
 }
 
@@ -56,6 +59,7 @@ public sealed record ResourceVersion(string Id, string Name, string Number, stri
     public string ProjectId { get; init; } = "";
     public ResourceFile? File { get; init; }
     public IReadOnlyList<ResourceDependency> Dependencies { get; init; } = [];
+    public string Changelog { get; init; } = "";
 }
 public sealed record ResourceFile(string Name, string Url, long Size, string? Sha1, string? Sha512);
 public sealed record ResourceDetail(ResourceProject Project, string License, IReadOnlyList<ResourceVersion> Versions)
@@ -102,3 +106,10 @@ public sealed record ResourceContentOnlineBatchQuery(IReadOnlyList<ResourceConte
 public sealed record ResourceContentOnlineMatch(ResourceContentOnlineQuery File, ResourceContentOnline Content);
 public sealed record ResourceContentOnlineBatch(IReadOnlyList<ResourceContentOnlineMatch> Matches);
 public sealed record ResourceContentUpdateCommand(ResourceContentOnlineQuery File, ResourceReference Source, string VersionId);
+public sealed record ResourceContentUpdateBatchCommand(IReadOnlyList<ResourceContentUpdateCommand> Updates);
+public sealed record ResourceChangelogQuery(ResourceReference Source, string VersionId, bool MirrorFirst = true);
+public sealed record ResourceChangelog(string Text);
+public interface IResourceChangelogSource
+{
+    Task<ResourceChangelog> ReadChangelogAsync(ResourceChangelogQuery query, CancellationToken token);
+}

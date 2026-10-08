@@ -51,12 +51,13 @@ public static class JvmHostCapabilityCatalog
         const string source = "JvmHostService";
         bool tunable = OperatingSystem.IsWindows() || OperatingSystem.IsLinux();
         bool suspendable = tunable || OperatingSystem.IsMacOS();
+        var native = new Nexa.Platform.PlatformJvmRuntime();
         JvmHostEnvironment environment = DescribeEnvironment(plan);
         return Array.AsReadOnly<ICapability>(
         [
             JvmArguments.Observe(string.Join(' ', environment.JvmArguments), timestamp, source),
             GameArguments.Observe(string.Join(' ', environment.GameArguments), timestamp, source),
-            Variables.Observe(string.Empty, timestamp, source),
+            Variables.Observe(string.Join(';', plan.EnvironmentVariables.Keys.Order(StringComparer.Ordinal)), timestamp, source),
             WorkingDirectory.Observe(environment.WorkingDirectory, timestamp, source),
             Classpath.Observe(string.Join(Path.PathSeparator, plan.ClasspathEntries), timestamp, source),
             NativePath.Observe(plan.NativesDirectory, timestamp, source),
@@ -67,21 +68,21 @@ public static class JvmHostCapabilityCatalog
             Terminate.Observe(true, timestamp, source), KillTree.Observe(true, timestamp, source),
             Supported(Suspend, suspendable, timestamp, source), Supported(Resume, suspendable, timestamp, source),
             Supported(Priority, tunable, timestamp, source), Supported(Affinity, tunable, timestamp, source),
-            CpuSets.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "尚未连接 CPU Sets host adapter"),
-            Qos.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "尚未连接平台 QoS host adapter"),
+            Supported(CpuSets, native.CpuSetsSupported, timestamp, source),
+            Supported(Qos, native.QualitySupported, timestamp, source),
             Stdout.Observe(true, timestamp, source), Stderr.Observe(true, timestamp, source),
-            Stdin.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "启动进程未开放标准输入"),
+            Stdin.Unavailable(CapabilityAvailability.PlatformUnsupported, timestamp, "标准输入由私有 JVM bootstrap 独占，不提供交互式终端"),
             RingBuffer.Observe(100, timestamp, source), Timestamp.Observe(true, timestamp, source),
             Encoding.Observe("UTF-8/system", timestamp, source), CpuMetric.Observe(true, timestamp, source),
             MemoryMetric.Observe(true, timestamp, source),
-            CommitMetric.Unavailable(CapabilityAvailability.DependencyMissing, timestamp,
-                "尚未连接平台进程提交量采集器"),
-            Supported(IoMetric, OperatingSystem.IsWindows(), timestamp, source), ThreadMetric.Observe(true, timestamp, source),
-            GpuMetric.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "尚未连接 GPU 进程计数器"),
-            ProcessTreeMetric.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "尚未连接进程树聚合计数器"),
+            Supported(CommitMetric, native.CommitSupported, timestamp, source),
+            Supported(IoMetric, OperatingSystem.IsWindows() || OperatingSystem.IsLinux(), timestamp, source), ThreadMetric.Observe(true, timestamp, source),
+            native.GpuSupported ? GpuMetric.Observe(true, timestamp, source)
+                : GpuMetric.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "GPU 驱动未提供 DRM 进程驻留计数器"),
+            Supported(ProcessTreeMetric, native.TreeSupported, timestamp, source),
             ExitCode.Observe(true, timestamp, source), CrashReport.Observe(true, timestamp, source),
             HsErr.Observe(true, timestamp, source), StdoutTail.Observe(true, timestamp, source), StderrTail.Observe(true, timestamp, source),
-            SystemCorrelation.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "尚未连接系统事件关联器"),
+            Supported(SystemCorrelation, native.SystemEventsSupported, timestamp, source),
         ]);
     }
 
@@ -115,14 +116,14 @@ public static class ObservationCapabilityCatalog
     public static readonly CapabilityDefinition<long> RuntimePeakPrivate = Metric("observation.runtime.peak_private", "峰值专用内存", "bytes");
     public static readonly CapabilityDefinition<long> RuntimePeakThreads = Metric("observation.runtime.peak_threads", "峰值线程数", "threads");
     public static readonly CapabilityDefinition<long> RuntimeCpu = Metric("observation.runtime.cpu", "CPU 时间", "ms");
-    public static readonly CapabilityDefinition<long> LaunchHeapPeak = Metric("observation.launch.heap_peak", "启动堆峰值", "bytes");
-    public static readonly CapabilityDefinition<long> LaunchNativePeak = Metric("observation.launch.native_peak", "启动本机内存峰值", "bytes");
-    public static readonly CapabilityDefinition<long> LaunchPhysicalPeak = Metric("observation.launch.physical_peak", "启动物理内存峰值", "bytes");
-    public static readonly CapabilityDefinition<long> LaunchCommitPeak = Metric("observation.launch.commit_peak", "启动提交量峰值", "bytes");
-    public static readonly CapabilityDefinition<long> LaunchGpuLocalPeak = Metric("observation.launch.gpu_local_peak", "启动本地显存峰值", "bytes");
-    public static readonly CapabilityDefinition<long> LaunchGpuSharedPeak = Metric("observation.launch.gpu_shared_peak", "启动共享显存峰值", "bytes");
-    public static readonly CapabilityDefinition<long> LaunchCpuPeak = Metric("observation.launch.cpu_peak", "启动 CPU 峰值", "%");
-    public static readonly CapabilityDefinition<long> LaunchIoRead = Metric("observation.launch.io_read", "启动读取量", "bytes");
+    public static readonly CapabilityDefinition<long> LaunchHeapPeak = Metric("observation.launch.heap_peak", "启动前30秒堆峰值", "bytes");
+    public static readonly CapabilityDefinition<long> LaunchNativePeak = Metric("observation.launch.native_peak", "启动前30秒本机内存峰值", "bytes");
+    public static readonly CapabilityDefinition<long> LaunchPhysicalPeak = Metric("observation.launch.physical_peak", "启动前30秒物理内存峰值", "bytes");
+    public static readonly CapabilityDefinition<long> LaunchCommitPeak = Metric("observation.launch.commit_peak", "启动前30秒提交量峰值", "bytes");
+    public static readonly CapabilityDefinition<long> LaunchGpuLocalPeak = Metric("observation.launch.gpu_local_peak", "启动前30秒本地显存峰值", "bytes");
+    public static readonly CapabilityDefinition<long> LaunchGpuSharedPeak = Metric("observation.launch.gpu_shared_peak", "启动前30秒共享显存峰值", "bytes");
+    public static readonly CapabilityDefinition<long> LaunchCpuPeak = Metric("observation.launch.cpu_peak", "启动前30秒 CPU 峰值", "%");
+    public static readonly CapabilityDefinition<long> LaunchIoRead = Metric("observation.launch.io_read", "启动前30秒读取量", "bytes");
     public static readonly CapabilityDefinition<long> RuntimeHeapP95 = Metric("observation.runtime.heap_p95", "运行堆 P95", "bytes");
     public static readonly CapabilityDefinition<long> RuntimePhysicalP95 = Metric("observation.runtime.physical_p95", "运行物理内存 P95", "bytes");
     public static readonly CapabilityDefinition<long> RuntimeCommitP95 = Metric("observation.runtime.commit_p95", "运行提交量 P95", "bytes");
@@ -135,30 +136,33 @@ public static class ObservationCapabilityCatalog
         return Array.AsReadOnly<ICapability>(
         [
             LaunchDuration.Observe(observation.LaunchDurationMilliseconds, timestamp, source),
-            RuntimePeakWorkingSet.Observe(observation.PeakWorkingSetBytes, timestamp, source),
-            RuntimePeakPrivate.Observe(observation.PeakPrivateBytes, timestamp, source),
-            RuntimePeakThreads.Observe(observation.PeakThreadCount, timestamp, source),
-            RuntimeCpu.Observe(observation.TotalProcessorMilliseconds, timestamp, source),
-            MetricOrUnavailable(LaunchHeapPeak, observation.HeapPeakBytes, timestamp, source),
-            MetricOrUnavailable(LaunchNativePeak, observation.NativePeakBytes, timestamp, source),
-            LaunchPhysicalPeak.Observe(observation.PeakWorkingSetBytes, timestamp, source),
-            MetricOrUnavailable(LaunchCommitPeak, observation.CommitPeakBytes, timestamp, source),
-            MetricOrUnavailable(LaunchGpuLocalPeak, observation.GpuLocalPeakBytes, timestamp, source),
-            MetricOrUnavailable(LaunchGpuSharedPeak, observation.GpuSharedPeakBytes, timestamp, source),
-            MetricOrUnavailable(LaunchCpuPeak, observation.CpuPeakPercent, timestamp, source),
-            LaunchIoRead.Observe(observation.IoReadBytes, timestamp, source),
-            MetricOrUnavailable(RuntimeHeapP95, observation.HeapPeakBytes, timestamp, source),
-            RuntimePhysicalP95.Observe(observation.RuntimePhysicalP95Bytes, timestamp, source),
-            MetricOrUnavailable(RuntimeCommitP95, observation.RuntimeCommitP95Bytes, timestamp, source),
-            MetricOrUnavailable(RuntimeGpuP95, observation.GpuLocalPeakBytes + observation.GpuSharedPeakBytes, timestamp, source),
-            MetricOrUnavailable(RuntimeCpuP95, observation.RuntimeCpuP95Percent, timestamp, source),
+            MetricOrUnavailable(RuntimePeakWorkingSet, Observed(observation.PeakWorkingSetBytes, observation.CoreMetricsObserved), timestamp, source),
+            MetricOrUnavailable(RuntimePeakPrivate, Observed(observation.PeakPrivateBytes, observation.CoreMetricsObserved), timestamp, source),
+            MetricOrUnavailable(RuntimePeakThreads, Observed(observation.PeakThreadCount, observation.CoreMetricsObserved), timestamp, source),
+            MetricOrUnavailable(RuntimeCpu, Observed(observation.TotalProcessorMilliseconds, observation.CoreMetricsObserved), timestamp, source),
+            MetricOrUnavailable(LaunchHeapPeak, LaunchValue(observation, observation.MeasuredLaunchHeapPeakBytes, observation.MeasuredHeapPeakBytes ?? Observed(observation.HeapPeakBytes)), timestamp, source),
+            MetricOrUnavailable(LaunchNativePeak, LaunchValue(observation, observation.MeasuredLaunchNativePeakBytes, observation.MeasuredNativePeakBytes ?? Observed(observation.NativePeakBytes)), timestamp, source),
+            MetricOrUnavailable(LaunchPhysicalPeak, LaunchValue(observation, observation.MeasuredLaunchPhysicalPeakBytes, Observed(observation.PeakWorkingSetBytes, observation.CoreMetricsObserved)), timestamp, source),
+            MetricOrUnavailable(LaunchCommitPeak, LaunchValue(observation, observation.MeasuredLaunchCommitPeakBytes, observation.MeasuredCommitPeakBytes ?? Observed(observation.CommitPeakBytes)), timestamp, source),
+            MetricOrUnavailable(LaunchGpuLocalPeak, LaunchValue(observation, observation.MeasuredLaunchGpuLocalPeakBytes, observation.MeasuredGpuLocalPeakBytes ?? Observed(observation.GpuLocalPeakBytes)), timestamp, source),
+            MetricOrUnavailable(LaunchGpuSharedPeak, LaunchValue(observation, observation.MeasuredLaunchGpuSharedPeakBytes, observation.MeasuredGpuSharedPeakBytes ?? Observed(observation.GpuSharedPeakBytes)), timestamp, source),
+            MetricOrUnavailable(LaunchCpuPeak, LaunchValue(observation, observation.MeasuredLaunchCpuPeakPercent, Observed(observation.CpuPeakPercent, observation.CpuPercentObserved)), timestamp, source),
+            MetricOrUnavailable(LaunchIoRead, LaunchValue(observation, observation.MeasuredLaunchIoReadBytes, Observed(observation.IoReadBytes, observation.IoObserved)), timestamp, source),
+            MetricOrUnavailable(RuntimeHeapP95, observation.MeasuredRuntimeHeapP95Bytes, timestamp, source),
+            MetricOrUnavailable(RuntimePhysicalP95, Observed(observation.RuntimePhysicalP95Bytes, observation.CoreMetricsObserved), timestamp, source),
+            MetricOrUnavailable(RuntimeCommitP95, observation.MeasuredRuntimeCommitP95Bytes ?? Observed(observation.RuntimeCommitP95Bytes), timestamp, source),
+            MetricOrUnavailable(RuntimeGpuP95, observation.MeasuredRuntimeGpuP95Bytes, timestamp, source),
+            MetricOrUnavailable(RuntimeCpuP95, Observed(observation.RuntimeCpuP95Percent, observation.CpuPercentObserved), timestamp, source),
         ]);
     }
 
     private static CapabilityDefinition<long> Metric(string id, string label, string unit) =>
         new(id, label, "运行观测", Provider, CapabilityKind.Metric, CapabilityStability.Dynamic, unit: unit);
-    private static ICapability MetricOrUnavailable(CapabilityDefinition<long> definition, long value,
-        DateTimeOffset timestamp, string source) => value > 0
-            ? definition.Observe(value, timestamp, source)
+    private static long? Observed(long value, bool measured = false) => measured || value > 0 ? value : null;
+    private static long? LaunchValue(JvmHostObservation observation, long? window, long? legacy)
+        => observation.LaunchWindowMilliseconds > 0 ? window : legacy;
+    private static ICapability MetricOrUnavailable(CapabilityDefinition<long> definition, long? value,
+        DateTimeOffset timestamp, string source) => value is { } measured && measured >= 0
+            ? definition.Observe(measured, timestamp, source)
             : definition.Unavailable(CapabilityAvailability.DependencyMissing, timestamp, "当前 host 未采集此指标");
 }

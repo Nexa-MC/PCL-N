@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Nexa.Services.Settings;
 using Nexa.UI.Next;
@@ -136,7 +137,9 @@ internal sealed partial class SettingsPageController
         {
             var row = Stack(editor.Rows, "SettingsHookRow", XsrUiOrientation.Horizontal, 6);
             var input = Element(row, "SettingsHookLine." + editor.Entry.SettingKey + "." + index,
-                XsrUiSemanticRole.TextInput, "命令行 " + (index + 1), height: 30);
+                XsrUiSemanticRole.TextInput, string.Format(CultureInfo.InvariantCulture,
+                    _shell.Renderer.LocalizeText("命令行 {0}"), index + 1), height: 30);
+            _shell.Tree.GetComponent<XsrUiSemantic>(input)!.Localize = false;
             var layout = _shell.Tree.GetComponent<XsrUiElement>(input)!; layout.Weight = 1; layout.Padding = new(8, 0, 8, 0);
             _shell.Tree.SetComponent(input, new XsrUiTextInput { MaximumLength = 32768, PreserveTabs = true, Placeholder = "输入命令；空行也会保留" });
             _shell.Tree.SetComponent(input, new XsrUiInput { Focusable = true, Clickable = true });
@@ -144,7 +147,10 @@ internal sealed partial class SettingsPageController
             _shell.Renderer.SetTextInputValue(input, editor.Lines[index].Text);
             editor.Inputs.Add((input, index, editor.Lines[index].Text, _shell.Tree.GetComponent<XsrUiTextInput>(input)!.ReadDraft()));
             var remove = ActionButton(row, "SettingsHookRemove." + editor.Entry.SettingKey + "." + index, "×", HookRemove, 28);
-            _shell.Tree.GetComponent<XsrUiSemantic>(remove)!.Label = "删除命令行 " + (index + 1);
+            var removeSemantic = _shell.Tree.GetComponent<XsrUiSemantic>(remove)!;
+            removeSemantic.Label = string.Format(CultureInfo.InvariantCulture,
+                _shell.Renderer.LocalizeText("删除命令行 {0}"), index + 1);
+            removeSemantic.Localize = false;
             _hookActions[remove] = (editor, index);
         }
         var actions = Stack(editor.Rows, "SettingsHookActions", XsrUiOrientation.Horizontal, 6);

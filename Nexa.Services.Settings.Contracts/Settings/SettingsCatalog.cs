@@ -8,7 +8,7 @@ public sealed record SettingsCatalogEntry(string Id, string? Parent, string Scop
     string Label, SettingsCatalogEntryKind Kind, string? SettingKey, bool DeveloperOnly, SettingsCapabilityAvailability Availability)
 {
     public SettingsPolicyDefinition? Definition => SettingKey is { } key ? SettingsPolicySchema.ByKey[key] : null;
-    public bool InvertBoolean => SettingKey == "appearance.animations-disabled";
+    public bool InvertBoolean => SettingKey is "appearance.animations-disabled" or "appearance.hardware-acceleration-disabled";
     public bool IsRuntimeDetail => Scope == "global" && Page == "java" && !DeveloperOnly
         && Section is not ("自动策略" or "已安装 Java" or "Java 管理");
     public string Owner { get; init; } = "Nexa.Services.Settings";

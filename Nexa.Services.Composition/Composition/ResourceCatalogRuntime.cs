@@ -20,15 +20,21 @@ public static class ResourceCatalogRuntimeComposer
         HttpClient? http = source is null ? host?.CreateHttpClient(allowAutoRedirect: false)
             ?? Nexa.Services.Downloads.PooledHttpClient.Create(allowAutoRedirect: false) : null;
         if (http is not null) http.Timeout = TimeSpan.FromSeconds(25);
-        var transport = http is null ? null : new ResourceProviderHttp(http);
+        string SourcePriority() => host?.SettingsPolicy.Read(new()).Value?.Values.FirstOrDefault(item => item.Key == "network.resource-source")?.Value.Value ?? "follow-request";
+        bool AutoDependencies() => host?.SettingsPolicy.Read(new()).Value?.Values.FirstOrDefault(item => item.Key == "network.auto-install-dependencies")?.Value.Value != "false";
+        var transport = http is null ? null : new ResourceProviderHttp(http) { SourcePriority = SourcePriority };
         source ??= new MergedResourceCatalog(new ResourceCatalogService(http!, transport), new CurseForgeResourceCatalog(transport!));
         var translations = transport is null ? null : new ResourceTranslationService(transport);
         ResourceIconService? icons = http is null ? null : new(http) { WorkScheduler = host?.Work };
         XsrQueryRouterBuilder queries = new();
+        queries.Register<ResourceNetworkPolicyQuery, ResourceNetworkPolicySnapshot>(ResourceCatalogContract.NetworkPolicy,
+            (_, _) => ValueTask.FromResult(XsrResult.Success(new ResourceNetworkPolicySnapshot(SourcePriority(), AutoDependencies(), transport?.LastResolution))));
         queries.Register<ResourceSearchQuery, ResourceSearchResult>(ResourceCatalogContract.Search,
             async (query, token) => XsrResult.Success(await source.SearchAsync(query, token).ConfigureAwait(false)));
         queries.Register<ResourceDetailQuery, ResourceDetail>(ResourceCatalogContract.Detail,
             async (query, token) => XsrResult.Success(await source.DetailAsync(query, token).ConfigureAwait(false)));
+        queries.Register<ResourceChangelogQuery, ResourceChangelog>(ResourceCatalogContract.Changelog,
+            async (query, token) => XsrResult.Success(source is IResourceChangelogSource logs ? await logs.ReadChangelogAsync(query, token).ConfigureAwait(false) : new ResourceChangelog("")));
         queries.Register<ResourceIconQuery, ResourceIconResult>(ResourceCatalogContract.Icon,
             async (query, token) => XsrResult.Success(icons is null ? new ResourceIconResult(null) : await icons.ReadAsync(query, token).ConfigureAwait(false)));
         queries.Register<ResourceTranslationQuery, ResourceTranslation>(ResourceCatalogContract.Translate,
@@ -41,7 +47,7 @@ public static class ResourceCatalogRuntimeComposer
         { await favorites.SetAsync(command, token).ConfigureAwait(false); return XsrResult.Success(); });
         if (host is not null && http is not null)
         {
-            var downloader = new ResourceDownloadService(source, host.Downloads, host.Tasks, http);
+            var downloader = new ResourceDownloadService(source, host.Downloads, host.Tasks, http) { SourcePriority = SourcePriority };
             var instances = new ResourceInstanceService(transport!);
             var content = new ResourceContentOnlineService(instances, source, translations);
             queries.Register<ResourceContentOnlineQuery, ResourceContentOnline>(ResourceCatalogContract.ContentOnline,
@@ -55,17 +61,28 @@ public static class ResourceCatalogRuntimeComposer
                 catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
                 { return XsrResult.Failure(new XsrError(XsrErrorKind.Rejected, XsrSemanticId.Parse("resources.update.failed"), error.Message)); }
             });
+            commands.Register<ResourceContentUpdateBatchCommand>(ResourceCatalogContract.UpdateContentBatch, async (command, token) =>
+            {
+                try { await updates.UpdateBatchAsync(command, token).ConfigureAwait(false); return XsrResult.Success(); }
+                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or AggregateException)
+                { return XsrResult.Failure(new XsrError(XsrErrorKind.Rejected, XsrSemanticId.Parse("resources.update.failed"), error.Message)); }
+            });
             queries.Register<ResourceInstanceQuery, ResourceInstanceContext>(ResourceCatalogContract.Instance,
                 async (query, token) => XsrResult.Success(await instances.ReadAsync(query, token).ConfigureAwait(false)));
             queries.Register<ResourceModPlanQuery, ResourceInstallPlan>(ResourceCatalogContract.PlanMod, async (query, token) =>
             {
-                try { return XsrResult.Success(await new ResourceDependencyPlanner(source).PreviewAsync(query.Command, await instances.ReadAsync(query.Command.Instance, token).ConfigureAwait(false), token).ConfigureAwait(false)); }
+                try
+                {
+                    return XsrResult.Success(await new ResourceDependencyPlanner(source) { AutoInstallDependencies = AutoDependencies() }
+                    .PreviewAsync(query.Command, await instances.ReadAsync(query.Command.Instance, token).ConfigureAwait(false), token).ConfigureAwait(false));
+                }
                 catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
                 { return XsrResult.Failure<ResourceInstallPlan>(new XsrError(XsrErrorKind.Rejected, XsrSemanticId.Parse("resources.plan.failed"), error.Message)); }
             });
             if (installer is not null)
             {
-                var mods = new ResourceModInstallService(source, instances, downloader, new MinecraftLocalJarService(host.Tasks, host.StateStore, installer), host.Tasks);
+                var mods = new ResourceModInstallService(source, instances, downloader, new MinecraftLocalJarService(host.Tasks, host.StateStore, installer), host.Tasks)
+                { AutoInstallDependencies = AutoDependencies };
                 commands.Register<ResourceModInstallCommand>(ResourceCatalogContract.InstallMod, async (command, token) =>
                 {
                     try { await mods.InstallAsync(command, token).ConfigureAwait(false); return XsrResult.Success(); }

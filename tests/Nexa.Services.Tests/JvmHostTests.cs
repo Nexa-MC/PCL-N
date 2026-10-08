@@ -134,6 +134,17 @@ internal static partial class Program
         AssertEqual(0L, accepted.NativePeakMiB);
         AssertEqual(0L, accepted.HeapPeakMiB);
         AssertEqual(0L, accepted.CommitPeakMiB);
+        var calibrated = JvmHostService.CreateHistorySample(plan, snapshot, observation with
+        {
+            MeasuredHeapPeakBytes = 512L * 1048576,
+            MeasuredNativePeakBytes = 128L * 1048576,
+            MeasuredCommitPeakBytes = 2600L * 1048576,
+            MeasuredCombinedGpuPeakBytes = 64L * 1048576,
+        }, 120000, 240, true, true)!;
+        AssertEqual(512L, calibrated.HeapPeakMiB);
+        AssertEqual(128L, calibrated.NativePeakMiB);
+        AssertEqual(2600L, calibrated.CommitPeakMiB);
+        AssertEqual(64L, calibrated.GpuPeakMiB);
         foreach (MinecraftProcessState state in new[] { MinecraftProcessState.Created, MinecraftProcessState.Running,
             MinecraftProcessState.Failed, MinecraftProcessState.Cancelled })
             AssertTrue(JvmHostService.CreateHistorySample(plan, snapshot with { State = state }, observation,
@@ -155,6 +166,9 @@ internal static partial class Program
         {
             using Stream input = Console.OpenStandardInput();
             var request = await JvmHostBootstrap.ReadAsync(input);
+            if (request.MainClass == "fixture.Graphics") return Environment.GetEnvironmentVariable("DRI_PRIME") == "pci-0000_01_00_0"
+                && Environment.GetEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE") == "1"
+                && Environment.GetEnvironmentVariable("NEXACL_GRAPHICS_FIXTURE") == "preserved" ? 0 : 12;
             return request.MainClass == "fixture.Main" && request.GameArguments.Count == 2
                 && request.GameArguments[0].Length == 0 && request.GameArguments[1] == "private-token" ? 0 : 8;
         }
@@ -274,11 +288,12 @@ internal static partial class Program
         AssertTrue(capabilities.Any(static item => item.Id == "jvmhost.metric.process_tree"));
         AssertTrue(capabilities.Any(static item => item.Id == "jvmhost.crash.stdout_tail"));
         AssertEqual(37, capabilities.Count);
-        AssertEqual(Nexa.Services.Capabilities.CapabilityAvailability.DependencyMissing,
+        var native = new Nexa.Platform.PlatformJvmRuntime();
+        AssertEqual(native.GpuSupported ? Nexa.Services.Capabilities.CapabilityAvailability.Available : Nexa.Services.Capabilities.CapabilityAvailability.DependencyMissing,
             capabilities.Single(static item => item.Id == "jvmhost.metric.gpu").Availability);
-        AssertEqual(Nexa.Services.Capabilities.CapabilityAvailability.DependencyMissing,
+        AssertEqual(native.CpuSetsSupported ? Nexa.Services.Capabilities.CapabilityAvailability.Available : Nexa.Services.Capabilities.CapabilityAvailability.PlatformUnsupported,
             capabilities.Single(static item => item.Id == "jvmhost.process.cpu_sets").Availability);
-        AssertEqual(Nexa.Services.Capabilities.CapabilityAvailability.DependencyMissing,
+        AssertEqual(native.CommitSupported ? Nexa.Services.Capabilities.CapabilityAvailability.Available : Nexa.Services.Capabilities.CapabilityAvailability.PlatformUnsupported,
             capabilities.Single(static item => item.Id == "jvmhost.metric.commit").Availability);
 
         JvmHostObservation unavailableMetrics = new(Guid.NewGuid(), "fixture", DateTimeOffset.UtcNow,
@@ -305,5 +320,51 @@ internal static partial class Program
             .Single(static item => item.Id == "observation.runtime.physical_p95")).Value);
         AssertEqual(62L, ((Nexa.Services.Capabilities.Capability<long>)sampled
             .Single(static item => item.Id == "observation.runtime.cpu_p95")).Value);
+        var measured = ObservationCapabilityCatalog.Project(unavailableMetrics with
+        {
+            MeasuredHeapPeakBytes = 9000,
+            MeasuredRuntimeHeapP95Bytes = 4000,
+            MeasuredGpuLocalPeakBytes = 5000,
+            MeasuredGpuSharedPeakBytes = 2000,
+            MeasuredRuntimeGpuP95Bytes = 1000,
+            MeasuredCommitPeakBytes = 0,
+            MeasuredRuntimeCommitP95Bytes = 0,
+            CpuPercentObserved = true,
+            IoObserved = true,
+        }, DateTimeOffset.UtcNow);
+        AssertEqual(4000L, ((Nexa.Services.Capabilities.Capability<long>)measured.Single(static item => item.Id == "observation.runtime.heap_p95")).Value);
+        AssertEqual(1000L, ((Nexa.Services.Capabilities.Capability<long>)measured.Single(static item => item.Id == "observation.runtime.gpu_p95")).Value);
+        foreach (string metric in new[] { "observation.launch.commit_peak", "observation.runtime.commit_p95", "observation.launch.cpu_peak", "observation.launch.io_read" })
+        {
+            var capability = (Nexa.Services.Capabilities.Capability<long>)measured.Single(item => item.Id == metric);
+            AssertEqual(Nexa.Services.Capabilities.CapabilityAvailability.Available, capability.Availability);
+            AssertEqual(0L, capability.Value);
+        }
+        var launchWindow = ObservationCapabilityCatalog.Project(unavailableMetrics with
+        {
+            LaunchWindowMilliseconds = 30000,
+            MeasuredCommitPeakBytes = 9000,
+            MeasuredLaunchCommitPeakBytes = 4000,
+            MeasuredHeapPeakBytes = 6000,
+        }, DateTimeOffset.UtcNow);
+        AssertEqual(4000L, ((Nexa.Services.Capabilities.Capability<long>)launchWindow.Single(static item => item.Id == "observation.launch.commit_peak")).Value);
+        AssertEqual(Nexa.Services.Capabilities.CapabilityAvailability.DependencyMissing,
+            launchWindow.Single(static item => item.Id == "observation.launch.heap_peak").Availability);
+        AssertEqual(Nexa.Services.Capabilities.CapabilityAvailability.DependencyMissing,
+            launchWindow.Single(static item => item.Id == "observation.runtime.heap_p95").Availability);
+        AssertEqual(6144L, JvmMemoryProbe.ParseHeap("garbage-first heap total 8192K, used 6K\nMetaspace used 3K")!.Value);
+        AssertTrue(JvmMemoryProbe.ParseHeap("provider missing") is null);
+        AssertEqual(3L * 1024, JvmMemoryProbe.ParseNative("Total: reserved=20KB, committed=13KB\n- Java Heap (reserved=10KB, committed=10KB)")!.Value);
+        AssertTrue(JvmMemoryProbe.ParseNative("Native memory tracking is not enabled") is null);
+        using var current = System.Diagnostics.Process.GetCurrentProcess();
+        var nativeSample = native.ReadSample(current);
+        if (OperatingSystem.IsLinux())
+        {
+            AssertTrue(nativeSample.CommitBytes is > 0);
+            AssertTrue(nativeSample.TreeWorkingSetBytes is > 0);
+            AssertTrue(nativeSample.TreeProcessCount is >= 1);
+            AssertTrue(native.SetCpuSets(current, []).Succeeded == false);
+            AssertTrue(new Nexa.Platform.PlatformProcessControl().ReadSample(current).IoObserved);
+        }
     }
 }

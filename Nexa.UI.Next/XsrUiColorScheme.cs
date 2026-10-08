@@ -5,6 +5,8 @@ public enum XsrUiThemeMode { Light = 0, Dark = 1, System = 2 }
 
 public enum XsrUiAccent { Blue = 0, Purple = 1, Green = 2, Orange = 3 }
 
+public sealed record XsrUiCustomPalette(XsrUiColor Background, XsrUiColor Foreground, XsrUiColor Accent);
+
 /// <summary>The optional native color-preference edge; it never reads product settings.</summary>
 public interface IXsrUiSystemAppearance
 {
@@ -19,7 +21,8 @@ public interface IXsrUiSystemAppearance
 /// </summary>
 public readonly record struct XsrUiColorScheme(bool IsDark, XsrUiAccent Accent = XsrUiAccent.Blue)
 {
-    public XsrUiColor AccentFill => Accent switch
+    public XsrUiCustomPalette? CustomPalette { get; init; }
+    public XsrUiColor AccentFill => CustomPalette?.Accent ?? Accent switch
     {
         XsrUiAccent.Purple => new(111, 66, 193),
         XsrUiAccent.Green => new(0, 119, 72),
@@ -27,7 +30,7 @@ public readonly record struct XsrUiColorScheme(bool IsDark, XsrUiAccent Accent =
         _ => new(19, 112, 243),
     };
 
-    public XsrUiColor AccentText => IsDark ? Accent switch
+    public XsrUiColor AccentText => CustomPalette?.Accent ?? (IsDark ? Accent switch
     {
         XsrUiAccent.Purple => new(190, 159, 255),
         XsrUiAccent.Green => new(94, 210, 159),
@@ -39,7 +42,7 @@ public readonly record struct XsrUiColorScheme(bool IsDark, XsrUiAccent Accent =
         XsrUiAccent.Green => new(0, 107, 61),
         XsrUiAccent.Orange => new(155, 64, 0),
         _ => new(11, 91, 203),
-    };
+    });
 
     public XsrUiVisualStyleSnapshot Project(XsrUiVisualStyleSnapshot source)
     {
@@ -57,6 +60,10 @@ public readonly record struct XsrUiColorScheme(bool IsDark, XsrUiAccent Accent =
     {
         if (color.Alpha == 0 || this == default) return color;
         if (IsAccentInk(color)) return Alpha(AccentText, color);
+        if (CustomPalette is { } custom && (color.Red, color.Green, color.Blue)
+            is (52, 61, 74) or (38, 47, 60) or (43, 51, 64) or (38, 49, 65) or (55, 65, 81) or (40, 48, 60)
+            or (122, 138, 153) or (96, 108, 124) or (113, 124, 140) or (112, 124, 138) or (91, 105, 122)
+            or (94, 110, 130) or (144, 159, 181)) return Alpha(custom.Foreground, color);
         if (!IsDark) return color;
         return (color.Red, color.Green, color.Blue) switch
         {
@@ -83,6 +90,11 @@ public readonly record struct XsrUiColorScheme(bool IsDark, XsrUiAccent Accent =
             or (229, 239, 255) or (214, 231, 255) or (244, 248, 255) or (237, 243, 253)
             or (231, 240, 255) or (239, 244, 251) or (220, 230, 244) or (115, 158, 220))
             return Alpha(AccentTint(), color);
+        if (CustomPalette is { } custom && rgb is (251, 251, 251) or (255, 255, 255) or (243, 247, 252)
+            or (241, 245, 250) or (242, 245, 249) or (238, 242, 247) or (241, 244, 248) or (240, 244, 250)
+            or (244, 246, 250) or (245, 246, 248) or (245, 247, 250) or (245, 248, 252)
+            or (232, 236, 242) or (243, 246, 250) or (244, 247, 251) or (247, 249, 252) or (236, 240, 246))
+            return Alpha(custom.Background, color);
         if (!IsDark) return color;
         return rgb switch
         {

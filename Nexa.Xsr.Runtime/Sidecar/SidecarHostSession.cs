@@ -266,7 +266,7 @@ public sealed partial class SidecarHostSession : IDisposable
         var functionPatches = FunctionPatchAdmission?.Prepare(extensions.Entries) ?? [];
         var signals = SignalAdmission?.Prepare(extensions.Entries) ?? [];
         var uiPatches = UiPatchAdmission?.Prepare(extensions.Entries) ?? [];
-        var uiModules = UiModuleAdmission?.Prepare(declarations.Values) ?? [];
+        var uiModules = UiModuleAdmission?.Prepare(declarations.Values, registration, mirror, cache, NegotiatedFeatures) ?? [];
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
         {
@@ -440,7 +440,7 @@ public sealed partial class SidecarHostSession : IDisposable
                 _signalLease = SignalAdmission?.Runtime.Activate(_signals);
                 captionLease = UiPatchAdmission?.Runtime.Activate(_uiPatches);
                 _uiPatchLease = captionLease;
-                moduleLease = UiModuleAdmission?.Runtime.Activate(_uiModules);
+                moduleLease = UiModuleAdmission?.Runtime.Activate(_uiModules, this);
                 _uiModuleLease = moduleLease;
                 _state = SidecarSessionState.Active;
                 if (_signalLease is { } lease)

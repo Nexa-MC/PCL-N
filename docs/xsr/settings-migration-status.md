@@ -5,22 +5,40 @@ The read-only dev checkout supplies behavior requirements. The active catalog ha
 global navigation categories (eight currently populated in the entry map), nine instance
 destinations and ten instance-settings groups.
 Cloud and cloud sync are excluded. Version settings merge Java into Game. The current
-catalog has 540 positions, including five consumer-backed additions since the
-535-position XSR-764 baseline: global pre-launch wait, proxy mode, the storage-root
-fact, data-location migration, and finished task-card cleanup. This count describes
-IA positions, not 540 implemented capabilities. The value schema declares 50
-definitions, of which 49 have available consumers. `java.compatibility` remains
-unavailable: compatibility checks are mandatory, and the retained definition does
-not expose a switch that bypasses them.
+catalog has 543 positions. The value schema declares 97 definitions, with 96 mutable
+contracts and 80 exportable contracts. `java.compatibility` is retained only for
+compatibility reads; writes reject because checks are mandatory. Its catalog position
+now displays that mandatory policy instead of exposing an ineffective editor.
+The raw catalog contains 399 Available, 12 PlatformUnsupported and 132 NotImplemented
+positions. The latter comprise 78 structural Group/Choice positions and 54 functional
+roadmap positions without delivered contracts. Platform conditions can further restrict
+available consumers. These counts describe IA positions, not 543 implemented capabilities.
 
 XSR-794 adds working consumers to the two existing developer diagnostics positions:
 read-only renderer snapshots and paged state metadata. The catalog remains 540 positions,
 with 83 available entries and 457 raw `NotImplemented` entries at that slice. XSR-798
-subsequently enables four desktop policies: the current raw counts are 87 Available
+subsequently enables four desktop policies: at that slice the raw counts were 87 Available
 and 453 `NotImplemented`. These include structural
 and duplicated positions and independent roadmap contracts; the complete inventory is
 [XSR-795](XSR-795-unimplemented-inventory.md). XSR-794 introduced no additional persistent value;
-XSR-798 adds four. The current source audit is [XSR-799](XSR-799-remaining-work-audit.md).
+XSR-798 adds four. Those counts are historical snapshots. The source audit is
+[XSR-799](XSR-799-remaining-work-audit.md); its implementation follow-up is
+[XSR-820](XSR-820-completion-closure.md).
+
+## Completion follow-up: XSR-800–822
+
+The follow-up connects layered launch/profile settings, actual platform policies, bounded
+network/Java diagnostics, manual Java acquisition, content/world/screenshot transactions,
+operation history, storage backups and migration preview, diagnostic AI admission, finite
+command/safe-mode workflows, startup/pressure instrumentation and PCL-N Sidecar Host
+extensions. The domain contracts in XSR-800–819 and XSR-822 describe each consumer and its
+limits; XSR-820 records integrated validation. The entry map and value contracts now reflect
+these consumers rather than the original reserved labels.
+
+Undefined foreign-launcher migration formats, World Guardian policies, clone/CoW providers,
+independent lockfiles and future rendering/automatic repair contracts remain roadmap work.
+External plugin engines, publisher signing, physical clients and long-soak acceptance remain
+separate evidence. No unused editor or unrelated observation is counted as their implementation.
 
 ## Delivered launch-policy slice
 

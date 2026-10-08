@@ -57,19 +57,22 @@ internal sealed partial class SettingsPageController
                 {
                     InstanceRecoveryChange[] selected = category.ToArray();
                     var categoryRow = Stack(changes, "RecoveryCategory", XsrUiOrientation.Horizontal, 12);
-                    var label = Text(categoryRow, RecoveryExplanation.Display(category.Key) + " · " + selected.Length + " 项", 13, Ink, 34);
+                    var label = Text(categoryRow, RecoveryExplanation.Category(category.Key, _shell.Renderer.LocalizeText) + " · " + selected.Length + " " + _shell.Renderer.LocalizeText("项"), 13, Ink, 34);
+                    DesktopLiteralText.Preserve(_shell.Tree, label);
                     _shell.Tree.GetComponent<XsrUiElement>(label)!.Weight = 1;
                     ManagementButton(categoryRow, "恢复此类", () => RestoreChanges(comparison, selected), 84);
                 }
             }
             foreach (var item in comparison.Changes.Skip(_recoveryChangesPage * pageSize).Take(pageSize))
             {
-                string kind = item.Kind switch { InstanceRecoveryChangeKind.Added => "新增", InstanceRecoveryChangeKind.Removed => "删除", InstanceRecoveryChangeKind.Enabled => "启用", InstanceRecoveryChangeKind.Disabled => "停用", _ => "修改" };
+                string kind = RecoveryExplanation.Kind(item.Kind, _shell.Renderer.LocalizeText);
                 var row = Stack(changes, "RecoveryChange", XsrUiOrientation.Horizontal, 12);
                 var identity = Stack(row, "RecoveryChangeIdentity", XsrUiOrientation.Vertical, 2);
                 _shell.Tree.GetComponent<XsrUiElement>(identity)!.Weight = 1;
-                Text(identity, kind + " · " + RecoveryExplanation.Display(item.Category), 12, Muted, 22);
+                var changeKind = Text(identity, kind + " · " + RecoveryExplanation.Category(item.Category, _shell.Renderer.LocalizeText), 12, Muted, 22);
+                DesktopLiteralText.Preserve(_shell.Tree, changeKind);
                 var path = Text(identity, new string(item.Path.Select(c => char.IsControl(c) ? ' ' : c).ToArray()), 14, Ink, 42);
+                DesktopLiteralText.Preserve(_shell.Tree, path);
                 _shell.Tree.GetComponent<XsrUiVisualStyle>(path)!.WrapText = true;
                 ManagementButton(row, "回滚此项", () => RestoreChanges(comparison, [item]), 100);
             }

@@ -16,19 +16,21 @@ public sealed class LogOperation : IDisposable
     private readonly string _name;
     private readonly LogLevel _level;
     private readonly string? _context;
+    private readonly DiagnosticInstanceContext? _instance;
     private string? _stageContext;
     private string _source;
     private readonly long _startedAt = Stopwatch.GetTimestamp();
     private string _stage = "begin";
     private bool _finished;
 
-    internal LogOperation(LogService log, string module, string name, string? context, string source, LogLevel level)
+    internal LogOperation(LogService log, string module, string name, string? context, string source, LogLevel level, DiagnosticInstanceContext? instance = null)
     {
         _log = log;
         _module = module;
         _name = name;
         _level = level;
         _context = context;
+        _instance = instance;
         _source = source;
         Id = Guid.NewGuid().ToString("N");
         Write(_level, "started");
@@ -77,5 +79,6 @@ public sealed class LogOperation : IDisposable
                 : detail.StartsWith("rejected", StringComparison.Ordinal) ? DiagnosticOperationOutcome.Rejected
                 : detail == "started" ? DiagnosticOperationOutcome.Started : detail == "entered" ? DiagnosticOperationOutcome.Entered
                 : detail == "cancelled" ? DiagnosticOperationOutcome.Cancelled : detail == "failed" ? DiagnosticOperationOutcome.Failed
-                : DiagnosticOperationOutcome.Unfinished));
+                : DiagnosticOperationOutcome.Unfinished)
+            { Instance = _instance });
 }

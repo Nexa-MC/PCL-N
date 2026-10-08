@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "release": "2.0.0.alpha.6",
-  "reviewed_at": "2026-10-05",
+  "reviewed_at": "2026-10-08",
   "overall": "not-accepted",
   "items": [
     {
@@ -9,72 +9,147 @@
       "priority": "P0",
       "state": "blocked-external",
       "summary": "126 candidate combinations have no reviewed real-client evidence; the user has no available devices and assigns physical acceptance to Dots.",
-      "evidence": ["eng/acceptance/minecraft-matrix.json", "docs/xsr/alpha6-physical-handoff-dots.md"],
-      "remaining": ["Run and review physical Windows, macOS and Linux client/world/exit cases across the candidate architecture, Java and Loader combinations."]
+      "evidence": [
+        "eng/acceptance/minecraft-matrix.json",
+        "docs/xsr/alpha6-physical-handoff-dots.md"
+      ],
+      "remaining": [
+        "Run and review physical Windows, macOS and Linux client/world/exit cases across the candidate architecture, Java and Loader combinations."
+      ]
     },
     {
       "id": "native-long-soak",
       "priority": "P0",
       "state": "blocked-external",
       "summary": "Physical sessions are assigned to Dots; retained composition fixtures do not substitute for unavailable device acceptance.",
-      "evidence": ["docs/xsr/migrations/XSR-742-retained-idle-soak-evidence.md", "docs/xsr/alpha6-physical-handoff-dots.md"],
-      "remaining": ["Run 8h native-window idle and 8h Minecraft-running sessions on controlled physical systems.", "Run navigation, search, switch, launch/cancel and install/cancel/resume stress while recording CPU, RAM, GPU, input latency and frame tails."]
+      "evidence": [
+        "docs/xsr/migrations/XSR-742-retained-idle-soak-evidence.md",
+        "docs/xsr/alpha6-physical-handoff-dots.md"
+      ],
+      "remaining": [
+        "Run 8h native-window idle and 8h Minecraft-running sessions on controlled physical systems.",
+        "Run navigation, search, switch, launch/cancel and install/cancel/resume stress while recording CPU, RAM, GPU, input latency and frame tails."
+      ]
     },
     {
       "id": "protected-update-transaction",
       "priority": "P0",
       "state": "partial",
       "summary": "XSR-754 delivers the preinstalled protected helper, independent publisher verification, Windows/Unix immutable slots, offline recovery, activation, rollback, restart and idle-safe UI progress. XSR-755 adds signed content-defined file deltas, full fallback and authenticated history publishing while preserving the v1 release envelope. Managed interruption and actual loopback HTTP regressions pass. Windows Setup creates administrator-owned objects before copy; Launcher Build validates installed-helper admission and native transactions on six RIDs, including publisher-generated delta consumption. Physical acceptance remains separate; legacy staged helpers stay refused.",
-      "evidence": ["docs/xsr/automatic-update-transaction.md", "docs/xsr/migrations/XSR-754-protected-automatic-update.md", "docs/xsr/migrations/XSR-755-protected-differential-update.md", ".github/workflows/launcher-build.yml", "docs/xsr/migrations/XSR-730-signed-release-manifest.md", "docs/xsr/migrations/XSR-746-update-high-water-store.md", "docs/xsr/migrations/XSR-751-update-reception-boundary.md", "docs/xsr/migrations/XSR-752-windows-update-object-admission.md", "docs/xsr/migrations/XSR-753-windows-update-high-water-journal.md"],
-      "remaining": ["Exercise physical power-loss and replacement races on all three operating systems; assigned to Dots because the user has no available devices."]
+      "evidence": [
+        "docs/xsr/automatic-update-transaction.md",
+        "docs/xsr/migrations/XSR-754-protected-automatic-update.md",
+        "docs/xsr/migrations/XSR-755-protected-differential-update.md",
+        ".github/workflows/launcher-build.yml",
+        "docs/xsr/migrations/XSR-730-signed-release-manifest.md",
+        "docs/xsr/migrations/XSR-746-update-high-water-store.md",
+        "docs/xsr/migrations/XSR-751-update-reception-boundary.md",
+        "docs/xsr/migrations/XSR-752-windows-update-object-admission.md",
+        "docs/xsr/migrations/XSR-753-windows-update-high-water-journal.md"
+      ],
+      "remaining": [
+        "Exercise physical power-loss and replacement races on all three operating systems; assigned to Dots because the user has no available devices."
+      ]
     },
     {
       "id": "native-release-trust",
       "priority": "P0",
       "state": "blocked-external",
       "summary": "The user has no Apple Developer account and supplied no Windows publisher identity; repository GPG verification does not provide OS publisher trust.",
-      "evidence": ["docs/xsr/release-signatures.md", "docs/xsr/alpha6-physical-handoff-dots.md"],
-      "remaining": ["Sign with production Authenticode and Developer ID identities, notarize macOS artifacts, and retain SmartScreen and Gatekeeper physical-device observations."]
+      "evidence": [
+        "docs/xsr/release-signatures.md",
+        "docs/xsr/alpha6-physical-handoff-dots.md"
+      ],
+      "remaining": [
+        "Sign with production Authenticode and Developer ID identities, notarize macOS artifacts, and retain SmartScreen and Gatekeeper physical-device observations."
+      ]
     },
     {
       "id": "sidecar-execution-platform",
       "priority": "P1",
       "state": "partial",
-      "summary": "At baseline 565e5143, bounded Function ABI/compiler points, Event/Intent, caption/text-card State adapters and the XSR-790 Host API are implemented. Host negotiation, typed payloads, streams/credits, health, unregistration and supervision are no longer declaration-only gaps. Additional Function shapes and real plugin acceptance remain distinct from the external Plugin SDK/engine/UI contracts.",
-      "evidence": ["docs/xsr/migrations/XSR-735-bounded-function-patch-execution.md", "docs/xsr/migrations/XSR-736-compile-time-function-patches.md", "docs/xsr/migrations/XSR-747-sidecar-event-intent-execution.md", "docs/xsr/migrations/XSR-748-sidecar-ui-caption-state.md", "docs/xsr/migrations/XSR-749-sidecar-ui-card-state.md", "docs/xsr/XSR-790-sidecar-host-completion.md", "docs/xsr/XSR-795-unimplemented-inventory.md"],
-      "remaining": ["Define and deliver additional Function ABI shapes, semantic call binding and hook/visual adapters with cancellation and retired-session parity.", "Complete external Plugin SDK, execution-engine, package/UI IR and arbitrary interactive New UI contracts in their owning repository, then review real plugin lifecycle and long-running failure evidence."]
+      "summary": "PCL-N Host now implements lifecycle negotiation, numeric typed Command/State/Event/Intent, streams/credits, supervision, finite primitive Function ABI/compiler shapes, same-session semantic binding and bounded interactive resource UI. Host tests and compiler fixtures establish those finite contracts. The independent Plugin SDK/execution engine and real-plugin acceptance remain external.",
+      "evidence": [
+        "docs/xsr/migrations/XSR-735-bounded-function-patch-execution.md",
+        "docs/xsr/migrations/XSR-736-compile-time-function-patches.md",
+        "docs/xsr/migrations/XSR-747-sidecar-event-intent-execution.md",
+        "docs/xsr/migrations/XSR-748-sidecar-ui-caption-state.md",
+        "docs/xsr/migrations/XSR-749-sidecar-ui-card-state.md",
+        "docs/xsr/XSR-790-sidecar-host-completion.md",
+        "docs/xsr/XSR-795-unimplemented-inventory.md",
+        "docs/xsr/XSR-806-sidecar-extension-completion.md",
+        "docs/xsr/XSR-820-completion-closure.md"
+      ],
+      "remaining": [
+        "Complete external Plugin SDK, execution-engine and package contracts in their owning repository, then review real plugin lifecycle and long-running failure evidence."
+      ]
     },
     {
       "id": "content-instance-management",
       "priority": "P1",
       "state": "partial",
-      "summary": "At baseline 565e5143, graphs, mod search/enablement/trash/restore, screenshot previews, XSR-759 server editing/status/Join, XSR-760 selected-file MRPack export and XSR-758/774 reversible resource-pack/shader updates have working consumers. Mod and bulk update, world-specific operations and screenshot editing remain incomplete.",
-      "evidence": ["docs/xsr/instance-content-transactions.md", "docs/xsr/migrations/instance-management.md", "docs/xsr/migrations/XSR-758-installed-online-content.md", "docs/xsr/migrations/XSR-759-instance-servers.md", "docs/xsr/migrations/XSR-760-modpack-export.md", "docs/xsr/migrations/XSR-774-installed-resource-association-and-updates.md", "docs/xsr/XSR-795-unimplemented-inventory.md"],
-      "remaining": ["Add actual mod updates, selection/bulk updates, changelog and one multi-item rollback transaction.", "Add world/datapack/version/size/last-played/backup/lock workflows and richer screenshot metadata/crop; current directory and preview operations do not substitute for them.", "Review physical shared-directory, cancellation, interruption and interaction evidence for the delivered management operations."]
+      "summary": "PCL-N now delivers mod and multi-item updates with journaled rollback, scoped world/datapack metadata and health checks, snapshot capture/verify/preserved-original restore, bounded config editing, screenshot timeline/crop/native clipboard/share and actual file hashes against existing managed update baselines. These contracts preserve captured identity, cancellation and retired-page admission. Physical interaction and shared-directory acceptance remain separate.",
+      "evidence": [
+        "docs/xsr/instance-content-transactions.md",
+        "docs/xsr/migrations/instance-management.md",
+        "docs/xsr/migrations/XSR-758-installed-online-content.md",
+        "docs/xsr/migrations/XSR-759-instance-servers.md",
+        "docs/xsr/migrations/XSR-760-modpack-export.md",
+        "docs/xsr/migrations/XSR-774-installed-resource-association-and-updates.md",
+        "docs/xsr/XSR-795-unimplemented-inventory.md",
+        "docs/xsr/XSR-801-content-completion.md",
+        "docs/xsr/XSR-818-instance-operation-history-and-protocol.md",
+        "docs/xsr/XSR-820-completion-closure.md"
+      ],
+      "remaining": [
+        "Review physical shared-directory, cancellation, interruption and interaction evidence for the delivered management operations."
+      ]
     },
     {
       "id": "runtime-performance",
       "priority": "P1",
       "state": "partial",
-      "summary": "Several bounded hot paths are covered. Early usable Splash/presentation instrumentation, OS memory-pressure and measured GPU image budgeting plus remaining background admission are separate implementation gaps; physical drag, animation, scroll and 8h KPI evidence remains unaccepted.",
-      "evidence": ["docs/xsr/runtime-performance.md", "docs/xsr/migrations/XSR-744-input-scratch-allocation.md"],
-      "remaining": ["Deliver an early usable Splash, real initialization/error stages and first-presentation instrumentation.", "Integrate OS memory pressure, measured GPU image budgeting and remaining background-work yielding; pixel charge is not measured native/GPU residency.", "Profile physical drag, animation and scroll tails and collect controlled idle/game resource and long-running evidence."]
+      "summary": "An interactive early native startup lifetime now owns stage/error/cancel presentation and records native render submissions through shell handoff. Native memory pressure controls leased bitmap admission; nullable provider-qualified process GPU counters and resource percentiles retain metric definitions. Background admission and actual renderer/motion/raster diagnostics are implemented. Submission counters and decoded pixel charge do not prove physical display latency or GPU residency; physical KPI acceptance remains open.",
+      "evidence": [
+        "docs/xsr/runtime-performance.md",
+        "docs/xsr/migrations/XSR-744-input-scratch-allocation.md",
+        "docs/xsr/XSR-805-runtime-performance-completion.md",
+        "docs/xsr/XSR-820-completion-closure.md"
+      ],
+      "remaining": [
+        "Profile physical drag, animation and scroll tails and collect controlled idle/game resource and long-running evidence.",
+        "Validate supported OS pressure and driver GPU telemetry providers on physical Windows, macOS and Linux systems."
+      ]
     },
     {
       "id": "failure-corpus-recovery",
       "priority": "P1",
       "state": "pending",
       "summary": "Deterministic contract tests do not constitute a reviewed real-failure corpus or long-running fault acceptance.",
-      "evidence": ["docs/xsr/launch-observation-and-preflight.md", "docs/xsr/instance-recovery.md"],
-      "remaining": ["Review real Preflight false positives and validate crash, power-loss and conflict recovery plus long-running plugin/download failures."]
+      "evidence": [
+        "docs/xsr/launch-observation-and-preflight.md",
+        "docs/xsr/instance-recovery.md"
+      ],
+      "remaining": [
+        "Review real Preflight false positives and validate crash, power-loss and conflict recovery plus long-running plugin/download failures."
+      ]
     },
     {
       "id": "migration-localization-accessibility",
       "priority": "P2",
       "state": "partial",
-      "summary": "The complete PCL N 1.x assistant and physical localization/accessibility matrix are not accepted.",
-      "evidence": ["docs/xsr/migrations/localization.md", "docs/xsr/migration-map.md"],
-      "remaining": ["Complete the 1.x migration assistant.", "Capture language by DPI by platform-font screenshots and test real screen readers, high contrast, touch, pen and controllers."]
+      "summary": "A bounded legacy JSON/offline-account migration preview and commit workflow is implemented, with explicit recognized-value filtering and no credential transfer. Fixed completion-workspace strings are synchronized across locale catalogs. Full foreign-launcher/1.x format coverage and physical localization/accessibility matrices remain unaccepted.",
+      "evidence": [
+        "docs/xsr/migrations/localization.md",
+        "docs/xsr/migration-map.md",
+        "docs/xsr/XSR-804-storage-diagnostics-completion.md",
+        "docs/xsr/XSR-819-completion-localization.md",
+        "docs/xsr/XSR-820-completion-closure.md"
+      ],
+      "remaining": [
+        "Define and implement the remaining 1.x and foreign-launcher format contracts beyond the bounded JSON/offline-account workflow.",
+        "Capture language by DPI by platform-font screenshots and test real screen readers, high contrast, touch, pen and controllers."
+      ]
     }
   ]
 }

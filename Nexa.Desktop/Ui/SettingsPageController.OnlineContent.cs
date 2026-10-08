@@ -38,6 +38,7 @@ internal sealed partial class SettingsPageController
 
     private void CancelOnlineList()
     {
+        _selectedContentUpdates.Clear();
         _onlineListStop?.Cancel(); _onlineListStop?.Dispose(); _onlineListStop = null;
         foreach (var pending in _onlineListReads)
             _ = pending.Read.ContinueWith(task => { _ = task.Exception; }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -167,6 +168,8 @@ internal sealed partial class SettingsPageController
 
     private void CancelOnlineContent()
     {
+        CancelContentIntegrity();
+        _contentChangelogRead = null; _contentChangelog = null;
         _onlineStop?.Cancel(); _onlineStop?.Dispose(); _onlineStop = null;
         _onlineRead = null; _onlineQuery = null; _onlineContent = null; _onlineError = null; _onlineSection = default;
         _onlineIconRead = null; _onlineIcon = null;
@@ -189,6 +192,8 @@ internal sealed partial class SettingsPageController
 
     private void UpdateOnlineContent()
     {
+        UpdateContentIntegrity();
+        UpdateContentChangelog();
         string language = DesktopResourceText.Language(_store);
         if (_onlinePresentationLanguage is { } previous && previous != language)
         {
@@ -225,6 +230,7 @@ internal sealed partial class SettingsPageController
             if (PendingQuery.Succeeded(iconRead)) { _onlineIcon = iconRead.Result.Value!.Image; updated = true; }
         }
         if (updated && _onlineSection.IsAssigned && _shell.Tree.IsAlive(_onlineSection)) RenderOnlineContent();
+        UpdateContentIntegritySource();
     }
 
     private void RenderOnlineContent()
@@ -249,7 +255,7 @@ internal sealed partial class SettingsPageController
             ManagementFactIn(_onlineSection, "作者", project.Author.Length > 0 ? project.Author : "未提供", literal: project.Author.Length > 0);
             ManagementFactIn(_onlineSection, "下载次数", ResourcesPageController.FormatDownloads(project.Downloads));
             ManagementFactIn(_onlineSection, "已安装版本", _onlineContent.InstalledVersion ?? "暂不可用", literal: _onlineContent.InstalledVersion is not null);
-            if (_selected is "resourcepacks" or "shaderpacks" && _onlineContent.UpdateVersion is { } update)
+            if (_selected is "mods" or "resourcepacks" or "shaderpacks" && _onlineContent.UpdateVersion is { } update)
             {
                 var row = Stack(_onlineSection, "ManagementOnlineUpdateRow", XsrUiOrientation.Horizontal, 12);
                 _shell.Tree.GetComponent<XsrUiElement>(Text(row, "可更新至 " + update.Number, 13, Ink, 32))!.Weight = 1;
@@ -271,13 +277,17 @@ internal sealed partial class SettingsPageController
                     var icon = Element(row, "ManagementOnlineVersionIcon", XsrUiSemanticRole.None, null, 18, 24);
                     Style(icon, XsrUiColor.Transparent, Muted, 0); _shell.Tree.SetComponent(icon, new XsrUiImage(symbol));
                     Text(row, version.Number + " · " + version.Channel, 13, Ink, 24);
-                    if (_selected is "resourcepacks" or "shaderpacks" && version.File is not null && _managementWrite is null
+                    if (_resourceQueries?.TryResolve(ResourceCatalogContract.Changelog, out _) == true)
+                        ManagementButton(row, "更新日志", () => ReadContentChangelog(version), 88);
+                    if (_selected is "mods" or "resourcepacks" or "shaderpacks" && version.File is not null && _managementWrite is null
                         && _resourceCommands?.TryResolve(ResourceCatalogContract.UpdateContent, out _) == true)
                         ManagementButton(row, _onlineContent.InstalledFiles.Any(f => f.Source.Provider == version.Provider && f.Source.ProjectId == version.ProjectId && f.VersionId == version.Id) ? "重新安装" : "安装此版本",
                             () => UpdateOnlinePack(_onlineQuery!, version), 96);
                 }
             }
             else Text(_onlineSection, "暂未找到适用于当前游戏的版本。", 13, Muted, 26);
+            if (_contentChangelogRead is not null) Text(_onlineSection, "正在读取更新日志…", 13, Muted, 26);
+            if (_contentChangelog is { } changelog) ContentName(_onlineSection, changelog, 13, null, maxLines: 0);
             ManagementButton(_onlineSection, "查看项目", () =>
             {
                 try { _openResourceLink?.Invoke(new Uri(project.Website)); }

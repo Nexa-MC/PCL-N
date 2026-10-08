@@ -91,6 +91,7 @@ internal sealed partial class SettingsPageController
             var identity = Stack(row, "ServerIdentity", XsrUiOrientation.Vertical, 2); _shell.Tree.GetComponent<XsrUiElement>(identity)!.Weight = 1;
             ContentName(identity, entry.Name, 15, 26); ContentName(identity, entry.Address, 12, 22, foreground: Muted);
             _serverStatusLabels[index] = Text(identity, ServerStatusLabel(index), 12, Muted, 24);
+            DesktopLiteralText.Preserve(_shell.Tree, _serverStatusLabels[index]);
             ManagementButton(row, "检查状态", () =>
             {
                 if (_serverStatusRead is not null || _serverInstance is null || !_queries.TryResolve(InstanceServerListContract.Status, out var route)) return;
@@ -109,8 +110,13 @@ internal sealed partial class SettingsPageController
         }
     }
     private string ServerStatusLabel(int index) => _serverStatuses.TryGetValue(index, out var status)
-        ? status.Reachable ? $"{status.Milliseconds} ms · {status.OnlinePlayers?.ToString(CultureInfo.InvariantCulture) ?? "?"}/{status.MaxPlayers?.ToString(CultureInfo.InvariantCulture) ?? "?"} 人 · {status.Version} · {status.Description}" : status.Description
-        : "状态未检查";
+        ? status.Reachable ? $"{status.Milliseconds} ms · {status.OnlinePlayers?.ToString(CultureInfo.InvariantCulture) ?? "?"}/{status.MaxPlayers?.ToString(CultureInfo.InvariantCulture) ?? "?"} {_shell.Renderer.LocalizeText("人")} · {status.Version} · {ProtocolCompatibility(status)} · {status.Description}" : status.Description
+        : _shell.Renderer.LocalizeText("状态未检查");
+    private string ProtocolCompatibility(InstanceServerStatus status) => status.ServerProtocol is { } server && status.ClientProtocol is { } client
+        ? server == client ? _shell.Renderer.LocalizeText("协议号一致（模组与认证另行检查）")
+            : _shell.Renderer.LocalizeText("协议号不同") + ": " + _shell.Renderer.LocalizeText("客户端") + " " + client.ToString(CultureInfo.InvariantCulture)
+                + " / " + _shell.Renderer.LocalizeText("服务器") + " " + server.ToString(CultureInfo.InvariantCulture)
+        : _shell.Renderer.LocalizeText("协议兼容无法判定（缺少已校验客户端或服务器协议号）");
     private void SaveServers(IReadOnlyList<InstanceServerEntry> entries)
     {
         if (_managementWrite is not null || _instance is null || _serverList is null || !_commands.TryResolve(InstanceServerListContract.Save, out var route)) return;

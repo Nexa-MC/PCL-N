@@ -18,8 +18,15 @@ namespace Nexa.Services.Minecraft.Launch;
 /// </summary>
 public sealed class MinecraftLaunchCoordinator
 {
+    public bool HasPendingFinalization => _executor.HasPendingFinalization;
+    public Task WaitForFinalizationAsync(CancellationToken cancellationToken = default)
+        => _executor.WaitForFinalizationAsync(cancellationToken);
     public IWorkScheduler? WorkScheduler { get; init; }
     public IJavaRuntimeRegistrationStore? JavaRegistrations { get; init; }
+    private bool _safeLaunchRequired;
+    public XsrResult SetSafeLaunchSession(MinecraftSafeLaunchSessionCommand command)
+    { Volatile.Write(ref _safeLaunchRequired, command.Required); return XsrResult.Success(); }
+    public MinecraftSafeLaunchSessionSnapshot ReadSafeLaunchSession(MinecraftSafeLaunchSessionQuery query) => new(Volatile.Read(ref _safeLaunchRequired));
 
     private static readonly int[] SelectableJavaMajors = [8, 16, 17, 21, 25];
     private static readonly TimeSpan StageHeartbeatInterval = TimeSpan.FromMilliseconds(120);
@@ -226,6 +233,9 @@ public sealed class MinecraftLaunchCoordinator
                 return XsrResult.Failure<MinecraftLaunchPreparation>(
                     MinecraftErrors.InstanceNotFound(instanceId));
             }
+            if (instance.MetadataError is { } metadataError)
+                return XsrResult.Failure<MinecraftLaunchPreparation>(MinecraftErrors.InvalidRequest(metadataError));
+            MinecraftInstanceMetadataStore.ValidateShape(instance.Metadata);
 
             operation?.Stage("resolve_account");
             SettingsEffectiveSnapshot? effectiveSettings = null;
@@ -269,6 +279,8 @@ public sealed class MinecraftLaunchCoordinator
                 operation?.Reject(identityResult.Error!.Code.Value);
                 return XsrResult.Failure<MinecraftLaunchPreparation>(identityResult.Error!);
             }
+            if (MinecraftServerEnvironmentPolicy.ValidateIdentity(instance.Metadata, identityResult.Value) is { } identityMismatch)
+                return XsrResult.Failure<MinecraftLaunchPreparation>(MinecraftErrors.InvalidRequest(identityMismatch));
 
             method = identityResult.Value.Mode.ToString().ToLowerInvariant();
 
@@ -305,6 +317,19 @@ public sealed class MinecraftLaunchCoordinator
                 cancellationToken,
                 heartbeat: false).ConfigureAwait(false);
             _log?.Debug("Launch", $"Effective manifest resolved instance={instanceId} inherited={manifests.Inherited.Count} loader={loader.Kind}");
+            LaunchModInventory? environmentInventory = null;
+            if (instance.Metadata.ServerRequiredMods.Length > 0)
+            {
+                bool safe = Volatile.Read(ref _safeLaunchRequired) || effectiveSettings?.Overlay.SafeLaunch == true
+                    || effectiveSettings?.Values.Any(value => value.Key == "game.safe-launch" && value.Value.Value == "true") == true;
+                environmentInventory = safe ? new([], 0, true) : effectiveSettings?.Overlay.ModsSource is { } overlayMods
+                    ? await LaunchModInventoryReader.ReadDirectoryAsync(overlayMods, cancellationToken).ConfigureAwait(false)
+                    : await LaunchModInventoryReader.ReadAsync(instance.Metadata.InstanceIsolation ? instance.DirectoryPath : root, cancellationToken).ConfigureAwait(false);
+            }
+            var environmentErrors = MinecraftServerEnvironmentPolicy.CompareEnvironment(instance.Metadata,
+                ResolveGameVersion(manifests)?.ToString() ?? instance.VersionId, loader.Kind, environmentInventory);
+            if (environmentErrors.Count > 0)
+                return XsrResult.Failure<MinecraftLaunchPreparation>(MinecraftErrors.InvalidRequest(string.Join("\n", environmentErrors)));
             MinecraftJavaRequirementRequest javaRequest = CreateJavaRequirement(
                 instance,
                 manifests,
@@ -956,8 +981,9 @@ public sealed class MinecraftLaunchCoordinator
                 ["is_demo_user"] = false,
             },
         };
-        return effectiveSettings is null ? request
-            : ApplySettings(request, effectiveSettings, ResolveAutomaticMemoryMegabytes(loader.Kind));
+        if (Volatile.Read(ref _safeLaunchRequired)) request = request with { Overlay = request.Overlay with { SafeLaunch = true } };
+        if (effectiveSettings is not null) request = ApplySettings(request, effectiveSettings, ResolveAutomaticMemoryMegabytes(loader.Kind));
+        return MinecraftSafeLaunchPolicy.Apply(request);
     }
 
     internal static JavaPreference ApplyJavaPreference(JavaPreference fallback, SettingsEffectiveSnapshot snapshot)
@@ -982,13 +1008,17 @@ public sealed class MinecraftLaunchCoordinator
 
     internal static MinecraftLaunchRequest ApplySettings(MinecraftLaunchRequest request, SettingsEffectiveSnapshot snapshot, int? automaticMemoryMegabytes = null)
     {
+        bool safeLaunch = request.Overlay.SafeLaunch || snapshot.Overlay.SafeLaunch
+            || snapshot.Values.Any(value => value.Key == "game.safe-launch" && value.Value.Value == "true");
         bool hasLegacyPreLaunch = !string.IsNullOrWhiteSpace(request.PreLaunchCommand);
         foreach (var setting in snapshot.Values)
         {
+            if (safeLaunch && setting.Key is "game.jvm" or "game.arguments" or "game.wrapper" or "game.pre-launch" or "game.pre-launch-wait"
+                or "game.environment" or "game.classpath-head" or "game.post-exit") continue;
             if (setting.Key == "game.title")
             {
                 if (setting.ValidationError is not null) throw new InvalidDataException("窗口标题设置无效。");
-                if (setting.Source == SettingsLayer.Instance || string.IsNullOrEmpty(request.WindowTitle))
+                if (setting.Source >= SettingsLayer.Instance || string.IsNullOrEmpty(request.WindowTitle))
                     request = request with { WindowTitle = setting.Value.Value ?? "" };
                 continue;
             }
@@ -1027,7 +1057,7 @@ public sealed class MinecraftLaunchCoordinator
             if (setting.Key == "game.server" && setting.Source != SettingsLayer.Builtin)
             {
                 if (setting.ValidationError is not null) throw new InvalidDataException("默认服务器设置无效。");
-                if (setting.Source == SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.Server))
+                if (setting.Source >= SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.Server))
                     request = request with { Server = string.IsNullOrEmpty(setting.Value.Value) ? null : setting.Value.Value };
                 continue;
             }
@@ -1036,18 +1066,48 @@ public sealed class MinecraftLaunchCoordinator
                 if (setting.ValidationError is not null)
                     throw new InvalidDataException("启动钩子设置无效。");
                 if (setting.Key == "game.wrapper"
-                    && (setting.Source == SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.WrapperCommand)))
+                    && (setting.Source >= SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.WrapperCommand)))
                     request = request with { WrapperCommand = setting.Value.Value ?? "" };
                 if (setting.Key == "game.pre-launch"
-                    && (setting.Source == SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.PreLaunchCommand)))
+                    && (setting.Source >= SettingsLayer.Instance || string.IsNullOrWhiteSpace(request.PreLaunchCommand)))
                     request = request with { PreLaunchCommand = setting.Value.Value ?? "" };
                 if (setting.Key == "game.pre-launch-wait")
                 {
                     var command = snapshot.Values.Single(item => item.Key == "game.pre-launch");
-                    if (setting.Source == SettingsLayer.Instance || command.Source == SettingsLayer.Instance
+                    if (setting.Source >= SettingsLayer.Instance || command.Source >= SettingsLayer.Instance
                         || !hasLegacyPreLaunch)
                         request = request with { WaitForPreLaunchCommand = setting.Value.Value == "true" };
                 }
+                continue;
+            }
+            if (setting.Key is "game.environment" or "game.classpath-head" or "game.post-exit" or "game.safe-launch")
+            {
+                if (setting.ValidationError is not null) throw new InvalidDataException("扩展启动配置无效。");
+                request = setting.Key switch
+                {
+                    "game.environment" => request with { EnvironmentVariables = MinecraftLaunchHooks.ParseEnvironment(setting.Value.Value ?? "") },
+                    "game.classpath-head" when setting.Source != SettingsLayer.Builtin => request with { ClasspathHeadEntries = MinecraftLaunchHooks.ParseClasspathHead(setting.Value.Value ?? "") },
+                    "game.post-exit" => request with { PostExitCommand = setting.Value.Value ?? "" },
+                    "game.safe-launch" => request with { Overlay = request.Overlay with { SafeLaunch = setting.Value.Value == "true" } },
+                    _ => request,
+                };
+                continue;
+            }
+            if (setting.Key is "game.gpu-preference" or "game.renderer")
+            {
+                if (setting.ValidationError is not null) throw new InvalidDataException("游戏图形设置无效。");
+                if (setting.Source == SettingsLayer.Builtin) continue;
+                request = setting.Key == "game.gpu-preference"
+                    ? request with { GpuPreference = setting.Value.Value ?? "auto" }
+                    : request with { RendererPreference = setting.Value.Value ?? "auto" };
+                continue;
+            }
+            if (setting.Key == "game.system-glfw")
+            {
+                if (setting.Source == SettingsLayer.Builtin) continue;
+                if (setting.ValidationError is not null || setting.Value.Value is not ("true" or "false"))
+                    throw new InvalidDataException("System GLFW 设置无效。");
+                request = request with { UseSystemGlfw = setting.Value.Value == "true" };
                 continue;
             }
             if (setting.Key == "game.memory" && setting.Source != SettingsLayer.Builtin)
@@ -1062,7 +1122,7 @@ public sealed class MinecraftLaunchCoordinator
                 continue;
             }
             if (setting.Value.Mode != SettingsOverrideMode.Custom
-                || (setting.Source != SettingsLayer.Instance && !(setting.Key == "game.window-mode" && setting.Source == SettingsLayer.Global))) continue;
+                || (setting.Source < SettingsLayer.Instance && !(setting.Key == "game.window-mode" && setting.Source == SettingsLayer.Global))) continue;
             string value = setting.Value.Value ?? "";
             request = setting.Key switch
             {
@@ -1074,9 +1134,11 @@ public sealed class MinecraftLaunchCoordinator
                 _ => request,
             };
         }
+        if (safeLaunch) return MinecraftSafeLaunchPolicy.Apply(request with { Overlay = new(SafeLaunch: true) });
         _ = MinecraftLaunchHooks.ParseWrapper(request.WrapperCommand);
         MinecraftLaunchHooks.ValidatePreLaunch(request.PreLaunchCommand);
-        return request;
+        MinecraftLaunchHooks.ValidatePreLaunch(request.PostExitCommand);
+        return MinecraftSafeLaunchPolicy.Apply(request with { Overlay = snapshot.Overlay with { SafeLaunch = snapshot.Overlay.SafeLaunch || request.Overlay.SafeLaunch } });
     }
 
     internal static MinecraftJavaRequirementRequest CreateJavaRequirement(

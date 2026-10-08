@@ -1,5 +1,4 @@
-using System.ComponentModel;
-
+using Nexa.Platform;
 
 using Nexa.Services.Logging;
 
@@ -12,7 +11,7 @@ namespace Nexa.Services.Minecraft.Java;
 /// </summary>
 public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
 {
-    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
+    private readonly PlatformJavaDiagnostics _diagnostics = new();
     private readonly string? _launcherRuntimeRoot;
     private readonly LogService? _log;
     private readonly IJavaRuntimeLocator? _inspectionPort;
@@ -50,6 +49,7 @@ public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
     public async ValueTask<IReadOnlyList<JavaRuntimeCandidate>> FindAllAsync(
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         long generation;
         lock (CacheGate)
         {
@@ -431,7 +431,9 @@ public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
         string javaExecutablePath,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var candidate = await InspectCoreAsync(javaExecutablePath, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         if (candidate is null) return null;
         var entry = RegisteredRuntimes?.Invoke().FirstOrDefault(item => GetPathComparer().Equals(item.Executable, candidate.Installation.JavaExecutablePath));
         return candidate with
@@ -467,57 +469,26 @@ public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
             return null;
         }
 
-        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(
-            cancellationToken);
-        timeout.CancelAfter(ProbeTimeout);
-        using System.Diagnostics.Process process = new()
-        {
-            StartInfo = new System.Diagnostics.ProcessStartInfo(executable)
-            {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-            },
-        };
-        process.StartInfo.ArgumentList.Add("-XshowSettings:properties");
-        process.StartInfo.ArgumentList.Add("-version");
-
         try
         {
             _log?.Debug("Java", $"Java probe started executable={executable}");
-            if (!process.Start())
+            var identity = await _diagnostics.CaptureIdentityAsync(executable, cancellationToken).ConfigureAwait(false);
+            var output = await _diagnostics.ProbeAsync(identity, PlatformJavaProbeKind.Properties, cancellationToken).ConfigureAwait(false);
+            if (output.Status != PlatformJavaProbeStatus.Available)
             {
+                _log?.Warn("Java", $"Java probe did not complete executable={executable} status={output.Status}");
                 return null;
             }
-
-            Task<string> output = process.StandardOutput.ReadToEndAsync(timeout.Token);
-            Task<string> error = process.StandardError.ReadToEndAsync(timeout.Token);
-            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-            string properties = string.Concat(
-                await output.ConfigureAwait(false),
-                Environment.NewLine,
-                await error.ConfigureAwait(false));
+            string properties = string.Concat(output.StandardOutput, Environment.NewLine, output.StandardError);
             if (TryCreateCandidate(executable, properties, out JavaRuntimeCandidate? candidate))
             {
                 _log?.Debug("Java", $"Java probe completed executable={executable} major={candidate!.Installation.MajorVersion}");
                 return candidate;
             }
-            _log?.Warn("Java", $"Java probe returned unrecognized version properties executable={executable} exit_code={process.ExitCode}");
+            _log?.Warn("Java", $"Java probe returned unrecognized version properties executable={executable} exit_code={output.ExitCode}");
             return null;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            TryKill(process);
-            throw;
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            TryKill(process);
-            _log?.Warn("Java", $"Java probe timed out executable={executable} timeout_seconds=8");
-            return null;
-        }
-        catch (Exception exception) when (exception is Win32Exception or IOException or InvalidOperationException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             _log?.Write(LogLevel.Warn, "Java", $"Java probe failed executable={executable}", ExceptionDiagnostics.Describe(exception));
             return null;
@@ -656,17 +627,4 @@ public sealed class LocalJavaRuntimeLocator : IJavaRuntimeLocator
     private static StringComparer GetPathComparer() =>
         OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
-    private static void TryKill(System.Diagnostics.Process process)
-    {
-        try
-        {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-            }
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception or NotSupportedException)
-        {
-        }
-    }
 }

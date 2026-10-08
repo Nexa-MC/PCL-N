@@ -77,7 +77,26 @@ internal static partial class Program
         var scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.appearance").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
-        var animations = FindByKey(fixture.Shell, scene, "SettingsOption.appearance.animations-disabled.true");
+        const string animationsKey = "SettingsOption.appearance.animations-disabled.true";
+        XsrUiEntityId animationOption = default;
+        fixture.Shell.Tree.Walk(settings.Page, entity =>
+        { if (fixture.Shell.Tree.Name(entity) == animationsKey) animationOption = entity; return true; });
+        AssertTrue(animationOption.IsAssigned);
+        // Appearance settings preceding Animation now exceed this real window's viewport.
+        var sections = FindByKey(fixture.Shell, scene, "SettingsSections");
+        var scroll = fixture.Shell.Tree.GetComponent<XsrUiScroll>(sections.Entity)!;
+        double maximum = sections.Scroll!.Value.MaximumOffsetY;
+        for (double offset = 0; offset <= maximum + 100; offset += 100)
+        {
+            scroll.OffsetY = Math.Min(offset, maximum);
+            fixture.Shell.Tree.MarkDirty(sections.Entity, XsrUiDirtyKinds.Layout);
+            scene = fixture.Shell.Render(new(1000, 650));
+            if (scene.Nodes.Any(node => node.Entity == animationOption && node.Rect.Y >= sections.Rect.Y
+                && node.Rect.Y + node.Rect.Height <= sections.Rect.Y + sections.Rect.Height)) break;
+        }
+        var animations = FindByKey(fixture.Shell, scene, animationsKey);
+        AssertEqual(animationOption, animations.Entity);
+        AssertTrue(animations.Rect.Y >= sections.Rect.Y && animations.Rect.Y + animations.Rect.Height <= sections.Rect.Y + sections.Rect.Height);
         AssertEqual(XsrUiSemanticRole.RadioButton, animations.Role);
         AssertEqual("关闭", animations.Text);
         Emit(fixture.Intents, "ui.settings.choice", animations.Entity);

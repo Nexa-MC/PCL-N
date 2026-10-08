@@ -5,7 +5,7 @@ using Nexa.Core.Media;
 namespace Nexa.UI.Next.Backend.Avalonia;
 
 /// <summary>Bounded dynamic bitmap ownership. Pixel charge is not native/GPU telemetry.</summary>
-internal sealed class AvaloniaUiRasterPool(long byteBudget, int entryBudget)
+internal sealed partial class AvaloniaUiRasterPool(long byteBudget, int entryBudget)
 {
     internal static AvaloniaUiRasterPool Shared { get; } = new(64L * 1024 * 1024, 512);
     private readonly object _gate = new();
@@ -13,6 +13,7 @@ internal sealed class AvaloniaUiRasterPool(long byteBudget, int entryBudget)
     private readonly LinkedList<Entry> _idle = [];
     private readonly long _byteBudget = byteBudget > 0 ? byteBudget : throw new ArgumentOutOfRangeException(nameof(byteBudget));
     private readonly int _entryBudget = entryBudget > 0 ? entryBudget : throw new ArgumentOutOfRangeException(nameof(entryBudget));
+    private long _admissionBudget = byteBudget;
     private long _bytes;
     private long _revision;
     private long _decodeAttempts;
@@ -51,12 +52,12 @@ internal sealed class AvaloniaUiRasterPool(long byteBudget, int entryBudget)
             if (width < 1 || width > image.Width) return null;
             int height = fit ? Math.Min(image.Height, (int)Math.Ceiling((double)image.Height * width / image.Width) + 1) : image.Height;
             long reserved = (long)width * height * 8;
-            if (reserved > _byteBudget)
+            if (reserved > _admissionBudget)
             {
                 capacityBlocked = true;
                 return null;
             }
-            while (_bytes + reserved > _byteBudget || _entries.Count >= _entryBudget)
+            while (_bytes + reserved > _admissionBudget || _entries.Count >= _entryBudget)
             {
                 if (_idle.First is not { } oldest)
                 {
@@ -99,6 +100,20 @@ internal sealed class AvaloniaUiRasterPool(long byteBudget, int entryBudget)
             while (_idle.First is { } oldest) Remove(oldest.Value);
     }
 
+    internal void ApplyPressure(AvaloniaUiMemoryObservation sample)
+    {
+        lock (_gate)
+        {
+            _lastPressure = sample;
+            long divisor = sample.Pressure switch { AvaloniaUiMemoryPressure.Critical => 4, AvaloniaUiMemoryPressure.Elevated => 2, _ => 1 };
+            // This is a measured process-wide GPU threshold, not a claim that each bitmap is
+            // a texture of this size. Unknown counters do not reduce or inflate a measurement.
+            if (sample.GpuResidentBytes is > 128L * 1024 * 1024) divisor = Math.Max(divisor, 2);
+            _admissionBudget = _byteBudget / divisor;
+            while (_idle.First is { } oldest && (divisor > 1 || _bytes > _admissionBudget)) Remove(oldest.Value);
+        }
+    }
+
     private void Remove(Entry entry)
     {
         _idle.Remove(entry.Idle!);
@@ -116,6 +131,7 @@ internal sealed class AvaloniaUiRasterPool(long byteBudget, int entryBudget)
             if (--entry.References != 0) return;
             entry.Idle = _idle.AddLast(entry);
             _revision++;
+            while (_bytes > _admissionBudget && _idle.First is { } oldest) Remove(oldest.Value);
         }
     }
 

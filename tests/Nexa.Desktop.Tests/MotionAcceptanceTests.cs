@@ -34,6 +34,7 @@ internal static partial class Program
     private static void NavigationMotionHasOutgoingLayersAndLiveHitGeometry()
     {
         using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]), addProfile: true);
+        using var productPages = new LaunchFixtureNavigationPages(fixture);
         XsrUiShell shell = fixture.Shell;
         shell.Renderer.ReducedMotion = true;
         XsrUiScene scene = shell.Render(AccountTestSize);

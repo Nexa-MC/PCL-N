@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 namespace Nexa.Services.Resources;
 
 /// <summary>Bounded, cancellable provider adapter. No UI or filesystem side effects.</summary>
-public sealed class ResourceCatalogService(HttpClient http, ResourceProviderHttp? transport = null) : IResourceCatalogSource, IResourceFileSource
+public sealed class ResourceCatalogService(HttpClient http, ResourceProviderHttp? transport = null) : IResourceCatalogSource, IResourceFileSource, IResourceChangelogSource
 {
     private const int MaxResponseBytes = 8 * 1024 * 1024;
     private static string Encode(string value) => Uri.EscapeDataString(value);
@@ -87,6 +87,16 @@ public sealed class ResourceCatalogService(HttpClient http, ResourceProviderHttp
         return Version(item, Text(item, "project_id"));
     }
 
+    public async Task<ResourceChangelog> ReadChangelogAsync(ResourceChangelogQuery query, CancellationToken token)
+    {
+        if (query.Source.Provider != ResourceProvider.Modrinth || !Identifier(query.Source.ProjectId) || !Identifier(query.VersionId)) throw new ArgumentException("更新日志标识无效。");
+        using var document = await ReadAsync("version/" + query.VersionId, token, query.MirrorFirst).ConfigureAwait(false);
+        var item = document.RootElement;
+        if (Text(item, "id") != query.VersionId || Text(item, "project_id") != query.Source.ProjectId) throw new InvalidDataException("更新日志版本身份不匹配。");
+        string value = item.TryGetProperty("changelog", out var log) && log.ValueKind == JsonValueKind.String ? log.GetString() ?? "" : "";
+        return new(value[..Math.Min(value.Length, 65536)]);
+    }
+
     private async Task<JsonDocument> ReadAsync(string path, CancellationToken token, bool mirrorFirst = true)
     {
         if (transport is not null) return await transport.ReadAsync(ResourceProvider.Modrinth, path, mirrorFirst, token).ConfigureAwait(false);
@@ -117,6 +127,7 @@ public sealed class ResourceCatalogService(HttpClient http, ResourceProviderHttp
     {
         Provider = ResourceProvider.Modrinth,
         ProjectId = project,
+        Changelog = Text(item, "changelog"),
         File = File(item),
         Dependencies = item.TryGetProperty("dependencies", out var deps) && deps.ValueKind == JsonValueKind.Array
         ? deps.EnumerateArray().Take(257).Select(d => new ResourceDependency(Text(d, "project_id"), Text(d, "version_id"), Text(d, "dependency_type"))).ToArray() : []

@@ -397,20 +397,25 @@ defines the caption budget. `XsrUiPatchSnapshot.CaptionAt` and
 `XsrFunctionPatchPoint.SemanticId` identifies an explicitly granted point;
 `XsrFunctionPatchPhase` defines Head, Args, Tail, Return and Replace.
 `XsrFunctionPatchAttribute(Target)` marks the compile-time Host point, and
-`XsrFunctionPatchRuntime.Invoke` executes the bounded synchronous string ABI
-around the supplied original Host function with optional cancellation.
+`XsrFunctionPatchRuntime.Invoke` executes the compatible string ABI; `InvokeValues` executes
+explicit primitive and multiargument shapes around the supplied original Host function with
+optional cancellation. `HasPatches` supports generated allocation-free inactive wrappers.
+`XsrUiModuleSnapshot.ModuleAt` provides immutable node views with an exposure GUID;
+`XsrUiModuleRuntime.DispatchAsync` re-admits an intent and translates it to numeric session
+Command dispatch with source and retirement cancellation.
 
 The current product targets are resource search intent/completion, its search
-caption, one text-card slot and resource title Function patches. They preserve
+caption, one text/interactive module slot and resource title/download-count Function patches. They preserve
 Host ownership of search/download/account/release trust decisions. Detailed
 schemas, public runtime types and execution budgets are in
 [signals](sidecar-signals.md), [caption patches](sidecar-ui-patches.md),
 [text cards](sidecar-ui-modules.md) and [Function patches](function-patches.md).
 Renderer reads remain local; UI.Next never calls a Sidecar.
 
-Arbitrary interactive plugin pages, images/live plugin State bindings,
-additional visual patch properties, broader Function ABI shapes, nested
-provider permission fabric and the Plugin SDK/package/UI IR freeze are separate
-contracts. The real OS test peer validates the Host workflow and API; it is a
+Interactive finite plugin forms, verified resource images/live plugin State bindings and
+primitive Function ABI shapes are provided by [XSR-806](XSR-806-sidecar-extension-completion.md).
+Arbitrary scripts/CLR signatures and product-tree replacement are outside the Host grant.
+Nested provider permission fabric and the independent Plugin SDK/package/UI IR freeze remain
+external contracts. The real OS test peer validates the Host workflow and API; it is a
 fixture rather than the independently owned execution engine or an authored
 plugin SDK.

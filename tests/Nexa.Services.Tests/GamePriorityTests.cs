@@ -70,6 +70,12 @@ internal static partial class Program
                 var session = await executor.ExecuteAsync(plan, "priority-fixture");
                 AssertEqual(1, host.PriorityCalls); AssertEqual(ProcessPriorityClass.BelowNormal, host.RequestedPriority);
                 AssertFalse(session.Process.HasExited);
+                IJvmHost legacyHost = host;
+                JvmHostControlResult unsupportedCpuSets = legacyHost.SetCpuSets(session, [0]);
+                JvmHostControlResult unsupportedQuality = legacyHost.SetQuality(session, Nexa.Platform.PlatformProcessQuality.Efficiency);
+                AssertFalse(unsupportedCpuSets.Succeeded); AssertEqual("platform_unsupported", unsupportedCpuSets.Code);
+                AssertFalse(unsupportedQuality.Succeeded); AssertEqual("platform_unsupported", unsupportedQuality.Code);
+                AssertFalse(session.Process.HasExited);
                 if (outcome == 0 && OperatingSystem.IsWindows())
                     AssertEqual(ProcessPriorityClass.BelowNormal, session.Process.PriorityClass);
                 var second = await executor.ExecuteAsync(plan with { ProcessPriority = null }, "priority-unspecified");

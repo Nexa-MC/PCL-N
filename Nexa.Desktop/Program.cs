@@ -100,9 +100,22 @@ internal static partial class Program
         if (RedirectUpdatedLauncher(args)) return 0;
         if (args is [Nexa.Services.Processes.OwnedInstallerProcess.WorkerArgument])
             return await Nexa.Services.Processes.OwnedInstallerProcess.RunWorkerAsync().ConfigureAwait(false);
+        DesktopCommandLineRequest commandLine = DesktopCommandLine.Parse(args);
+        if (!commandLine.IsSuccess) { Console.Error.WriteLine(commandLine.Error); return 2; }
+        if (commandLine.ListCommands)
+        {
+            UiLocalizationCatalog listingLanguage = new(); listingLanguage.SetLanguage("auto");
+            Console.WriteLine(DesktopCommandLine.FormatListing(listingLanguage.Translate)); return 0;
+        }
+        if (commandLine.Command is { } requestedCommand)
+            args = [.. args.Where(argument => !argument.StartsWith("nexacl:", StringComparison.OrdinalIgnoreCase)), "nexacl://" + requestedCommand.Id];
         LogService? log = null;
         FileLogSink? fileSink = null;
         DesktopSingleInstance? instance = null;
+        AvaloniaUiStartupSession? startup = null;
+        long bootstrapStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+        double? mainToNativeSubmissionMs = null;
+        bool guiStarted = false;
         string stage = "resolve_folders";
         int exitCode = 1;
         void OnUnhandled(object sender, UnhandledExceptionEventArgs e) => log?.Error(
@@ -115,6 +128,7 @@ internal static partial class Program
         try
         {
             AppFolders folders = AppFolders.ResolveDefault();
+            bool disableHardwareAcceleration = commandLine.SafeMode || HardwareAccelerationDisabled(folders.Root);
             bool validation = args.Contains("--validate-shell", StringComparer.OrdinalIgnoreCase)
                 || args.Contains("--validate-setup", StringComparer.OrdinalIgnoreCase);
             DesktopDestination destination = DesktopDestination.Activate;
@@ -124,28 +138,67 @@ internal static partial class Program
                 Console.Error.WriteLine("不支持的 nexacl:// 链接。");
                 return 2;
             }
-            if (!validation && SingleInstanceEnabled(folders.Root))
+            if (!validation && (commandLine.SafeMode || SingleInstanceEnabled(folders.Root)))
             {
-                instance = await DesktopSingleInstance.AcquireAsync(Path.GetDirectoryName(LauncherStorageLocation.LocatorPath)!, destination).ConfigureAwait(false);
-                if (instance is null) { exitCode = 0; return 0; }
+                string? activationFile = args.FirstOrDefault(argument => DesktopActivation.TryFile(argument, out _));
+                instance = await DesktopSingleInstance.AcquireAsync(Path.GetDirectoryName(LauncherStorageLocation.LocatorPath)!, destination, activationFile, forwardActivation: !commandLine.SafeMode).ConfigureAwait(false);
+                if (instance is null)
+                {
+                    if (commandLine.SafeMode)
+                    { Console.Error.WriteLine("请先关闭正在运行的 NexaCL，再使用安全模式启动。"); exitCode = 2; return 2; }
+                    exitCode = 0; return 0;
+                }
+            }
+            if (!validation)
+            {
+                UiLocalizationCatalog startupLanguage = new();
+                startupLanguage.SetLanguage("auto");
+                startup = await AvaloniaUiStartupSession.StartAsync(args, disableHardwareAcceleration,
+                    localize: startupLanguage.Translate).ConfigureAwait(false);
+                mainToNativeSubmissionMs = System.Diagnostics.Stopwatch.GetElapsedTime(bootstrapStarted).TotalMilliseconds;
             }
             bool locationLocked = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NEXA_DATA_DIR")
                 ?? Environment.GetEnvironmentVariable("PCL_NEXA_DATA_DIR"));
             stage = "complete_storage_transaction";
+            startup?.ReportStage("检查数据位置");
             // Recover before opening logs, settings or any other root consumer. Await here,
             // before ApplicationSession starts its STA thread: the GUI bootstrap must not
             // resume on a thread-pool thread after asynchronous file copying.
             var storageStartup = await StoragePreferencesService.CompletePendingMigrationAsync(
-                folders.Root, LauncherStorageLocation.LocatorPath, locationLocked).ConfigureAwait(false);
+                folders.Root, LauncherStorageLocation.LocatorPath, locationLocked, startup?.CancellationToken ?? default).ConfigureAwait(false);
+            startup?.CancellationToken.ThrowIfCancellationRequested();
             if (storageStartup.IsSuccess) folders = AppFolders.ResolveDefault();
             else
             {
                 try { Console.Error.WriteLine("存储恢复未完成，继续使用原数据位置：" + storageStartup.Error?.Message); }
                 catch (IOException) { }
             }
-            exitCode = await Nexa.Platform.ApplicationSession.RunAsync(() => RunAsync(args, logging => log = logging,
-                sink => fileSink = sink, value => stage = value, folders, locationLocked, storageStartup.Error, instance)).ConfigureAwait(false);
+            exitCode = await Nexa.Platform.ApplicationSession.RunAsync(() => RunAsync(args, logging =>
+                {
+                    log = logging;
+                    if (startup?.FirstRenderElapsed is { } firstRender)
+                        logging.Info("Startup", FormattableString.Invariant($"first_native_render_submission_ms={firstRender.TotalMilliseconds:F2} main_to_native_submission_ms={mainToNativeSubmissionMs:F2}"));
+                },
+                sink => fileSink = sink, value =>
+                {
+                    stage = value;
+                    if (value is "gui_lifetime" or "first_run") guiStarted = true;
+                    if (!guiStarted) startup?.CancellationToken.ThrowIfCancellationRequested();
+                    startup?.ReportStage(value switch
+                    {
+                        "compose_foundation" => "加载设置与服务",
+                        "compose_shell" => "准备界面",
+                        "first_run" => "准备首次设置",
+                        "gui_lifetime" => "启动完成",
+                        _ => "准备启动器"
+                    });
+                }, folders, locationLocked, storageStartup.Error, instance, disableHardwareAcceleration)).ConfigureAwait(false);
             return exitCode;
+        }
+        catch (OperationCanceledException) when (startup?.CancellationToken.IsCancellationRequested == true)
+        {
+            exitCode = 0;
+            return 0;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not AccessViolationException)
         {
@@ -161,22 +214,31 @@ internal static partial class Program
             }
             // A directory/bootstrap failure may precede the host logger entirely.
             try { Console.Error.WriteLine($"{message}{Environment.NewLine}{detail}"); } catch (IOException) { }
+            if (startup is not null && !startup.Completion.IsCompleted)
+            {
+                startup.ReportFailure("启动失败，请查看启动日志后关闭窗口。");
+                await startup.Completion.ConfigureAwait(false);
+            }
             return 1;
         }
         finally
         {
             AppDomain.CurrentDomain.UnhandledException -= OnUnhandled;
             TaskScheduler.UnobservedTaskException -= OnUnobserved;
+            if (startup?.ShellReadyElapsed is { } shellReady)
+                log?.Info("Startup", FormattableString.Invariant($"shell_handoff_ms={shellReady.TotalMilliseconds:F2}"));
             log?.Info("Launcher", $"Session ended pid={Environment.ProcessId} exit_code={exitCode} last_stage={stage}");
             log?.Dispose();
             if (fileSink is not null) await fileSink.DisposeAsync().ConfigureAwait(false);
+            if (startup is not null) await startup.DisposeAsync().ConfigureAwait(false);
             if (instance is not null) await instance.DisposeAsync().ConfigureAwait(false);
             if (exitCode == 0) _restartAfterExit?.Invoke();
         }
     }
 
     private static async Task<int> RunAsync(string[] args, Action<LogService> onLogReady, Action<FileLogSink> onSinkReady,
-        Action<string> setStage, AppFolders folders, bool locationLocked, Nexa.Xsr.XsrError? storageStartupError, DesktopSingleInstance? instance)
+        Action<string> setStage, AppFolders folders, bool locationLocked, Nexa.Xsr.XsrError? storageStartupError,
+        DesktopSingleInstance? instance, bool disableHardwareAcceleration)
     {
         // Composition root: the two-phase foundation composition. Phase one declares every
         // foundation module's state into one shared builder; phase two builds the store once
@@ -188,8 +250,9 @@ internal static partial class Program
         if (validateSetup || (storageStartupError is null && !args.Contains("--validate-shell", StringComparer.OrdinalIgnoreCase) && setup.Read().Required))
         {
             setStage("first_run");
-            return RunFirstRun(args, setup, validateSetup, instance);
+            return RunFirstRun(args, setup, validateSetup, instance, disableHardwareAcceleration);
         }
+        bool safeMode = args.Contains("--safe-mode", StringComparer.OrdinalIgnoreCase);
         string logFilePath = Path.Combine(folders.EnsureFolder(FolderNames.Logs), "launcher.log");
         FileLogSink sink = new(logFilePath);
         onSinkReady(sink);
@@ -211,7 +274,9 @@ internal static partial class Program
         // query, state, event, scheduler, and lifecycle telemetry flow into LogService through
         // one composition-root wiring, with the logging domain excluded to prevent recursion.
         XsrOperationLog operationLog = new();
-        XsrCompositeStateObserver stateObservation = new(uiRuntime.StateBridge, operationLog.State);
+        RuntimeTraceSession runtimeTraces = new();
+        IXsrDispatchObserver dispatchObservation = RuntimeTraceSession.Combine(operationLog.Dispatch, runtimeTraces);
+        XsrCompositeStateObserver stateObservation = new(uiRuntime.StateBridge, RuntimeTraceSession.Combine(operationLog.State, runtimeTraces));
         Nexa.Services.Updates.LauncherBuildIdentity buildInfo = ResolveBuildInfo();
         string channel = buildInfo.Channel;
         bool consoleAttached = Console.IsOutputRedirected
@@ -243,38 +308,76 @@ internal static partial class Program
         DesktopSidecarSignals sidecarSignals = new();
         DesktopSidecarUiPatches sidecarUi = new(host.StateStore);
         await using var sidecars = SidecarStartup.Create(host.Logging, functionPatches.Admission, sidecarSignals.Admission, sidecarUi.Admission, sidecarUi.ModuleAdmission);
-        SidecarHostApi sidecarApi = new(sidecars, operationLog.Dispatch);
-        await using var sidecarLifetime = SidecarStartup.StartLifetime(sidecars, host.Logging);
+        SidecarHostApi sidecarApi = new(sidecars, dispatchObservation);
+        await using var sidecarLifetime = SidecarStartup.StartLifetime(sidecars, host.Logging, !safeMode);
         // The session lifecycle narrates startup/shutdown milestones at Info: every subsystem
         // the composition root brings up (and later stops) is a phase on one shared timeline.
-        XsrLifecycle session = new("LauncherSession", operationLog.Lifecycle);
+        XsrLifecycle session = new("LauncherSession", RuntimeTraceSession.Combine(operationLog.Lifecycle, runtimeTraces));
         session.Enter(XsrLifecyclePhase.Starting);
         host.Logging.Info("Launcher", "Foundation composition completed; registering runtime routes.");
         setStage("compose_runtimes");
         uiIntents.IntentEmitted += (_, e) => operationLog.WriteIntent(e.Intent.Command, e.Intent.CorrelationId);
-        using var storagePreferences = new StoragePreferencesService(folders, LauncherStorageLocation.LocatorPath, locationLocked,
-            isIdle: () => !host.Tasks.ReadEntries().Any(entry => !entry.IsTerminal)
+        bool StorageIdle() => !host.Tasks.ReadEntries().Any(entry => !entry.IsTerminal)
                 && !host.StateStore.ReadCollection<Nexa.Services.Minecraft.Process.MinecraftProcessSnapshot>(
                     host.StateStore.Resolve(Nexa.Services.Minecraft.Process.MinecraftProcessStateComposition.SessionsKey)).Items
                     .Any(process => process.State is Nexa.Services.Minecraft.Process.MinecraftProcessState.Created or Nexa.Services.Minecraft.Process.MinecraftProcessState.Running)
                 && host.StateStore.ReadAppliedValue(host.StateStore.Resolve(Nexa.Services.Minecraft.Launch.MinecraftLaunchProgressState.SnapshotKey))
-                    is not Nexa.Services.Minecraft.Launch.MinecraftLaunchProgressSnapshot { Active: true, IsLaunched: false },
-            tasks: host.Tasks);
-        FoundationRuntime runtime = FoundationRuntimeComposer.ComposeWithStorage(host, storagePreferences, operationLog.Dispatch);
+                    is not Nexa.Services.Minecraft.Launch.MinecraftLaunchProgressSnapshot { Active: true, IsLaunched: false };
+        using var storagePreferences = new StoragePreferencesService(folders, LauncherStorageLocation.LocatorPath, locationLocked, StorageIdle, host.Tasks);
+        var contentBackups = new ContentBackupService(Path.Combine(folders.Root, "content-backups"), StorageIdle)
+        {
+            ReadConfiguredKeepCount = () =>
+            {
+                var policy = host.SettingsPolicy.Read(new());
+                if (!policy.IsSuccess) throw new IOException("无法读取备份保留策略。");
+                var keepCount = policy.Value!.Values.Single(item => item.Key == "storage.backup-keep-count");
+                if (keepCount.ValidationError is not null) throw new IOException("备份保留策略无效。");
+                return int.Parse(keepCount.Value.Value!, System.Globalization.CultureInfo.InvariantCulture);
+            },
+        };
+        var legacyMigration = new LegacyMigrationService(StorageIdle);
+        await using var diagnosticHistory = new DurableDiagnosticHistorySink(Path.Combine(folders.Root, "diagnostic-history"));
+        host.Logging.AddSink(diagnosticHistory);
+        await using var backupMaintenance = new ContentBackupMaintenanceSession(contentBackups, host.Logging);
+        using var diagnosticAiHttp = host.CreateHttpClient();
+        var diagnosticAi = new DiagnosticAiService(diagnosticAiHttp)
+        {
+            IsEnabled = () =>
+            {
+                var policy = host.SettingsPolicy.Read(new());
+                return policy.IsSuccess && policy.Value!.Values.Single(item => item.Key == "diagnostics.ai.enabled") is { ValidationError: null, Value.Value: "true" };
+            },
+        };
+        var launchDiagnostics = new Nexa.Services.Minecraft.Launch.MinecraftLaunchPlanDiagnostics();
+        FoundationRuntime runtime = FoundationRuntimeComposer.ComposeWithStorageAndMedia(host, storagePreferences, AvaloniaUiScreenshotCodec.Crop, dispatchObservation,
+            configureRoutes: (commands, queries) =>
+            {
+                runtimeTraces.Register(queries);
+                MinecraftLaunchDiagnosticsRuntime.Register(queries, launchDiagnostics);
+                ContentWorkspaceRuntime.Register(commands, queries, contentBackups, legacyMigration, diagnosticHistory, diagnosticAi);
+                WorldSnapshotRuntime.Register(commands, queries, host.StateStore, contentBackups, OperatingSystem.IsMacOS() ? AvaloniaUiWorldEditLease.Acquire : null);
+            },
+            captureWorld: async (path, token) =>
+            {
+                await contentBackups.CaptureAsync(path, Path.GetFileName(path),
+                new HashSet<string>(StringComparer.Ordinal) { "session.lock", ".nexa-world-readonly" }, token).ConfigureAwait(false);
+            },
+            acquireWorldSessionLock: OperatingSystem.IsMacOS() ? AvaloniaUiWorldEditLease.Acquire : null);
         // Public provider client IDs are embedded at publish time. Passing them here arms both
         // onboarding device flows and the launch identity resolver's refresh capability.
         using AccountOnboardingRuntime accounts = AccountOnboardingRuntimeComposer.ComposeWithAppearance(
             host,
             folders.Root,
             options: ComposeAccountOnboardingOptions(),
-            observer: operationLog.Dispatch);
+            observer: dispatchObservation);
         string jvmHostPath = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "Nexa.Jvm.Host.exe" : "Nexa.Jvm.Host");
         using MinecraftRuntime minecraft = MinecraftRuntimeComposer.Compose(
             host,
             minecraftRootDirectory,
             identityResolver: accounts.LaunchIdentityResolver,
-            observer: operationLog.Dispatch,
+            observer: dispatchObservation,
             launcherVersion: buildInfo.ProductVersion,
+            launchDiagnostics: launchDiagnostics,
             jvmHostExecutable: jvmHostPath,
             gameWindowAppeared: pid =>
             {
@@ -286,6 +389,11 @@ internal static partial class Program
                     .Items.FirstOrDefault(item => item.ProcessId == pid && item.State is Nexa.Services.Minecraft.Process.MinecraftProcessState.Created or Nexa.Services.Minecraft.Process.MinecraftProcessState.Running);
                 MinecraftWindowIntegration.ApplyGameWindowTitle(pid, process?.WindowTitle, message => host.Logging.Warn("Launch", message));
             });
+        if (safeMode && minecraft.Commands.TryResolve(Nexa.Services.Minecraft.Launch.MinecraftSafeLaunchSessionContract.Set, out var safeRoute))
+        {
+            var safeResult = await minecraft.Commands.Dispatch(safeRoute, new Nexa.Services.Minecraft.Launch.MinecraftSafeLaunchSessionCommand(true)).Completion.ConfigureAwait(false);
+            if (!safeResult.IsSuccess) throw new IOException(safeResult.Error?.Message);
+        }
         host.Logging.Debug(
             "Launcher",
             $"Runtime composition completed services={runtime.Host.Services.Count} "
@@ -312,20 +420,23 @@ internal static partial class Program
         if (storageStartupError is not null)
             feedback.Warn("存储恢复尚未完成，继续使用原数据位置。可在“存储与迁移”中查看并取消待迁移后重新预览。\n" + storageStartupError.Message);
         using DesktopTaskBubblePresenter taskBubble = new(shell, runtime.Host.StateStore);
-        using TaskCenterRuntime taskCenter = TaskCenterRuntimeComposer.Compose(host, operationLog.Dispatch);
+        using TaskCenterRuntime taskCenter = TaskCenterRuntimeComposer.Compose(host, dispatchObservation);
         using TaskCenterController taskCenterPage = new(
             shell, uiIntents, taskCenter.Commands, runtime.Host.StateStore, taskBubble);
 
         // The launch page is the first product vertical slice: it routes navigation intents to
         // pages inside the shell content host and dispatches the real launch command.
         setStage("attach_product_controllers");
-        AvaloniaUiPlatformActions platformActions = new();
+        AvaloniaUiPlatformActions platformActions = new() { LocalizeContentPicker = shell.Renderer.LocalizeText };
         using var appearanceSession = new DesktopAppearanceSession(shell, host.StateStore, platformActions);
+        await using var customAppearance = safeMode ? null : new CustomAppearanceSession(runtime.Queries, host.StateStore, shell, platformActions, message => host.Logging.Warn("Appearance", message));
+        await using var mediaSession = safeMode ? null : new DesktopMediaSession(runtime.Queries, runtime.Commands, host.StateStore, shell, uiIntents, platformActions, message => host.Logging.Warn("Media", message));
         using var gameWindows = new DesktopGameWindowSession(host.StateStore, action => Avalonia.Threading.Dispatcher.UIThread.Post(action),
             platformActions.HideWindow, platformActions.MinimizeWindow, platformActions.RestoreWindow, platformActions.RequestClose,
             message => host.Logging.Warn("Launch", message));
         using var presentationSession = new DesktopPresentationSession(shell, host.StateStore,
-            platformActions.SetWindowResizeEnabled, platformActions.SetAnimationFrameRate);
+            platformActions.SetWindowResizeEnabled, platformActions.SetAnimationFrameRate,
+            runtime.Queries, platformActions.PostToWindow);
         platformActions.InputObserved += kind => host.InputUsage.Record(kind switch
         {
             AvaloniaUiInputKind.Keyboard => InputUsageKind.Keyboard,
@@ -334,10 +445,10 @@ internal static partial class Program
             AvaloniaUiInputKind.Controller => InputUsageKind.Controller,
             _ => InputUsageKind.Unknown,
         });
-        using MinecraftLibraryRuntime library = MinecraftLibraryRuntimeComposer.Compose(host, minecraftRootDirectory, minecraft.Instances, operationLog.Dispatch);
-        using InstallCatalogRuntime installCatalog = InstallCatalogRuntimeComposer.Compose(host, observer: operationLog.Dispatch);
-        using MinecraftInstallRuntime installRun = MinecraftInstallRuntimeComposer.Compose(host, observer: operationLog.Dispatch);
-        var folderImports = MinecraftFolderImportRuntimeComposer.Compose(host, library.Service, installRun.Service, operationLog.Dispatch);
+        using MinecraftLibraryRuntime library = MinecraftLibraryRuntimeComposer.Compose(host, minecraftRootDirectory, minecraft.Instances, dispatchObservation);
+        using InstallCatalogRuntime installCatalog = InstallCatalogRuntimeComposer.Compose(host, observer: dispatchObservation);
+        using MinecraftInstallRuntime installRun = MinecraftInstallRuntimeComposer.Compose(host, observer: dispatchObservation);
+        var folderImports = MinecraftFolderImportRuntimeComposer.Compose(host, library.Service, installRun.Service, dispatchObservation);
         using MinecraftDropController dropController = new(platformActions, folderImports, library.Commands, host.StateStore, feedback);
         // A committed install grows the version library immediately: rescan the active root.
         installRun.Service.Installed += root => _ = library.Service.RefreshAsync();
@@ -370,7 +481,16 @@ internal static partial class Program
             new NativeAccountUiEffects(platformActions), runtime.Host.Logging);
         launchPage.Attach();
         using SettingsPageController settingsPage = new(shell, uiIntents, runtime.Queries, runtime.Commands, host.StateStore, feedback);
+        settingsPage.CopyJavaDiagnosticsTextAsync = platformActions.CopyTextAsync;
+        settingsPage.ConfigureJavaManualDownload(minecraft.Queries, minecraft.Commands, platformActions.OpenHttpsUri);
         settingsPage.OpenAboutLink = platformActions.OpenHttpsUri;
+        settingsPage.OpenAdvancedSettingsFile = () =>
+        {
+            try { platformActions.OpenLocalFile(Path.Combine(settingsFolder, "settings.json")); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception
+                or ArgumentException or InvalidOperationException or NotSupportedException)
+            { feedback.Error("无法打开本地设置文件。请检查文件是否存在及系统编辑器关联。"); }
+        };
         settingsPage.ExportDiagnostics = token => ExportDiagnosticsAsync(runtime.Host, platformActions, buildInfo.ProductVersion, token);
         settingsPage.OpenLogDirectory = () => platformActions.OpenDirectory(Path.GetDirectoryName(logFilePath)!);
         settingsPage.ExportLogs = token => ExportLogsAsync(sink, platformActions, token);
@@ -381,6 +501,14 @@ internal static partial class Program
             token.ThrowIfCancellationRequested();
             return selected;
         }, platformActions.RequestClose);
+        settingsPage.ConfigureContentWorkspace(async token =>
+        {
+            token.ThrowIfCancellationRequested();
+            var path = await platformActions.PickStorageDirectoryAsync().ConfigureAwait(false);
+            token.ThrowIfCancellationRequested(); return path;
+        }, token => platformActions.PickWorkspaceJsonAsync(token),
+            () => string.Join("\n", host.Logging.GetSnapshot().Select(entry => entry.Message)));
+        settingsPage.ConfigureDiagnosticAi(true);
         settingsPage.TelemetryRequired = buildInfo.DiagnosticsRequired;
         using var networking = new LauncherNetworkRuntime(host, settingsFolder, buildInfo);
         HttpClient updateHttp = networking.Http;
@@ -394,7 +522,9 @@ internal static partial class Program
         settingsPage.ConfigureUpdates(updateQueries, new(buildInfo.ProductVersion, updateRid, updateChannel), platformActions.OpenHttpsUri,
             automaticUpdate, () => { restartAfterUpdate = true; platformActions.RequestClose(); });
         launchPage.SettingsPage = settingsPage.Page;
-        using var resourcesRuntime = ResourceCatalogRuntimeComposer.Compose(host: host, favoritesPath: Path.Combine(settingsFolder, "resources-favorites.json"), installer: installRun.Service);
+        using var resourcesRuntime = ResourceCatalogRuntimeComposer.Compose(observer: dispatchObservation, host: host,
+            favoritesPath: Path.Combine(settingsFolder, "resources-favorites.json"), installer: installRun.Service);
+        settingsPage.ConfigureOnlineContent(resourcesRuntime.Queries, platformActions.OpenHttpsUri, resourcesRuntime.Commands);
         using var resourcesPage = new ResourcesPageController(shell, uiIntents, resourcesRuntime.Queries,
             host.StateStore, platformActions.OpenHttpsUri, functionPatches, sidecarSignals, sidecarUi);
         launchPage.ResourcesPage = resourcesPage.Page;
@@ -408,10 +538,18 @@ internal static partial class Program
         using SettingsPageController versionSettings = new(shell, uiIntents, runtime.Queries, runtime.Commands, host.StateStore, feedback,
             () => ((MinecraftLibrarySnapshot?)host.StateStore.ReadAppliedValue(host.StateStore.Resolve(MinecraftLibraryService.StateKey)))?.SelectedInstance?.DirectoryPath);
         launchPage.VersionSettingsPage = versionSettings.Page;
+        versionSettings.CopyJavaDiagnosticsTextAsync = platformActions.CopyTextAsync;
+        versionSettings.ConfigureJavaManualDownload(minecraft.Queries, minecraft.Commands, platformActions.OpenHttpsUri);
+        versionSettings.ExportDiagnostics = settingsPage.ExportDiagnostics;
         versionSettings.OpenManagementDirectory = platformActions.OpenDirectory;
+        versionSettings.LaunchManagementInstance = launchPage.LaunchInstance;
+        versionSettings.ModifyManagementInstance = launchPage.ModifyInstance;
         versionSettings.JoinManagementServer = launchPage.JoinServer;
         versionSettings.ConfigureOnlineContent(resourcesRuntime.Queries, platformActions.OpenHttpsUri, resourcesRuntime.Commands);
         versionSettings.ConfigureExport(platformActions.PickDownloadDirectoryAsync);
+        versionSettings.SelectDataPackFileAsync = () => platformActions.PickDataPackFileAsync();
+        versionSettings.CopyScreenshotAsync = platformActions.CopyScreenshotAsync;
+        versionSettings.ShareScreenshotAsync = platformActions.ShareScreenshotAsync;
         versionSettings.PickRemediationJava = platformActions.PickJavaFileAsync;
         settingsPage.PickRemediationJava = platformActions.PickJavaFileAsync;
         settingsPage.ConfigureSettingsTransfer(token => platformActions.ReadJsonDocumentAsync(1024 * 1024, () => shell.Renderer.LocalizeText("导入设置"), token),
@@ -471,13 +609,30 @@ internal static partial class Program
         using var installRecovery = new DesktopInstallRecoverySession(installRun.Commands, recoveryRoots,
             message => host.Logging.Warn("Install", message), minecraft.Commands, runtime.Commands);
         var installExit = new DesktopInstallExitCoordinator(host.StateStore, installRun.Commands, feedback, platformActions.RequestClose, minecraft.Commands);
-        platformActions.CloseRequested = installExit.CanClose;
+        using var launchExit = new DesktopLaunchExitCoordinator(() => minecraft.LaunchCoordinator!.HasPendingFinalization,
+            minecraft.LaunchCoordinator!.WaitForFinalizationAsync, platformActions.PostToWindow, platformActions.RequestClose, feedback);
+        platformActions.CloseRequested = () => installExit.CanClose() && launchExit.CanClose();
         await using var desktopIntegration = new DesktopIntegrationSession(shell, uiIntents, host.StateStore, platformActions, instance, args,
-            message => { host.Logging.Warn("Desktop", message); feedback.Warn(message); });
+            message => { host.Logging.Warn("Desktop", message); feedback.Warn(message); }, openFile: dropController.OpenFile, registerProtocol: !safeMode);
+        using var commandPalette = new DesktopCommandPalette(shell, uiIntents, platformActions,
+            route => desktopIntegration.ActivateProtocol("nexacl://" + route.Id));
+        settingsPage.LauncherSafeMode = safeMode;
+        settingsPage.NavigateAdvancedCommand = route => desktopIntegration.ActivateProtocol("nexacl://" + route.Id);
+        settingsPage.OpenAdvancedCommandPalette = commandPalette.Open;
+        settingsPage.CopyAdvancedSettingsTextAsync = platformActions.CopyTextAsync;
+        await using var systemPreferences = safeMode ? null : new SystemPreferencesSession(runtime.Queries, host.StateStore,
+            platformActions, feedback, desktopIntegration.ActivateProtocol, message => host.Logging.Warn("Desktop", message),
+            startupNavigate: args.Any(argument => argument.StartsWith("nexacl:", StringComparison.OrdinalIgnoreCase)
+                || DesktopActivation.TryFile(argument, out _)) ? null : destination =>
+                {
+                    if (!desktopIntegration.HasExplicitActivation)
+                        desktopIntegration.ActivateProtocol("nexacl://" + destination.ToString().ToLowerInvariant());
+                },
+            setLaunchHints: launchPage.SetStartupHintsVisible);
         setStage("gui_lifetime");
         host.Logging.Info("Launcher", "Entering Avalonia GUI lifetime.");
         int exitCode;
-        try { exitCode = AvaloniaUiShellHost.Run(shell, args, platformActions); }
+        try { exitCode = AvaloniaUiShellHost.Run(shell, args, platformActions, disableHardwareAcceleration); }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         {
             telemetrySession?.Record("app.failure", "failed");
@@ -511,7 +666,8 @@ internal static partial class Program
         return exitCode;
     }
 
-    private static int RunFirstRun(string[] args, FirstRunService service, bool validate, DesktopSingleInstance? instance)
+    private static int RunFirstRun(string[] args, FirstRunService service, bool validate, DesktopSingleInstance? instance,
+        bool disableHardwareAcceleration)
     {
         XsrUiRuntimeContext context = new();
         XsrStateStoreBuilder builder = new();
@@ -525,7 +681,13 @@ internal static partial class Program
         runtime.Queries.TryResolve(FirstRunContract.Status, out var read);
         var status = runtime.Queries.QueryAsync<FirstRunQuery, FirstRunStatus>(read, new()).AsTask().GetAwaiter().GetResult();
         if (!status.IsSuccess) throw new IOException(status.Error?.Message ?? "无法读取初始设置。");
-        AvaloniaUiPlatformActions platform = new();
+        AvaloniaUiPlatformActions platform = new() { LocalizeContentPicker = shell.Renderer.LocalizeText };
+        List<string> nativeFiles = [];
+        using IDisposable? nativeFileSubscription = OperatingSystem.IsMacOS() ? DesktopNativeFileActivation.Subscribe(file =>
+        {
+            if (instance is not null) instance.QueueActivation(DesktopDestination.Activate, file);
+            else if (nativeFiles.Count < 16) nativeFiles.Add(file);
+        }) : null;
         platform.ProtocolActivated += uri =>
         {
             if (DesktopActivation.TryParse(uri, out DesktopDestination requested))
@@ -549,7 +711,7 @@ internal static partial class Program
             }
             return 0;
         }
-        int result = AvaloniaUiShellHost.Run(shell, args, platform);
+        int result = AvaloniaUiShellHost.Run(shell, args, platform, disableHardwareAcceleration);
         if (controller.Completed)
         {
             // Avalonia has one application lifetime per process. Reopen after saving the
@@ -561,9 +723,14 @@ internal static partial class Program
             DesktopDestination nextDestination = _setupDestination;
             if (instance is not null)
             {
-                while (instance.TryTake(out DesktopDestination requested))
-                    if (requested != DesktopDestination.Activate) nextDestination = requested;
+                while (instance.TryTakeActivation(out DesktopInstanceActivation requested))
+                {
+                    if (requested.Destination != DesktopDestination.Activate) nextDestination = requested.Destination;
+                    if (requested.File is { } file && !args.Contains(file, StringComparer.Ordinal)) start.ArgumentList.Add(file);
+                }
             }
+            foreach (string file in nativeFiles.Distinct(Nexa.Core.PathIdentity.Comparer))
+                if (!args.Contains(file, Nexa.Core.PathIdentity.Comparer)) start.ArgumentList.Add(file);
             foreach (string argument in args)
                 if (nextDestination == DesktopDestination.Activate || !argument.StartsWith("nexacl:", StringComparison.OrdinalIgnoreCase)) start.ArgumentList.Add(argument);
             if (nextDestination != DesktopDestination.Activate) start.ArgumentList.Add("nexacl://" + nextDestination.ToString().ToLowerInvariant());

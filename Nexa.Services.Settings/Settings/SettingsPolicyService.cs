@@ -45,15 +45,24 @@ public sealed partial class SettingsPolicyService
 
     public XsrResult<SettingsEffectiveSnapshot> Read(SettingsEffectiveQuery query)
     {
-        try
+        lock (_profileGate)
         {
-            var snapshot = _settings.ReadBatch();
-            return XsrResult.Success(Resolve(snapshot.Revision, snapshot.Values, ReadDocument(snapshot.Values), InstanceKey(query.InstanceId)));
+            try
+            {
+                var snapshot = _settings.ReadBatch();
+                string? instance = InstanceKey(query.InstanceId);
+                TemporaryProfile? temporary = instance is null ? null : _temporaryProfiles.GetValueOrDefault(instance);
+                if (query.TemporaryId is not null && temporary?.Id != query.TemporaryId)
+                    return XsrResult.Failure<SettingsEffectiveSnapshot>(Invalid("The temporary launch configuration has expired."));
+                var document = ReadDocument(snapshot.Values);
+                return XsrResult.Success(Resolve(snapshot.Revision, snapshot.Values, document, instance, query.ProfileId, temporary?.Values) with
+                { Overlay = instance is null ? new() : ResolveLaunchOverlay(document, instance, query.ProfileId, temporary) });
+            }
+            catch (Exception error) when (Recoverable(error)) { return XsrResult.Failure<SettingsEffectiveSnapshot>(Invalid(error.Message)); }
         }
-        catch (Exception error) when (Recoverable(error)) { return XsrResult.Failure<SettingsEffectiveSnapshot>(Invalid(error.Message)); }
     }
 
-    // Preview-only overlays: not exposed through mutation routes until those capabilities exist.
+    // One validator applies to persisted profiles and captured, process-local temporary layers.
     internal static SettingsEffectiveValue ResolveValue(SettingsPolicyDefinition definition,
         SettingsOverride? global, SettingsOverride? instance, SettingsOverride? profile = null, SettingsOverride? temporary = null)
     {
@@ -71,12 +80,17 @@ public sealed partial class SettingsPolicyService
         return new(definition.Key, value, source, definition.Timing, null);
     }
 
-    private static SettingsEffectiveSnapshot Resolve(long revision, IReadOnlyDictionary<string, string> raw, JsonObject document, string? instance)
+    private static SettingsEffectiveSnapshot Resolve(long revision, IReadOnlyDictionary<string, string> raw, JsonObject document, string? instance,
+        string? profileId = null, IReadOnlyDictionary<string, SettingsOverride>? temporary = null)
     {
         var global = (JsonObject)document["global"]!;
         var local = instance is null ? null : document["instances"]![instance] as JsonObject;
         if (instance is not null && document["instances"]![instance] is not null && local is null)
             throw new InvalidDataException("Invalid instance settings.");
+        var profileScope = instance is null ? null : document["launchProfiles"]?[instance] as JsonObject;
+        string? selectedProfile = profileId ?? profileScope?["selected"]?.GetValue<string>();
+        var profile = selectedProfile is null ? null : profileScope?["profiles"]?[selectedProfile]?["values"] as JsonObject;
+        if (selectedProfile is not null && profile is null) throw new InvalidDataException("The selected launch profile does not exist.");
         var values = SettingsPolicySchema.Definitions.Select(definition =>
         {
             SettingsOverride? inherited = ReadOverride(global[definition.Key]);
@@ -136,7 +150,7 @@ public sealed partial class SettingsPolicyService
                 double gib = slider switch { <= 12 => slider * 0.1 + 0.3, <= 25 => (slider - 12) * 0.5 + 1.5, <= 33 => slider - 25 + 8, _ => (slider - 33) * 2 + 16 };
                 inherited = new(SettingsOverrideMode.Custom, Math.Max(256, (int)Math.Round(gib * 1024)).ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
-            return ResolveValue(definition, inherited, ReadOverride(local?[definition.Key]));
+            return ResolveValue(definition, inherited, ReadOverride(local?[definition.Key]), ReadOverride(profile?[definition.Key]), temporary?.GetValueOrDefault(definition.Key));
         }).ToArray();
         return new(revision, Array.AsReadOnly(values));
     }
@@ -173,6 +187,12 @@ public sealed partial class SettingsPolicyService
                 var instances = (JsonObject)document["instances"]!;
                 if (instances[instance!] is null) instances[instance!] = new JsonObject();
                 target = instances[instance!] as JsonObject ?? throw new InvalidDataException("Invalid instance settings.");
+            }
+            else if (mutation.Layer == SettingsLayer.Profile)
+            {
+                var scope = ProfileInstance(document, instance!);
+                target = scope["profiles"]?[mutation.ProfileId!]?["values"] as JsonObject
+                    ?? throw new InvalidDataException("Create the named profile before editing its values.");
             }
             if (mutation.Value.Mode == SettingsOverrideMode.Inherit) target.Remove(mutation.Key);
             else target[mutation.Key] = Encode(mutation.Value);
@@ -227,21 +247,34 @@ public sealed partial class SettingsPolicyService
 
     public XsrResult<SettingsEffectiveSnapshot> Preview(SettingsPreviewQuery query)
     {
-        try
+        lock (_profileGate)
         {
-            var snapshot = _settings.ReadBatch();
-            var prepared = PrepareChanges(snapshot.Values, query.Changes.ToArray());
-            return XsrResult.Success(Resolve(snapshot.Revision, prepared, ReadDocument(prepared), InstanceKey(query.InstanceId)));
+            try
+            {
+                var snapshot = _settings.ReadBatch();
+                var prepared = PrepareChanges(snapshot.Values, query.Changes.ToArray());
+                string? instance = InstanceKey(query.InstanceId);
+                TemporaryProfile? temporary = instance is null ? null : _temporaryProfiles.GetValueOrDefault(instance);
+                if (query.TemporaryId is not null && temporary?.Id != query.TemporaryId)
+                    return XsrResult.Failure<SettingsEffectiveSnapshot>(Invalid("The temporary launch configuration has expired."));
+                var document = ReadDocument(prepared);
+                return XsrResult.Success(Resolve(snapshot.Revision, prepared, document, instance, query.ProfileId, temporary?.Values) with
+                { Overlay = instance is null ? new() : ResolveLaunchOverlay(document, instance, query.ProfileId, temporary) });
+            }
+            catch (Exception error) when (Recoverable(error)) { return XsrResult.Failure<SettingsEffectiveSnapshot>(Invalid(error.Message)); }
         }
-        catch (Exception error) when (Recoverable(error)) { return XsrResult.Failure<SettingsEffectiveSnapshot>(Invalid(error.Message)); }
     }
 
     private static string? ValidateMutation(SettingsMutation mutation)
     {
         if (!SettingsPolicySchema.ByKey.TryGetValue(mutation.Key, out var definition)) return "Unknown setting.";
-        if (mutation.Layer is not (SettingsLayer.Global or SettingsLayer.Instance)) return "This layer is not editable.";
+        if (mutation.Key == "java.compatibility") return "Java compatibility checks are mandatory; this setting has no mutable consumer.";
+        if (mutation.Layer is not (SettingsLayer.Global or SettingsLayer.Instance or SettingsLayer.Profile)) return "Use the temporary launch lifecycle command to edit this layer.";
         if (mutation.Layer == SettingsLayer.Instance && (!definition.InstanceOverride || mutation.InstanceId is null)) return "An instance override is not allowed or has no identity.";
+        if (mutation.Layer == SettingsLayer.Profile && (!definition.InstanceOverride || mutation.InstanceId is null || mutation.ProfileId is null)) return "A profile override requires an instance and profile identity.";
+        if (mutation.Layer == SettingsLayer.Profile) _ = ProfileIdentity(mutation.ProfileId!);
         if (mutation.Layer == SettingsLayer.Global && mutation.InstanceId is not null) return "Global settings cannot carry an instance identity.";
+        if (mutation.Layer != SettingsLayer.Profile && mutation.ProfileId is not null || mutation.TemporaryId is not null) return "The mutation carries an unrelated layer identity.";
         return definition.Validate(mutation.Value);
     }
 }

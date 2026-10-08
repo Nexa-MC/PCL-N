@@ -7,6 +7,12 @@ internal static partial class Program
     private static void SettingsResetIsScopedPreviewedAndPreservesReservedValues()
     {
         var port = new InMemorySettingsPort();
+        // Older files may contain the retired preference. Preserve it on reset, while
+        // refusing new writes that would imply compatibility checks can be disabled.
+        port.Save(new Dictionary<string, string>
+        {
+            [SettingsPolicySchema.StorageKey] = "{\"version\":1,\"global\":{\"java.compatibility\":{\"mode\":\"Custom\",\"value\":\"false\"}},\"instances\":{}}"
+        });
         var (store, policy) = PolicyFixture(port);
         string first = Path.GetFullPath("reset-instance-a"), second = Path.GetFullPath("reset-instance-b");
         AssertTrue(policy.Set(new("game.width", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "1024"))).IsSuccess);
@@ -14,7 +20,10 @@ internal static partial class Program
         AssertTrue(policy.Set(new("game.width", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "1500"), second)).IsSuccess);
         AssertTrue(policy.Set(new("appearance.low-power", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
         AssertTrue(policy.Set(new("network.proxy-password", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "keep-private"))).IsSuccess);
-        AssertTrue(policy.Set(new("java.compatibility", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "false"))).IsSuccess);
+        long beforeRejectedWrite = store.Revision;
+        AssertFalse(policy.Set(new("java.compatibility", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
+        AssertEqual(beforeRejectedWrite, store.Revision);
+        AssertEqual("false", Effective(policy, "java.compatibility").Value.Value);
         AssertTrue(policy.Set(new("appearance.animation-fps", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "144"))).IsSuccess);
         long revision = store.Revision;
         var instance = policy.PreviewReset(new(first));

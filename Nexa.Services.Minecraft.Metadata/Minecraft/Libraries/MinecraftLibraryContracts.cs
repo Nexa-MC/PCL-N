@@ -418,7 +418,7 @@ public static class MinecraftClasspathPlanner
             entries.Add(library.LocalPath);
         }
 
-        foreach (string head in request.ClasspathHeadEntries.Where(static value => !string.IsNullOrWhiteSpace(value))) entries.Insert(0, head);
+        foreach (string head in request.ClasspathHeadEntries.Where(static value => !string.IsNullOrWhiteSpace(value)).Reverse()) entries.Insert(0, head);
         if (!string.IsNullOrWhiteSpace(optiFine)) entries.Insert(Math.Max(0, entries.Count - 2), optiFine);
         // Flattened loader profiles may repeat vanilla libraries. BootstrapLauncher's union
         // filesystem rejects duplicate paths, even when their Maven coordinates are equal.

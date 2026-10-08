@@ -282,7 +282,7 @@ internal static partial class Program
     private static async ValueTask<(SidecarHostSession Session, SidecarConnection Plugin)> PatchSession(
         XsrFunctionPatchRuntime runtime, SidecarRegistrationItem[] items, bool grant = true,
         XsrFunctionPatchAdmission? admission = null, Func<Stream, Stream>? wrap = null,
-        XsrSignalAdmission? signals = null, XsrUiPatchAdmission? uiPatches = null, XsrUiModuleAdmission? uiModules = null)
+        XsrSignalAdmission? signals = null, XsrUiPatchAdmission? uiPatches = null, XsrUiModuleAdmission? uiModules = null, SidecarFeatures features = SidecarFeatures.None)
     {
         var (hostStream, pluginStream) = SidecarLoopbackStream.CreatePair();
         SidecarConnection plugin = new(pluginStream);
@@ -292,7 +292,7 @@ internal static partial class Program
         {
             var handshake = session.HandshakeAsync(); var hello = await DataPlaneReceiveAsync(plugin);
             await plugin.SendAsync(new(SidecarProtocol.Version, SidecarMessageType.Welcome, SidecarFrameTraits.None,
-                hello.CorrelationId, SidecarHandshake.EncodeWelcome(SidecarProtocol.Version, Guid.NewGuid())));
+                hello.CorrelationId, SidecarHandshake.EncodeWelcome(SidecarProtocol.Version, Guid.NewGuid(), null, features)));
             await handshake;
             var registration = session.AcceptRegistrationAsync();
             await plugin.SendAsync(new(SidecarProtocol.Version, SidecarMessageType.RegisterBegin, SidecarFrameTraits.None,

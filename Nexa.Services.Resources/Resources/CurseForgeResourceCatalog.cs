@@ -3,7 +3,7 @@ using static Nexa.Services.Resources.ResourceProviderHttp;
 
 namespace Nexa.Services.Resources;
 
-public sealed class CurseForgeResourceCatalog(ResourceProviderHttp transport) : IResourceCatalogSource, IResourceFileSource
+public sealed class CurseForgeResourceCatalog(ResourceProviderHttp transport) : IResourceCatalogSource, IResourceFileSource, IResourceChangelogSource
 {
     private static string Loader(string value) => value.ToLowerInvariant() switch { "forge" => "1", "fabric" => "4", "quilt" => "5", "neoforge" => "6", "" or "datapack" => "", _ => "unsupported" };
     public async Task<ResourceSearchResult> SearchAsync(ResourceSearchQuery query, CancellationToken token)
@@ -77,6 +77,16 @@ public sealed class CurseForgeResourceCatalog(ResourceProviderHttp transport) : 
         return new(id, Text(item, "name"), Text(item, "summary"), item.TryGetProperty("authors", out var authors) ? string.Join(", ", authors.EnumerateArray().Take(8).Select(a => Text(a, "name"))) : "", Number(item, "downloadCount"), website.TrimEnd('/'))
         { IsLibrary = item.TryGetProperty("categories", out var categories) && categories.EnumerateArray().Any(c => Number(c, "id") == 421 || Text(c, "slug") == "library-api"), Slug = Text(item, "slug"), Sources = [new(ResourceProvider.CurseForge, id)], IconUrl = ResourceIconService.IsAllowed(icon) ? icon : null };
     }
+    public async Task<ResourceChangelog> ReadChangelogAsync(ResourceChangelogQuery query, CancellationToken token)
+    {
+        if (query.Source.Provider != ResourceProvider.CurseForge || !Id(query.Source.ProjectId) || !Id(query.VersionId)) throw new ArgumentException("更新日志标识无效。");
+        // Read the file first to reject a changelog routed under an unrelated project.
+        _ = await ReadVersionAsync(new(query.Source.Provider, query.Source.ProjectId, query.VersionId, "", query.MirrorFirst), token).ConfigureAwait(false);
+        using var document = await transport.ReadAsync(ResourceProvider.CurseForge, $"mods/{query.Source.ProjectId}/files/{query.VersionId}/changelog", query.MirrorFirst, token).ConfigureAwait(false);
+        string value = document.RootElement.TryGetProperty("data", out var log) && log.ValueKind == JsonValueKind.String ? log.GetString() ?? "" : "";
+        return new(value[..Math.Min(value.Length, 65536)]);
+    }
+
     private static string Filters(string game, string loader) => (game.Length == 0 ? "" : "&gameVersion=" + Uri.EscapeDataString(game)) + (loader.Length == 0 ? "" : "&modLoaderType=" + loader);
     private static bool Id(string id) => id.Length is > 0 and < 20 && id.All(char.IsAsciiDigit);
     private static void Validate(string value, int max) { if (value.Length > max || value.Any(char.IsControl)) throw new ArgumentException("筛选条件无效。"); }

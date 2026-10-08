@@ -33,7 +33,7 @@ public static class InstanceManagementService
                     if (contents[i].PageId == "mods")
                         contents[i] = await InstanceModUpdates.CheckAsync(InstanceModUpdates.SharedHttp, contents[i], Path.Combine(gameDirectory, "mods"), edit.GameVersion, edit.Selection, token).ConfigureAwait(false);
             }
-            return new InstanceManagementSnapshot(instance, gameDirectory, edit.GameVersion, edit.Selection,
+            var result = new InstanceManagementSnapshot(instance, gameDirectory, edit.GameVersion, edit.Selection,
                 pages, inventory.Complete, metadata.ModpackVersion)
             {
                 Description = metadata.Description,
@@ -42,6 +42,7 @@ public static class InstanceManagementService
                 RecoveryStorage = query.IncludeRecoveryStorage ? await InstanceRecoveryStorageReader.ReadAsync(instance, gameDirectory, token).ConfigureAwait(false) : null,
                 Contents = contents.AsReadOnly(),
             };
+            return result with { ContentUpdates = query.IncludeTrash ? InstanceContentUpdateTransaction.Read(result) : [] };
         }, token);
 
     private static LaunchModInventory GraphInventory(LaunchModInventory inventory, IReadOnlyList<InstanceContentSnapshot> contents)
@@ -82,8 +83,9 @@ public static class InstanceManagementService
                     Enabled = page.Id == "mods" && item is FileInfo ? InstanceContentService.ModEnabled(item.Name) : null,
                 });
             }
-            return new(page.Id, Array.AsReadOnly(entries.OrderByDescending(item => item.IsDirectory)
-                .ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToArray()), complete, null);
+            var ordered = page.Id == "screenshots" ? entries.OrderByDescending(item => item.ModifiedUtcTicks).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                : entries.OrderByDescending(item => item.IsDirectory).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase);
+            return new(page.Id, Array.AsReadOnly(ordered.ToArray()), complete, null);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         { return new(page.Id, [], false, "无法读取此目录，请检查访问权限后重试。"); }
@@ -109,7 +111,7 @@ public static class InstanceManagementService
         if (schematics) pages.Add(new("schematics", "蓝图", Path.Combine(gameDirectory, "schematics")));
         pages.AddRange([new("saves", "存档", Path.Combine(gameDirectory, "saves")),
             new("screenshots", "截图", Path.Combine(gameDirectory, "screenshots")),
-            new("servers", "服务器"), new("modpack", "整合包与导出"), new("trash", "已移除内容")]);
+            new("servers", "服务器"), new("files", "文件工作区"), new("diagnostics", "实例诊断"), new("modpack", "整合包与导出"), new("trash", "已移除内容")]);
         return pages.AsReadOnly();
     }
 }

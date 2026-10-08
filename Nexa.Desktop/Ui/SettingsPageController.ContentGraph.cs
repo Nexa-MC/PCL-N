@@ -90,7 +90,7 @@ internal sealed partial class SettingsPageController
         foreach (var edge in node.Dependencies)
         {
             var row = Stack(_graphBody, "GraphDependency", XsrUiOrientation.Horizontal, 8);
-            ContentName(row, edge.Id + " " + edge.Requirement + " · " + DependencyLabel(edge.State), 12, null, 0);
+            ContentName(row, edge.Id + " " + edge.Requirement + " · " + _shell.Renderer.LocalizeText(DependencyLabel(edge.State)), 12, null, 0);
             foreach (int provider in edge.Providers.Take(8))
             {
                 int key = _graphIdentity!.Nodes[provider].Key;

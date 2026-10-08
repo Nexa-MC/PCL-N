@@ -205,9 +205,6 @@ internal sealed partial class LaunchPageController
     }
 
 
-    private XsrUiEntityId BuildPlaceholderPage() => LoadVersionSubpage("placeholder-page", "此功能");
-
-
     private static string ReadEmbeddedResource(string suffix)
     {
         System.Reflection.Assembly assembly = typeof(LaunchPageController).Assembly;

@@ -116,6 +116,7 @@ internal sealed partial class SettingsPageController
         if (_machine is not null)
         {
             BuildPreflightCard();
+            BuildHardwareAdvice();
             // Real facts only: definitions with no wired provider are registry placeholders
             // (they rendered as endless 尚未接入检测提供方 rows), and remediation-style
             // Action definitions are operations, not observations.

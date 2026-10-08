@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import tarfile
 from pathlib import Path
+from macos_bundle import bundle_info
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -87,11 +88,7 @@ def macos(payload, output, work, base, version, prefix, arch):
                 "--out", iconset / f"icon_{size}x{size}{suffix}.png", stdout=subprocess.DEVNULL)
     run("iconutil", "-c", "icns", iconset, "-o", resources / "Launcher.icns")
     with (contents / "Info.plist").open("wb") as stream:
-        plistlib.dump(dict(CFBundleName="NexaCL", CFBundleDisplayName="NexaCL", CFBundleIdentifier="org.nexacl.launcher",
-                          CFBundleExecutable="Nexa.Desktop", CFBundlePackageType="APPL", CFBundleIconFile="Launcher.icns",
-                          CFBundleShortVersionString=prefix, CFBundleVersion=prefix, NexaProductVersion=version,
-                          CFBundleURLTypes=[dict(CFBundleURLName="org.nexacl.launcher", CFBundleURLSchemes=["nexacl"])],
-                          NSHighResolutionCapable=True, LSMinimumSystemVersion="12.0"), stream)
+        plistlib.dump(bundle_info(version, prefix), stream)
     # Ad-hoc signing seals the complete bundle, including all NativeAOT/Skia libraries.
     run("codesign", "--force", "--deep", "--sign", "-", app)
     run("codesign", "--verify", "--deep", "--strict", app)

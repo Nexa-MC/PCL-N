@@ -74,9 +74,9 @@ internal static partial class Program
             return ValueTask.FromResult(XsrResult.Success(new ResourceDetail(project, "MIT", [new ResourceVersion("File", "Version", "1", "正式版", [], [], "", "https://modrinth.com/project/Project")
             { Provider = ResourceProvider.CurseForge, ProjectId = "123", File = new("mod.jar", "https://edge.forgecdn.net/files/mod.jar", 3, null, null) }])));
         });
-        ResourceDownloadCommand? downloaded = null;
+        ResourceDownloadCommand? downloaded = null; int downloadCalls = 0;
         var commands = new XsrCommandRouterBuilder();
-        commands.Register<ResourceDownloadCommand>(ResourceCatalogContract.Download, (command, token) => { downloaded = command; return ValueTask.FromResult(XsrResult.Success()); });
+        commands.Register<ResourceDownloadCommand>(ResourceCatalogContract.Download, (command, token) => { downloadCalls++; downloaded = command; return ValueTask.FromResult(XsrResult.Success()); });
         using var page = new ResourcesPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()), fixture.Store, _ => throw new InvalidOperationException("Download must use the command route."));
         page.ConfigureDownloads(commands.Build(new NoopDispatchObserver()), () => Task.FromResult<string?>("chosen-folder"), feedback);
         fixture.Shell.Stage.Navigation.Replace(page.Page); fixture.Shell.Renderer.ReducedMotion = true;
@@ -86,11 +86,13 @@ internal static partial class Program
         AssertTrue(scene.Nodes.Any(node => node.Text == "中文简介"));
         Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDetails.Project"));
         fixture.Shell.Render(new(760, 500)); AssertEqual(2, detailQuery!.Sources.Count);
+        // The first detail action must survive retirement of list-only plugin sources.
         Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDownload.File"));
         fixture.Shell.Render(new(760, 500));
         AssertTrue(SpinWait.SpinUntil(() => downloaded is not null, TimeSpan.FromSeconds(3)));
         AssertEqual(ResourceProvider.CurseForge, downloaded!.Provider); AssertEqual("123", downloaded.ProjectId);
         AssertEqual("File", downloaded.VersionId); AssertEqual("chosen-folder", downloaded.DestinationDirectory);
+        AssertEqual(1, downloadCalls);
     }
 
     private static void ResourceIconsArriveWithoutRebuildingSearchOrRows()
@@ -211,6 +213,7 @@ internal static partial class Program
     private static void ResourcesPageUsesServiceQueriesAndPreservesSearch()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        var launchPage = fixture.Shell.Stage.Navigation.Current;
         var source = new ResourceSource();
         using var runtime = ResourceCatalogRuntimeComposer.Compose(source);
         List<Uri> opened = [];
@@ -248,6 +251,7 @@ internal static partial class Program
         Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDetails.Valid123"));
         scene = fixture.Shell.Render(new(1000, 650));
         AssertEqual(page.DetailPage, fixture.Shell.Stage.Navigation.Current);
+        // Preserve this immediate detail-page click rather than adding a settling frame.
         Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDownload.V1"));
         fixture.Shell.Render(new(1000, 650));
         AssertEqual("https://modrinth.com/project/Valid123/version/V1", opened.Single().AbsoluteUri);
@@ -257,6 +261,20 @@ internal static partial class Program
         AssertTrue(FindByKey(fixture.Shell, scene, "ResourceList").Rect.Width > 500);
         var searchBounds = FindByKey(fixture.Shell, scene, "ResourceSearch").Rect;
         AssertTrue(searchBounds.Width >= 100);
+        Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDetails.Valid123"));
+        fixture.Shell.Render(new(1000, 650));
+        fixture.Shell.Render(new(1000, 650)); // List module source is already retired.
+        Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceDownload.V1"));
+        Emit(fixture.Intents, "ui.navigation.launch");
+        fixture.Shell.Render(new(1000, 650));
+        AssertEqual(launchPage, fixture.Shell.Stage.Navigation.Current);
+        AssertEqual(1, opened.Count); // A queued ordinary detail action also retires off both pages.
+        Emit(fixture.Intents, "ui.navigation.community");
+        scene = fixture.Shell.Render(new(1000, 650));
+        AssertEqual(page.Page, fixture.Shell.Stage.Navigation.Current);
+        AssertEqual(1, opened.Count);
+        AssertEqual(input, FindByKey(fixture.Shell, scene, "ResourceSearch").Entity);
+        AssertEqual("Sodium", fixture.Shell.Tree.GetComponent<XsrUiTextInput>(input)!.ReadDraft());
     }
 
     private sealed class ResourceSource : IResourceCatalogSource

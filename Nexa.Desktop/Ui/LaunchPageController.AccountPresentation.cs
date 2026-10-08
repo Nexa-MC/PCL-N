@@ -216,21 +216,6 @@ internal sealed partial class LaunchPageController
     }
 
 
-    private void ShowPlaceholder(bool settings = false)
-    {
-        ClearSubpageHistory();
-        if (settings && SettingsPage.IsAssigned)
-        {
-            _shell.Stage.Navigation.Replace(SettingsPage);
-            return;
-        }
-        if (!_shell.Stage.Navigation.Current.Equals(_placeholderPage))
-        {
-            _shell.Stage.Navigation.Replace(_placeholderPage);
-        }
-    }
-
-
     private void NavigateToDownload()
     {
         _ = _shell.Select(DownloadNavigationId);

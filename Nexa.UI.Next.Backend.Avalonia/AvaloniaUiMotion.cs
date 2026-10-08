@@ -11,7 +11,7 @@ namespace Nexa.UI.Next.Backend.Avalonia;
 /// use a critically damped spring carrying velocity across retargets. The renderer-side animator cannot be used here
 /// because native window affordances and transform properties are outside the UI.Next tree.
 /// </summary>
-internal static class AvaloniaUiMotion
+internal static partial class AvaloniaUiMotion
 {
     public static readonly Func<double, double> EaseOut = progress => 1 - Math.Pow(1 - progress, 3);
 
@@ -209,6 +209,7 @@ internal static class AvaloniaUiMotion
         List<(object Owner, object Value)> finished = [];
         lock (Gate)
         {
+            RecordDiagnosticTick();
             double now = ElapsedMilliseconds();
             foreach (((object owner, object value), Track track) in Active)
             {

@@ -165,6 +165,7 @@ internal static partial class Program
     private static void AccountCapsulesAndWardrobeRoutePreserveGeometry()
     {
         using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]), addProfile: true);
+        using var productPages = new LaunchFixtureNavigationPages(fixture);
         XsrUiShell shell = fixture.Shell;
         XsrUiSize size = new(810, 470);
         XsrUiScene scene = shell.Render(size);

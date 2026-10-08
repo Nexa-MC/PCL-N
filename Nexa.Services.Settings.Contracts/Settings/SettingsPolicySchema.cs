@@ -32,11 +32,13 @@ public sealed record SettingsPolicyDefinition(string Key, SettingsValueKind Kind
             return "Expected a server host with an optional port, without spaces or a URI scheme.";
         if (Key == "game.title" && (raw.Length > 512 || raw.Any(char.IsControl)))
             return "Window title must be at most 512 characters without controls.";
-        if (Key is "game.wrapper" or "game.pre-launch")
+        if (Key is "game.wrapper" or "game.pre-launch" or "game.post-exit" or "game.environment" or "game.classpath-head")
         {
             try
             {
                 if (Key == "game.wrapper") _ = Minecraft.Launch.MinecraftLaunchHooks.ParseWrapper(raw);
+                else if (Key == "game.environment") _ = Minecraft.Launch.MinecraftLaunchHooks.ParseEnvironment(raw);
+                else if (Key == "game.classpath-head") _ = Minecraft.Launch.MinecraftLaunchHooks.ParseClasspathHead(raw);
                 else Minecraft.Launch.MinecraftLaunchHooks.ValidatePreLaunch(raw);
             }
             catch (ArgumentException error) { return error.Message; }
@@ -48,6 +50,29 @@ public sealed record SettingsPolicyDefinition(string Key, SettingsValueKind Kind
             return "Expected a proxy endpoint without credentials, path, query or fragment.";
         if (Key is "network.proxy-user" or "network.proxy-password" && (raw.Length > 1024 || raw.Any(char.IsControl)))
             return "Proxy credentials must be at most 1024 characters without line breaks.";
+        if (Key is "appearance.logo-path" or "appearance.background-path" or "appearance.video-path" or "music.path"
+            && raw.Length > 0 && (raw.Length > 4096 || !Path.IsPathFullyQualified(raw) || raw.Any(char.IsControl)))
+            return "Expected an absolute local media path without control characters.";
+        if (Key == "appearance.background-color" && raw != "auto" &&
+            (raw.Length != 7 || raw[0] != '#' || raw.Skip(1).Any(character => !char.IsAsciiHexDigit(character))))
+            return "Expected auto or a #RRGGBB background color.";
+        if (Key == "appearance.custom-theme" && raw.Length > 0)
+        {
+            if (raw.Length > 4096) return "Custom theme exceeds its text budget.";
+            try
+            {
+                using var theme = System.Text.Json.JsonDocument.Parse(raw);
+                if (theme.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) return "Expected a theme object.";
+                var colors = theme.RootElement.EnumerateObject().ToArray();
+                if (colors.Length != 3 || colors.Select(item => item.Name).Distinct(StringComparer.Ordinal).Count() != 3
+                    || colors.Any(item => item.Name is not ("background" or "foreground" or "accent")
+                        || item.Value.ValueKind != System.Text.Json.JsonValueKind.String
+                        || item.Value.GetString() is not { Length: 7 } value || value[0] != '#'
+                        || value.Skip(1).Any(character => !char.IsAsciiHexDigit(character))))
+                    return "Expected background, foreground and accent as #RRGGBB colors.";
+            }
+            catch (System.Text.Json.JsonException) { return "Custom theme is not valid JSON."; }
+        }
         return Kind switch
         {
             SettingsValueKind.Boolean when raw is not ("true" or "false") => "Expected true or false.",
@@ -76,6 +101,7 @@ public static class SettingsPolicySchema
         new("appearance.animation-fps", SettingsValueKind.Number, "60", false, false, null, SettingsApplyTiming.Immediate, "fps", 1, 240),
         new("appearance.lock-window", SettingsValueKind.Boolean, "false", false, false, "UiLockWindowSize", SettingsApplyTiming.Immediate),
         new("appearance.low-power", SettingsValueKind.Boolean, "false", false, false, "UiUltraLowPowerMode", SettingsApplyTiming.Immediate),
+        new("appearance.hardware-acceleration-disabled", SettingsValueKind.Boolean, "false", false, false, "SystemDisableHardwareAcceleration", SettingsApplyTiming.Restart),
         new("appearance.theme-mode", SettingsValueKind.Enum, "2", false, false, "UiDarkMode", SettingsApplyTiming.Immediate, Choices: "2|0|1"),
         new("appearance.accent", SettingsValueKind.Enum, "blue", false, false, "UiAccentColor", SettingsApplyTiming.Immediate, Choices: "blue|purple|green|orange"),
         new("java.runtime", SettingsValueKind.Path, "", true, true, null, SettingsApplyTiming.NextLaunch, Exportable: false),
@@ -85,6 +111,9 @@ public static class SettingsPolicySchema
         new("java.compatibility", SettingsValueKind.Boolean, "true", true, false, null, SettingsApplyTiming.NextLaunch),
         new("recovery.keep-history", SettingsValueKind.Boolean, "false", true, false, null, SettingsApplyTiming.NextTask, Exportable: false),
         new("game.memory", SettingsValueKind.Number, "2048", true, true, null, SettingsApplyTiming.NextLaunch, "MiB", 256, 1048576),
+        new("game.gpu-preference", SettingsValueKind.Enum, "auto", true, false, null, SettingsApplyTiming.NextLaunch, Choices: "auto|secondary"),
+        new("game.renderer", SettingsValueKind.Enum, "auto", true, false, null, SettingsApplyTiming.NextLaunch, Choices: "auto|mesa-software"),
+        new("game.system-glfw", SettingsValueKind.Boolean, "false", true, false, "LaunchUseSystemGlfw", SettingsApplyTiming.NextLaunch),
         new("game.window-mode", SettingsValueKind.Enum, "windowed", true, false, null, SettingsApplyTiming.NextLaunch, Choices: "windowed|fullscreen"),
         new("game.width", SettingsValueKind.Number, "854", true, false, "LaunchArgumentWindowWidth", SettingsApplyTiming.NextLaunch, "px", 1, 32768),
         new("game.height", SettingsValueKind.Number, "480", true, false, "LaunchArgumentWindowHeight", SettingsApplyTiming.NextLaunch, "px", 1, 32768),
@@ -120,6 +149,51 @@ public static class SettingsPolicySchema
         new("diagnostics.disk-log-days", SettingsValueKind.Number, "7", false, false, null, SettingsApplyTiming.Immediate, "days", 1, 90),
         new("updates.channel", SettingsValueKind.Enum, "build", false, false, null, SettingsApplyTiming.NextTask, Choices: "build|stable|alpha|beta|ci"),
         new("updates.auto-check", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
+        new("game.environment", SettingsValueKind.Text, "", true, false, null, SettingsApplyTiming.NextLaunch, Exportable: false),
+        new("game.classpath-head", SettingsValueKind.Text, "", true, false, null, SettingsApplyTiming.NextLaunch, Exportable: false),
+        new("game.post-exit", SettingsValueKind.Text, "", true, false, null, SettingsApplyTiming.NextLaunch, Exportable: false),
+        new("game.safe-launch", SettingsValueKind.Boolean, "false", true, false, null, SettingsApplyTiming.NextLaunch),
+        new("general.autostart", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
+        new("general.file-association", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
+        new("general.native-notifications", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.Immediate),
+        new("general.clipboard-detection", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
+        new("appearance.window-opacity", SettingsValueKind.Number, "100", false, false, null, SettingsApplyTiming.Immediate, "%", 40, 100),
+        new("appearance.window-blur", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
+        new("network.provider-modrinth", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
+        new("network.provider-curseforge", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
+        new("network.provider-official", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
+        new("network.provider-mirror", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
+        new("network.trace", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.NextTask),
+        new("network.auto-diagnose", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.NextTask),
+        new("appearance.custom-theme", SettingsValueKind.Text, "", false, false, null, SettingsApplyTiming.Immediate),
+        new("appearance.logo-path", SettingsValueKind.Text, "", false, false, null, SettingsApplyTiming.Immediate, Exportable: false),
+        new("appearance.background-path", SettingsValueKind.Text, "", false, false, null, SettingsApplyTiming.Immediate, Exportable: false),
+        new("appearance.background-fit", SettingsValueKind.Enum, "cover", false, false, null, SettingsApplyTiming.Immediate, Choices: "cover|contain|stretch"),
+        new("appearance.background-color", SettingsValueKind.Text, "auto", false, false, null, SettingsApplyTiming.Immediate),
+        new("appearance.reduced-motion", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
+        new("appearance.background-opacity", SettingsValueKind.Number, "100", false, false, null, SettingsApplyTiming.Immediate, "%", 0, 100),
+        new("appearance.video-path", SettingsValueKind.Text, "", false, false, null, SettingsApplyTiming.Immediate, Exportable: false),
+        new("appearance.video-auto-pause", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.Immediate),
+        new("music.enabled", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
+        new("music.path", SettingsValueKind.Text, "", false, false, null, SettingsApplyTiming.Immediate, Exportable: false),
+        new("music.startup", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Restart),
+        new("music.autoplay", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.Immediate),
+        new("music.shuffle", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
+        new("music.volume", SettingsValueKind.Number, "50", false, false, null, SettingsApplyTiming.Immediate, "%", 0, 100),
+        new("music.media-controls", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.Immediate),
+        new("general.jump-list", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.Immediate),
+        new("general.notification-actions", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.Immediate),
+        new("general.startup-page", SettingsValueKind.Enum, "launch", false, false, null, SettingsApplyTiming.NextLaunch,
+            Choices: "launch|install|resources|settings|java|storage|about|tasks"),
+        new("general.launch-hints", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.Immediate),
+        new("network.auto-install-dependencies", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
+        new("network.resource-source", SettingsValueKind.Enum, "follow-request", false, false, null, SettingsApplyTiming.NextTask,
+            Choices: "follow-request|official-first|mirrors-first"),
+        new("music.auto-pause", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.Immediate),
+        new("network.background-download", SettingsValueKind.Boolean, "true", false, false, null, SettingsApplyTiming.NextTask),
+        new("diagnostics.ai.enabled", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
+        new("diagnostics.ai.reasoning", SettingsValueKind.Enum, "provider", false, false, null, SettingsApplyTiming.Immediate, Choices: "provider|low|medium|high"),
+        new("storage.backup-keep-count", SettingsValueKind.Number, "32", false, false, null, SettingsApplyTiming.Immediate, "backups", 1, 1024),
         new("developer.enabled", SettingsValueKind.Boolean, "false", false, false, null, SettingsApplyTiming.Immediate),
     ]);
     public static FrozenDictionary<string, SettingsPolicyDefinition> ByKey { get; } = Definitions.ToFrozenDictionary(item => item.Key, StringComparer.Ordinal);
@@ -150,15 +224,30 @@ public sealed record SettingsEffectiveValue(string Key, SettingsOverride Value, 
         }
     }
 }
-public sealed record SettingsEffectiveSnapshot(long Revision, IReadOnlyList<SettingsEffectiveValue> Values);
-public sealed record SettingsMutation(string Key, SettingsLayer Layer, SettingsOverride Value, string? InstanceId = null);
-public sealed record SettingsEffectiveQuery(string? InstanceId = null);
+public sealed record SettingsEffectiveSnapshot(long Revision, IReadOnlyList<SettingsEffectiveValue> Values)
+{
+    public Minecraft.Launch.MinecraftLaunchOverlay Overlay { get; init; } = new();
+}
+public sealed record SettingsMutation(string Key, SettingsLayer Layer, SettingsOverride Value, string? InstanceId = null)
+{
+    public string? ProfileId { get; init; }
+    public string? TemporaryId { get; init; }
+}
+public sealed record SettingsEffectiveQuery(string? InstanceId = null)
+{
+    public string? ProfileId { get; init; }
+    public string? TemporaryId { get; init; }
+}
 public sealed record SettingsImportQuery(string Document, string? InstanceId = null);
 public sealed record SettingsImportPreview(long Revision, IReadOnlyList<SettingsMutation> Changes, IReadOnlyList<string> Errors);
 public sealed record SettingsImportCommand(string Document, long ExpectedRevision, string? InstanceId = null);
 public sealed record SettingsExportQuery(string? InstanceId = null);
 public sealed record SettingsBatchCommand(IReadOnlyList<SettingsMutation> Changes, long ExpectedRevision);
-public sealed record SettingsPreviewQuery(IReadOnlyList<SettingsMutation> Changes, string? InstanceId = null);
+public sealed record SettingsPreviewQuery(IReadOnlyList<SettingsMutation> Changes, string? InstanceId = null)
+{
+    public string? ProfileId { get; init; }
+    public string? TemporaryId { get; init; }
+}
 public sealed record SettingsResetQuery(string? InstanceId = null);
 public sealed record SettingsResetPreview(long Revision, IReadOnlyList<SettingsMutation> Changes, IReadOnlyList<string> Errors);
 public sealed record SettingsResetCommand(long ExpectedRevision, string? InstanceId = null);

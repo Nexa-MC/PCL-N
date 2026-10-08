@@ -7,7 +7,7 @@ namespace Nexa.Xsr.Runtime;
 
 public enum XsrFunctionPatchPhase : byte { Head = 1, Args = 2, Tail = 3, Return = 4, Replace = 5 }
 
-/// <summary>An instance-owned, numeric host point with a synchronous string-to-string ABI.</summary>
+/// <summary>An instance-owned numeric host point with an explicit bounded primitive shape.</summary>
 public sealed class XsrFunctionPatchPoint
 {
     internal XsrFunctionPatchPoint(XsrFunctionPatchRuntime owner, int index, long callId, XsrSemanticId semanticId)
@@ -16,6 +16,7 @@ public sealed class XsrFunctionPatchPoint
     internal int Index { get; }
     internal long CallId { get; }
     public XsrSemanticId SemanticId { get; }
+    public XsrFunctionShape Shape { get; internal set; } = XsrFunctionShape.String;
 }
 
 /// <summary>Copied host capability grant. A signed Sidecar does not create its own grant.</summary>
@@ -37,7 +38,8 @@ public sealed class XsrFunctionPatchAdmission
             if (entry.Kind != SidecarRegistrationKind.FunctionPatch) continue;
             if (!_allowed.Contains(entry.Target) || entry.Flags != 0)
                 throw new SidecarProtocolException("Function patch target or flags are not granted by the host.");
-            result.Add(new(Runtime.Resolve(entry.Target), XsrFunctionPatchProgram.Decode(entry.Payload.Span)));
+            var point = Runtime.Resolve(entry.Target);
+            result.Add(new(point, XsrFunctionPatchProgram.Decode(entry.Payload.Span, point.Shape)));
             if (result.Count > 256) throw new SidecarProtocolException("Session function patch program budget exceeded.");
         }
         if (result.GroupBy(p => p.Point.Index).Any(group => group.Count() > 32))
@@ -47,7 +49,7 @@ public sealed class XsrFunctionPatchAdmission
 }
 
 /// <summary>Local bounded interpreter. Registration and retirement never add hot-path IPC.</summary>
-public sealed class XsrFunctionPatchRuntime
+public sealed partial class XsrFunctionPatchRuntime
 {
     public const int MaximumStringCharacters = 2048;
     private readonly object _gate = new();
@@ -58,15 +60,21 @@ public sealed class XsrFunctionPatchRuntime
     [ThreadStatic] private static long[]? _calls;
     [ThreadStatic] private static int _depth;
 
-    public XsrFunctionPatchRuntime(params XsrSemanticId[] targets)
+    public XsrFunctionPatchRuntime(params XsrSemanticId[] targets) : this((targets ?? throw new ArgumentNullException(nameof(targets))).Select(id => new XsrFunctionTarget(id, XsrFunctionShape.String)).ToArray()) { }
+
+    public XsrFunctionPatchRuntime(XsrFunctionTarget first, params XsrFunctionTarget[] remaining) : this(new[] { first }.Concat(remaining).ToArray()) { }
+
+    private XsrFunctionPatchRuntime(XsrFunctionTarget[] targets)
     {
         ArgumentNullException.ThrowIfNull(targets);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(targets.Length, 256);
         _table = new XsrActiveFunctionPatch[targets.Length][];
         for (int i = 0; i < targets.Length; i++)
         {
-            _ = XsrSemanticId.Parse(targets[i].Value);
-            _points.Add(targets[i], new(this, i, Interlocked.Increment(ref _nextCallId), targets[i]));
+            ArgumentNullException.ThrowIfNull(targets[i]);
+            ArgumentNullException.ThrowIfNull(targets[i].Shape);
+            _ = XsrSemanticId.Parse(targets[i].Target.Value);
+            _points.Add(targets[i].Target, new(this, i, Interlocked.Increment(ref _nextCallId), targets[i].Target) { Shape = targets[i].Shape });
             _table[i] = [];
         }
     }
@@ -81,6 +89,7 @@ public sealed class XsrFunctionPatchRuntime
         ArgumentNullException.ThrowIfNull(argument);
         ArgumentNullException.ThrowIfNull(original);
         if (point.Owner != this) throw new ArgumentException("Point belongs to another runtime.", nameof(point));
+        if (!point.Shape.IsString) throw new ArgumentException("Point has a different function shape.", nameof(point));
         cancellationToken.ThrowIfCancellationRequested();
         var programs = Volatile.Read(ref _table)[point.Index];
         if (programs.Length == 0 || argument.Length > MaximumStringCharacters || _depth == 32)
@@ -103,6 +112,20 @@ public sealed class XsrFunctionPatchRuntime
             RunPhase(XsrFunctionPatchPhase.Return);
             return result;
 
+            bool RunTyped(XsrActiveFunctionPatch active, ref string argumentValue, ref string resultValue, ref bool skipValue)
+            {
+                if (argumentValue.Length > MaximumStringCharacters || resultValue.Length > MaximumStringCharacters) return false;
+                var values = ArrayPool<XsrFunctionValue>.Shared.Rent(8);
+                try
+                {
+                    values[0] = XsrFunctionValue.From(argumentValue);
+                    var typedResult = XsrFunctionValue.From(resultValue);
+                    if (!active.RunTyped(values, ref typedResult, ref skipValue, ref budget, cancellationToken)) return false;
+                    argumentValue = values[0].AsString(); resultValue = typedResult.AsString(); return true;
+                }
+                finally { ArrayPool<XsrFunctionValue>.Shared.Return(values, true); }
+            }
+
             void RunPhase(XsrFunctionPatchPhase phase)
             {
                 foreach (var active in programs)
@@ -111,7 +134,9 @@ public sealed class XsrFunctionPatchRuntime
                     if (phase == XsrFunctionPatchPhase.Replace && skip) break;
                     string nextArgument = argument, nextResult = result;
                     bool nextSkip = skip;
-                    if (active.Run(ref nextArgument, ref nextResult, ref nextSkip, ref budget, cancellationToken))
+                    if (active.Program.Typed is not null
+                        ? RunTyped(active, ref nextArgument, ref nextResult, ref nextSkip)
+                        : active.Run(ref nextArgument, ref nextResult, ref nextSkip, ref budget, cancellationToken))
                     { argument = nextArgument; result = nextResult; skip = nextSkip; }
                 }
             }
@@ -165,13 +190,16 @@ internal sealed class XsrFunctionPatchLease(XsrFunctionPatchRuntime owner) : IDi
 internal sealed record XsrPreparedFunctionPatch(XsrFunctionPatchPoint Point, XsrFunctionPatchProgram Program);
 internal readonly record struct XsrPatchInstruction(byte Opcode, string? Constant = null);
 
-internal sealed class XsrFunctionPatchProgram(XsrFunctionPatchPhase phase, XsrPatchInstruction[] instructions)
+internal sealed partial class XsrFunctionPatchProgram(XsrFunctionPatchPhase phase, XsrPatchInstruction[] instructions)
 {
     public XsrFunctionPatchPhase Phase { get; } = phase;
     public XsrPatchInstruction[] Instructions { get; } = instructions;
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
-    public static XsrFunctionPatchProgram Decode(ReadOnlySpan<byte> bytes)
+    public static XsrFunctionPatchProgram Decode(ReadOnlySpan<byte> bytes, XsrFunctionShape? shape = null)
     {
+        shape ??= XsrFunctionShape.String;
+        if (bytes.Length >= 4 && bytes[..4].SequenceEqual("NFP2"u8)) return DecodeTyped(bytes, shape);
+        if (!shape.IsString) throw Invalid();
         if (bytes.Length is < 9 or > 8192 || !bytes[..4].SequenceEqual("NFP1"u8) || bytes[4] != 1
             || !Enum.IsDefined((XsrFunctionPatchPhase)bytes[5])) throw Invalid();
         var phase = (XsrFunctionPatchPhase)bytes[5];
@@ -222,7 +250,7 @@ internal sealed class XsrFunctionPatchProgram(XsrFunctionPatchPhase phase, XsrPa
     private static SidecarProtocolException Invalid() => new("Invalid bounded function patch program.");
 }
 
-internal sealed class XsrActiveFunctionPatch(XsrFunctionPatchLease lease, XsrFunctionPatchProgram program)
+internal sealed partial class XsrActiveFunctionPatch(XsrFunctionPatchLease lease, XsrFunctionPatchProgram program)
 {
     private int _faulted;
     public XsrFunctionPatchLease Lease { get; } = lease;

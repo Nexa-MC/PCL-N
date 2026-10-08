@@ -109,7 +109,8 @@ public static class MinecraftRuntimeComposer
         string? launcherVersion = null,
         IMinecraftWindowProbe? windowProbe = null,
         Action<int>? gameWindowAppeared = null,
-        string? jvmHostExecutable = null)
+        string? jvmHostExecutable = null,
+        MinecraftLaunchPlanDiagnostics? launchDiagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentException.ThrowIfNullOrWhiteSpace(minecraftRootDirectory);
@@ -132,12 +133,14 @@ public static class MinecraftRuntimeComposer
         IJavaRuntimeLocator locator = javaLocator ?? (javaRuntimeRootDirectory is null ? host.JavaLocator : new LocalJavaRuntimeLocator(runtimeRoot, host.Logging)
         { RegisteredRuntimes = () => host.JavaRegistrations.Read().Registrations });
         IJavaRuntimeInstaller installer;
+        IJavaRuntimeMetadataProvider? manualJavaMetadata = null;
         if (javaInstaller is null)
         {
             HttpClient javaMetadataHttp = host.CreateHttpClient();
             javaMetadataHttp.Timeout = TimeSpan.FromMinutes(2);
             javaMetadataHttp.DefaultRequestHeaders.UserAgent.ParseAdd("NexaCL/2.0");
             HttpJavaRuntimeMetadataProvider metadata = new(javaMetadataHttp, ownsClient: true);
+            manualJavaMetadata = metadata;
             HttpClient javaDownloadHttp = host.CreateHttpClient();
             javaDownloadHttp.Timeout = TimeSpan.FromMinutes(10);
             JavaRuntimeInstaller concreteInstaller = new(new JavaRuntimeDownloadPlanService(metadata), javaDownloadHttp,
@@ -160,7 +163,12 @@ public static class MinecraftRuntimeComposer
         owned.Add(authlib);
         MinecraftLaunchExecutor executor = new(new JvmHostService(processService, host.ObservationHistory,
             new Nexa.Services.Minecraft.Management.InstanceRecoveryService(host.SettingsPolicy, host.StateStore, host.Logging)
-            { WorkScheduler = host.Work }), host.Logging);
+            { WorkScheduler = host.Work })
+        { Log = host.Logging }, host.Logging)
+        {
+            ProcessIdentity = Nexa.Platform.PlatformProcessIdentityFactory.Create(),
+            Diagnostics = launchDiagnostics,
+        };
         // The legacy 补全文件 step: the launch pipeline repairs missing files before the JVM
         // starts, sharing the foundation download engine with installs.
         HttpClient completionHttp = host.CreateHttpClient();
@@ -224,6 +232,10 @@ public static class MinecraftRuntimeComposer
         queryBuilder.Register(MinecraftRouteIds.CrashAnalyze, MinecraftQueries.CreateCrashHandler());
         queryBuilder.Register<MinecraftProcessOutputQuery, MinecraftProcessOutputSnapshot>(MinecraftProcessOutputContract.Query,
             (query, token) => processService.ReadOutputAsync(query.SessionId, token));
+        MinecraftSafeLaunchSessionRuntime.Register(commandBuilder, queryBuilder, coordinator);
+        if (manualJavaMetadata is not null && installer is IConfirmedJavaRuntimeInstaller confirmedInstaller)
+            owned.Add(JavaManualDownloadRuntime.Register(queryBuilder, commandBuilder, manualJavaMetadata,
+                confirmedInstaller, locator, host.JavaRegistrations, runtimeRoot));
         return new MinecraftRuntime(
             versionDiscovery,
             instanceDiscovery,

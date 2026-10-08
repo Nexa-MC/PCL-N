@@ -20,3 +20,10 @@ public interface IJavaRuntimeInstaller
         IProgress<JavaRuntimeInstallProgress>? progress = null,
         CancellationToken cancellationToken = default);
 }
+
+/// <summary>Revalidates a reviewed plan before acquiring or publishing any runtime files.</summary>
+public interface IConfirmedJavaRuntimeInstaller : IJavaRuntimeInstaller
+{
+    Task<string> InstallConfirmedAsync(string component, string runtimeRootDirectory, string expectedPlanFingerprint,
+        IProgress<JavaRuntimeInstallProgress>? progress = null, CancellationToken cancellationToken = default);
+}

@@ -18,6 +18,27 @@ internal static partial class Program
         AssertTrue(summary.Contains("删除 1 项模组"));
         AssertTrue(summary.Contains("修改 1 项配置"));
         AssertTrue(summary.Contains("尚未确定为崩溃原因"));
+        var translatedSources = new List<string>();
+        string LocalizeRecovery(string source)
+        {
+            translatedSources.Add(source);
+            return source switch
+            {
+                "{0} {1} 项{2}" => "{0} {1} {2}",
+                "删除" => "Removed",
+                "修改" => "Modified",
+                "模组" => "mods",
+                _ => source
+            };
+        }
+        string translatedSummary = RecoveryExplanation.Summary([
+            new(InstanceRecoveryChangeKind.Removed, "模组", "模组"),
+            new(InstanceRecoveryChangeKind.Modified, "config/模组.json", "private/path")], LocalizeRecovery);
+        AssertTrue(translatedSummary.Contains("Removed 1 mods"));
+        AssertTrue(translatedSummary.Contains("Removed · 模组"));
+        AssertTrue(translatedSummary.Contains("Modified 1 config/模组.json"));
+        AssertFalse(translatedSources.Contains("config/模组.json"));
+        AssertFalse(translatedSources.Contains("private/path"));
         AssertFalse(RecoveryExplanation.Display("file\nforged\r\t").Contains('\n'));
         AssertEqual(300, RecoveryExplanation.Display(new string('x', 1000)).Length);
         using var fixture = ComposeLaunchOverlayFixture(new RecordingStartRoute());

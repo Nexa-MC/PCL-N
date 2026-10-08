@@ -176,7 +176,7 @@ internal sealed partial class SettingsPageController
         // Status completion runs before the intent loop. Keep a clicked source alive until
         // that loop consumes it; an unrelated asynchronous fact refresh must not drop input.
         if (_storageRebuildPending && _catalog is not null && _instanceDirectory is null && _selected == "storage"
-            && !_pending.Any(intent => IsStoragePreferencesIntent(intent.Command))) BuildSections();
+            && _pending.IsEmpty) BuildSections();
     }
 
     private void CancelStoragePreferences()

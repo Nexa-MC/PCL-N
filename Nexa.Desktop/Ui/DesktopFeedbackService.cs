@@ -24,7 +24,8 @@ internal sealed record DesktopDialog(
     string? CancelLabel,
     Action<bool> Resolve,
     string? AlternateLabel = null,
-    Action? Alternate = null);
+    Action? Alternate = null,
+    bool LocalizeMessage = true);
 
 /// <summary>Thread-safe point-in-time feedback state consumed at the render boundary.</summary>
 internal sealed record DesktopFeedbackSnapshot(
@@ -182,7 +183,8 @@ internal sealed class DesktopFeedbackService : IDisposable
         string cancelLabel,
         Action<bool> resolve,
         string? alternateLabel = null,
-        Action? alternate = null)
+        Action? alternate = null,
+        bool localizeMessage = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -191,7 +193,7 @@ internal sealed class DesktopFeedbackService : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(cancelLabel);
         ArgumentNullException.ThrowIfNull(resolve);
 
-        return ShowDialogCore(key, title, message, acceptLabel, cancelLabel, resolve, alternateLabel, alternate);
+        return ShowDialogCore(key, title, message, acceptLabel, cancelLabel, resolve, alternateLabel, alternate, localizeMessage);
     }
 
     /// <summary>Shows an informational dialog with one explicit acknowledgement action.</summary>
@@ -199,13 +201,14 @@ internal sealed class DesktopFeedbackService : IDisposable
         string key,
         string title,
         string message,
-        string acceptLabel = "OK")
+        string acceptLabel = "OK",
+        bool localizeMessage = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         ArgumentException.ThrowIfNullOrWhiteSpace(acceptLabel);
-        return ShowDialogCore(key, title, message, acceptLabel, cancelLabel: null, static _ => { });
+        return ShowDialogCore(key, title, message, acceptLabel, cancelLabel: null, static _ => { }, localizeMessage: localizeMessage);
     }
 
     /// <summary>Queues analysis at the next idle modal slot without cancelling another decision.</summary>
@@ -249,7 +252,8 @@ internal sealed class DesktopFeedbackService : IDisposable
         string? cancelLabel,
         Action<bool> resolve,
         string? alternateLabel = null,
-        Action? alternate = null)
+        Action? alternate = null,
+        bool localizeMessage = true)
     {
 
         DesktopDialog? replaced = null;
@@ -270,7 +274,7 @@ internal sealed class DesktopFeedbackService : IDisposable
                 id = Guid.NewGuid();
             }
 
-            _dialog = new DesktopDialog(id, key, title, message, acceptLabel, cancelLabel, resolve, alternateLabel, alternate);
+            _dialog = new DesktopDialog(id, key, title, message, acceptLabel, cancelLabel, resolve, alternateLabel, alternate, localizeMessage);
         }
 
         replaced?.Resolve(false);

@@ -82,7 +82,7 @@ internal sealed partial class SettingsPageController : IDisposable
     private void OnIntent(object? sender, DesktopUiIntentEventArgs args)
     {
         if (_shell.Stage.Navigation.Current != Page) return;
-        if (IsDeveloperDiagnosticsIntent(args.Intent.Command) || IsHookIntent(args.Intent.Command) || IsProxyIntent(args.Intent.Command) || IsStoragePreferencesIntent(args.Intent.Command) || IsJavaInventoryIntent(args.Intent.Command) || IsSettingsTransferIntent(args.Intent.Command) || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
+        if (IsRuntimeTraceIntent(args.Intent.Command) || IsRuntimeDiagnosticsIntent(args.Intent.Command) || args.Intent.Command == IdentityAction || args.Intent.Command == NetworkProbeStart || args.Intent.Command == NetworkTraceRefresh || args.Intent.Command == ContentWorkspaceAction || args.Intent.Command == LaunchProfileAction || IsDeveloperDiagnosticsIntent(args.Intent.Command) || IsHookIntent(args.Intent.Command) || IsProxyIntent(args.Intent.Command) || IsStoragePreferencesIntent(args.Intent.Command) || IsJavaInventoryIntent(args.Intent.Command) || IsSettingsTransferIntent(args.Intent.Command) || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
         else if (args.Intent.Command == RemediationExecuted) OnPlatformRemediation(sender, args);
     }
     private void OnFrame(object? sender, EventArgs args)
@@ -95,33 +95,44 @@ internal sealed partial class SettingsPageController : IDisposable
             if (visible) { _previousContentPadding = content.Padding; content.Padding = default; }
             else
             {
-                content.Padding = _previousContentPadding; CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences();
+                CancelContentIntegrity();
+                content.Padding = _previousContentPadding; CancelIdentityRead(); CancelManagementRead(); CancelOfflineReadiness(); CancelWorldSnapshots(); CancelOnlineContent(); CancelModRemovalPreview(); CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences(); CancelContentWorkspace();
                 ReleaseContentGraph();
-                RetireDeveloperDiagnostics();
+                RetireHardwareAdvice(); RetireDeveloperDiagnostics(); RetireRuntimeDiagnostics(); RetireRuntimeTrace(); CancelNetworkProbe(); CancelAdvancedWorkspace();
             }
             _visible = visible;
             if (visible && _catalog is not null && DeveloperDiagnosticsVisible) BuildSections();
             _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
         }
-        UpdateReleaseCheck();
-        UpdateStoragePreferences();
+        bool deferFactUpdates = visible && !_pending.IsEmpty;
+        if (!deferFactUpdates) UpdateIndependentFacts();
         if (!visible) return;
         string? instance = _instanceDirectory?.Invoke();
         if (_instanceDirectory is not null && string.IsNullOrWhiteSpace(instance))
         {
-            bool transferWasBusy = SettingsTransferBusy;
-            CancelSettingsTransfer();
-            if (transferWasBusy && _catalog is not null) BuildSections();
+            CancelContentIntegrity();
+            bool hadInstance = _instance is not null;
+            CancelSettingsTransfer(); CancelJavaInventory();
+            CancelIdentityRead(); CancelManagementRead(); CancelOfflineReadiness(); CancelWorldSnapshots();
+            CancelOnlineContent(); CancelModRemovalPreview(); CancelInstanceDiagnostics();
+            CancelAdvancedLaunchDiagnostics(); ReleaseContentGraph();
+            _pending.Clear(); _instance = null; _values = null; _reading = null; _revision = -1;
+            if (hadInstance && _catalog is not null) BuildSections();
             return;
         }
         if (instance != _instance)
         {
+            CancelContentIntegrity();
             CancelSettingsTransfer(); CancelJavaInventory();
             _instance = instance; _reading = null; _values = null; _revision = -1;
             ResetManagement();
             if (_catalog is not null) BuildSections(navigating: true);
         }
-        if (_instanceDirectory is null) UpdatePlatformCapabilities();
+        if (!deferFactUpdates)
+        {
+            if (_instanceDirectory is null) UpdatePlatformCapabilities();
+            UpdateHardwareAdvice();
+        }
         if (_catalog is null)
         {
             if (!_queries.TryResolve(SettingsPolicyContract.CatalogQuery, out var route)) return;
@@ -143,7 +154,9 @@ internal sealed partial class SettingsPageController : IDisposable
             if (PendingQuery.Succeeded(reading))
             {
                 if (_instanceDirectory is not null && _selected == "recovery" && _revision >= 0 && _revision != reading.Result.Value!.Revision)
-                    CancelManagementRead();
+                {
+                    CancelManagementRead(); CancelOfflineReadiness(); CancelWorldSnapshots();
+                }
                 _values = reading.Result.Value!; _revision = _values.Revision;
                 bool developer = _values.Values.First(item => item.Key == "developer.enabled").Value.Value == "true";
                 if (developer != _developer) { _developer = developer; BuildSections(); }
@@ -152,11 +165,20 @@ internal sealed partial class SettingsPageController : IDisposable
             else { _revision = revision; _feedback.Error("无法读取设置，请重新打开设置页。"); }
         }
         UpdateHookInheritance();
+        UpdateJavaPolicyStates();
+        UpdateLaunchProfileAdmission();
         while (_pending.TryDequeue(out var intent))
         {
+            if (intent.Command == IdentityAction && _identityWrite is null && _identityActions.TryGetValue(intent.Source, out var identityAction)) { identityAction(); continue; }
+            if (intent.Command == LaunchProfileAction) { HandleLaunchProfileIntent(intent); continue; }
             if (IsDeveloperDiagnosticsIntent(intent.Command)) { HandleDeveloperDiagnosticsIntent(intent); continue; }
             if (IsHookIntent(intent.Command)) { HandleHookIntent(intent); continue; }
             if (IsProxyIntent(intent.Command)) { HandleProxyIntent(intent); continue; }
+            if (IsRuntimeDiagnosticsIntent(intent.Command)) { HandleRuntimeDiagnosticsIntent(intent); continue; }
+            if (IsRuntimeTraceIntent(intent.Command)) { HandleRuntimeTraceIntent(intent); continue; }
+            if (intent.Command == NetworkProbeStart) { StartNetworkProbe(intent); continue; }
+            if (intent.Command == NetworkTraceRefresh) { ReadNetworkDiagnostics(); continue; }
+            if (intent.Command == ContentWorkspaceAction) { HandleContentWorkspace(intent); continue; }
             if (IsStoragePreferencesIntent(intent.Command)) { HandleStoragePreferences(intent.Command, intent.Source); continue; }
             if (IsJavaInventoryIntent(intent.Command)) { HandleJavaInventory(intent.Command, intent.Source); continue; }
             if (IsSettingsTransferIntent(intent.Command)) { HandleSettingsTransfer(intent.Command, intent.Source); continue; }
@@ -188,11 +210,20 @@ internal sealed partial class SettingsPageController : IDisposable
                 }
             }
         }
+        UpdateLaunchProfiles();
+        if (deferFactUpdates)
+        {
+            UpdateIndependentFacts();
+            if (_instanceDirectory is null) UpdatePlatformCapabilities();
+            UpdateHardwareAdvice();
+        }
         UpdateManagement();
-        UpdateOnlineContent();
+        UpdateOfflineReadiness();
+        UpdateWorldSnapshots(); UpdateIdentity();
+        UpdateOnlineContent(); UpdateContentIntegrity();
         UpdateModRemovalPreview();
         UpdateContentGraph(); UpdateServers(); UpdateExport();
-        UpdateSettingsTransfer(); UpdateJavaInventory();
+        UpdateSettingsTransfer(); UpdateJavaInventory(); UpdateJavaDiagnostics(); UpdateJavaManualDownload();
         UpdateProxyPreferences(); UpdateDiskLogActions();
         int index = _shell.Tree.GetComponent<XsrUiPager>(_pager)!.PageIndex;
         if (index >= 0 && index < Pages.Count && Pages[index].Id != _selected)
@@ -205,10 +236,18 @@ internal sealed partial class SettingsPageController : IDisposable
                     foreach (var child in _shell.Tree.Children(page).ToArray()) _shell.Tree.Destroy(child);
     }
 
+    private void UpdateIndependentFacts()
+    {
+        UpdateReleaseCheck(); UpdateStoragePreferences(); UpdateContentWorkspace();
+        UpdateNetworkDiagnostics(); UpdateGeneralRuntimeStates(); UpdateRuntimeTrace(); UpdateAdvancedWorkspace();
+    }
+
     private void SwitchPage(string page)
     {
-        RetireDeveloperDiagnostics();
-        CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences();
+        CancelContentIntegrity();
+        RetireHardwareAdvice(); RetireDeveloperDiagnostics(); RetireRuntimeDiagnostics(); RetireRuntimeTrace(); CancelNetworkProbe(); CancelAdvancedWorkspace();
+        CancelIdentityRead(); CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences(); CancelContentWorkspace();
+        CancelOfflineReadiness(); CancelWorldSnapshots(); CancelInstanceDiagnostics();
         _scrollPositions[_selected] = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY;
         if (_selected == "contentgraph")
         {
@@ -220,14 +259,14 @@ internal sealed partial class SettingsPageController : IDisposable
         _selected = page; _sections = _pages[page];
         if (_instanceDirectory is not null && page == "recovery")
         {
-            CancelManagementRead();
+            CancelManagementRead(); CancelOfflineReadiness(); CancelWorldSnapshots();
             if (_management is { } management) _management = management with { RecoveryStorage = null, RecoveryComparison = null };
         }
         if (_instanceDirectory is not null && page == "trash") CancelManagementRead();
         if (_instanceDirectory is not null && page == "contentgraph")
         {
             ResetContentGraph();
-            CancelManagementRead();
+            CancelManagementRead(); CancelOfflineReadiness(); CancelWorldSnapshots();
             if (_management is { } management) _management = management with { ContentGraph = null };
         }
         BuildSections(navigating: true); UpdateNavigation(); UpdateEditors();
@@ -286,6 +325,11 @@ internal sealed partial class SettingsPageController : IDisposable
 
     private void BuildSections(bool navigating = false)
     {
+        ResetRuntimeDiagnosticControls();
+        ResetRuntimeTraceControls();
+        CaptureWorkspaceLine();
+        CaptureLaunchProfileDrafts(navigating);
+        var identityDraft = CaptureIdentityDraft(navigating);
         var hookDrafts = CaptureHookDrafts(navigating);
         ResetProxyPreferences(preserveDraft: !navigating);
         string? focus = !navigating && _shell.Tree.IsAlive(_shell.Renderer.Focused) ? _shell.Tree.Name(_shell.Renderer.Focused) : null;
@@ -298,11 +342,19 @@ internal sealed partial class SettingsPageController : IDisposable
         _javaInventoryGroup = default;
         _editors.Clear(); _inheritButtons.Clear(); _selectors.Clear(); _autoModes.Clear(); _argumentEditors.Clear(); _argumentActions.Clear(); _choices.Clear();
         _hookEditors.Clear(); _hookActions.Clear();
+        ResetLaunchProfileControls(); ResetIdentityControls();
         _managementActions.Clear(); _contentSearch = default; _contentList = default; _contentWindowStart = -1;
         _graphSearch = _graphBody = default; _graphActions.Clear();
+        if (_instanceDirectory is not null && _instance is null)
+        {
+            Text(_sections, "请选择要管理的实例。", 13, Muted, height: 28);
+            return;
+        }
         if (_instanceDirectory is not null && _selected != "game")
         {
             BuildManagementSection();
+            RestoreIdentityDraft(identityDraft, focus);
+            UpdateEditors();
             if (focus == "ManagementContentSearch" && _contentSearch.IsAssigned) _shell.Renderer.Focus(_contentSearch, showIndicator: false);
             return;
         }
@@ -319,14 +371,15 @@ internal sealed partial class SettingsPageController : IDisposable
             && (item.Page == _selected || _instanceDirectory is not null && _selected == "game" && item.Page == "java")
             && (_instanceDirectory is null || item.Definition?.InstanceOverride == true) && !item.IsRuntimeDetail && (_developer || !item.DeveloperOnly)).ToArray();
         var available = entries.Where(item => item.Kind == SettingsCatalogEntryKind.Setting
-            && item.Availability == SettingsCapabilityAvailability.Available && item.Definition is not null
+            && (item.Definition is not null || item.Availability != SettingsCapabilityAvailability.Available)
             && item.SettingKey is not ("network.proxy-mode" or "network.proxy-address" or "network.proxy-user" or "network.proxy-password")).ToArray();
         if (available.Length == 0 && _selected != "advanced" && !transfer)
         {
             Text(_sections, Pages.First(page => page.Id == _selected).Label, 20, Ink, height: 30, weight: 600);
-            Text(_sections, "此分类的设置正在准备中。", 13, Muted, height: 24);
+            Text(_sections, "此分类没有可编辑的设置。", 13, Muted, height: 24);
         }
         _shell.Tree.GetComponent<XsrUiStackPanel>(_sections)!.Spacing = 18;
+        if (_instanceDirectory is not null && _selected == "game") BuildLaunchProfiles();
         foreach (var section in available.GroupBy(item => (Section: item.DeveloperOnly ? "开发者" : _instanceDirectory is not null ? InstanceSettingGroup(item) : item.Section, item.DeveloperOnly))
             .OrderBy(group => _instanceDirectory is null ? 0 : group.Key.Section switch { "启动与窗口" => 0, "Java 与内存" => 1, "服务器" => 2, _ => 3 }))
         {
@@ -340,16 +393,22 @@ internal sealed partial class SettingsPageController : IDisposable
             }
             if (_instanceDirectory is not null && section.Key.Section == "Java 与内存") BuildJavaInventory(cardContent);
         }
-        if (_instanceDirectory is null && _selected == "network") BuildProxyPreferences();
-        if (_instanceDirectory is null && _selected == "privacy") BuildDiskLogActions();
-        if (_instanceDirectory is null && _selected == "storage") BuildStoragePreferences();
+        if (_instanceDirectory is null && _selected == "network") { BuildProxyPreferences(); BuildNetworkDiagnostics(); }
+        if (_instanceDirectory is null && _selected == "privacy") { BuildDiskLogActions(); BuildContentTrustStates(); }
+        if (_instanceDirectory is null && _selected == "storage") { BuildStoragePreferences(); BuildContentWorkspace(); }
         if (transfer) BuildSettingsTransfer();
         BuildJavaInventory();
+        BuildJavaPolicyStates();
+        BuildGeneralRuntimeStates();
         BuildDeveloperDiagnostics();
+        BuildRuntimeDiagnostics();
+        BuildRuntimeTraceDiagnostics();
+        BuildAdvancedWorkspace();
         var scroll = _shell.Tree.GetComponent<XsrUiScroll>(_sections)!;
         scroll.OffsetY = _scrollPositions.GetValueOrDefault(_selected);
         _shell.Tree.GetComponent<XsrUiTransition>(_sections)!.Key = _selected + ":" + _developer;
         _shell.Tree.MarkDirty(_sections, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
+        UpdateEditors();
         RestoreHookDrafts(hookDrafts);
         foreach (var editor in _editors.Values)
         {
@@ -393,12 +452,21 @@ internal sealed partial class SettingsPageController : IDisposable
         }
         if (!enabled)
         {
-            var unavailable = Text(row, "尚未可用", 11, Muted, height: 28);
+            string reason = entry.Availability switch
+            {
+                SettingsCapabilityAvailability.PlatformUnsupported => "此平台不支持",
+                SettingsCapabilityAvailability.DependencyMissing => "缺少依赖",
+                SettingsCapabilityAvailability.TemporarilyUnavailable => "暂不可用",
+                _ => "尚未可用",
+            };
+            var unavailable = Text(row, reason, 11, Muted, height: 28);
             var layout = _shell.Tree.GetComponent<XsrUiElement>(unavailable)!;
             layout.Width = 76; layout.VerticalAlignment = XsrUiAlignment.Center;
             Style(unavailable, new(245, 246, 248), Muted, 8, 11);
             _shell.Tree.GetComponent<XsrUiVisualStyle>(unavailable)!.TextAlignment = XsrUiTextAlignment.Center;
-            _shell.Tree.GetComponent<XsrUiSemantic>(unavailable)!.Label = entry.Label + "，尚未可用";
+            _shell.Tree.GetComponent<XsrUiSemantic>(unavailable)!.Label = _shell.Renderer.LocalizeText(DisplayLabel(entry.Label))
+                + ", " + _shell.Renderer.LocalizeText(reason);
+            _shell.Tree.GetComponent<XsrUiSemantic>(unavailable)!.Localize = false;
             return;
         }
         if (_instanceDirectory is not null)
@@ -407,7 +475,7 @@ internal sealed partial class SettingsPageController : IDisposable
             _inheritButtons[inherit] = entry.SettingKey!;
         }
         var definition = entry.Definition!;
-        if (entry.SettingKey == "game.pre-launch")
+        if (entry.SettingKey is "game.pre-launch" or "game.post-exit" or "game.environment" or "game.classpath-head")
         {
             _shell.Tree.GetComponent<XsrUiElement>(label)!.VerticalAlignment = XsrUiAlignment.Start;
             BuildHookEditor(row, entry); return;
@@ -498,7 +566,7 @@ internal sealed partial class SettingsPageController : IDisposable
         {
             var value = _values?.Values.FirstOrDefault(item => item.Key == key);
             var text = _shell.Tree.GetComponent<XsrUiText>(button)!;
-            string label = value?.Source == SettingsLayer.Instance ? "恢复继承" : "继承中";
+            string label = value?.Source >= SettingsLayer.Instance ? "恢复继承" : "继承中";
             if (text.Content != label) { text.Content = label; _shell.Tree.MarkDirty(button, XsrUiDirtyKinds.Paint); }
         }
         UpdateNavigationWidths(); UpdateShiftSelectors(); UpdateAutomaticModes(); UpdateArgumentEditors(); UpdateHookEditors();
@@ -538,7 +606,9 @@ internal sealed partial class SettingsPageController : IDisposable
     }
     private async Task<XsrResult> SaveAsync(XsrCommandId route, SettingsMutation mutation)
     {
-        var result = await _commands.Dispatch(route, mutation).Completion.ConfigureAwait(false);
+        var result = mutation.Layer == SettingsLayer.Instance && _selected == "game"
+            ? await SaveLaunchLayerAsync(mutation).ConfigureAwait(false)
+            : await _commands.Dispatch(route, mutation).Completion.ConfigureAwait(false);
         if (!_disposed && !result.IsSuccess) _feedback.Error("设置未保存：" + result.Error?.Message);
         return result;
     }
@@ -616,7 +686,8 @@ internal sealed partial class SettingsPageController : IDisposable
     };
     public void Dispose()
     {
-        RetireDeveloperDiagnostics();
-        _disposed = true; CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _updateCheckStop?.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
+        CancelContentIntegrity();
+        RetireHardwareAdvice(); RetireDeveloperDiagnostics(); RetireRuntimeDiagnostics(); RetireRuntimeTrace(); CancelNetworkProbe(); CancelAdvancedWorkspace();
+        _disposed = true; CancelIdentityRead(); CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences(); CancelContentWorkspace(); _diagnosticStop.Cancel(); CancelManagementRead(); CancelOfflineReadiness(); CancelWorldSnapshots(); CancelOnlineContent(); CancelModRemovalPreview(); _updateStop.Cancel(); _updateCheckStop?.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }
 }

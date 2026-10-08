@@ -35,7 +35,8 @@ internal sealed partial class SettingsPageController
 
     private void CancelManagementRead()
     {
-        CancelOnlineList(); CancelServers(); CancelExport();
+        CancelOnlineList(); CancelServers(); CancelExport(); CancelFileWorkspace(); CancelWorldHealth(); CancelInstanceDiagnostics();
+        CancelAdvancedLaunchDiagnostics();
         _managementStop?.Cancel(); _managementStop?.Dispose(); _managementStop = null;
         _managementRead = null; _managementLoaded = false;
     }
@@ -53,6 +54,10 @@ internal sealed partial class SettingsPageController
     private void UpdateManagement()
     {
         if (_instanceDirectory is null || _instance is null) return;
+        UpdateWorldPlatformAction();
+        UpdateFileWorkspace();
+        UpdateInstanceDiagnostics();
+        UpdateAdvancedLaunchDiagnostics();
         if (_contentSearch.IsAssigned && _shell.Tree.IsAlive(_contentSearch)
             && _shell.Tree.GetComponent<XsrUiTextInput>(_contentSearch) is { } search
             && search.ReadDraft() != _contentFilter)
@@ -173,6 +178,8 @@ internal sealed partial class SettingsPageController
             Style(_contentSearch, new(241, 244, 248), Ink, 10, 13);
             _shell.Renderer.SetTextInputValue(_contentSearch, _contentFilter);
             ManagementButton(toolbar, "打开文件夹", () => OpenContentDirectory(directory), 100);
+            if (_selected == "screenshots") ManagementButton(toolbar, _screenshotTimeline ? "画廊" : "时间线", () =>
+            { _screenshotTimeline = !_screenshotTimeline; _screenshotTimelinePage = 0; BuildSections(true); }, 84);
             ManagementRefreshIcon(toolbar);
             _contentSnapshot = snapshot.Contents.FirstOrDefault(item => item.PageId == _selected);
             if (_selected == "mods") BuildModCategories();
@@ -183,6 +190,7 @@ internal sealed partial class SettingsPageController
             _contentCount = Text(location, $"{_contentSnapshot?.Entries.Count ?? 0} 项" + (_contentSnapshot?.Complete == false ? " · 未全部列出" : ""), 12, Muted, 24);
             if (_selected is "mods" or "resourcepacks" or "shaderpacks")
             {
+                BuildContentUpdateActions(_sections);
                 _onlineListStatus = Text(_sections, "正在关联在线信息", 11, Muted, 22);
                 DesktopLiteralText.Preserve(_shell.Tree, _onlineListStatus);
                 UpdateOnlineListStatus();
@@ -203,15 +211,20 @@ internal sealed partial class SettingsPageController
             if (snapshot.Description.Length > 0) ManagementFactIn(information, "描述", snapshot.Description);
             if (OpenManagementDirectory is not null) ManagementButton(information, "打开版本文件夹", () => OpenContentDirectory(snapshot.InstanceDirectory), 128);
         }
-        else if (_selected == "recovery") BuildRecoveryStorage(snapshot);
+        else if (_selected == "recovery") { BuildRecoveryStorage(snapshot); BuildRecoveryTimeline(snapshot); }
         else if (_selected == "trash") BuildContentTrash(snapshot);
         else if (_selected == "contentgraph") BuildContentGraph(snapshot);
+        else if (_selected == "files") BuildInstanceFiles();
+        else if (_selected == "diagnostics") BuildInstanceDiagnostics();
         else if (_selected == "modpack")
         {
             BuildModpackExport(snapshot);
         }
         else if (_selected == "servers")
             BuildServers();
+        BuildOfflineReadiness(snapshot);
+        if (_selected is "overview" or "servers") BuildInstanceIdentity();
+        if (_selected == "diagnostics") BuildAdvancedLaunchDiagnostics();
         _shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY = _scrollPositions.GetValueOrDefault(_selected);
         _shell.Tree.MarkDirty(_sections, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
     }
@@ -219,6 +232,7 @@ internal sealed partial class SettingsPageController
     private void UpdateContentWindow()
     {
         if (!_contentList.IsAssigned || !_shell.Tree.IsAlive(_contentList) || _contentSnapshot is not { } snapshot) return;
+        if (_selected == "screenshots" && _screenshotTimeline) { BuildScreenshotTimeline(snapshot); return; }
         bool gallery = _selected == "screenshots";
         int columns = gallery ? Math.Max(1, (int)((_shell.Renderer.Viewport.Width - 130) / 250)) : 1;
         double rowHeight = gallery ? 210 : _selected == "resourcepacks" ? 104 : 84;
@@ -266,6 +280,7 @@ internal sealed partial class SettingsPageController
                     }
                     if (_selected is "mods" or "resourcepacks" or "shaderpacks")
                     {
+                        BuildContentUpdateSelection(body, item);
                         string release = _selected == "mods" ? item.Version : OnlineFile(item) is { } key && _onlineList.TryGetValue(key, out var online) ? online.InstalledVersion ?? "" : "";
                         var version = Text(body, release.Length > 0 ? release : _selected == "mods" ? "版本未标注" : "", 12, Muted, 24);
                         _shell.Tree.GetComponent<XsrUiElement>(version)!.Width = 116;
@@ -313,6 +328,7 @@ internal sealed partial class SettingsPageController
 
     private void BuildContentTrash(InstanceManagementSnapshot snapshot)
     {
+        BuildContentUpdateHistory(snapshot);
         Text(_sections, "移除的内容仍保存在游戏目录中。还原不会覆盖同名文件。", 13, Muted, 30);
         int pages = Math.Max(1, (snapshot.Trash.Count + 9) / 10);
         _trashPage = Math.Clamp(_trashPage, 0, pages - 1);

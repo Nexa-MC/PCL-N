@@ -3,7 +3,7 @@ using System.Text;
 namespace Nexa.Services.Minecraft.Launch;
 
 /// <summary>Bounded command validation without token expansion or shell interpretation.</summary>
-public static class MinecraftLaunchHooks
+public static partial class MinecraftLaunchHooks
 {
     public const int MaximumCommandLength = 32768;
     public const int MaximumWrapperTokens = 256;

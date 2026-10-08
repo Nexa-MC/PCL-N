@@ -34,9 +34,11 @@ internal static partial class Program
             AssertTrue(entries.Length > 0);
             AssertTrue(entries.All(entry => entry.Availability == SettingsCapabilityAvailability.Available && entry.Definition is not null));
         }
-        foreach (string id in new[] { "global.storage.launcher-data", "global.storage.move-launcher-data", "global.storage.finished-tasks", "global.storage.5ac61e098807" })
+        foreach (string id in new[] { "global.storage.launcher-data", "global.storage.move-launcher-data", "global.storage.finished-tasks", "global.storage.5ac61e098807", "global.storage.1f8794991a2c" })
             AssertEqual(SettingsCapabilityAvailability.Available, catalog.Entries.Single(entry => entry.Id == id).Availability);
-        foreach (string id in new[] { "global.general.13a5ea9202aa", "global.storage.1f8794991a2c", "global.appearance.81b6d3198ecc" })
-            AssertEqual(SettingsCapabilityAvailability.NotImplemented, catalog.Entries.Single(entry => entry.Id == id).Availability);
+        foreach (string id in new[] { "global.general.13a5ea9202aa", "global.appearance.81b6d3198ecc" })
+            AssertEqual(SettingsCapabilityAvailability.Available, catalog.Entries.Single(entry => entry.Id == id).Availability);
+        foreach (string id in new[] { "global.appearance.414d92ec0335", "global.appearance.5362145d1e89" })
+            AssertEqual(SettingsCapabilityAvailability.PlatformUnsupported, catalog.Entries.Single(entry => entry.Id == id).Availability);
     }
 }

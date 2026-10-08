@@ -20,6 +20,8 @@ public sealed class DownloadService
 {
     public IWorkScheduler? WorkScheduler { get; init; }
     public DownloadBandwidthLimiter? BandwidthLimiter { get; internal set; }
+    /// <summary>Committed policy gates new optional background transfers; interactive transfers remain usable.</summary>
+    public Func<bool>? BackgroundDownloadsEnabled { get; set; }
     internal TimeProvider ProgressClock { get; init; } = TimeProvider.System;
 
     public const string OwnerName = "Nexa.Services.Downloads";
@@ -29,7 +31,7 @@ public sealed class DownloadService
     /// The ordered collection state key: items are <see cref="DownloadTransferView"/>, keyed
     /// by destination path. Only active transfers appear; terminal entries are removed.
     /// </summary>
-    public static readonly XsrSemanticId TransfersKey = XsrSemanticId.Parse("download.transfers");
+    public static readonly XsrSemanticId TransfersKey = DownloadStateContract.TransfersKey;
 
     private const int DefaultBufferSize = 128 * 1024;
     private const long DefaultMinimumSegmentBytes = 8 * 1024 * 1024;
@@ -82,6 +84,8 @@ public sealed class DownloadService
         CancellationToken cancellationToken = default)
     {
         ValidateRequest(request);
+        if (WorkScheduler?.CurrentPriority is WorkPriority.Background or WorkPriority.Idle && BackgroundDownloadsEnabled?.Invoke() == false)
+            throw new InvalidOperationException("Background downloads are disabled by the committed policy.");
         request = request with { BandwidthBudget = BandwidthLimiter?.Capture() };
         string destinationPath = Path.GetFullPath(request.DestinationPath);
         _log?.Info(LogModuleName, $"Download requested destination={destinationPath} sources={request.Sources.Count}");

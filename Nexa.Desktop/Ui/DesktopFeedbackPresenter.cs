@@ -419,6 +419,12 @@ internal sealed class DesktopFeedbackPresenter : IDisposable
             _shell.Tree.MarkDirty(entities["DialogMessageViewport"], XsrUiDirtyKinds.Layout);
         }
         SetText(entities["DialogMessage"], dialog.Message);
+        var messageText = _shell.Tree.GetComponent<XsrUiText>(entities["DialogMessage"])!;
+        if (messageText.Localize != dialog.LocalizeMessage)
+        {
+            messageText.Localize = dialog.LocalizeMessage;
+            _shell.Tree.MarkDirty(entities["DialogMessage"], XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
+        }
         SetText(presented.Accept, dialog.AcceptLabel);
         bool alternate = dialog.Alternate is not null && !string.IsNullOrWhiteSpace(dialog.AlternateLabel);
         SetVisible(entities["DialogAlternate"], alternate);
@@ -431,7 +437,9 @@ internal sealed class DesktopFeedbackPresenter : IDisposable
             SetText(presented.Cancel, dialog.CancelLabel!);
         }
         SetVisible(presented.Cancel, hasCancel);
-        _shell.Tree.GetComponent<XsrUiSemantic>(presented.Card)!.Label = $"{dialog.Title}。{dialog.Message}";
+        var cardSemantic = _shell.Tree.GetComponent<XsrUiSemantic>(presented.Card)!;
+        cardSemantic.Localize = dialog.LocalizeMessage;
+        cardSemantic.Label = (dialog.LocalizeMessage ? dialog.Title : _shell.Renderer.LocalizeText(dialog.Title)) + "。" + dialog.Message;
         _shell.Tree.GetComponent<XsrUiSemantic>(presented.Accept)!.Label = dialog.AcceptLabel;
         _shell.Tree.GetComponent<XsrUiSemantic>(presented.Cancel)!.Label = dialog.CancelLabel ?? string.Empty;
         _shell.Tree.MarkDirty(presented.Card, XsrUiDirtyKinds.Paint);

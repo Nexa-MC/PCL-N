@@ -85,8 +85,7 @@ internal static partial class Program
             Pump(() => scene.Nodes.Any(n => n.Text == "Online") && scene.Nodes.Any(n => n.Text == "Summary"));
             AssertFalse(scene.Nodes.Any(n => n.Text == "在线中文名称" || n.Text == "在线中文简介"));
             AssertEqual(1, batches);
-            if (page == "mods") { AssertFalse(scene.Nodes.Any(n => fixture.Shell.Tree.Name(n.Entity) == "ManagementOnlineUpdate")); continue; }
-            AssertTrue(scene.Nodes.Any(n => n.Text == "34")); // Local pack-format metadata is not replaced by an online release.
+            if (page != "mods") AssertTrue(scene.Nodes.Any(n => n.Text == "34")); // Local pack-format metadata is not replaced by an online release.
             var detail = FindByKey(fixture.Shell, scene, "ManagementContentDetail").Entity;
             var detailPage = fixture.Shell.Tree.Parent(detail);
             fixture.Shell.Tree.GetComponent<XsrUiScroll>(detailPage)!.OffsetY = 400;

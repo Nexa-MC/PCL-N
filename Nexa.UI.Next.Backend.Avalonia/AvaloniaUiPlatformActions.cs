@@ -159,6 +159,7 @@ public sealed partial class AvaloniaUiPlatformActions
     {
         _doubleClick.Cancel();
         InputObserved?.Invoke(AvaloniaUiInputKind.Keyboard);
+        if (!args.Handled && HandleCommandPaletteKey(args.Key, args.KeyModifiers)) args.Handled = true;
     }
 
     public void OpenHttpsUri(Uri uri)
@@ -223,12 +224,15 @@ public sealed partial class AvaloniaUiPlatformActions
         throw new InvalidOperationException("The native clipboard rejected the text after retries.", failure);
     }
 
-    public async Task<string?> PickJsonFileAsync()
+    public Task<string?> PickJsonFileAsync() => Dispatcher.UIThread.CheckAccess()
+        ? PickJsonOnUiThreadAsync() : Dispatcher.UIThread.InvokeAsync(PickJsonOnUiThreadAsync);
+
+    private async Task<string?> PickJsonOnUiThreadAsync()
     {
         if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native file picker is not ready.");
         IReadOnlyList<IStorageFile> files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "选择要导入的档案文件",
+            Title = LocalizeContentPicker?.Invoke("选择要导入的档案文件") ?? "选择要导入的档案文件",
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType("JSON") { Patterns = ["*.json"] }],
         });
@@ -247,7 +251,7 @@ public sealed partial class AvaloniaUiPlatformActions
         if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native file picker is not ready.");
         var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = title?.Invoke() ?? "导入设置",
+            Title = title?.Invoke() ?? LocalizeContentPicker?.Invoke("导入设置") ?? "导入设置",
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType("JSON") { Patterns = ["*.json"] }],
         }).ConfigureAwait(true);
@@ -270,7 +274,7 @@ public sealed partial class AvaloniaUiPlatformActions
         if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native file picker is not ready.");
         using var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = title?.Invoke() ?? "导出设置",
+            Title = title?.Invoke() ?? LocalizeContentPicker?.Invoke("导出设置") ?? "导出设置",
             SuggestedFileName = "Nexa-settings.json",
             DefaultExtension = "json",
             FileTypeChoices = [new FilePickerFileType("JSON") { Patterns = ["*.json"] }],
@@ -282,9 +286,11 @@ public sealed partial class AvaloniaUiPlatformActions
         return true;
     }
 
-    public Task<string?> PickDirectoryAsync() => PickDirectoryCoreAsync("选择游戏目录");
+    public Task<string?> PickDirectoryAsync() => Dispatcher.UIThread.CheckAccess()
+        ? PickDirectoryCoreAsync("选择游戏目录") : Dispatcher.UIThread.InvokeAsync(() => PickDirectoryCoreAsync("选择游戏目录"));
 
-    public Task<string?> PickDownloadDirectoryAsync() => PickDirectoryCoreAsync("选择资源保存目录");
+    public Task<string?> PickDownloadDirectoryAsync() => Dispatcher.UIThread.CheckAccess()
+        ? PickDirectoryCoreAsync("选择资源保存目录") : Dispatcher.UIThread.InvokeAsync(() => PickDirectoryCoreAsync("选择资源保存目录"));
 
     public Task<string?> PickExportDirectoryAsync() => Dispatcher.UIThread.CheckAccess()
         ? PickDirectoryCoreAsync("选择导出保存目录") : Dispatcher.UIThread.InvokeAsync(() => PickDirectoryCoreAsync("选择导出保存目录"));
@@ -296,7 +302,7 @@ public sealed partial class AvaloniaUiPlatformActions
     {
         if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native folder picker is not ready.");
         IReadOnlyList<IStorageFolder> folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        { Title = title, AllowMultiple = false });
+        { Title = LocalizeContentPicker?.Invoke(title) ?? title, AllowMultiple = false });
         using IStorageFolder? folder = folders.Count > 0 ? folders[0] : null;
         return folder?.TryGetLocalPath();
     }
@@ -309,7 +315,7 @@ public sealed partial class AvaloniaUiPlatformActions
         if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native file picker is not ready.");
         IReadOnlyList<IStorageFile> files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "选择 Java 可执行文件",
+            Title = LocalizeContentPicker?.Invoke("选择 Java 可执行文件") ?? "选择 Java 可执行文件",
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType("Java") { Patterns = OperatingSystem.IsWindows() ? ["java.exe", "javaw.exe"] : ["java"] }],
         });
@@ -327,7 +333,7 @@ public sealed partial class AvaloniaUiPlatformActions
         if (_owner?.StorageProvider is not { } storage) throw new InvalidOperationException("The native file picker is not ready.");
         IReadOnlyList<IStorageFile> files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "选择 Minecraft 皮肤",
+            Title = LocalizeContentPicker?.Invoke("选择 Minecraft 皮肤") ?? "选择 Minecraft 皮肤",
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType("PNG") { Patterns = ["*.png"] }],
         }).ConfigureAwait(true);

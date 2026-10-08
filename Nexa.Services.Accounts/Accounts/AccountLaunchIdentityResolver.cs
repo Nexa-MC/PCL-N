@@ -43,11 +43,52 @@ public sealed class AccountLaunchIdentityResolver(
             case LaunchProfileKind.LittleSkin:
                 return await ResolveLittleSkinAsync(accountIndex, profile, cancellationToken).ConfigureAwait(false);
 
+            case LaunchProfileKind.ThirdParty:
+                return await ResolveThirdPartyAsync(accountIndex, profile, cancellationToken).ConfigureAwait(false);
+
             default:
                 log?.Info("Account", $"Profile kind cannot launch yet kind={profile.Kind}.");
                 return XsrResult.Failure<MinecraftLaunchIdentity>(AccountErrors.LaunchNotSupported(
                     profile.Kind,
                     "Authlib Injector launch preparation has not migrated for this account kind yet."));
+        }
+    }
+
+    private async ValueTask<XsrResult<MinecraftLaunchIdentity>> ResolveThirdPartyAsync(int index, LaunchProfile profile, CancellationToken token)
+    {
+        if (!_accounts.TryCaptureRefresh(index, profile, out long generation))
+            return XsrResult.Failure<MinecraftLaunchIdentity>(AccountErrors.InvalidProfile("The account changed before launch authentication."));
+        if (yggdrasil is null || string.IsNullOrWhiteSpace(profile.AuthServer) || string.IsNullOrWhiteSpace(profile.Uuid)
+            || string.IsNullOrWhiteSpace(profile.AccessToken))
+            return XsrResult.Failure<MinecraftLaunchIdentity>(AccountErrors.LaunchNotSupported(profile.Kind, "Third-party authentication is unavailable; sign in again."));
+        try
+        {
+            string server = YggdrasilAuthService.NormalizeYggdrasilServer(profile.AuthServer);
+            bool valid = await yggdrasil.ValidateAsync(server, profile.AccessToken, profile.ClientToken, token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            if (!valid)
+            {
+                YggdrasilAuthLoginResult session = await yggdrasil.RefreshAsync(server, profile.AccessToken, profile.ClientToken, token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                if (!string.Equals(session.Uuid, profile.Uuid, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(YggdrasilAuthService.NormalizeYggdrasilServer(session.AuthServer), server, StringComparison.Ordinal)
+                    || string.IsNullOrWhiteSpace(session.AccessToken))
+                    throw new InvalidOperationException("The authentication server returned a different character or an empty session.");
+                LaunchProfile updated = profile with { Username = session.Username, AccessToken = session.AccessToken, ClientToken = session.ClientToken, AuthServer = server };
+                XsrResult<long> persisted = _accounts.ReplaceRefreshedProfile(index, updated, profile, generation);
+                if (!persisted.IsSuccess) return XsrResult.Failure<MinecraftLaunchIdentity>(persisted.Error!);
+                generation = persisted.Value;
+                profile = updated;
+            }
+            if (!_accounts.TryCaptureRefresh(index, profile, out long currentGeneration) || currentGeneration != generation)
+                return XsrResult.Failure<MinecraftLaunchIdentity>(AccountErrors.InvalidProfile("The profile changed during launch authentication."));
+            return XsrResult.Success(new MinecraftLaunchIdentity(profile.Username, profile.Uuid, profile.AccessToken, MinecraftLaunchIdentityMode.ThirdParty)
+            { AuthServer = server });
+        }
+        catch (Exception failure) when (failure is HttpRequestException or InvalidOperationException or ArgumentException)
+        {
+            log?.Warn("Account", "Third-party launch session could not be refreshed.");
+            return XsrResult.Failure<MinecraftLaunchIdentity>(AccountErrors.LaunchNotSupported(profile.Kind, "Third-party session expired or unavailable; sign in again."));
         }
     }
 

@@ -309,7 +309,9 @@ internal static partial class Program
             AssertTrue(runtime.Commands.TryResolve(MinecraftRouteIds.JavaSelect, out _));
             AssertTrue(runtime.Commands.TryResolve(MinecraftRouteIds.JavaVersionSelect, out _));
             AssertTrue(runtime.Commands.TryResolve(LaunchPreflightGate.DecisionCommand, out _));
-            AssertEqual(8, runtime.Commands.Count);
+            AssertTrue(runtime.Commands.TryResolve(MinecraftSafeLaunchSessionContract.Set, out _));
+            AssertTrue(runtime.Queries.TryResolve(MinecraftSafeLaunchSessionContract.Query, out _));
+            AssertEqual(9, runtime.Commands.Count);
         }
         finally
         {

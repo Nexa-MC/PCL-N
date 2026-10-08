@@ -25,7 +25,6 @@
     <EmbeddedResource Include="Ui/AccountProfileRow.pxml" />
     <EmbeddedResource Include="Ui/AccountForm.pxml" />
     <EmbeddedResource Include="Ui/AccountChoiceRow.pxml" />
-    <EmbeddedResource Include="Ui/VersionSubpage.pxml" />
     <EmbeddedResource Include="Ui/VersionSelectionPage.pxml" />
     <EmbeddedResource Include="Ui/VersionSelectionRow.pxml" />
     <EmbeddedResource Include="Ui/VersionDirectoryDropdown.pxml" />

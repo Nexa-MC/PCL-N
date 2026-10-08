@@ -20,6 +20,8 @@ internal sealed class MinecraftDropController : IDisposable
     private int _busy;
     private bool _disposed;
     private Guid _jarDialog;
+    private readonly Queue<string> _fileActivations = new(16);
+    private readonly object _activationGate = new();
 
     public MinecraftDropController(AvaloniaUiPlatformActions platform, MinecraftFolderImportRuntime imports,
         XsrCommandRouter library, XsrStateStore store, DesktopFeedbackService feedback)
@@ -35,6 +37,35 @@ internal sealed class MinecraftDropController : IDisposable
         if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0) return;
         var snapshot = (MinecraftLibrarySnapshot?)_store.ReadAppliedValue(_store.Resolve(MinecraftLibraryContract.StateKey));
         _ = InspectAsync(paths[0], snapshot?.RootDirectory, snapshot?.SelectedInstanceId ?? "");
+    }
+
+    internal void OpenFile(string file)
+    {
+        if (_disposed) return;
+        if (!DesktopActivation.TryFile(file, out string admitted)) { _feedback.Error("不支持的本地整合包路径。"); return; }
+        lock (_activationGate)
+        {
+            if (_fileActivations.Count >= 16) { _feedback.Error("待处理整合包过多，请完成当前确认后重试。"); return; }
+            _fileActivations.Enqueue(admitted);
+        }
+        PumpFileActivations();
+    }
+
+    private void PumpFileActivations()
+    {
+        _platform.PostToWindow(() =>
+        {
+            if (_disposed || Volatile.Read(ref _busy) != 0) return;
+            string? file;
+            lock (_activationGate) if (!_fileActivations.TryDequeue(out file)) return;
+            OnDrop([file]);
+        });
+    }
+
+    private void ReleaseBusy()
+    {
+        Interlocked.Exchange(ref _busy, 0);
+        PumpFileActivations();
     }
 
     private async Task InspectAsync(string path, string? target, string instanceId)
@@ -57,7 +88,7 @@ internal sealed class MinecraftDropController : IDisposable
                     "开始安装", "取消", accepted =>
                     {
                         if (accepted) _ = ExecuteModpackAsync(pack, target, false);
-                        else Interlocked.Exchange(ref _busy, 0);
+                        else ReleaseBusy();
                     }, pack.OptionalFiles > 0 ? "包含可选文件" : null, pack.OptionalFiles > 0 ? () =>
                     {
                         _feedback.DismissDialog(_jarDialog);
@@ -74,7 +105,7 @@ internal sealed class MinecraftDropController : IDisposable
                     "添加模组", "取消", accepted =>
                     {
                         if (accepted) _ = ExecuteJarAsync(jar, target, instanceId, LocalJarAction.Mod);
-                        else Interlocked.Exchange(ref _busy, 0);
+                        else ReleaseBusy();
                     }, "其他用途", () => ShowOtherJarUses(jar, target, instanceId));
                 awaitingChoice = true;
                 return;
@@ -88,14 +119,14 @@ internal sealed class MinecraftDropController : IDisposable
                 root ? "添加目录" : "导入", "取消", confirmed =>
                 {
                     if (confirmed && !_disposed) _ = ExecuteAsync(item, target);
-                    else Interlocked.Exchange(ref _busy, 0);
+                    else ReleaseBusy();
                 });
             awaitingChoice = true;
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         { if (!_disposed) _feedback.Error("无法识别拖入内容：" + error.Message); }
-        finally { if (!awaitingChoice) Interlocked.Exchange(ref _busy, 0); }
+        finally { if (!awaitingChoice) ReleaseBusy(); }
     }
 
     private async Task ExecuteModpackAsync(MinecraftModpackPreview pack, string root, bool includeOptional)
@@ -110,7 +141,7 @@ internal sealed class MinecraftDropController : IDisposable
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         { if (!_disposed) _feedback.Error("整合包安装未完成：" + error.Message); }
-        finally { Interlocked.Exchange(ref _busy, 0); }
+        finally { ReleaseBusy(); }
     }
 
     private void ShowOtherJarUses(LocalJarArtifact jar, string root, string instanceId)
@@ -122,7 +153,7 @@ internal sealed class MinecraftDropController : IDisposable
             "Patch 版本核心", "取消", accepted =>
             {
                 if (accepted) _ = ExecuteJarAsync(jar, root, instanceId, LocalJarAction.CorePatch);
-                else Interlocked.Exchange(ref _busy, 0);
+                else ReleaseBusy();
             }, "安装加载器", () =>
             {
                 _feedback.DismissDialog(_jarDialog);
@@ -142,7 +173,7 @@ internal sealed class MinecraftDropController : IDisposable
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         { if (!_disposed) _feedback.Error("JAR 导入未完成：" + error.Message); }
-        finally { Interlocked.Exchange(ref _busy, 0); }
+        finally { ReleaseBusy(); }
     }
 
     private async Task ExecuteAsync(MinecraftFolderInspection item, string? target)
@@ -166,12 +197,13 @@ internal sealed class MinecraftDropController : IDisposable
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         { if (!_disposed) _feedback.Error("导入未完成：" + error.Message); }
-        finally { Interlocked.Exchange(ref _busy, 0); }
+        finally { ReleaseBusy(); }
     }
 
     public void Dispose()
     {
         _disposed = true;
+        lock (_activationGate) _fileActivations.Clear();
         _platform.FilesDropped -= OnDrop;
         _lifetime.Cancel();
         // Pending queries/commands own cancellation registrations until completion.

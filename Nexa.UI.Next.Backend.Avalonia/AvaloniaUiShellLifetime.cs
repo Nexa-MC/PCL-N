@@ -30,10 +30,15 @@ public static class AvaloniaUiShellLifetime
         desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
         AvaloniaSplashWindow? splash = splashIcon is null ? null : new AvaloniaSplashWindow(splashIcon);
-        AvaloniaUiShellWindow window = new(shell, windowIcon);
         if (splash is not null)
         {
             splash.Show();
+        }
+        AvaloniaUiShellWindow window = new(shell, windowIcon);
+        var pressure = new AvaloniaUiResourcePressureSession();
+        window.Closed += (_, _) => pressure.Dispose();
+        if (splash is not null)
+        {
             // Hard guarantee that a lost reveal event can never leave the topmost splash stuck
             // over the launcher: whichever side reaches the icon first closes it, and the
             // guarded close makes every other caller a no-op.

@@ -19,4 +19,7 @@ public sealed record DiagnosticBundleSnapshot(string NexaVersion, string Operati
 public sealed record DiagnosticModIdentity(string Id, string Version, bool Enabled);
 
 public enum DiagnosticOperationOutcome { Started, Entered, Completed, Rejected, Cancelled, Failed, Unfinished }
-public sealed record DiagnosticOperationFacts(string Name, string Stage, DiagnosticOperationOutcome Outcome);
+public sealed record DiagnosticOperationFacts(string Name, string Stage, DiagnosticOperationOutcome Outcome)
+{
+    public DiagnosticInstanceContext? Instance { get; init; }
+}

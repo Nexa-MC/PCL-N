@@ -18,14 +18,13 @@ internal static partial class Program
         void OpenStorage()
         {
             Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.storage").Entity);
-            scene = fixture.Shell.Render(new(1000, 650));
-            var sections = FindByKey(fixture.Shell, scene, "SettingsSections").Entity;
-            fixture.Shell.Tree.GetComponent<XsrUiScroll>(sections)!.OffsetY = 10000;
-            fixture.Shell.Tree.MarkDirty(sections, XsrUiDirtyKinds.Layout); scene = fixture.Shell.Render(new(1000, 650));
+            ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsReset");
         }
         void Preview()
         {
-            Emit(fixture.Intents, "ui.settings.data.reset", FindByKey(fixture.Shell, scene, "SettingsReset").Entity);
+            var reset = ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsReset");
+            AssertTrue(reset.IsEnabled);
+            Emit(fixture.Intents, "ui.settings.data.reset", reset.Entity);
             AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Dialog is not null; }, TimeSpan.FromSeconds(5)));
         }
         OpenStorage(); Preview(); var dialog = fixture.Feedback.Snapshot().Dialog!;
@@ -66,12 +65,11 @@ internal static partial class Program
         scene = fixture.Shell.Render(new(1000, 650));
         void Preview()
         {
-            var sections = FindByKey(fixture.Shell, scene, "SettingsSections").Entity;
-            fixture.Shell.Tree.GetComponent<XsrUiScroll>(sections)!.OffsetY = 10000;
-            fixture.Shell.Tree.MarkDirty(sections, XsrUiDirtyKinds.Layout); scene = fixture.Shell.Render(new(1000, 650));
-            AssertTrue(FindByKey(fixture.Shell, scene, "SettingsReset").IsEnabled);
+            // Scope changes and completed profile reads can replace the card and its controls.
+            var reset = ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsReset");
+            AssertTrue(reset.IsEnabled);
             AssertFalse(FindByKey(fixture.Shell, scene, "SettingsImport").IsEnabled);
-            Emit(fixture.Intents, "ui.settings.data.reset", FindByKey(fixture.Shell, scene, "SettingsReset").Entity);
+            Emit(fixture.Intents, "ui.settings.data.reset", reset.Entity);
             AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Dialog is not null; }, TimeSpan.FromSeconds(5)));
         }
         Preview(); var dialog = fixture.Feedback.Snapshot().Dialog!;
@@ -79,6 +77,14 @@ internal static partial class Program
         current = first; scene = fixture.Shell.Render(new(1000, 650)); dialog.Resolve(true);
         scene = fixture.Shell.Render(new(1000, 650));
         AssertEqual("1234", policy.Read(new(first)).Value!.Values.Single(value => value.Key == "game.width").Value.Value);
+        AssertEqual(SettingsLayer.Instance, policy.Read(new(first)).Value!.Values.Single(value => value.Key == "game.width").Source);
+        AssertEqual("1024", policy.Read(new()).Value!.Values.Single(value => value.Key == "game.width").Value.Value);
+        AssertEqual("1500", policy.Read(new(second)).Value!.Values.Single(value => value.Key == "game.width").Value.Value);
+        // Restoring a cleared selection starts at overview; its retired reset confirmation cannot act.
+        AssertEqual("overview", settings.SelectedSection);
+        Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
+        scene = fixture.Shell.Render(new(1000, 650));
+        AssertEqual("game", settings.SelectedSection);
         Preview(); dialog = fixture.Feedback.Snapshot().Dialog!;
         AssertTrue(fixture.Feedback.ResolveDialog(dialog.Id, true));
         AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return fixture.Feedback.Snapshot().Notifications.Any(note => note.Message == "设置已恢复。"); }, TimeSpan.FromSeconds(5)));

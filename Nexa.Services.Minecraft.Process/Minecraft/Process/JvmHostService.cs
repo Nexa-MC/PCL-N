@@ -16,6 +16,10 @@ public interface IJvmHost
     JvmHostControlResult ResumeProcess(MinecraftProcessSession session);
     JvmHostControlResult SetPriority(MinecraftProcessSession session, ProcessPriorityClass priority);
     JvmHostControlResult SetAffinity(MinecraftProcessSession session, nint affinityMask);
+    JvmHostControlResult SetCpuSets(MinecraftProcessSession session, IReadOnlyList<int> logicalProcessors)
+        => new(false, "platform_unsupported", "此 JVM Host 不提供 CPU Sets 控制");
+    JvmHostControlResult SetQuality(MinecraftProcessSession session, Nexa.Platform.PlatformProcessQuality quality)
+        => new(false, "platform_unsupported", "此 JVM Host 不提供进程 QoS 控制");
 }
 
 /// <summary>
@@ -25,6 +29,7 @@ public interface IJvmHost
 /// </summary>
 public sealed class JvmHostService : IJvmHost
 {
+    public Nexa.Services.Logging.LogService? Log { get; init; }
     private readonly MinecraftProcessService _processes;
     private readonly XsrStateStore? _store;
     private readonly XsrStateId _observationsId;
@@ -32,9 +37,11 @@ public sealed class JvmHostService : IJvmHost
     private readonly Management.InstanceRecoveryService? _recovery;
 
     public JvmHostService(MinecraftProcessService processes, ResourceObservationHistory? history = null,
-        Management.InstanceRecoveryService? recovery = null, Nexa.Platform.IPlatformProcessControl? control = null)
+        Management.InstanceRecoveryService? recovery = null, Nexa.Platform.IPlatformProcessControl? control = null,
+        Nexa.Platform.IPlatformJvmRuntime? runtime = null)
     {
         _control = control ?? new Nexa.Platform.PlatformProcessControl();
+        _native = runtime ?? new Nexa.Platform.PlatformJvmRuntime();
         _processes = processes ?? throw new ArgumentNullException(nameof(processes));
         _store = processes.StateStore;
         _history = history;
@@ -69,12 +76,61 @@ public sealed class JvmHostService : IJvmHost
             ? await Management.InstanceRecoveryOperationGate.EnterOperationAsync(Path.GetFullPath(root), cancellationToken).ConfigureAwait(false) : null)
             session = await _processes.StartAsync(plan, instanceId, cancellationToken).ConfigureAwait(false);
         long launchDuration = Math.Max(0, Environment.TickCount64 - started);
+        RecordLifecycleFact(session.Snapshot, launchDuration, terminal: false, null);
+        if (Log is not null) _ = ObserveTerminalFactAsync(session, plan, launchDuration);
         Task<JvmRunContext?> context = CollectContextAsync(session, plan);
         _ = ObserveAsync(session, plan, launchDuration, context);
         return session;
     }
 
+    private void RecordLifecycleFact(MinecraftProcessSnapshot snapshot, long launchDuration, bool terminal, string? failure)
+    {
+        if (Log is not { } log || !Path.IsPathFullyQualified(snapshot.InstanceDirectory)
+            || snapshot.SessionId == Guid.Empty) return;
+        try
+        {
+            var context = new Nexa.Services.Logging.DiagnosticInstanceContext(
+                Nexa.Services.Logging.DiagnosticInstanceIdentity.ScopeHash(snapshot.InstanceDirectory), snapshot.SessionId)
+            {
+                StartedAt = snapshot.StartedAt,
+                EndedAt = terminal ? snapshot.EndedAt : null,
+                ExitCode = terminal ? snapshot.ExitCode : null,
+                FailureCode = failure,
+                LaunchDurationMilliseconds = launchDuration <= 86_400_000 ? launchDuration : null,
+            };
+            using var operation = log.BeginInstanceOperation("Process", terminal ? "GameExit" : "GameLaunch", context);
+            operation.Stage(!terminal ? "process-started" : failure == "jvm_crash" ? "jvm-crash"
+                : failure == "game_crash" ? "game-crash" : failure is null ? "normal-exit" : "abnormal-exit");
+            if (failure is null) operation.Complete(); else operation.Reject(failure);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+        {
+            // Diagnostic identity and sinks cannot alter an already started process.
+        }
+    }
+
+    private async Task ObserveTerminalFactAsync(MinecraftProcessSession session, MinecraftLaunchPlan plan, long launchDuration)
+    {
+        try { await session.WaitForExitAsync().ConfigureAwait(false); }
+        catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException) { }
+        var snapshot = session.Snapshot;
+        if (snapshot.State is MinecraftProcessState.Created or MinecraftProcessState.Running) return;
+        string? failure = snapshot.State == MinecraftProcessState.Exited && snapshot.ExitCode == 0 ? null : "abnormal_exit";
+        try
+        {
+            DateTimeOffset floor = snapshot.StartedAt - TimeSpan.FromSeconds(2);
+            if (FindNewestFile(plan.WorkingDirectory, $"hs_err_pid{session.Process.Id}.log", floor) is not null) failure = "jvm_crash";
+            else if (FindNewestFile(Path.Combine(plan.WorkingDirectory, "crash-reports"), "*.txt", floor) is not null) failure = "game_crash";
+        }
+        catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+        {
+            // A missing crash-evidence provider preserves the actual terminal exit facts.
+        }
+        RecordLifecycleFact(snapshot, launchDuration, terminal: true, failure);
+    }
+
     private readonly Nexa.Platform.IPlatformProcessControl _control;
+    private readonly Nexa.Platform.IPlatformJvmRuntime _native;
     private static JvmHostControlResult Contract(Nexa.Platform.PlatformProcessControlResult result)
         => new(result.Succeeded, result.Code, result.Message);
     public JvmHostControlResult Suspend(MinecraftProcessSession session) => Contract(_control.Suspend(session.Process, true));
@@ -83,12 +139,23 @@ public sealed class JvmHostService : IJvmHost
         => Contract(_control.SetPriority(session.Process, priority));
     public JvmHostControlResult SetAffinity(MinecraftProcessSession session, nint affinityMask)
         => Contract(_control.SetAffinity(session.Process, affinityMask));
+    public JvmHostControlResult SetCpuSets(MinecraftProcessSession session, IReadOnlyList<int> logicalProcessors)
+        => Contract(_native.SetCpuSets(session.Process, logicalProcessors));
+    public JvmHostControlResult SetQuality(MinecraftProcessSession session, Nexa.Platform.PlatformProcessQuality quality)
+        => Contract(_native.SetQuality(session.Process, quality));
 
     private async Task ObserveAsync(MinecraftProcessSession session, MinecraftLaunchPlan plan, long launchDuration,
         Task<JvmRunContext?> contextTask)
     {
         long peakWorking = 0, peakPrivate = 0, peakThreads = 0, cpuMs = 0, ioRead = 0, ioWrite = 0;
         RunResourceHistogram workingSamples = new();
+        RunResourceHistogram commitSamples = new(), heapSamples = new(), gpuSamples = new();
+        long? heapPeak = null, nativePeak = null, commitPeak = null, localGpuPeak = null, sharedGpuPeak = null, treePeak = null;
+        int? treeCount = null;
+        long? launchHeap = null, launchNative = null, launchPhysical = null, launchCommit = null,
+            launchGpuLocal = null, launchGpuShared = null, launchCpu = null, launchIo = null;
+        bool ioObserved = false;
+        long nextJvmProbe = 0;
         long[] cpuSamples = new long[101];
         JvmRunWindow window = new();
         long sequence = 0, runStart = Environment.TickCount64, windowStart = runStart;
@@ -116,12 +183,41 @@ public sealed class JvmHostService : IJvmHost
                 try
                 {
                     Nexa.Platform.PlatformProcessSample sample = _control.ReadSample(session.Process);
+                    long currentSampleTick = Environment.TickCount64;
+                    bool launching = currentSampleTick - runStart <= 30000;
+                    var native = _native.ReadSample(session.Process);
+                    if (launching)
+                    {
+                        launchPhysical = Math.Max(launchPhysical ?? 0, sample.WorkingSetBytes);
+                        if (sample.IoObserved) launchIo = Math.Max(launchIo ?? 0, sample.IoReadBytes);
+                        if (native.CommitBytes is { } launchValue) launchCommit = Math.Max(launchCommit ?? 0, launchValue);
+                        if (native.GpuLocalBytes is { } localValue) launchGpuLocal = Math.Max(launchGpuLocal ?? 0, localValue);
+                        if (native.GpuSharedBytes is { } sharedValue) launchGpuShared = Math.Max(launchGpuShared ?? 0, sharedValue);
+                    }
+                    if (native.CommitBytes is { } commit) { commitSamples.Add(commit); commitPeak = Math.Max(commitPeak ?? 0, commit); }
+                    if (native.GpuLocalBytes is { } local) localGpuPeak = Math.Max(localGpuPeak ?? 0, local);
+                    if (native.GpuSharedBytes is { } shared) sharedGpuPeak = Math.Max(sharedGpuPeak ?? 0, shared);
+                    if (native.GpuLocalBytes is { } gpuLocal && native.GpuSharedBytes is { } gpuShared) gpuSamples.Add(gpuLocal + gpuShared);
+                    if (native.TreeWorkingSetBytes is { } treeWorking) treePeak = Math.Max(treePeak ?? 0, treeWorking);
+                    if (native.TreeProcessCount is { } processes) treeCount = Math.Max(treeCount ?? 0, processes);
+                    if (Environment.TickCount64 >= nextJvmProbe)
+                    {
+                        nextJvmProbe = Environment.TickCount64 + 15000;
+                        var jvm = await _native.ReadJvmMemoryAsync(plan.JavaExecutablePath, session.Process.Id).ConfigureAwait(false);
+                        long? heapBytes = JvmMemoryProbe.ParseHeap(jvm.HeapInfo), nativeBytes = JvmMemoryProbe.ParseNative(jvm.NativeInfo);
+                        if (heapBytes is { } heap) { heapPeak = Math.Max(heapPeak ?? 0, heap); heapSamples.Add(heap); }
+                        if (nativeBytes is { } memory) nativePeak = Math.Max(nativePeak ?? 0, memory);
+                        if (Environment.TickCount64 - runStart <= 30000)
+                        {
+                            if (heapBytes is { } launchHeapValue) launchHeap = Math.Max(launchHeap ?? 0, launchHeapValue);
+                            if (nativeBytes is { } launchNativeValue) launchNative = Math.Max(launchNative ?? 0, launchNativeValue);
+                        }
+                    }
                     peakWorking = Math.Max(peakWorking, sample.WorkingSetBytes);
                     peakPrivate = Math.Max(peakPrivate, sample.PrivateBytes);
                     peakThreads = Math.Max(peakThreads, sample.ThreadCount);
                     TimeSpan currentCpu = sample.CpuTime;
                     cpuMs = Math.Max(cpuMs, (long)currentCpu.TotalMilliseconds);
-                    long currentSampleTick = Environment.TickCount64;
                     workingSamples.Add(sample.WorkingSetBytes);
                     double? sampleCpu = null;
                     if (hasCpuBaseline)
@@ -132,6 +228,7 @@ public sealed class JvmHostService : IJvmHost
                             0, 100);
                         cpuSamples[cpuPercent]++;
                         sampleCpu = cpuPercent;
+                        if (launching) launchCpu = Math.Max(launchCpu ?? 0, cpuPercent);
                     }
                     previousCpu = currentCpu;
                     previousSampleTick = currentSampleTick;
@@ -140,6 +237,7 @@ public sealed class JvmHostService : IJvmHost
                     successfulSamples++;
                     ioRead = Math.Max(ioRead, sample.IoReadBytes);
                     ioWrite = Math.Max(ioWrite, sample.IoWriteBytes);
+                    ioObserved |= sample.IoObserved;
                 }
                 catch (Exception exception) when (exception is InvalidOperationException or NotSupportedException or System.ComponentModel.Win32Exception)
                 {
@@ -172,15 +270,42 @@ public sealed class JvmHostService : IJvmHost
             $"hs_err_pid{session.Process.Id}.log", evidenceFloor);
         string? crashReport = FindNewestFile(Path.Combine(plan.WorkingDirectory, "crash-reports"),
             "*.txt", evidenceFloor);
+        var systemEvents = await _native.ReadSystemEventsAsync(session.Process.Id, snapshot.StartedAt,
+            snapshot.EndedAt ?? DateTimeOffset.UtcNow).ConfigureAwait(false);
         JvmHostObservation observation = new(snapshot.SessionId, snapshot.InstanceId, snapshot.StartedAt,
             snapshot.EndedAt, launchDuration, peakWorking, peakPrivate, peakThreads, cpuMs,
-            0, 0, 0, 0, 0, ioRead, ioWrite, crashReport, hsErr, snapshot.ExitCode,
+            heapPeak ?? 0, nativePeak ?? 0, commitPeak ?? 0, localGpuPeak ?? 0, sharedGpuPeak ?? 0, ioRead, ioWrite, crashReport, hsErr, snapshot.ExitCode,
             stdout.TakeLast(40).ToArray(), stderr.TakeLast(40).ToArray())
         {
             CpuPeakPercent = Array.FindLastIndex(cpuSamples, static count => count > 0) is int cpuPeak && cpuPeak >= 0 ? cpuPeak : 0,
             RuntimePhysicalP95Bytes = workingSamples.P95(),
-            RuntimeCommitP95Bytes = 0,
+            RuntimeCommitP95Bytes = commitSamples.P95(),
             RuntimeCpuP95Percent = CpuPercentile(cpuSamples),
+            MeasuredHeapPeakBytes = heapPeak,
+            MeasuredNativePeakBytes = nativePeak,
+            MeasuredCommitPeakBytes = commitPeak,
+            MeasuredGpuLocalPeakBytes = localGpuPeak,
+            MeasuredGpuSharedPeakBytes = sharedGpuPeak,
+            MeasuredRuntimeHeapP95Bytes = heapPeak.HasValue ? heapSamples.P95() : null,
+            MeasuredRuntimeCommitP95Bytes = commitPeak.HasValue ? commitSamples.P95() : null,
+            MeasuredRuntimeGpuP95Bytes = gpuSamples.Count > 0 ? gpuSamples.P95() : null,
+            MeasuredCombinedGpuPeakBytes = gpuSamples.Count > 0 ? gpuSamples.Peak : null,
+            PeakTreeWorkingSetBytes = treePeak,
+            PeakTreeProcessCount = treeCount,
+            CoreMetricsObserved = successfulSamples > 0,
+            CpuPercentObserved = cpuSamples.Sum() > 0,
+            IoObserved = ioObserved,
+            SystemEventsObserved = systemEvents is not null,
+            SystemEvents = systemEvents?.Select(static item => Nexa.Services.Logging.LogRedactor.Redact(item.Message)).ToArray() ?? [],
+            LaunchWindowMilliseconds = Math.Min(30000, observedMilliseconds),
+            MeasuredLaunchHeapPeakBytes = launchHeap,
+            MeasuredLaunchNativePeakBytes = launchNative,
+            MeasuredLaunchPhysicalPeakBytes = launchPhysical,
+            MeasuredLaunchCommitPeakBytes = launchCommit,
+            MeasuredLaunchGpuLocalPeakBytes = launchGpuLocal,
+            MeasuredLaunchGpuSharedPeakBytes = launchGpuShared,
+            MeasuredLaunchCpuPeakPercent = launchCpu,
+            MeasuredLaunchIoReadBytes = launchIo,
         };
         Publish(observation);
         ResourceObservationSample? historySample = CreateHistorySample(plan, snapshot, observation,
@@ -214,7 +339,9 @@ public sealed class JvmHostService : IJvmHost
             || observation.CrashReportPath is not null || observation.HsErrPath is not null
             || observation.PeakWorkingSetBytes <= 0) return null;
         return new(plan.InstanceDirectory, plan.ModLoader.Kind.ToString(), plan.JavaMajorVersion,
-            -1, -1, 0, 0, BytesToMiB(observation.PeakWorkingSetBytes), 0, 0,
+            -1, -1, BytesToMiB(observation.MeasuredHeapPeakBytes ?? 0), BytesToMiB(observation.MeasuredNativePeakBytes ?? 0),
+            BytesToMiB(observation.PeakWorkingSetBytes), BytesToMiB(observation.MeasuredCommitPeakBytes ?? 0),
+            BytesToMiB(observation.MeasuredCombinedGpuPeakBytes ?? 0),
             observation.LaunchDurationMilliseconds, snapshot.EndedAt.Value);
     }
 

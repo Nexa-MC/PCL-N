@@ -52,11 +52,19 @@ internal static partial class Program
             localDetail = FindByKey(fixture.Shell, scene, "ManagementContentDetail").Entity;
             scroll = fixture.Shell.Tree.GetComponent<XsrUiScroll>(fixture.Shell.Tree.Parent(localDetail))!;
             scroll.OffsetY = 400; fixture.Shell.Tree.MarkDirty(fixture.Shell.Tree.Parent(localDetail), XsrUiDirtyKinds.Layout); scene = fixture.Shell.Render(new(1000, 650));
+            double previousOffset = scroll.OffsetY;
             reads[1].Completion.SetResult(new(new("A", "Name", "中文简介", "Author", 12345, "https://modrinth.com/project/A") { ChineseName = "中文名称", Sources = [new(ResourceProvider.Modrinth, "A")] }, "1.0.0", [], null));
             AssertTrue(SpinWait.SpinUntil(() => { scene = fixture.Shell.Render(new(1000, 650)); return scene.Nodes.Any(node => node.Text == "中文名称"); }, TimeSpan.FromSeconds(5)));
             AssertEqual(localDetail, FindByKey(fixture.Shell, scene, "ManagementContentDetail").Entity);
             AssertTrue(scene.Nodes.Any(node => node.Text == "中文简介"));
-            scroll.OffsetY = 100000; fixture.Shell.Tree.MarkDirty(fixture.Shell.Tree.Parent(localDetail), XsrUiDirtyKinds.Layout); scene = fixture.Shell.Render(new(1000, 650));
+            AssertEqual(previousOffset, scroll.OffsetY);
+            // Integrity is a separate card after the online facts, so the last scroll position is
+            // no longer the download count. Prove that the actual count remains reachable.
+            for (int offset = 0; offset <= 4096 && !scene.Nodes.Any(node => node.Text == "12.3k"); offset += 128)
+            {
+                scroll.OffsetY = offset; fixture.Shell.Tree.MarkDirty(fixture.Shell.Tree.Parent(localDetail), XsrUiDirtyKinds.Layout);
+                scene = fixture.Shell.Render(new(1000, 650));
+            }
             AssertTrue(scene.Nodes.Any(node => node.Text == "12.3k"));
             AssertEqual(2, reads.Count); // Rendering completed information never starts a refresh loop.
         }
@@ -66,6 +74,7 @@ internal static partial class Program
     private static void ResourceOptionalDependenciesWaitForUserChoice()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
+        AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "zh-Hans"))).IsSuccess);
         var source = new ResourceReference(ResourceProvider.Modrinth, "A"); var optional = new ResourceReference(ResourceProvider.Modrinth, "B");
         ResourceModInstallCommand? installed = null; ResourceModInstallCommand? planned = null;
         var queries = new XsrQueryRouterBuilder();
@@ -89,6 +98,7 @@ internal static partial class Program
         AssertTrue(installed is null && planned is not null); AssertEqual(0, planned!.OptionalDependencies.Count);
         scene = fixture.Shell.Render(new(1000, 650));
         AssertTrue(scene.Nodes.Any(node => node.Text == "选择可选依赖"));
+        // The first detail action must survive retirement of list-only plugin bindings.
         Emit(fixture.Intents, "ui.resources.action", page.Find("ResourceOptionalToggle.B")); scene = fixture.Shell.Render(new(1000, 650));
         AssertTrue(installed is null); AssertTrue(planned.OptionalDependencies.Contains(optional));
         scene = fixture.Shell.Render(new(1000, 650));

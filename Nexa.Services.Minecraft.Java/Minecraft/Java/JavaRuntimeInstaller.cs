@@ -8,7 +8,7 @@ namespace Nexa.Services.Minecraft.Java;
 /// Installs a planned Mojang runtime with resumable, hash-verified file replacement.
 /// The installer owns no global state and can therefore be hosted by a command handler.
 /// </summary>
-public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDisposable
+public sealed partial class JavaRuntimeInstaller : IConfirmedJavaRuntimeInstaller, IDisposable
 {
     private readonly JavaRuntimeDownloadPlanService _planService;
     private readonly HttpClient _httpClient;
@@ -46,7 +46,7 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
         string runtimeRootDirectory,
         IProgress<JavaRuntimeInstallProgress>? progress,
         JavaExecution execution,
-        CancellationToken cancellationToken)
+        string? expectedPlanFingerprint, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(requestedComponent);
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeRootDirectory);
@@ -63,8 +63,15 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
             string lockPath = Path.Combine(runtimeRootDirectory, ".nexa-java.lock");
             Nexa.Services.Minecraft.Management.RecoveryBlobStore.CheckLinks(lockPath);
             rootLease = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-            var journal = await FindPendingAsync(runtimeRootDirectory, requestedComponent, cancellationToken).ConfigureAwait(false)
-                ?? await JavaInstallJournal.CreateAsync(runtimeRootDirectory, requestedComponent, cancellationToken).ConfigureAwait(false);
+            var journal = await FindPendingAsync(runtimeRootDirectory, requestedComponent, cancellationToken).ConfigureAwait(false);
+            JavaRuntimeDownloadPlan? reviewedNewPlan = null;
+            if (journal is null && expectedPlanFingerprint is not null)
+            {
+                // A rejected manual preview must not leave an intent that startup could later acquire.
+                reviewedNewPlan = await _planService.CreatePlanAsync(requestedComponent, DetectPlatform(), runtimeRootDirectory, cancellationToken).ConfigureAwait(false);
+                ValidateReviewedPlan(reviewedNewPlan, expectedPlanFingerprint);
+            }
+            journal ??= await JavaInstallJournal.CreateAsync(runtimeRootDirectory, requestedComponent, cancellationToken).ConfigureAwait(false);
             execution.Ready.TrySetResult();
             if (journal.CancelRequested)
             {
@@ -76,9 +83,11 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
             JavaRuntimeDownloadPlan? plan = await journal.ReadPlanAsync(cancellationToken).ConfigureAwait(false);
             if (plan is null)
             {
-                plan = await _planService.CreatePlanAsync(requestedComponent, DetectPlatform(), runtimeRootDirectory, cancellationToken).ConfigureAwait(false);
+                plan = reviewedNewPlan ?? await _planService.CreatePlanAsync(requestedComponent, DetectPlatform(), runtimeRootDirectory, cancellationToken).ConfigureAwait(false);
+                ValidateReviewedPlan(plan, expectedPlanFingerprint);
                 await journal.SavePlanAsync(plan, cancellationToken).ConfigureAwait(false);
             }
+            else ValidateReviewedPlan(plan, expectedPlanFingerprint);
             if (journal.Ready)
             {
                 JavaRuntimeManagedStore.CheckUnused(runtimeRootDirectory, plan.ComponentName);
@@ -168,6 +177,12 @@ public sealed partial class JavaRuntimeInstaller : IJavaRuntimeInstaller, IDispo
             throw;
         }
         finally { rootLease?.Dispose(); }
+    }
+
+    private static void ValidateReviewedPlan(JavaRuntimeDownloadPlan plan, string? expectedFingerprint)
+    {
+        if (expectedFingerprint is not null && JavaRuntimePlanIdentity.Fingerprint(plan) != expectedFingerprint)
+            throw new IOException("Java 下载计划已变化，请重新预览。");
     }
 
     public static JavaRuntimePlatform DetectPlatform()

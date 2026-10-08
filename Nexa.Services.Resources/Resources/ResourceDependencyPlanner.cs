@@ -2,6 +2,7 @@ namespace Nexa.Services.Resources;
 
 public sealed class ResourceDependencyPlanner(IResourceCatalogSource catalog)
 {
+    public bool AutoInstallDependencies { get; init; } = true;
     public async Task<IReadOnlyList<ResourceVersion>> PlanAsync(ResourceModInstallCommand command, ResourceInstanceContext context, CancellationToken token) =>
         (await PreviewAsync(command, context, token, resolveNames: false).ConfigureAwait(false)).Versions;
     public async Task<ResourceInstallPlan> PreviewAsync(ResourceModInstallCommand command, ResourceInstanceContext context, CancellationToken token, bool resolveNames = true)
@@ -13,7 +14,7 @@ public sealed class ResourceDependencyPlanner(IResourceCatalogSource catalog)
         List<ResourceVersion> ordered = [];
         var optional = new Dictionary<ResourceReference, ResourceOptionalDependency>();
         bool hasCycles = false;
-        async Task Visit(ResourceReference reference, string? pinned, int depth)
+        async Task Visit(ResourceReference reference, string? pinned, int depth, bool required = false)
         {
             token.ThrowIfCancellationRequested();
             if (chosen.TryGetValue(reference, out var already))
@@ -53,6 +54,7 @@ public sealed class ResourceDependencyPlanner(IResourceCatalogSource catalog)
                     }
                 if (!present) throw new InvalidDataException("已有同一项目的其他版本或已禁用模组，请先在版本管理中处理。");
             }
+            if (required && !present && !AutoInstallDependencies) throw new InvalidDataException("自动安装依赖已关闭，请先手动安装缺失的必需依赖。");
             if (!present && (version.File is null || !version.File.Name.EndsWith(".jar", StringComparison.OrdinalIgnoreCase))) throw new InvalidDataException("模组依赖未开放直接下载。");
             if (!present && version.File!.Size is <= 0 or > 268435456) throw new InvalidDataException("模组文件大小超出安装预算。");
             if (version.Dependencies.Count > 256) throw new InvalidDataException("模组依赖数量过多。");
@@ -63,7 +65,7 @@ public sealed class ResourceDependencyPlanner(IResourceCatalogSource catalog)
                 if (dependency.Kind == "required")
                 {
                     if (string.IsNullOrEmpty(child.ProjectId) && string.IsNullOrEmpty(dependency.VersionId)) throw new InvalidDataException("必需依赖没有可解析的项目或版本标识。");
-                    await Visit(child, dependency.VersionId, depth + 1).ConfigureAwait(false);
+                    await Visit(child, dependency.VersionId, depth + 1, required: true).ConfigureAwait(false);
                 }
                 else if (dependency.Kind == "optional")
                 {

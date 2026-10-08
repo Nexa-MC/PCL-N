@@ -56,6 +56,64 @@ internal static partial class Program
             Require((string)read.Invoke(null, [runtime, point, ""])! == "(empty):patched", "original branching/return retained");
         }
         finally { load.Unload(); }
+        const string primitiveSource = """
+            using Nexa.Xsr.Runtime;
+            public static class PrimitiveDemo
+            {
+                [XsrFunctionPatch("ui.primitive.sum")]
+                public static long Sum(XsrFunctionPatchRuntime runtime, XsrFunctionPatchPoint point, int left, long right) => left + right;
+                [XsrFunctionPatch("ui.primitive.equal")]
+                public static bool Equal(XsrFunctionPatchRuntime runtime, XsrFunctionPatchPoint point, int left, int right) => left == right;
+                [XsrFunctionPatch("ui.primitive.double")]
+                public static double Number(XsrFunctionPatchRuntime runtime, XsrFunctionPatchPoint point, double value) => value;
+                [XsrFunctionPatch("ui.primitive.void")]
+                public static void Nothing(XsrFunctionPatchRuntime runtime, XsrFunctionPatchPoint point) { return; }
+            }
+            """;
+        const string primitiveShim = """
+            namespace Nexa.Xsr.Runtime
+            {
+                public sealed class XsrFunctionPatchPoint { }
+                public delegate XsrFunctionValue XsrFunctionOriginal(System.ReadOnlySpan<XsrFunctionValue> arguments);
+                public readonly record struct XsrFunctionValue(object Value)
+                {
+                    public static XsrFunctionValue From(int value) => new(value);
+                    public static XsrFunctionValue From(long value) => new(value);
+                    public static XsrFunctionValue From(bool value) => new(value);
+                    public static XsrFunctionValue From(double value) => new(value);
+                    public static XsrFunctionValue Empty => new(null);
+                    public int AsInt32() => (int)Value;
+                    public long AsInt64() => (long)Value;
+                    public bool AsBoolean() => (bool)Value;
+                    public double AsFloat64() => (double)Value;
+                }
+                public sealed class XsrFunctionPatchRuntime
+                {
+                    public bool HasPatches(XsrFunctionPatchPoint point) => true;
+                    public XsrFunctionValue InvokeValues(XsrFunctionPatchPoint point, System.ReadOnlySpan<XsrFunctionValue> values, XsrFunctionOriginal original)
+                    {
+                        var result = original(values);
+                        return result.Value is long value ? XsrFunctionValue.From(value + 100) : result;
+                    }
+                }
+            }
+            """;
+        var primitiveTrees = new[] { CSharpSyntaxTree.ParseText(Rewrite(primitiveSource, "Primitive.cs")), CSharpSyntaxTree.ParseText(primitiveShim) };
+        var primitiveCompilation = CSharpCompilation.Create("PrimitiveRewrittenFixture", primitiveTrees, references, new(OutputKind.DynamicallyLinkedLibrary));
+        using MemoryStream primitiveEmitted = new(); var primitiveEmit = primitiveCompilation.Emit(primitiveEmitted);
+        Require(primitiveEmit.Success, "primitive wrapper compilation: " + string.Join("; ", primitiveEmit.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)));
+        primitiveEmitted.Position = 0; AssemblyLoadContext primitiveLoad = new("primitive-compiler-fixture", isCollectible: true);
+        try
+        {
+            var assembly = primitiveLoad.LoadFromStream(primitiveEmitted); var demo = assembly.GetType("PrimitiveDemo")!;
+            var runtime = Activator.CreateInstance(assembly.GetType("Nexa.Xsr.Runtime.XsrFunctionPatchRuntime")!);
+            var point = Activator.CreateInstance(assembly.GetType("Nexa.Xsr.Runtime.XsrFunctionPatchPoint")!);
+            Require((long)demo.GetMethod("Sum")!.Invoke(null, [runtime, point, 2, 3L])! == 105L, "multiargument typed bridge invokes patch runtime");
+            Require((bool)demo.GetMethod("Equal")!.Invoke(null, [runtime, point, 2, 2])!, "Boolean typed bridge");
+            Require((double)demo.GetMethod("Number")!.Invoke(null, [runtime, point, 2.5d])! == 2.5d, "Float64 typed bridge");
+            Require(demo.GetMethod("Nothing")!.Invoke(null, [runtime, point]) is null, "zero argument void bridge");
+        }
+        finally { primitiveLoad.Unload(); }
         const string expression = "using Nexa.Xsr.Runtime; public static class Expression { [XsrFunctionPatch(\"ui.expression.v1\")] public static string Read(XsrFunctionPatchRuntime runtime, XsrFunctionPatchPoint point, string text) => text; }";
         var expressionTree = CSharpSyntaxTree.ParseText(Rewrite(expression, "Expression.cs"));
         Require(!expressionTree.GetDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error), "expression body parses");

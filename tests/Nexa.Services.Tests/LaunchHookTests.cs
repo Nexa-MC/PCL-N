@@ -164,17 +164,24 @@ internal static partial class Program
 
             order.Clear(); hooks.BlockWait = true;
             using var cancellation = new CancellationTokenSource();
+            var previousHook = hooks.Last;
+            Task<HookFixtureSession> nextHook = hooks.NextStart;
             Task<MinecraftProcessSession> waiting = executor.ExecuteAsync(plan, "cancelled-hook", cancellationToken: cancellation.Token).AsTask();
-            await hooks.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5)); cancellation.Cancel();
+            HookFixtureSession cancelledHook = await nextHook.WaitAsync(TimeSpan.FromSeconds(5));
+            AssertFalse(ReferenceEquals(previousHook, cancelledHook));
+            await cancelledHook.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5)); cancellation.Cancel();
             bool cancelled = false;
             try { await waiting; } catch (OperationCanceledException) { cancelled = true; }
-            AssertTrue(cancelled); AssertTrue(hooks.Last!.Disposed); AssertFalse(hooks.Last.Detached); AssertFalse(order.Contains("jvm_start"));
+            AssertTrue(cancelled); AssertTrue(ReferenceEquals(cancelledHook, hooks.Last));
+            AssertTrue(cancelledHook.Disposed); AssertFalse(cancelledHook.Detached); AssertFalse(order.Contains("jvm_start"));
+            AssertTrue(order.SequenceEqual(["hook_start", "hook_wait", "hook_dispose"]));
 
             order.Clear(); hooks.BlockWait = false;
+            nextHook = hooks.NextStart;
             cancelled = false;
             try { await executor.ExecuteAsync(plan, "already-cancelled", cancellationToken: cancellation.Token); }
             catch (OperationCanceledException) { cancelled = true; }
-            AssertTrue(cancelled); AssertEqual(0, order.Count);
+            AssertTrue(cancelled); AssertEqual(0, order.Count); AssertFalse(nextHook.IsCompleted);
         }
         finally { Directory.Delete(root, true); }
     }
@@ -219,30 +226,34 @@ internal static partial class Program
 
     private sealed class HookFixturePort(List<string> order) : IMinecraftLaunchHookPort
     {
+        private TaskCompletionSource<HookFixtureSession> _nextStart = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int ExitCode { get; set; }
         public bool BlockWait { get; set; }
         public string? Command { get; private set; }
         public string? Directory { get; private set; }
         public HookFixtureSession? Last { get; private set; }
-        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task<HookFixtureSession> NextStart => _nextStart.Task;
         public ValueTask<IMinecraftLaunchHookSession> StartAsync(string command, string workingDirectory, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
             AssertTrue(System.IO.Directory.Exists(Path.Combine(workingDirectory, "natives")));
             Command = command; Directory = workingDirectory; order.Add("hook_start");
-            Last = new(order, ExitCode, BlockWait, Entered);
+            Last = new(order, ExitCode, BlockWait);
+            var nextStart = _nextStart;
+            _nextStart = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            nextStart.TrySetResult(Last);
             return ValueTask.FromResult<IMinecraftLaunchHookSession>(Last);
         }
     }
 
-    private sealed class HookFixtureSession(List<string> order, int exitCode, bool block,
-        TaskCompletionSource entered) : IMinecraftLaunchHookSession
+    private sealed class HookFixtureSession(List<string> order, int exitCode, bool block) : IMinecraftLaunchHookSession
     {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool Detached { get; private set; }
         public bool Disposed { get; private set; }
         public async ValueTask<int> WaitForExitAsync(CancellationToken token = default)
         {
-            order.Add("hook_wait"); entered.TrySetResult();
+            order.Add("hook_wait"); Entered.TrySetResult();
             if (block) await Task.Delay(Timeout.InfiniteTimeSpan, token);
             return exitCode;
         }

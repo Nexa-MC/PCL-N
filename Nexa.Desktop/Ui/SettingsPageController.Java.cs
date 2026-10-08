@@ -82,6 +82,8 @@ internal sealed partial class SettingsPageController
             DesktopLiteralText.Preserve(_shell.Tree, name);
             var path = Text(labels, runtime.JavaExecutablePath, 11, Muted, height: 32);
             DesktopLiteralText.Preserve(_shell.Tree, path);
+            bool managedRuntime = _javaInventory.ManagedRuntimes.Any(entry => Nexa.Core.PathIdentity.Comparer.Equals(entry.Executable, runtime.JavaExecutablePath));
+            Text(labels, managedRuntime ? "启动器托管" : "外部运行时", 11, Muted, height: 22);
             _shell.Tree.GetComponent<XsrUiVisualStyle>(path)!.WrapText = true;
             _shell.Tree.GetComponent<XsrUiText>(path)!.MaxLines = 2;
             var choose = RadioOption(row, "SettingsJavaChoose." + index++, "使用", ChooseJava, 64);
@@ -111,6 +113,8 @@ internal sealed partial class SettingsPageController
                 Nexa.Core.PathIdentity.Comparer.Equals(entry.Executable, managed.Executable))?.Enabled ?? true);
         }
         UpdateJavaChoices();
+        BuildJavaDiagnostics();
+        BuildJavaManualDownload();
         if (focus is not null) _shell.Tree.Walk(group, entity =>
         { if (_shell.Tree.Name(entity) == focus) _shell.Renderer.Focus(entity, showIndicator: false); return true; });
     }
@@ -252,6 +256,8 @@ internal sealed partial class SettingsPageController
 
     private void CancelJavaInventory()
     {
+        CancelJavaDiagnostics();
+        CancelJavaManualDownload();
         _javaRegistryGeneration++;
         _javaManagementStop?.Cancel(); _javaManagementStop?.Dispose(); _javaManagementStop = null;
         _javaPick = null; _javaManagementWrite = null;

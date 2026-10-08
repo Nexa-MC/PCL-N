@@ -19,6 +19,7 @@ internal sealed class DesktopSidecarUiPatches
 {
     internal static readonly XsrSemanticId SearchLabel = XsrSemanticId.Parse("ui.resources.search-label.v1");
     internal static readonly XsrSemanticId ResourceCard = XsrSemanticId.Parse("ui.resources.extension-card.v1");
+    internal XsrUiModuleRuntime Modules { get; }
     internal XsrUiModuleAdmission ModuleAdmission { get; }
     internal XsrStateId ModuleState { get; }
     internal int CardIndex { get; }
@@ -33,6 +34,7 @@ internal sealed class DesktopSidecarUiPatches
         Admission = new(runtime, SearchLabel);
         ModuleState = store.Resolve(SidecarUiPresentationState.Modules);
         var modules = new XsrUiModuleRuntime(store, ModuleState, ResourceCard);
+        Modules = modules;
         CardIndex = modules.Resolve(ResourceCard);
         ModuleAdmission = new(modules, ResourceCard);
     }

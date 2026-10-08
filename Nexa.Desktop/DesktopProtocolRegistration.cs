@@ -3,8 +3,12 @@ using Microsoft.Win32;
 
 namespace Nexa.Desktop;
 
+internal sealed record DesktopProtocolObservation(bool Attempted, bool Pending, bool Succeeded, DateTimeOffset? ObservedAt, string? Detail);
+
 internal static class DesktopProtocolRegistration
 {
+    private static DesktopProtocolObservation _observation = new(false, false, false, null, null);
+    internal static DesktopProtocolObservation Observation => Volatile.Read(ref _observation);
     internal static IReadOnlyList<string> LauncherCommand()
     {
         string executable = Environment.ProcessPath ?? throw new IOException("无法定位启动器。");
@@ -23,6 +27,14 @@ internal static class DesktopProtocolRegistration
         + " %u\nMimeType=x-scheme-handler/nexacl;\n";
 
     internal static async Task<string?> RegisterAsync(CancellationToken cancellationToken = default)
+    {
+        Volatile.Write(ref _observation, new(true, true, false, null, null));
+        string? error = await RegisterCoreAsync(cancellationToken).ConfigureAwait(false);
+        Volatile.Write(ref _observation, new(true, false, error is null, DateTimeOffset.UtcNow, error));
+        return error;
+    }
+
+    private static async Task<string?> RegisterCoreAsync(CancellationToken cancellationToken)
     {
         try
         {

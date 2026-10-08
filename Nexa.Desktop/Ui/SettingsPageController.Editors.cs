@@ -56,10 +56,16 @@ internal sealed partial class SettingsPageController
             if (entry.InvertBoolean) label = value == "true" ? "关闭" : "开启";
             if (entry.SettingKey == "general.region") label = value switch
             { "auto" => "系统区域", "follow-language" => "界面语言", "zh-CN" => "中国大陆", "zh-TW" => "中国台湾", "en-US" => "美国", _ => value };
-            if (entry.SettingKey == "network.game-source") label = value switch
-            { "official-first" => "官方优先", "mirrors-first" => "镜像优先", "official-only" => "仅官方", _ => value };
+            if (entry.SettingKey is "network.game-source" or "network.resource-source") label = value switch
+            { "official-first" => "官方优先", "mirrors-first" => "镜像优先", "official-only" => "仅官方", "follow-request" => "跟随页面", _ => value };
+            if (entry.SettingKey == "general.startup-page") label = value switch
+            { "launch" => "启动", "install" => "安装", "resources" => "资源", "settings" => "设置", "java" => "Java", "storage" => "存储", "about" => "关于", "tasks" => "任务", _ => value };
             if (entry.SettingKey == "network.ip-stack") label = value switch
             { "auto" => "系统顺序", "ipv4" => "IPv4 优先", "ipv6" => "IPv6 优先", _ => value };
+            if (entry.SettingKey == "game.gpu-preference") label = value switch
+            { "auto" => "跟随系统", "secondary" => "次级 GPU（Mesa）", _ => value };
+            if (entry.SettingKey == "game.renderer") label = value switch
+            { "auto" => "跟随系统", "mesa-software" => "Mesa 软件渲染", _ => value };
             if (entry.SettingKey == "game.process-priority") label = value switch
             { "normal" => "正常", "below-normal" => "较低", "above-normal" => "较高", "high" => "高", "real-time" => "实时", _ => value };
             if (entry.SettingKey == "game.launcher-visibility") label = value switch

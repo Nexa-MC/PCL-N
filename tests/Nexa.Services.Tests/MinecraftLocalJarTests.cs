@@ -2,6 +2,7 @@ using System.IO.Compression;
 using Nexa.Services.Minecraft;
 using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Minecraft.Launch;
+using Nexa.Services.Minecraft.Management;
 
 namespace Nexa.Services.Tests;
 
@@ -23,10 +24,80 @@ internal static partial class Program
             {
                 await File.WriteAllTextAsync(metadataPath, json);
                 var metadata = await store.LoadAsync(directory);
+                AssertEqual(MinecraftInstanceMetadata.CurrentSchemaVersion, metadata.SchemaVersion);
+                AssertEqual(string.Empty, metadata.Identity);
+                AssertEqual(string.Empty, metadata.DisplayName);
+                AssertEqual(string.Empty, metadata.AuthServerAddress);
+                AssertEqual(string.Empty, metadata.SelectedJavaPath);
+                AssertEqual(0, metadata.Tags.Length);
+                AssertEqual(0, metadata.ServerRequiredMods.Length);
+                AssertTrue(metadata.InstanceIsolation);
+                AssertTrue(metadata.UseGlobalWindowTitle);
+                AssertTrue(metadata.OfflineLaunchAllowed);
+                AssertTrue(metadata.WaitForPreLaunchCommand);
+                AssertTrue(metadata.ForceX11OnWayland);
+                AssertEqual(2, metadata.MemorySolution);
+                AssertEqual(15, metadata.CustomMemorySize);
                 AssertTrue(metadata.CorePatchSha256 is not null);
+                var identity = await InstanceIdentityService.ReadAsync(new(directory));
+                AssertEqual(string.Empty, identity.Fields.DisplayName);
+                AssertTrue(identity.Fields.InstanceIsolation);
+                AssertTrue(identity.Server.OfflineLaunchAllowed);
                 var instance = (await new MinecraftInstanceDiscovery().DiscoverAsync(root)).Single();
                 AssertFalse(await MinecraftLaunchFileCompletion.HasVerifiedCorePatchAsync(instance, core, CancellationToken.None));
+                AssertEqual(json, await File.ReadAllTextAsync(metadataPath));
             }
+            const string explicitValues = """{"schemaVersion":1,"instanceIsolation":false,"offlineLaunchAllowed":false,"memorySolution":0,"customMemorySize":0,"displayName":"Owned"}""";
+            await File.WriteAllTextAsync(metadataPath, explicitValues);
+            var explicitMetadata = await store.LoadAsync(directory);
+            AssertFalse(explicitMetadata.InstanceIsolation);
+            AssertFalse(explicitMetadata.OfflineLaunchAllowed);
+            AssertEqual(0, explicitMetadata.MemorySolution);
+            AssertEqual(0, explicitMetadata.CustomMemorySize);
+            AssertEqual("Owned", explicitMetadata.DisplayName);
+            AssertEqual(explicitValues, await File.ReadAllTextAsync(metadataPath));
+            await store.SaveAsync(directory, explicitMetadata);
+            var reopened = await store.LoadAsync(directory);
+            AssertEqual("Owned", reopened.DisplayName);
+            AssertFalse(reopened.InstanceIsolation);
+            AssertFalse(reopened.OfflineLaunchAllowed);
+            AssertEqual(0, reopened.MemorySolution);
+            AssertEqual(0, reopened.CustomMemorySize);
+            // Names retain the existing camelCase, case-sensitive semantics; unknown fields are
+            // ignored in memory and their original bytes remain untouched on read.
+            foreach (string unknownCase in new[] { "{\"SchemaVersion\":2,\"DisplayName\":null}", "{\"SchemaVersion\":null,\"InstanceIsolation\":false}" })
+            {
+                await File.WriteAllTextAsync(metadataPath, unknownCase);
+                var metadata = await store.LoadAsync(directory);
+                AssertEqual(MinecraftInstanceMetadata.CurrentSchemaVersion, metadata.SchemaVersion);
+                AssertEqual(string.Empty, metadata.DisplayName);
+                AssertTrue(metadata.InstanceIsolation);
+                AssertEqual(unknownCase, await File.ReadAllTextAsync(metadataPath));
+            }
+            foreach (string invalid in new[] { "{\"schemaVersion\":0}", "{\"schemaVersion\":2}", "{\"schemaVersion\":null}", "{\"schemaVersion\":\"1\"}", "{\"schemaVersion\":1,\"displayName\":null}", "{\"schemaVersion\":1,\"tags\":null}" })
+            {
+                await File.WriteAllTextAsync(metadataPath, invalid);
+                bool rejected = false;
+                try { await store.LoadAsync(directory); }
+                catch (InvalidDataException) { rejected = true; }
+                AssertTrue(rejected, "Explicit canonical invalid values must never become defaults.");
+                rejected = false;
+                try { await store.SaveAsync(directory, new()); }
+                catch (InvalidDataException) { rejected = true; }
+                AssertTrue(rejected, "Save must preserve an existing invalid document.");
+                AssertEqual(invalid, await File.ReadAllTextAsync(metadataPath));
+            }
+            string legacyPath = Path.Combine(directory, "PCL", MinecraftInstanceMetadataStore.MetadataFileName);
+            File.Delete(metadataPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(legacyPath)!);
+            const string legacyJson = "{\"displayName\":\"Legacy\"}";
+            await File.WriteAllTextAsync(legacyPath, legacyJson);
+            var legacy = await store.LoadAsync(directory);
+            AssertEqual("Legacy", legacy.DisplayName);
+            AssertEqual(MinecraftInstanceMetadata.CurrentSchemaVersion, legacy.SchemaVersion);
+            AssertTrue(legacy.InstanceIsolation);
+            AssertFalse(File.Exists(metadataPath));
+            AssertEqual(legacyJson, await File.ReadAllTextAsync(legacyPath));
         }
         finally { Directory.Delete(root, true); }
     }

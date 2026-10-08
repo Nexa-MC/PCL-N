@@ -7,6 +7,7 @@ internal sealed class RunResourceHistogram
 {
     private readonly long[] _bins = new long[2048];
     private long _count;
+    public long Count => _count;
     public long Peak { get; private set; }
     public void Add(long bytes)
     {

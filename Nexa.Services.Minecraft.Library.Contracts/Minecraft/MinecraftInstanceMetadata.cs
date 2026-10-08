@@ -13,6 +13,11 @@ public sealed record MinecraftInstanceMetadata
     public const int CurrentSchemaVersion = 1;
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
+    public string Identity { get; init; } = string.Empty;
+    public string DisplayName { get; init; } = string.Empty;
+    public string[] Tags { get; init; } = [];
+    public string Group { get; init; } = string.Empty;
+    public string Notes { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public int LaunchCount { get; init; }
     public string ModpackVersion { get; init; } = string.Empty;
@@ -36,6 +41,10 @@ public sealed record MinecraftInstanceMetadata
     public string AuthRegisterAddress { get; init; } = string.Empty;
     public string AuthServerDisplayName { get; init; } = string.Empty;
     public bool AuthSettingsLocked { get; init; }
+    public bool OfflineLaunchAllowed { get; init; } = true;
+    public string ServerExpectedGameVersion { get; init; } = string.Empty;
+    public string ServerExpectedLoader { get; init; } = string.Empty;
+    public string[] ServerRequiredMods { get; init; } = [];
     public string ServerToEnter { get; init; } = string.Empty;
     public int Renderer { get; init; }
     public string JvmArguments { get; init; } = string.Empty;
@@ -53,3 +62,5 @@ public sealed record MinecraftInstanceMetadata
     public bool UseSystemGlfw { get; init; }
     public bool ForceX11OnWayland { get; init; } = true;
 }
+
+public sealed record MinecraftInstanceMetadataDisplaySnapshot(MinecraftInstanceMetadata Metadata, string? Error);

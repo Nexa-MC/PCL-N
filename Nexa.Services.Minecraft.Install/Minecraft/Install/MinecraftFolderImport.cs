@@ -10,7 +10,7 @@ public sealed class MinecraftFolderImportService(TaskCenterService tasks)
     public static Task<MinecraftFolderInspection> InspectAsync(string path, CancellationToken cancellationToken = default) =>
         Task.Run(async () =>
         {
-            if (File.Exists(path) && new[] { ".mrpack", ".zip" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+            if (File.Exists(path) && new[] { ".mrpack", ".nexapack", ".zip" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
             {
                 var pack = await MinecraftModpackArchive.InspectAsync(path, cancellationToken).ConfigureAwait(false);
                 return new MinecraftFolderInspection(MinecraftFolderKind.Modpack, pack.Path, pack.Name) { Modpack = pack };

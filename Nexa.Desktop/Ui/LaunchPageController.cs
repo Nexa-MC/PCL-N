@@ -22,8 +22,7 @@ namespace Nexa.Desktop.Ui;
 /// the big accent launch button), and the community about card. It reads its facts from host
 /// state cells, routes one-shot outcomes to the shared feedback service, emits the launch intent,
 /// and dispatches the product-level Minecraft start command through the composed runtime routers.
-/// Navigation intents route between this page and placeholders for destinations whose slices
-/// have not landed yet.
+/// Navigation intents open explicitly composed pages; unknown or unbound entries are rejected.
 /// </summary>
 internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposable
 {
@@ -185,7 +184,6 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     private readonly XsrCommandRouter _libraryCommands;
     internal VersionSelectionController Versions { get; }
     private readonly XsrUiEntityId _launchPage;
-    private readonly XsrUiEntityId _placeholderPage;
     private readonly XsrUiEntityId _versionListPage;
     private XsrUiEntityId _versionSettingsPage;
     private XsrUiEntityId _wardrobePage;
@@ -266,11 +264,8 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
         StateObserver = new LaunchingStateObserver(this);
         _libraryCommands = library.Commands;
         (_launchPage, _pageEntities) = LoadLaunchPage();
-        _placeholderPage = BuildPlaceholderPage();
         Versions = new VersionSelectionController(shell, intents, library.Commands, store, feedback, directoryEffects);
         _versionListPage = Versions.Page;
-        _versionSettingsPage = LoadVersionSubpage("VersionSettingsPage", "版本设置");
-        _wardrobePage = LoadVersionSubpage("AccountWardrobePage", "更衣橱");
         (_installPage, _) = LoadInstallPage();
         (_javaInstallPage, _javaInstallEntities) = LoadJavaInstallPage();
         InitializeInstallCatalog();
@@ -395,7 +390,9 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     {
         if (_disposed || _store.ReadAppliedValue(_libraryId) is not MinecraftLibrarySnapshot snapshot) return;
         Publish(LaunchPageState.SelectedInstanceKey, snapshot.SelectedInstance?.Id ?? "");
-        Publish(LaunchPageState.InstanceSummaryKey, snapshot.SelectedInstance?.Id ?? (snapshot.IsLoading ? ScanningInstances : NoInstances));
+        Publish(LaunchPageState.InstanceSummaryKey, snapshot.SelectedInstance is { } selected
+            ? string.IsNullOrWhiteSpace(selected.Metadata.DisplayName) ? selected.Id : selected.Metadata.DisplayName
+            : snapshot.IsLoading ? ScanningInstances : NoInstances);
         Publish(LaunchPageState.InstanceDirectoryKey, snapshot.RootDirectory);
         UpdateLaunchButton();
     }
@@ -450,7 +447,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     {
         LaunchProfileView? profile = ReadProfiles().FirstOrDefault(candidate => candidate.Index == SelectedAccountIndex);
         return profile is not { } selected
-            || selected.Kind is LaunchProfileKind.Offline or LaunchProfileKind.Microsoft or LaunchProfileKind.LittleSkin;
+            || selected.Kind is LaunchProfileKind.Offline or LaunchProfileKind.Microsoft or LaunchProfileKind.LittleSkin or LaunchProfileKind.ThirdParty;
     }
 
     private void OnIntentEmitted(object? sender, DesktopUiIntentEventArgs e)
@@ -573,7 +570,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
         }
         else if (command == LaunchSettingsCommand)
         {
-            OpenSubpage(_versionSettingsPage, e.Intent.Source);
+            OpenBoundSubpage(_versionSettingsPage, e.Intent.Source, "版本设置页面未绑定。");
         }
         else if (command == LaunchModifyCommand)
         {
@@ -581,7 +578,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
         }
         else if (command == AccountWardrobeCommand)
         {
-            OpenSubpage(_wardrobePage, e.Intent.Source);
+            OpenBoundSubpage(_wardrobePage, e.Intent.Source, "更衣橱页面未绑定。");
         }
         else if (command.Value == "ui.launch.restore")
         {
@@ -629,15 +626,9 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
             _accountKeyboardFocus = IsKeyboardIntent(e.Intent.Source);
             Publish(LaunchPageState.AccountPickerKey, false);
         }
-        else if (IsDestinationCommand(command))
-        {
-            if (command.Value == "ui.navigation.community" && ResourcesPage.IsAssigned)
-            {
-                ClearSubpageHistory();
-                _shell.Stage.Navigation.Replace(ResourcesPage);
-            }
-            else ShowPlaceholder(command.Value == "ui.navigation.settings");
-        }
+        else if (IsDestinationCommand(command) || command.Value.StartsWith("ui.navigation.", StringComparison.Ordinal)
+            && command != XsrUiShellIds.NavigationExpand && command != XsrUiShellIds.NavigationSelect)
+            OpenBoundDestination(command);
     }
 
     private bool IsDestinationCommand(XsrSemanticId command) =>
@@ -679,6 +670,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
 
     private void ShowLaunch()
     {
+        _boundDestination = XsrSemanticId.Parse("navigation.launch"); _ = _shell.Select(_boundDestination);
         ClearSubpageHistory();
         if (!_shell.Stage.Navigation.Current.Equals(_launchPage))
         {
@@ -696,6 +688,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
     /// </summary>
     private void ShowInstallRoot()
     {
+        _boundDestination = DownloadNavigationId; _ = _shell.Select(_boundDestination);
         ClearSubpageHistory();
         if (!_shell.Stage.Navigation.Current.Equals(_installPage))
         {
@@ -855,11 +848,11 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
 
     internal XsrUiEntityId VersionSettingsPage
     {
-        set { _shell.Tree.Destroy(_versionSettingsPage); _versionSettingsPage = value; }
+        set => BindBorrowedSubpage(ref _versionSettingsPage, value);
     }
     internal XsrUiEntityId WardrobePage
     {
-        set { _shell.Tree.Destroy(_wardrobePage); _wardrobePage = value; }
+        set => BindBorrowedSubpage(ref _wardrobePage, value);
     }
     internal XsrUiEntityId BedrockInstallPage
     {

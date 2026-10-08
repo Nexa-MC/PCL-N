@@ -7,7 +7,11 @@ public sealed record InstanceServerList(string Revision, IReadOnlyList<InstanceS
 public sealed record InstanceServerListQuery(string InstanceDirectory);
 public sealed record InstanceServerListSaveCommand(string InstanceDirectory, string ExpectedRevision, IReadOnlyList<InstanceServerEntry> Entries);
 public sealed record InstanceServerStatusQuery(string InstanceDirectory, string ExpectedRevision, int SourceIndex);
-public sealed record InstanceServerStatus(bool Reachable, string Description, string Version, int? OnlinePlayers, int? MaxPlayers, long Milliseconds);
+public sealed record InstanceServerStatus(bool Reachable, string Description, string Version, int? OnlinePlayers, int? MaxPlayers, long Milliseconds)
+{
+    public int? ServerProtocol { get; init; }
+    public int? ClientProtocol { get; init; }
+}
 public static class InstanceServerListContract
 {
     public static readonly XsrSemanticId Read = XsrSemanticId.Parse("minecraft.instance.servers.read");

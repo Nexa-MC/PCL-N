@@ -53,6 +53,11 @@ public sealed record MinecraftLaunchRequest
     public string PreLaunchCommand { get; init; } = string.Empty;
     public bool WaitForPreLaunchCommand { get; init; } = true;
     public IReadOnlyList<string> ClasspathHeadEntries { get; init; } = [];
+    public IReadOnlyDictionary<string, string> EnvironmentVariables { get; init; } = new Dictionary<string, string>();
+    public string GpuPreference { get; init; } = "auto";
+    public string RendererPreference { get; init; } = "auto";
+    public string PostExitCommand { get; init; } = string.Empty;
+    public MinecraftLaunchOverlay Overlay { get; init; } = new();
 
     /// <summary>
     /// An optional explicit client/version JAR override. When omitted the planner resolves the
@@ -198,6 +203,12 @@ public sealed record MinecraftLaunchPlan(
     public string PreLaunchCommand { get; init; } = string.Empty;
     public bool WaitForPreLaunchCommand { get; init; } = true;
 
+    public IReadOnlyDictionary<string, string> EnvironmentVariables { get; init; } = new Dictionary<string, string>();
+    public string GpuPreference { get; init; } = "auto";
+    public string RendererPreference { get; init; } = "auto";
+    public string PostExitCommand { get; init; } = string.Empty;
+    public MinecraftLaunchOverlay Overlay { get; init; } = new();
+
     /// <summary>Configured heap request; -1 when custom arguments override the planner's value.</summary>
     public int HeapLimitMiB { get; init; } = -1;
 
@@ -218,6 +229,7 @@ public sealed record MinecraftLaunchPlan(
             CreateNoWindow = true,
         };
         foreach (string argument in Arguments) startInfo.ArgumentList.Add(argument);
+        foreach (var variable in EnvironmentVariables) startInfo.Environment[variable.Key] = variable.Value;
         return startInfo;
     }
 }

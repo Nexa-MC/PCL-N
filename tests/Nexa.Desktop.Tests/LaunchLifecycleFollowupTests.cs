@@ -39,6 +39,7 @@ internal static partial class Program
     private static void VersionRowActionsKeepSelectionDistinct()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([Instance("chosen"), Instance("other")]), addProfile: true);
+        using var pages = new LaunchFixtureNavigationPages(fixture);
         fixture.Controller.WaitUntilIdle().GetAwaiter().GetResult();
         fixture.Shell.Renderer.ReducedMotion = true;
         var scene = fixture.Shell.Render(new(850, 500));

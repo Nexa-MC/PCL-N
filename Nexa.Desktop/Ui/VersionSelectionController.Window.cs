@@ -33,7 +33,9 @@ internal sealed partial class VersionSelectionController
         _instanceSource = snapshot.Instances;
         _shownRoot = snapshot.RootDirectory; _shownFilter = filter;
         _shown = filter.Length == 0 ? snapshot.Instances : [.. snapshot.Instances.Where(instance =>
-            instance.Id.Contains(filter, StringComparison.OrdinalIgnoreCase) || instance.VersionId.Contains(filter, StringComparison.OrdinalIgnoreCase))];
+            instance.Id.Contains(filter, StringComparison.OrdinalIgnoreCase) || instance.VersionId.Contains(filter, StringComparison.OrdinalIgnoreCase)
+            || instance.Metadata.DisplayName?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true || instance.Metadata.Group?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true
+            || instance.Metadata.Tags?.Any(tag => tag?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true) == true)];
         _shownIndices.Clear();
         for (int index = 0; index < _shown.Count; index++) _shownIndices.Add(_shown[index].Id, index);
         _transferSelection.IntersectWith(_shownIndices.Keys);
@@ -112,8 +114,8 @@ internal sealed partial class VersionSelectionController
             bool created = !_windowRows.TryGetValue(instance.Id, out XsrUiEntityId row);
             if (created)
             {
-                row = CreateRow(host, "version:" + instance.Id, instance.Id,
-                    VersionKindLabel(instance.Version.Kind) + " · " + instance.VersionId, false, VersionIcon(instance.Version.Kind));
+                row = CreateRow(host, "version:" + instance.Id, string.IsNullOrWhiteSpace(instance.Metadata.DisplayName) ? instance.Id : instance.Metadata.DisplayName,
+                    instance.MetadataError is null ? VersionKindLabel(instance.Version.Kind) + " · " + instance.VersionId : "实例信息不可用 · 请修复后启动", false, VersionIcon(instance.Version.Kind));
                 _windowRows.Add(instance.Id, row);
                 _versions.Add(row, (snapshot.RootDirectory, instance.Id));
                 _actions[row] = (snapshot.RootDirectory, instance.Id);
@@ -197,13 +199,19 @@ internal sealed partial class VersionSelectionController
         {
             string key = _shell.Tree.Name(entity);
             if (key.StartsWith("LibraryRowIcon:", StringComparison.Ordinal))
-                _shell.Tree.GetComponent<XsrUiImage>(entity)!.Source = VersionIcon(instance.Version.Kind);
+            {
+                var image = _shell.Tree.GetComponent<XsrUiImage>(entity)!;
+                image.Source = VersionIcon(instance.Version.Kind);
+                image.Raster = instance.Icon is { } icon ? new(icon, []) { FitToBounds = true, AspectRatio = (double)icon.Width / icon.Height } : null;
+            }
+            if (key.StartsWith("LibraryRowName:", StringComparison.Ordinal))
+                _shell.Tree.GetComponent<XsrUiText>(entity)!.Content = string.IsNullOrWhiteSpace(instance.Metadata.DisplayName) ? instance.Id : instance.Metadata.DisplayName;
             if (key.StartsWith("LibraryRowDetail:", StringComparison.Ordinal))
-                _shell.Tree.GetComponent<XsrUiText>(entity)!.Content = VersionKindLabel(instance.Version.Kind) + " · " +
-                    (instance.Version.InheritsFrom is { Length: > 0 } parent ? parent : instance.VersionId);
+                _shell.Tree.GetComponent<XsrUiText>(entity)!.Content = instance.MetadataError is null ? VersionKindLabel(instance.Version.Kind) + " · " +
+                    (instance.Version.InheritsFrom is { Length: > 0 } parent ? parent : instance.VersionId) : "实例信息不可用 · 请修复后启动";
             return true;
         });
-        MarkSelected(row, instance.Id == snapshot.SelectedInstanceId, "当前版本", instance.Id);
+        MarkSelected(row, instance.Id == snapshot.SelectedInstanceId, "当前版本", string.IsNullOrWhiteSpace(instance.Metadata.DisplayName) ? instance.Id : instance.Metadata.DisplayName);
         if (_transferSelection.Count == 0) return;
         bool selected = _transferSelection.Contains(instance.Id);
         _shell.Tree.GetComponent<XsrUiSelection>(row)!.IsSelected = selected;

@@ -11,7 +11,10 @@ namespace Nexa.Services.Minecraft.Process;
 public static partial class LaunchModInventoryReader
 {
     private static readonly string[] Formats = ["fabric.mod.json", "quilt.mod.json", "META-INF/neoforge.mods.toml", "META-INF/mods.toml", "mcmod.info"];
-    public static async Task<LaunchModInventory> ReadAsync(string gameDirectory, CancellationToken token = default)
+    public static Task<LaunchModInventory> ReadAsync(string gameDirectory, CancellationToken token = default)
+        => ReadDirectoryAsync(Path.Combine(gameDirectory, "mods"), token);
+
+    public static async Task<LaunchModInventory> ReadDirectoryAsync(string directory, CancellationToken token = default)
     {
         List<LaunchModIdentity> mods = []; int unknown = 0, files = 0, archives = 0; bool complete = true;
         var budget = new ArchiveReadBudget(16 * 1024 * 1024);
@@ -99,7 +102,6 @@ public static partial class LaunchModInventoryReader
         }
         try
         {
-            string directory = Path.Combine(gameDirectory, "mods");
             if (!Directory.Exists(directory)) return new(mods.AsReadOnly(), 0, true);
             if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0) return new([], 0, false);
             foreach (string path in Directory.EnumerateFiles(directory))

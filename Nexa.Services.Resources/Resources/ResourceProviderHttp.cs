@@ -5,12 +5,18 @@ namespace Nexa.Services.Resources;
 public sealed class ResourceProviderHttp(HttpClient http, string? curseForgeKey = null)
 {
     public RegionalPolicy CountryPolicy { get; init; } = RegionalPolicy.Current;
+    public Func<string>? SourcePriority { get; init; }
+    private ResourceSourceResolution? _lastResolution;
+    public ResourceSourceResolution? LastResolution => Volatile.Read(ref _lastResolution);
     internal const string Mirror = "https://mod.mcimirror.top";
     private readonly string? _key = curseForgeKey ?? Environment.GetEnvironmentVariable("Nexa_CURSEFORGE_API_KEY") ?? Environment.GetEnvironmentVariable("CURSEFORGE_API_KEY");
     public Task<JsonDocument> ReadAsync(ResourceProvider provider, string path, bool mirrorFirst, CancellationToken token) => SendAsync(provider, path, mirrorFirst, null, token);
     public Task<JsonDocument> PostAsync(ResourceProvider provider, string path, bool mirrorFirst, string json, CancellationToken token) => SendAsync(provider, path, mirrorFirst, json, token);
     private async Task<JsonDocument> SendAsync(ResourceProvider provider, string path, bool mirrorFirst, string? json, CancellationToken token)
     {
+        string priority = SourcePriority?.Invoke() ?? "follow-request";
+        bool requestedMirrorFirst = mirrorFirst;
+        mirrorFirst = ResourceSourcePriority.Apply(priority, mirrorFirst);
         string official = provider == ResourceProvider.Modrinth ? "https://api.modrinth.com/v2/" : "https://api.curseforge.com/v1/";
         string mirror = Mirror + (provider == ResourceProvider.Modrinth ? "/modrinth/v2/" : "/curseforge/v1/");
         string[] candidates = provider == ResourceProvider.CurseForge && string.IsNullOrEmpty(_key) ? [mirror] : mirrorFirst ? [mirror, official] : [official, mirror];
@@ -20,10 +26,18 @@ public sealed class ResourceProviderHttp(HttpClient http, string? curseForgeKey 
                 throw new IOException("此地区使用 CurseForge 官方接口，需要配置 CurseForge API Key。");
             candidates = [official];
         }
+        var resolution = new ResourceSourceResolution(provider, DateTimeOffset.UtcNow, priority, requestedMirrorFirst, mirrorFirst,
+            Array.AsReadOnly(candidates.Select(candidate => new Uri(candidate).IdnHost).ToArray()), null);
+        Volatile.Write(ref _lastResolution, resolution);
         Exception? last = null;
         foreach (string root in candidates)
         {
-            try { return await GetAsync(root + path, token, root == official && provider == ResourceProvider.CurseForge ? _key : null, json).ConfigureAwait(false); }
+            try
+            {
+                JsonDocument document = await GetAsync(root + path, token, root == official && provider == ResourceProvider.CurseForge ? _key : null, json).ConfigureAwait(false);
+                Volatile.Write(ref _lastResolution, resolution with { ObservedAt = DateTimeOffset.UtcNow, SelectedHost = new Uri(root).IdnHost });
+                return document;
+            }
             catch (Exception error) when (error is HttpRequestException or IOException or InvalidDataException or JsonException || error is OperationCanceledException && !token.IsCancellationRequested) { last = error; }
         }
         throw new IOException("资源站暂时无法访问。", last);

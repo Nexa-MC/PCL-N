@@ -46,6 +46,31 @@ public sealed record JvmHostObservation(
     public long RuntimePhysicalP95Bytes { get; init; }
     public long RuntimeCommitP95Bytes { get; init; }
     public long RuntimeCpuP95Percent { get; init; }
+    public long? MeasuredHeapPeakBytes { get; init; }
+    public long? MeasuredNativePeakBytes { get; init; }
+    public long? MeasuredCommitPeakBytes { get; init; }
+    public long? MeasuredGpuLocalPeakBytes { get; init; }
+    public long? MeasuredGpuSharedPeakBytes { get; init; }
+    public long? MeasuredRuntimeHeapP95Bytes { get; init; }
+    public long? MeasuredRuntimeCommitP95Bytes { get; init; }
+    public long? MeasuredRuntimeGpuP95Bytes { get; init; }
+    public long? PeakTreeWorkingSetBytes { get; init; }
+    public int? PeakTreeProcessCount { get; init; }
+    public bool CoreMetricsObserved { get; init; }
+    public bool CpuPercentObserved { get; init; }
+    public bool IoObserved { get; init; }
+    public bool SystemEventsObserved { get; init; }
+    public long? MeasuredCombinedGpuPeakBytes { get; init; }
+    public IReadOnlyList<string> SystemEvents { get; init; } = [];
+    public long LaunchWindowMilliseconds { get; init; }
+    public long? MeasuredLaunchHeapPeakBytes { get; init; }
+    public long? MeasuredLaunchNativePeakBytes { get; init; }
+    public long? MeasuredLaunchPhysicalPeakBytes { get; init; }
+    public long? MeasuredLaunchCommitPeakBytes { get; init; }
+    public long? MeasuredLaunchGpuLocalPeakBytes { get; init; }
+    public long? MeasuredLaunchGpuSharedPeakBytes { get; init; }
+    public long? MeasuredLaunchCpuPeakPercent { get; init; }
+    public long? MeasuredLaunchIoReadBytes { get; init; }
 }
 
 public static class JvmHostStateContract

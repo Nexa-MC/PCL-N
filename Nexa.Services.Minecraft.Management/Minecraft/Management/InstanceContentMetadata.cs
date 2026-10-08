@@ -20,11 +20,12 @@ internal static class InstanceContentMetadata
         ArchiveReadBudget budget, CancellationToken token)
     {
         List<InstanceContentEntry> entries = [];
+        int worlds = 0;
         foreach (var entry in snapshot.Entries)
         {
             token.ThrowIfCancellationRequested();
             var result = entry with { DisplayName = entry.Name };
-            if (budget.Remaining > 0 && (snapshot.PageId != "mods" || entry.Enabled is not null))
+            if (budget.Remaining > 0 && (snapshot.PageId != "mods" || entry.Enabled is not null) && (snapshot.PageId != "saves" || ++worlds <= 64))
             {
                 try
                 {
@@ -94,8 +95,16 @@ internal static class InstanceContentMetadata
         if (page == "saves")
         {
             string icon = Path.Combine(path, "icon.png");
-            return item.IsDirectory && File.Exists(icon)
-                ? item with { Icon = PngImage.TryCreate(await ReadFile(icon, 1024 * 1024, budget, token).ConfigureAwait(false)) } : item;
+            if (!item.IsDirectory) return item;
+            var metadata = await InstanceWorldService.ReadMetadataAsync(path, budget, token).ConfigureAwait(false);
+            item = item with
+            {
+                World = metadata,
+                DisplayName = metadata.LevelName,
+                Version = metadata.GameVersion,
+                Size = metadata.SizeComplete ? metadata.Size : null
+            };
+            return File.Exists(icon) ? item with { Icon = PngImage.TryCreate(await ReadFile(icon, 1024 * 1024, budget, token).ConfigureAwait(false)) } : item;
         }
         if (page is not ("mods" or "resourcepacks" or "shaderpacks")) return item;
         ZipArchive? archive = null;

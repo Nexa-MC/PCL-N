@@ -7,6 +7,7 @@ public sealed class ResourceModInstallService(IResourceCatalogSource catalog, Re
     ResourceDownloadService downloads, MinecraftLocalJarService jars, TaskCenterService tasks)
 {
     private readonly SemaphoreSlim _gate = new(1);
+    public Func<bool>? AutoInstallDependencies { get; init; }
     public async Task InstallAsync(ResourceModInstallCommand command, CancellationToken token)
     {
         await _gate.WaitAsync(token).ConfigureAwait(false);
@@ -23,7 +24,8 @@ public sealed class ResourceModInstallService(IResourceCatalogSource catalog, Re
         try
         {
             var context = await instances.ReadAsync(command.Instance, token).ConfigureAwait(false);
-            var plan = await new ResourceDependencyPlanner(catalog).PlanAsync(command, context, token).ConfigureAwait(false);
+            var plan = await new ResourceDependencyPlanner(catalog) { AutoInstallDependencies = AutoInstallDependencies?.Invoke() ?? true }
+                .PlanAsync(command, context, token).ConfigureAwait(false);
             if (plan.Count == 0) { task.Complete("模组及必需依赖已安装。"); return; }
             staging = Path.Combine(Path.GetFullPath(command.Instance.Root), ".nexa-resource-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(staging);

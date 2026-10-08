@@ -115,11 +115,24 @@ internal static partial class Program
                 ("client-overrides/config/test.txt", "client"), ("server-overrides/server.txt", "server"));
             var preview = await MinecraftModpackArchive.InspectAsync(source);
             AssertEqual(1, preview.RequiredFiles); AssertEqual(1, preview.OptionalFiles);
+            string associatedPack = Path.Combine(temporary, "renamed.nexapack");
+            File.Copy(source, associatedPack);
+            var associated = await MinecraftFolderImportService.InspectAsync(associatedPack);
+            AssertEqual(MinecraftFolderKind.Modpack, associated.Kind);
+            AssertTrue(associated.Modpack is not null);
+            AssertEqual(preview.Format, associated.Modpack!.Format);
+            AssertEqual(associatedPack, associated.Modpack.Path);
+            string invalidAlias = Path.Combine(temporary, "not-a-modpack.nexapack");
+            WriteLocalJar(invalidAlias, ("README.txt", "No supported manifest"));
+            bool refused = false;
+            try { _ = await MinecraftFolderImportService.InspectAsync(invalidAlias); }
+            catch (InvalidDataException) { refused = true; }
+            AssertTrue(refused);
             using var fixture = new InstallFixture(PackMetadata());
             foreach (bool optional in new[] { false, true })
             {
                 string root = Path.Combine(temporary, optional ? "all" : "required"); Directory.CreateDirectory(root);
-                var result = await fixture.Install.InstallModpackAsync(new(preview, root, optional));
+                var result = await fixture.Install.InstallModpackAsync(new(optional ? preview : associated.Modpack!, root, optional));
                 AssertTrue(result.IsSuccess, result.Error?.Message ?? "pack install");
                 string instance = result.Value!.InstanceDirectory;
                 AssertTrue(File.Exists(Path.Combine(instance, "mods", "required.jar")));

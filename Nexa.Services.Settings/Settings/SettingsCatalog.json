@@ -33,7 +33,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.054298dae5c3",
@@ -69,7 +69,7 @@
     "kind": "Choice",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.be7df665521d",
@@ -81,7 +81,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.13a5ea9202aa",
@@ -91,9 +91,9 @@
     "section": "启动器行为",
     "label": "开机启动",
     "kind": "Setting",
-    "key": null,
+    "key": "general.autostart",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.308624e46ea7",
@@ -113,11 +113,11 @@
     "scope": "global",
     "page": "general",
     "section": "启动器行为",
-    "label": "启动时行为",
+    "label": "启动时页面",
     "kind": "Setting",
-    "key": null,
+    "key": "general.startup-page",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.289fddae96dd",
@@ -165,7 +165,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.d3abe2892c94",
@@ -175,9 +175,9 @@
     "section": "交互",
     "label": "启动提示",
     "kind": "Setting",
-    "key": null,
+    "key": "general.launch-hints",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.38dfb6023189",
@@ -187,9 +187,9 @@
     "section": "交互",
     "label": "通知",
     "kind": "Setting",
-    "key": null,
+    "key": "general.native-notifications",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.116b4caf0595",
@@ -198,10 +198,10 @@
     "page": "general",
     "section": "交互",
     "label": "操作确认",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.c8c6e2568cd3",
@@ -211,9 +211,9 @@
     "section": "交互",
     "label": "剪贴板内容检测",
     "kind": "Setting",
-    "key": null,
+    "key": "general.clipboard-detection",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.b046e15c6647",
@@ -225,7 +225,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.51d0bd32a3c1",
@@ -235,9 +235,9 @@
     "section": "系统集成",
     "label": "文件关联",
     "kind": "Setting",
-    "key": null,
+    "key": "general.file-association",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.7e2629a1945d",
@@ -245,11 +245,11 @@
     "scope": "global",
     "page": "general",
     "section": "系统集成",
-    "label": "nexa:// URI",
-    "kind": "Setting",
+    "label": "nexacl:// URI",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.7354b59155bf",
@@ -257,11 +257,11 @@
     "scope": "global",
     "page": "general",
     "section": "系统集成",
-    "label": "Windows Jump List",
-    "kind": "State",
-    "key": null,
+    "label": "任务栏跳转列表",
+    "kind": "Setting",
+    "key": "general.jump-list",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.general.7fb116563a13",
@@ -269,11 +269,11 @@
     "scope": "global",
     "page": "general",
     "section": "系统集成",
-    "label": "系统通知操作",
+    "label": "通知点击操作",
     "kind": "Setting",
-    "key": null,
+    "key": "general.notification-actions",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.0078a26f82d8",
@@ -285,7 +285,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.d7137f424ce4",
@@ -319,9 +319,9 @@
     "section": "主题",
     "label": "自定义主题",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.custom-theme",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.5644596ca649",
@@ -331,9 +331,9 @@
     "section": "主题",
     "label": "Launcher Logo",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.logo-path",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.ed1f59b5ae3e",
@@ -345,7 +345,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.cea6b9c6a8bf",
@@ -354,10 +354,10 @@
     "page": "appearance",
     "section": "背景",
     "label": "背景来源",
-    "kind": "State",
-    "key": null,
+    "kind": "Setting",
+    "key": "appearance.background-path",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.3044bf9de359",
@@ -367,9 +367,9 @@
     "section": "背景",
     "label": "背景适配",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.background-fit",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.8e6730acef70",
@@ -379,9 +379,9 @@
     "section": "背景",
     "label": "背景透明度",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.background-opacity",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.ba0f3aba3dd7",
@@ -389,11 +389,11 @@
     "scope": "global",
     "page": "appearance",
     "section": "背景",
-    "label": "彩色背景",
+    "label": "背景底色",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.background-color",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.ad1c91bf76ab",
@@ -403,9 +403,9 @@
     "section": "背景",
     "label": "视频背景自动暂停",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.video-auto-pause",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.476e9015404f",
@@ -417,7 +417,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.89ec41febbe9",
@@ -427,9 +427,9 @@
     "section": "窗口",
     "label": "Launcher 透明度",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.window-opacity",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.a13320968863",
@@ -439,9 +439,9 @@
     "section": "窗口",
     "label": "模糊",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.window-blur",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.414d92ec0335",
@@ -453,7 +453,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "global.appearance.5362145d1e89",
@@ -465,7 +465,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "global.appearance.4b40343e64ac",
@@ -489,7 +489,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.5113a7179b1f",
@@ -523,9 +523,9 @@
     "section": "动画",
     "label": "减少动态效果",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.reduced-motion",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.8a3bf6aa3ebd",
@@ -549,7 +549,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.c1deb15a846d",
@@ -559,9 +559,9 @@
     "section": "背景音乐",
     "label": "启用背景音乐",
     "kind": "Setting",
-    "key": null,
+    "key": "music.enabled",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.b3e308418534",
@@ -571,9 +571,9 @@
     "section": "背景音乐",
     "label": "启动时播放",
     "kind": "Setting",
-    "key": null,
+    "key": "music.startup",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.5339a95d9538",
@@ -583,9 +583,9 @@
     "section": "背景音乐",
     "label": "自动播放",
     "kind": "Setting",
-    "key": null,
+    "key": "music.autoplay",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.c369cf13e4ce",
@@ -595,9 +595,9 @@
     "section": "背景音乐",
     "label": "随机播放",
     "kind": "Setting",
-    "key": null,
+    "key": "music.shuffle",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.acdd748790b1",
@@ -607,9 +607,9 @@
     "section": "背景音乐",
     "label": "音量",
     "kind": "Setting",
-    "key": null,
+    "key": "music.volume",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.a0c20edb31fa",
@@ -619,9 +619,9 @@
     "section": "背景音乐",
     "label": "系统媒体控制",
     "kind": "Setting",
-    "key": null,
+    "key": "music.media-controls",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.d999201ab2ad",
@@ -630,10 +630,10 @@
     "page": "appearance",
     "section": "UI Renderer 信息",
     "label": "UI Renderer 信息",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.6357798f5b55",
@@ -642,10 +642,10 @@
     "page": "appearance",
     "section": "Layout / Paint 调试",
     "label": "Layout / Paint 调试",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.d44cc0e413d3",
@@ -654,10 +654,10 @@
     "page": "appearance",
     "section": "Animation Scheduler",
     "label": "Animation Scheduler",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.appearance.d1957652c919",
@@ -666,10 +666,10 @@
     "page": "appearance",
     "section": "UI 性能指标",
     "label": "UI 性能指标",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.546d4a3ef466",
@@ -690,10 +690,10 @@
     "page": "game",
     "section": "默认资源配置",
     "label": "内存策略",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.a015362a3b3b",
@@ -715,9 +715,9 @@
     "section": "默认资源配置",
     "label": "GPU / Renderer",
     "kind": "Setting",
-    "key": null,
+    "key": "game.gpu-preference",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.980b1535d671",
@@ -825,7 +825,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.a0a1c7543f09",
@@ -835,9 +835,9 @@
     "section": "启动行为",
     "label": "启动提示",
     "kind": "Setting",
-    "key": null,
+    "key": "general.launch-hints",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.f98b60511c9c",
@@ -873,7 +873,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.2a9b6563042d",
@@ -942,10 +942,10 @@
     "page": "game",
     "section": "智能启动",
     "label": "Launch Preflight",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.dc34f9e868e6",
@@ -954,10 +954,10 @@
     "page": "game",
     "section": "智能启动",
     "label": "资源预算检查",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.c7fd5c2fa7a3",
@@ -966,10 +966,10 @@
     "page": "game",
     "section": "智能启动",
     "label": "Compatibility Check",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.b670d35098d3",
@@ -977,11 +977,11 @@
     "scope": "global",
     "page": "game",
     "section": "智能启动",
-    "label": "自动 Repair Plan",
-    "kind": "Setting",
+    "label": "自动补全游戏文件与需确认的修复计划",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.34b8302ef006",
@@ -1051,9 +1051,9 @@
     "section": "默认 Renderer Backend",
     "label": "默认 Renderer Backend",
     "kind": "Setting",
-    "key": null,
+    "key": "game.renderer",
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.63ad38145ea7",
@@ -1075,9 +1075,9 @@
     "section": "System GLFW",
     "label": "System GLFW",
     "kind": "Setting",
-    "key": null,
+    "key": "game.system-glfw",
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.05daf2cf55e0",
@@ -1089,7 +1089,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "global.game.80f3021332cf",
@@ -1101,7 +1101,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "global.game.722e1a55163d",
@@ -1134,10 +1134,10 @@
     "page": "java",
     "section": "自动策略",
     "label": "自动选择兼容 Java",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.365ec24bd51d",
@@ -1182,10 +1182,10 @@
     "page": "java",
     "section": "自动策略",
     "label": "Java 兼容性检查",
-    "kind": "Setting",
-    "key": "java.compatibility",
+    "kind": "State",
+    "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.dc83e72f0f27",
@@ -1317,7 +1317,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.7342ba416866",
@@ -1329,7 +1329,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.6c6d4d76291f",
@@ -1353,7 +1353,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.4c869c02a251",
@@ -1365,7 +1365,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.8236e49ebcbe",
@@ -1377,7 +1377,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.1f8d2f784a60",
@@ -1389,7 +1389,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.dc5ff6fcd886",
@@ -1398,10 +1398,10 @@
     "page": "java",
     "section": "Compatibility",
     "label": "Compatibility",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.5a06021a0456",
@@ -1410,10 +1410,10 @@
     "page": "java",
     "section": "Managed / External",
     "label": "Managed / External",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.0f6d5bc77e9b",
@@ -1425,7 +1425,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.38e1f8df3aa0",
@@ -1434,10 +1434,10 @@
     "page": "java",
     "section": "验证",
     "label": "验证",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.aef617d61a94",
@@ -1449,7 +1449,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.64589a6632ae",
@@ -1473,7 +1473,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.d503e51b6737",
@@ -1485,7 +1485,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.2fb41ba03e43",
@@ -1497,7 +1497,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.java.ea5ffef60a9e",
@@ -1509,7 +1509,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.4ca4fbf70bee",
@@ -1521,7 +1521,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.a1296e090a28",
@@ -1567,9 +1567,9 @@
     "section": "下载",
     "label": "后台下载",
     "kind": "Setting",
-    "key": null,
+    "key": "network.background-download",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.ad7bf51a43d1",
@@ -1591,9 +1591,9 @@
     "section": "下载",
     "label": "自动安装依赖",
     "kind": "Setting",
-    "key": null,
+    "key": "network.auto-install-dependencies",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.221b5fccc8ba",
@@ -1605,7 +1605,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.fb11a5bd57dd",
@@ -1615,9 +1615,9 @@
     "section": "内容来源",
     "label": "Mojang",
     "kind": "Setting",
-    "key": null,
+    "key": "network.provider-official",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.8762cc888a7a",
@@ -1627,9 +1627,9 @@
     "section": "内容来源",
     "label": "Modrinth",
     "kind": "Setting",
-    "key": null,
+    "key": "network.provider-modrinth",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.8db0316e6811",
@@ -1639,9 +1639,9 @@
     "section": "内容来源",
     "label": "CurseForge",
     "kind": "Setting",
-    "key": null,
+    "key": "network.provider-curseforge",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.4f68f579c79b",
@@ -1651,9 +1651,9 @@
     "section": "内容来源",
     "label": "镜像源",
     "kind": "Setting",
-    "key": null,
+    "key": "network.provider-mirror",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.271cd2983917",
@@ -1663,9 +1663,9 @@
     "section": "内容来源",
     "label": "来源优先级",
     "kind": "Setting",
-    "key": null,
+    "key": "network.resource-source",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.abf85d83507b",
@@ -1677,7 +1677,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.b2d990613011",
@@ -1711,9 +1711,9 @@
     "section": "网络",
     "label": "网络自动检测",
     "kind": "Setting",
-    "key": null,
+    "key": "network.auto-diagnose",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.1bb75025c08e",
@@ -1722,10 +1722,10 @@
     "page": "network",
     "section": "网络",
     "label": "网络故障诊断",
-    "kind": "Setting",
+    "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.85b1be372b57",
@@ -1737,7 +1737,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.d0dc18a116ac",
@@ -1749,7 +1749,7 @@
     "kind": "Choice",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.0952d66c5180",
@@ -1761,7 +1761,7 @@
     "kind": "Choice",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.d05c9f0df6ef",
@@ -1773,7 +1773,7 @@
     "kind": "Group",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.92a9bfe92c4c",
@@ -1821,7 +1821,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.10e1dbcf8399",
@@ -1833,7 +1833,7 @@
     "kind": "Action",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.6be5d646627f",
@@ -1842,10 +1842,10 @@
     "page": "network",
     "section": "Mirror Resolution",
     "label": "Mirror Resolution",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.a6c7666f328b",
@@ -1854,10 +1854,10 @@
     "page": "network",
     "section": "Retry Trace",
     "label": "Retry Trace",
-    "kind": "State",
-    "key": null,
+    "kind": "Setting",
+    "key": "network.trace",
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.network.fe0101aca467",
@@ -1866,10 +1866,10 @@
     "page": "network",
     "section": "Download Diagnostics",
     "label": "Download Diagnostics",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.0f96f92a2c85",
@@ -2025,7 +2025,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.f8446fa361ba",
@@ -2049,7 +2049,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.f92a7eb47ad6",
@@ -2061,7 +2061,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.5b71d6487d6e",
@@ -2097,7 +2097,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.e54a4c664f84",
@@ -2145,7 +2145,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.97fa31c2bbb3",
@@ -2157,7 +2157,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.43b0e1b7d84d",
@@ -2169,7 +2169,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.ab4beadb3467",
@@ -2203,9 +2203,9 @@
     "section": "Snapshot",
     "label": "保留数量",
     "kind": "Setting",
-    "key": null,
+    "key": "storage.backup-keep-count",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.ec641c618a41",
@@ -2229,7 +2229,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.5cd2a8424fa9",
@@ -2253,7 +2253,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.0b8d3a443c57",
@@ -2337,7 +2337,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.72c49f03a5de",
@@ -2373,7 +2373,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.storage.b215d366b6b7",
@@ -2385,7 +2385,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.38d57b46395a",
@@ -2421,7 +2421,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.6b6d7c5093d2",
@@ -2433,7 +2433,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.c68cf1d3e3d2",
@@ -2529,7 +2529,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.cde451802b77",
@@ -2541,7 +2541,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.d3893574d03c",
@@ -2553,7 +2553,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.4d3567ac419b",
@@ -2577,7 +2577,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.d695f66ed522",
@@ -2589,7 +2589,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.f48f3318e658",
@@ -2601,7 +2601,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.3350ed9a9f35",
@@ -2613,7 +2613,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.e77e0a4d7c11",
@@ -2637,7 +2637,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.04ecbba47ef4",
@@ -2649,7 +2649,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.9958a9f23f56",
@@ -2661,7 +2661,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.7ac2f9bfa1ea",
@@ -2673,7 +2673,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.eb62ee215bbc",
@@ -2693,11 +2693,11 @@
     "scope": "global",
     "page": "privacy",
     "section": "内容可信",
-    "label": "Content Provenance",
-    "kind": "Setting",
+    "label": "当前内容的来源匹配事实",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.5ef935587d14",
@@ -2705,11 +2705,11 @@
     "scope": "global",
     "page": "privacy",
     "section": "内容可信",
-    "label": "Hash Verification",
-    "kind": "Setting",
+    "label": "已知下载文件强制校验",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.3ba209f3348d",
@@ -2717,11 +2717,11 @@
     "scope": "global",
     "page": "privacy",
     "section": "内容可信",
-    "label": "Modified File Warning",
-    "kind": "Setting",
+    "label": "与已保存更新基准的修改对照",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.93f8747a7762",
@@ -2755,9 +2755,9 @@
     "section": "AI 诊断",
     "label": "启用 AI",
     "kind": "Setting",
-    "key": null,
+    "key": "diagnostics.ai.enabled",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.3b2402362709",
@@ -2769,7 +2769,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.99192c77480a",
@@ -2781,7 +2781,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.c1b151abf947",
@@ -2791,9 +2791,9 @@
     "section": "AI 诊断",
     "label": "Reasoning",
     "kind": "Setting",
-    "key": null,
+    "key": "diagnostics.ai.reasoning",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.c11af566f670",
@@ -2805,7 +2805,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.7d9209f704f6",
@@ -2817,7 +2817,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.c2d61e1dc584",
@@ -2829,7 +2829,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.6c8db73e33b8",
@@ -2841,7 +2841,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.1e51861a3aee",
@@ -2853,7 +2853,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.25c2ac9fa4ed",
@@ -2865,7 +2865,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.privacy.c3667ce23f3b",
@@ -2877,7 +2877,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.f152873176d7",
@@ -2959,9 +2959,9 @@
     "section": "Nexa 更新",
     "label": "后台下载",
     "kind": "Setting",
-    "key": null,
+    "key": "network.background-download",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.1c1d87d5b9a2",
@@ -2973,7 +2973,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.9d82c4016ac6",
@@ -2997,7 +2997,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.abd4fdbab063",
@@ -3009,7 +3009,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.df63204ed949",
@@ -3021,7 +3021,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.8bc788cc8548",
@@ -3033,7 +3033,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.12ff7500770c",
@@ -3045,7 +3045,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.913925497bbb",
@@ -3067,9 +3067,9 @@
     "section": "系统兼容",
     "label": "硬件加速",
     "kind": "Setting",
-    "key": null,
+    "key": "appearance.hardware-acceleration-disabled",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.b625c3bec7db",
@@ -3117,7 +3117,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.fd858ddc777f",
@@ -3129,7 +3129,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.d06eb743bc69",
@@ -3141,7 +3141,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.88586d59987e",
@@ -3285,7 +3285,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.3cf9555686bb",
@@ -3297,7 +3297,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.59178c9ecad5",
@@ -3309,7 +3309,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.28957465d6fb",
@@ -3345,7 +3345,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.8d723d8dcdfb",
@@ -3369,7 +3369,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.0255fcfeb638",
@@ -3381,7 +3381,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.a4b638d31598",
@@ -3393,7 +3393,7 @@
     "kind": "Action",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.advanced.ce82bbfb31fd",
@@ -3405,7 +3405,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.fbfe8d779951",
@@ -3417,7 +3417,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.78c89aeac0d1",
@@ -3429,7 +3429,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.70d026453c0f",
@@ -3441,7 +3441,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.d1e245c8ad1c",
@@ -3453,7 +3453,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.8228a17a1eac",
@@ -3465,7 +3465,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.a3f8bc20aaf9",
@@ -3477,7 +3477,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.a0a265bd720b",
@@ -3489,7 +3489,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.988b4b01b3eb",
@@ -3501,7 +3501,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.732a45f9e791",
@@ -3513,7 +3513,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.56e33e480cdf",
@@ -3525,7 +3525,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.17a004456ff2",
@@ -3537,7 +3537,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.90172f2592b8",
@@ -3549,7 +3549,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.overview.7fb60a50d168",
@@ -3561,7 +3561,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.content.05803a333d18",
@@ -3573,7 +3573,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.content.d0c2287854d6",
@@ -3585,7 +3585,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.content.fc3ff537cf56",
@@ -3597,7 +3597,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.content.619a816efe84",
@@ -3609,7 +3609,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.content.2e3fd2c9385f",
@@ -3621,7 +3621,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.content.22b442dcb594",
@@ -3633,7 +3633,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.content.2ee458fdbb24",
@@ -3645,7 +3645,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.content.e0991a1031cc",
@@ -3657,7 +3657,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.17db261a8c32",
@@ -3669,7 +3669,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.777fa6b3b8a5",
@@ -3681,7 +3681,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.3fff1c03d28a",
@@ -3693,7 +3693,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.ee27261308f3",
@@ -3705,7 +3705,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.6c5d0a10ab50",
@@ -3717,7 +3717,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.0f68adbfffa2",
@@ -3729,7 +3729,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.ae94fe88e32c",
@@ -3741,7 +3741,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.ab4beadb3467",
@@ -3753,7 +3753,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.faad5f3cce5e",
@@ -3765,7 +3765,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.worlds.22effc520481",
@@ -3777,7 +3777,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.servers.a8a1cc4caac7",
@@ -3789,7 +3789,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.servers.8c6092b5ce84",
@@ -3801,7 +3801,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.servers.b485db8ebf9f",
@@ -3813,7 +3813,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.servers.de9988a1e55f",
@@ -3825,7 +3825,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.servers.73ea41d2f3c0",
@@ -3837,7 +3837,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.files.29b2e7f92b05",
@@ -3849,7 +3849,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.files.8f0192eaa51c",
@@ -3861,7 +3861,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.files.3f21274a1129",
@@ -3873,7 +3873,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.files.0133bf26089d",
@@ -3885,7 +3885,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.files.ff0bb86d9c48",
@@ -3897,7 +3897,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.files.05803a333d18",
@@ -3909,7 +3909,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.files.d0c2287854d6",
@@ -3921,7 +3921,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.files.83c37904da0b",
@@ -3933,7 +3933,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.screenshots.3eae7fd3de23",
@@ -3945,7 +3945,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.screenshots.eacf056aa1f9",
@@ -3957,7 +3957,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.screenshots.998b17a3bbc7",
@@ -3969,7 +3969,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.screenshots.0a4632048b4e",
@@ -3981,7 +3981,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.screenshots.b4a843861188",
@@ -3993,7 +3993,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.screenshots.22effc520481",
@@ -4005,7 +4005,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.recovery.544d531cda5c",
@@ -4017,7 +4017,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.recovery.300297281702",
@@ -4029,7 +4029,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.recovery.32ed8e6c59a9",
@@ -4041,7 +4041,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.recovery.589eb002b816",
@@ -4053,7 +4053,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.recovery.de1acce7e91a",
@@ -4065,7 +4065,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.recovery.1696b3e83743",
@@ -4077,7 +4077,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.recovery.6908855c15d5",
@@ -4089,7 +4089,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.recovery.0042f30a2a2c",
@@ -4101,7 +4101,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.5ee7568c2526",
@@ -4113,7 +4113,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.bb95141d8acf",
@@ -4125,7 +4125,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.d57b2a3b0791",
@@ -4137,7 +4137,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.17e6ddd6fbb6",
@@ -4149,7 +4149,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.220cd35381a6",
@@ -4161,7 +4161,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.e77c11a5601a",
@@ -4173,7 +4173,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.872253956c5e",
@@ -4185,7 +4185,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.ef6ad908dc24",
@@ -4197,7 +4197,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.164862be0259",
@@ -4209,7 +4209,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.e120d139a2e5",
@@ -4221,7 +4221,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance.diagnostics.4ba3086d0572",
@@ -4233,7 +4233,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.79e47f9ac834",
@@ -4245,7 +4245,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.3a0d5d5aa2ac",
@@ -4257,7 +4257,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.b557a4bf44aa",
@@ -4269,7 +4269,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.771f820442b1",
@@ -4281,7 +4281,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.595a4ca570a5",
@@ -4293,7 +4293,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.1588c496fbc8",
@@ -4305,7 +4305,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.fecf8ceb8303",
@@ -4317,7 +4317,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.4c5dfb0bcc3d",
@@ -4329,7 +4329,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.09d985efd446",
@@ -4341,7 +4341,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.d1e245c8ad1c",
@@ -4365,7 +4365,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.99c5e92def4c",
@@ -4377,7 +4377,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.basic.43a10f6cd588",
@@ -4471,9 +4471,9 @@
     "section": "Selected Runtime",
     "label": "Selected Runtime",
     "kind": "Setting",
-    "key": null,
+    "key": "java.runtime",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.java.597a0470d275",
@@ -4485,7 +4485,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.java.dc5ff6fcd886",
@@ -4494,10 +4494,10 @@
     "page": "java",
     "section": "Compatibility",
     "label": "Compatibility",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.java.8252c8559e09",
@@ -4509,7 +4509,7 @@
     "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.java.b35a483986d4",
@@ -4518,10 +4518,10 @@
     "page": "java",
     "section": "下载",
     "label": "下载",
-    "kind": "Setting",
+    "kind": "Action",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.java.38e1f8df3aa0",
@@ -4530,10 +4530,10 @@
     "page": "java",
     "section": "验证",
     "label": "验证",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.31e7e4133f38",
@@ -4602,10 +4602,10 @@
     "page": "resources",
     "section": "Resource Estimator",
     "label": "Recommended Xmx",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.9927df5e4ef0",
@@ -4617,7 +4617,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.dd69318b8bc1",
@@ -4626,10 +4626,10 @@
     "page": "resources",
     "section": "Resource Estimator",
     "label": "Startup Peak",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.67976deb5cf9",
@@ -4641,7 +4641,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.1dab25552608",
@@ -4650,10 +4650,10 @@
     "page": "resources",
     "section": "Resource Estimator",
     "label": "Historical Calibration",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.ae582c07f394",
@@ -4687,9 +4687,9 @@
     "section": "GPU",
     "label": "指定 GPU",
     "kind": "Setting",
-    "key": null,
+    "key": "game.gpu-preference",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.7f105865bd84",
@@ -4699,9 +4699,9 @@
     "section": "GPU",
     "label": "Renderer",
     "kind": "Setting",
-    "key": null,
+    "key": "game.renderer",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.5be5eac17a86",
@@ -4713,7 +4713,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.278b55f814ea",
@@ -4722,10 +4722,10 @@
     "page": "resources",
     "section": "GPU",
     "label": "iGPU Shared Memory",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.e59e6c9e791d",
@@ -4746,10 +4746,10 @@
     "page": "resources",
     "section": "Hardware Advice",
     "label": "Shader",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.437184290d06",
@@ -4758,10 +4758,10 @@
     "page": "resources",
     "section": "Hardware Advice",
     "label": "Resource Pack",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.03f3222cf10f",
@@ -4770,10 +4770,10 @@
     "page": "resources",
     "section": "Hardware Advice",
     "label": "Render Distance",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.b9b0340358d5",
@@ -4782,10 +4782,10 @@
     "page": "resources",
     "section": "Hardware Advice",
     "label": "Risk",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.cadfbbd79205",
@@ -4797,7 +4797,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.resources.3a4bed17a856",
@@ -4809,7 +4809,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.window.1cf65ca0a095",
@@ -4929,7 +4929,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.window.44effed05745",
@@ -4941,7 +4941,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.window.9ff25c818325",
@@ -4965,7 +4965,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.window.bb58bd6e61d7",
@@ -4989,7 +4989,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.hooks.56e906523d01",
@@ -5035,9 +5035,9 @@
     "section": "JVM",
     "label": "Classpath Head",
     "kind": "Setting",
-    "key": null,
+    "key": "game.classpath-head",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.hooks.1ee9054623a9",
@@ -5047,9 +5047,9 @@
     "section": "JVM",
     "label": "Environment Variables",
     "kind": "Setting",
-    "key": null,
+    "key": "game.environment",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.hooks.0beb2cd090d6",
@@ -5131,9 +5131,9 @@
     "section": "Post-exit",
     "label": "Command",
     "kind": "Setting",
-    "key": null,
+    "key": "game.post-exit",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.hooks.10c620ce1c99",
@@ -5157,7 +5157,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "instance-settings.hooks.d5047c9dd72e",
@@ -5169,7 +5169,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "instance-settings.hooks.09ebeb623281",
@@ -5181,7 +5181,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "instance-settings.hooks.3a071fa4c0d7",
@@ -5193,7 +5193,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "instance-settings.hooks.d32f82a77b56",
@@ -5203,9 +5203,9 @@
     "section": "Native Compatibility",
     "label": "System GLFW",
     "kind": "Setting",
-    "key": null,
+    "key": "game.system-glfw",
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.hooks.50de4c103e2a",
@@ -5217,7 +5217,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "instance-settings.profiles.1c54db785358",
@@ -5313,7 +5313,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.813507d1c795",
@@ -5325,7 +5325,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.5932fb33f692",
@@ -5337,7 +5337,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.2f0ae4b3f9a0",
@@ -5349,7 +5349,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.d535f1769202",
@@ -5361,7 +5361,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.2cbc9526055b",
@@ -5373,7 +5373,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.bbe9aad82dcf",
@@ -5385,7 +5385,7 @@
     "kind": "Choice",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.e8601c21ffcf",
@@ -5409,7 +5409,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.141700b7dc2e",
@@ -5421,7 +5421,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.ca34ed2f75fe",
@@ -5433,7 +5433,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.636077328a1e",
@@ -5445,7 +5445,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.8557766cf81a",
@@ -5457,7 +5457,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.ccae094de147",
@@ -5477,11 +5477,11 @@
     "scope": "instance-settings",
     "page": "profiles",
     "section": "Safe Launch",
-    "label": "禁用最近新增 Mods",
-    "kind": "Setting",
+    "label": "禁用全部 Mods",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.6a86c1d65288",
@@ -5490,10 +5490,10 @@
     "page": "profiles",
     "section": "Safe Launch",
     "label": "Disable Shader",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.aa2b636c351e",
@@ -5502,10 +5502,10 @@
     "page": "profiles",
     "section": "Safe Launch",
     "label": "Disable Resource Packs",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.fe088946fb87",
@@ -5514,10 +5514,10 @@
     "page": "profiles",
     "section": "Safe Launch",
     "label": "Disable Hooks",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.profiles.cb1c4275b7f6",
@@ -5526,10 +5526,10 @@
     "page": "profiles",
     "section": "Safe Launch",
     "label": "Disable Custom JVM Args",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.servers.73ea41d2f3c0",
@@ -5613,7 +5613,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.servers.d6c3e6592b58",
@@ -5625,7 +5625,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.servers.da73ed798ad8",
@@ -5637,7 +5637,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.servers.5a8d8adc344f",
@@ -5649,7 +5649,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.servers.36e4dd9de50c",
@@ -5661,7 +5661,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.55677450cba6",
@@ -5705,11 +5705,11 @@
     "scope": "instance-settings",
     "page": "security",
     "section": "内容更新",
-    "label": "Source Lock",
-    "kind": "Setting",
+    "label": "已识别更新来源必须匹配",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.aea49566a9f6",
@@ -5789,11 +5789,11 @@
     "scope": "instance-settings",
     "page": "security",
     "section": "Safe Update",
-    "label": "更新前 Snapshot",
-    "kind": "Setting",
+    "label": "更新前保存所选原件",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.a5339dbd7bc7",
@@ -5801,11 +5801,11 @@
     "scope": "instance-settings",
     "page": "security",
     "section": "Safe Update",
-    "label": "Failure Rollback",
-    "kind": "Setting",
+    "label": "更新失败回滚所选文件",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.bb95141d8acf",
@@ -5826,10 +5826,10 @@
     "page": "security",
     "section": "Launch Preflight",
     "label": "Critical → Block",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.acbccd7bdaac",
@@ -5838,10 +5838,10 @@
     "page": "security",
     "section": "Launch Preflight",
     "label": "Warning → Ask",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.871aab865ad2",
@@ -5913,7 +5913,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.d6211ce48af2",
@@ -5934,10 +5934,10 @@
     "page": "security",
     "section": "文件完整性",
     "label": "Assets Verification",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.6605dca90be2",
@@ -5946,10 +5946,10 @@
     "page": "security",
     "section": "文件完整性",
     "label": "Libraries Verification",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.9a1792212a14",
@@ -5982,10 +5982,10 @@
     "page": "security",
     "section": "Content Provenance",
     "label": "Source",
-    "kind": "Setting",
+    "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.ae662ab0ef1f",
@@ -5997,7 +5997,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.42f5355c7bce",
@@ -6009,7 +6009,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.security.b585c2e079b2",
@@ -6045,7 +6045,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.336c2dcf7947",
@@ -6057,7 +6057,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.bbf555e9930a",
@@ -6069,7 +6069,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.ccf26ac2deb3",
@@ -6081,7 +6081,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.2759a030c0b7",
@@ -6105,7 +6105,7 @@
     "kind": "State",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.c8f63f87f291",
@@ -6165,7 +6165,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.129a08c3a04a",
@@ -6177,7 +6177,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.b9a4c8bd47bf",
@@ -6189,7 +6189,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.4ba5c5689c79",
@@ -6201,7 +6201,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.sync.3134ce164b15",
@@ -6249,7 +6249,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "instance-settings.advanced.787b274645ff",
@@ -6261,7 +6261,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "instance-settings.advanced.e8914ed0d7e2",
@@ -6273,7 +6273,7 @@
     "kind": "Setting",
     "key": null,
     "developer": false,
-    "availability": "NotImplemented"
+    "availability": "PlatformUnsupported"
   },
   {
     "id": "instance-settings.advanced.d5129739b1ae",
@@ -6285,7 +6285,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.bdc6b2186762",
@@ -6297,7 +6297,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.9c7f83375a0b",
@@ -6309,7 +6309,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.b84f343da972",
@@ -6321,7 +6321,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.74dac7537617",
@@ -6331,9 +6331,9 @@
     "section": "Environment Variables",
     "label": "Environment Variables",
     "kind": "Setting",
-    "key": null,
+    "key": "game.environment",
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.504c5f4447d2",
@@ -6345,7 +6345,7 @@
     "kind": "Setting",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.6f200d616dd1",
@@ -6357,7 +6357,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.8acf76e45c8e",
@@ -6381,7 +6381,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.25c2ac9fa4ed",
@@ -6393,7 +6393,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "instance-settings.advanced.8c5e81a76a9d",
@@ -6417,7 +6417,7 @@
     "kind": "State",
     "key": null,
     "developer": true,
-    "availability": "NotImplemented"
+    "availability": "Available"
   },
   {
     "id": "global.game.pre-launch-wait",
@@ -6476,6 +6476,42 @@
     "label": "清除成功任务卡片",
     "kind": "Action",
     "key": null,
+    "developer": false,
+    "availability": "Available"
+  },
+  {
+    "id": "global.appearance.video-path",
+    "parent": null,
+    "scope": "global",
+    "page": "appearance",
+    "section": "背景",
+    "label": "背景视频路径",
+    "kind": "Setting",
+    "key": "appearance.video-path",
+    "developer": false,
+    "availability": "Available"
+  },
+  {
+    "id": "global.music.path",
+    "parent": null,
+    "scope": "global",
+    "page": "appearance",
+    "section": "背景音乐",
+    "label": "背景音乐路径或目录",
+    "kind": "Setting",
+    "key": "music.path",
+    "developer": false,
+    "availability": "Available"
+  },
+  {
+    "id": "global.music.auto-pause",
+    "parent": null,
+    "scope": "global",
+    "page": "appearance",
+    "section": "背景音乐",
+    "label": "失焦或游戏运行时暂停音乐",
+    "kind": "Setting",
+    "key": "music.auto-pause",
     "developer": false,
     "availability": "Available"
   }

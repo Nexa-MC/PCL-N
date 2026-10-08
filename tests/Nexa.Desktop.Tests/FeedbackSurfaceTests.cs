@@ -1,10 +1,77 @@
 using Nexa.Desktop.Ui;
+using Nexa.Services.Minecraft.Management;
+using Nexa.Services.Settings;
 using Nexa.UI.Next;
+using Nexa.Xsr;
+using Nexa.Xsr.Runtime;
 
 namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static void DialogLiteralBodiesPreserveCatalogMatchesAndRefreshTranslationPolicy()
+    {
+        using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]));
+        AssertTrue(fixture.Foundation.Host.SettingsPolicy.Set(new("general.language", Nexa.Services.Settings.SettingsLayer.Global,
+            new(Nexa.Services.Settings.SettingsOverrideMode.Custom, "en"))).IsSuccess);
+        using DesktopLanguageSession language = new(fixture.Shell, fixture.Store, "en");
+        fixture.Shell.Renderer.ReducedMotion = true;
+        const string body = "返回\n设置";
+        fixture.Feedback.ShowDialog("literal.body", "设置", body, "继续", "取消", static _ => { }, localizeMessage: false);
+        var scene = fixture.Shell.Render(new(1000, 700));
+        AssertEqual(body, FindByKey(fixture.Shell, scene, "DialogMessage").Text);
+        AssertEqual("Settings。" + body, FindByKey(fixture.Shell, scene, "DialogCard").Label);
+        Guid id = fixture.Feedback.Snapshot().Dialog!.Id;
+        fixture.Feedback.ShowDialog("literal.body", "设置", body, "继续", "取消", static _ => { });
+        scene = fixture.Shell.Render(new(1000, 700));
+        AssertEqual(id, fixture.Feedback.Snapshot().Dialog!.Id);
+        string translated = fixture.Shell.Renderer.LocalizeText(body);
+        AssertFalse(translated == body);
+        AssertEqual(translated, FindByKey(fixture.Shell, scene, "DialogMessage").Text);
+        fixture.Feedback.ShowMessageDialog("literal.result", "设置", body, localizeMessage: false);
+        scene = fixture.Shell.Render(new(1000, 700));
+        AssertEqual(body, FindByKey(fixture.Shell, scene, "DialogMessage").Text);
+        AssertEqual("Settings。" + body, FindByKey(fixture.Shell, scene, "DialogCard").Label);
+        fixture.Feedback.ResolveDialog(fixture.Feedback.Snapshot().Dialog!.Id, true);
+        var queries = new XsrQueryRouterBuilder();
+        fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.CatalogQuery, out var catalog);
+        fixture.Foundation.Queries.TryResolve(SettingsPolicyContract.EffectiveQuery, out var effective);
+        queries.Register<SettingsCatalogQuery, SettingsCatalogSnapshot>(SettingsPolicyContract.CatalogQuery,
+            (query, token) => fixture.Foundation.Queries.QueryAsync<SettingsCatalogQuery, SettingsCatalogSnapshot>(catalog, query, cancellationToken: token));
+        queries.Register<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(SettingsPolicyContract.EffectiveQuery,
+            (query, token) => fixture.Foundation.Queries.QueryAsync<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(effective, query, cancellationToken: token));
+        string instance = Path.GetFullPath("literal-removal-instance");
+        queries.Register<InstanceManagementQuery, InstanceManagementSnapshot>(InstanceManagementContract.Query, (_, _) =>
+            ValueTask.FromResult(XsrResult.Success(new InstanceManagementSnapshot(instance, instance, "1.21.1", [],
+                [new("overview", "总览"), new("game", "游戏设置"), new("mods", "模组", instance)], true, "")
+            {
+                Contents = [new("mods", [new("primary.jar", false, 10) { Enabled = true, ModifiedUtcTicks = 1 }], true, null)]
+            })));
+        queries.Register<InstanceModRemovalQuery, InstanceModRemovalPreview>(InstanceManagementContract.ModRemovalPreview,
+            (query, _) => ValueTask.FromResult(XsrResult.Success(new InstanceModRemovalPreview(query.Primary,
+                [new(instance, "mods", "设置", false, 10, 1)], ["设置"], null))));
+        using var settings = new SettingsPageController(fixture.Shell, fixture.Intents, queries.Build(new NoopDispatchObserver()),
+            fixture.Foundation.Commands, fixture.Store, fixture.Feedback, () => instance);
+        fixture.Shell.Stage.Navigation.Replace(settings.Page);
+        void Pump(Func<bool> condition) => AssertTrue(SpinWait.SpinUntil(() =>
+        { scene = fixture.Shell.Render(new(1000, 1000)); return condition(); }, TimeSpan.FromSeconds(5)));
+        Pump(() => scene.Nodes.Any(node => fixture.Shell.Tree.Name(node.Entity) == "SettingsNav.mods"));
+        Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.mods").Entity);
+        Pump(() => scene.Nodes.Any(node => fixture.Shell.Tree.Name(node.Entity) == "ManagementContentDetails.primary.jar"));
+        Emit(fixture.Intents, "ui.settings.management.action", FindByKey(fixture.Shell, scene, "ManagementContentDetails.primary.jar").Entity);
+        scene = fixture.Shell.Render(new(1000, 1000));
+        Emit(fixture.Intents, "ui.settings.management.action", FindByKey(fixture.Shell, scene, "Management.移至已移除内容").Entity);
+        Pump(() => fixture.Feedback.Snapshot().Dialog?.Key == "content.remove-mod"
+            && scene.Nodes.Any(node => fixture.Shell.Tree.Name(node.Entity) == "DialogMessage"));
+        var removal = fixture.Feedback.Snapshot().Dialog!;
+        AssertFalse(removal.LocalizeMessage);
+        AssertTrue(removal.Message.StartsWith("Move “primary.jar”", StringComparison.Ordinal));
+        AssertTrue(removal.Message.Contains("\n设置", StringComparison.Ordinal));
+        AssertFalse(removal.Message.Contains("Settings", StringComparison.Ordinal));
+        AssertEqual(removal.Message, FindByKey(fixture.Shell, scene, "DialogMessage").Text);
+        fixture.Feedback.ResolveDialog(removal.Id, false);
+    }
+
     private static void NotificationLevelsKeepExactLifetimes()
     {
         using FeedbackClock clock = new();

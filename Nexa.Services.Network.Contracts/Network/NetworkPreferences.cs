@@ -9,6 +9,12 @@ public sealed record NetworkPreferences
     public string ProxyPassword { get; init; } = string.Empty;
     public bool DnsOverHttps { get; init; } = true;
     public string IpStack { get; init; } = "auto";
+    public bool OfficialProviderEnabled { get; init; } = true;
+    public bool ModrinthProviderEnabled { get; init; } = true;
+    public bool CurseForgeProviderEnabled { get; init; } = true;
+    public bool MirrorProviderEnabled { get; init; } = true;
+    public bool TraceEnabled { get; init; }
+    public bool AutoDiagnose { get; init; }
 
     public override string ToString() => $"NetworkPreferences {{ ProxyMode = {ProxyMode}, DnsOverHttps = {DnsOverHttps}, IpStack = {IpStack} }}";
 

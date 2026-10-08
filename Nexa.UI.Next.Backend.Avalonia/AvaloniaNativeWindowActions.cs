@@ -24,13 +24,16 @@ internal sealed class AvaloniaNativeWindowActions : StackPanel, IDisposable
     private readonly AvaloniaUiSvgIcon _maximizeIcon;
     private readonly List<WindowActionButton> _buttons = [];
     private readonly Func<bool> _reducedMotion;
+    private readonly Func<string, string> _localize;
     private XsrUiColor _foreground = XsrUiColor.FromRgb(255, 255, 255);
     private bool _disposed;
 
-    public AvaloniaNativeWindowActions(AvaloniaUiSceneSurface surface, Func<bool> reducedMotion)
+    public AvaloniaNativeWindowActions(AvaloniaUiSceneSurface surface, Func<bool> reducedMotion,
+        Func<string, string>? localize = null)
     {
         _surface = surface ?? throw new ArgumentNullException(nameof(surface));
         _reducedMotion = reducedMotion ?? throw new ArgumentNullException(nameof(reducedMotion));
+        _localize = localize ?? (static text => text);
         Orientation = Orientation.Horizontal;
         Height = XsrUiShell.TitleBarHeight;
         VerticalAlignment = VerticalAlignment.Top;
@@ -49,6 +52,7 @@ internal sealed class AvaloniaNativeWindowActions : StackPanel, IDisposable
         Children.Add(close);
         _buttons.AddRange([minimize, maximize, close]);
         foreach (WindowActionButton button in _buttons) button.ApplyForeground(_foreground);
+        UpdateAutomationNames();
 
         _surface.SceneCommitted += OnSceneCommitted;
     }
@@ -80,6 +84,7 @@ internal sealed class AvaloniaNativeWindowActions : StackPanel, IDisposable
 
     private void OnSceneCommitted(object? sender, AvaloniaUiSceneCommittedEventArgs e)
     {
+        UpdateAutomationNames();
         XsrUiVisualStyleSnapshot title = e.Scene.Nodes
             .FirstOrDefault(node => node.Role == XsrUiSemanticRole.TitleBar)
             .VisualStyle;
@@ -92,6 +97,18 @@ internal sealed class AvaloniaNativeWindowActions : StackPanel, IDisposable
         foreach (WindowActionButton button in _buttons)
         {
             button.ApplyForeground(_foreground);
+        }
+    }
+
+    private void UpdateAutomationNames()
+    {
+        Update(_buttons[0], "最小化窗口");
+        Update(_buttons[1], "最大化窗口");
+        Update(_buttons[2], "关闭窗口");
+        void Update(WindowActionButton button, string source)
+        {
+            string name = _localize(source);
+            if (AutomationProperties.GetName(button) != name) AutomationProperties.SetName(button, name);
         }
     }
 

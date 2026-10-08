@@ -1,9 +1,15 @@
 namespace Nexa.Services.Resources;
 
 /// <summary>Partial provider failures do not discard healthy results. Identity comes from the curated index.</summary>
-public sealed class MergedResourceCatalog(IResourceCatalogSource modrinth, IResourceCatalogSource curseForge) : IResourceCatalogSource, IResourceFileSource
+public sealed class MergedResourceCatalog(IResourceCatalogSource modrinth, IResourceCatalogSource curseForge) : IResourceCatalogSource, IResourceFileSource, IResourceChangelogSource
 {
     private readonly ResourceSnapshotCache<ResourceSearchQuery, ResourceSearchResult> _searchCache = new();
+    public Task<ResourceChangelog> ReadChangelogAsync(ResourceChangelogQuery query, CancellationToken token)
+    {
+        if (!Enum.IsDefined(query.Source.Provider)) throw new ArgumentException("资源站无效。");
+        var source = query.Source.Provider == ResourceProvider.Modrinth ? modrinth : curseForge;
+        return source is IResourceChangelogSource logs ? logs.ReadChangelogAsync(query, token) : Task.FromResult(new ResourceChangelog(""));
+    }
     private readonly ResourceSnapshotCache<(string Project, string Game, string Loader, bool Mirror, ResourceReference? First, ResourceReference? Second), ResourceDetail> _detailCache = new();
     public Task<ResourceVersion?> ReadVersionAsync(ResourceDownloadCommand command, CancellationToken token)
     {

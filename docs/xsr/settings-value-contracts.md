@@ -1,11 +1,18 @@
 # Settings value contracts
 
-The original IA enumerated 566 positions. The current catalog has 540 after removals and
-consumer-backed additions; see [settings migration status](settings-migration-status.md)
-for working consumers. Groups, choices, actions and facts do not own persisted values.
-Reserved settings remain `NotImplemented` until a real consumer exists. There are
-50 value definitions and 49 available consumers; the retained `java.compatibility`
-definition remains unavailable while compatibility checks stay mandatory.
+The original IA enumerated 566 positions. As of 2026-10-08, the catalog contains 543
+positions and `SettingsPolicySchema` contains 97 value definitions. There are 96
+mutable policy keys; the retained obsolete `java.compatibility` definition has no
+mutable consumer. The export service admits 80 keys, excluding 16 local-only keys and
+`java.compatibility`. These counts describe contracts, not physical platform acceptance.
+Groups, choices, actions and facts do not own persisted values. Reserved settings remain
+`NotImplemented` until a real consumer exists; platform and dependency limitations remain
+explicit. See [settings migration status](settings-migration-status.md) for consumers and
+[XSR-820](XSR-820-completion-closure.md) for integrated verification evidence.
+
+The earlier 540 catalog positions, 50 value definitions and 49 available consumers are
+historical foundation-slice figures. Earlier slice validation counts remain historical;
+they are not the current integrated test totals.
 
 The following foundation contracts are declared in `SettingsPolicySchema`. Owner: `Nexa.Services.Settings`. Scope `G/I` permits global and instance overrides; `G` is global only. `Auto` is a payload-free mode; reset means remove the override. Enum strings are stable encodings, not localized labels.
 
@@ -26,7 +33,7 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 | java.runtime | Fully qualified path / Auto | Auto | G/I | New | Next launch | No |
 | java.auto-install | Bool | false | G/I | New | Next launch | Yes |
 | java.vendor | Enum: empty means automatic; supported Java brand names | empty | G/I | New | Next launch | Yes |
-| java.compatibility | Bool | true | G/I | New | Next launch | Yes |
+| java.compatibility | Retained obsolete Bool; mandatory checks have no disable policy | true | G/I | New | Next launch | No; obsolete |
 | recovery.keep-history | Bool | false | G/I | New | Next task | No |
 | game.memory | Number, 256–1048576 MiB / Auto | Auto | G/I | LaunchRamType + LaunchRamCustom | Next launch | Yes |
 | game.window-mode | windowed / fullscreen | windowed | G/I | LaunchArgumentWindowType | Next launch | Yes |
@@ -62,6 +69,99 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 | updates.auto-check | Bool | true | G | SystemUpdateMode 3 disables discovery | Next task | Yes |
 | developer.enabled | Bool | false | G | New (not SystemDebugMode) | Immediate | Yes |
 
+## Completion value contracts
+
+These 47 additional definitions complete the 97-key schema. `New` means no legacy-key
+conversion is declared. An enum choice named `auto` is a custom string value; it does not
+grant the payload-free `Auto` override mode. None of these additional keys supports that
+mode. `G/I` also permits the bounded Profile/Temporary lifecycle described below.
+
+| Key | Type / domain | Builtin | Scope | Legacy source | Applies | Export |
+|---|---|---|---|---|---|---|
+| game.gpu-preference | Enum: auto, secondary | auto | G/I | New | Next launch | Yes |
+| game.renderer | Enum: auto, mesa-software | auto | G/I | New | Next launch | Yes |
+| game.system-glfw | Bool | false | G/I | LaunchUseSystemGlfw | Next launch | Yes |
+| appearance.hardware-acceleration-disabled | Bool | false | G | SystemDisableHardwareAcceleration | Restart | Yes |
+| game.environment | Text, at most 32768 characters; at most 128 unique ASCII KEY=VALUE lines | empty | G/I | New | Next launch | No |
+| game.classpath-head | Text, at most 32768 characters; at most 128 fully qualified path lines in order | empty | G/I | New | Next launch | No |
+| game.post-exit | Explicit user-authored platform shell command, at most 32768 characters, no NUL | empty | G/I | New | Next launch; runs after actual game exit | No |
+| game.safe-launch | Bool | false | G/I | New | Next launch | Yes |
+| general.autostart | Bool | false | G | New | Immediate | Yes |
+| general.file-association | Bool | false | G | New | Immediate | Yes |
+| general.native-notifications | Bool | true | G | New | Immediate | Yes |
+| general.clipboard-detection | Bool | false | G | New | Immediate | Yes |
+| appearance.window-opacity | Integer, 40–100 percent | 100 | G | New | Immediate | Yes |
+| appearance.window-blur | Bool | false | G | New | Immediate | Yes |
+| network.provider-modrinth | Bool | true | G | New | Next task | Yes |
+| network.provider-curseforge | Bool | true | G | New | Next task | Yes |
+| network.provider-official | Bool | true | G | New | Next task | Yes |
+| network.provider-mirror | Bool | true | G | New | Next task | Yes |
+| network.trace | Bool | false | G | New | Next task | Yes |
+| network.auto-diagnose | Bool | false | G | New | Next task | Yes |
+| appearance.custom-theme | Text, empty or at most 4096 characters of JSON with exactly background/foreground/accent as #RRGGBB | empty | G | New | Immediate | Yes |
+| appearance.logo-path | Text, empty or absolute local path, at most 4096 characters, no controls | empty | G | New | Immediate | No |
+| appearance.background-path | Text, empty or absolute local path, at most 4096 characters, no controls | empty | G | New | Immediate | No |
+| appearance.background-fit | Enum: cover, contain, stretch | cover | G | New | Immediate | Yes |
+| appearance.background-color | Text: auto or #RRGGBB | auto | G | New | Immediate | Yes |
+| appearance.reduced-motion | Bool | false | G | New | Immediate | Yes |
+| appearance.background-opacity | Integer, 0–100 percent | 100 | G | New | Immediate | Yes |
+| appearance.video-path | Text, empty or absolute local path, at most 4096 characters, no controls | empty | G | New | Immediate | No |
+| appearance.video-auto-pause | Bool | true | G | New | Immediate | Yes |
+| music.enabled | Bool | false | G | New | Immediate | Yes |
+| music.path | Text, empty or absolute local path, at most 4096 characters, no controls | empty | G | New | Immediate | No |
+| music.startup | Bool | false | G | New | Restart | Yes |
+| music.autoplay | Bool | true | G | New | Immediate | Yes |
+| music.shuffle | Bool | false | G | New | Immediate | Yes |
+| music.volume | Integer, 0–100 percent | 50 | G | New | Immediate | Yes |
+| music.media-controls | Bool | true | G | New | Immediate | Yes |
+| general.jump-list | Bool | true | G | New | Immediate | Yes |
+| general.notification-actions | Bool | true | G | New | Immediate | Yes |
+| general.startup-page | Enum: launch, install, resources, settings, java, storage, about, tasks | launch | G | New | Next launch; first committed startup read | Yes |
+| general.launch-hints | Bool | true | G | New | Immediate | Yes |
+| network.auto-install-dependencies | Bool | true | G | New | Next task | Yes |
+| network.resource-source | Enum: follow-request, official-first, mirrors-first | follow-request | G | New | Next task | Yes |
+| music.auto-pause | Bool | true | G | New | Immediate | Yes |
+| network.background-download | Bool | true | G | New | Next task | Yes |
+| diagnostics.ai.enabled | Bool | false | G | New | Immediate | Yes |
+| diagnostics.ai.reasoning | Enum: provider, low, medium, high | provider | G | New | Immediate | Yes |
+| storage.backup-keep-count | Integer, 1–1024 backups | 32 | G | New | Immediate | Yes |
+
+Graphics choices are revalidated before process creation. On Linux, `secondary` requires
+observed DRM/PCI Mesa evidence and supplies the corresponding `DRI_PRIME` selector;
+`mesa-software` requires local Mesa/DRI libraries and supplies `LIBGL_ALWAYS_SOFTWARE=1`.
+Non-auto choices are unsupported on other platforms, missing evidence rejects the launch,
+and conflicting explicit environment values are rejected. These are environment requests,
+not proof of the game's actual rendering device. `game.system-glfw` only replaces the
+request when its effective source is not Builtin, preserving explicit request/legacy
+metadata otherwise; Safe Launch forces it false. See [XSR-813](XSR-813-launch-ia-consumers.md).
+
+`appearance.hardware-acceleration-disabled` uses the negative legacy flag with positive
+Hardware Acceleration UI wording through `InvertBoolean`. Its committed value is captured
+before native startup and forces software rendering on Windows/Linux after restart;
+macOS reports `PlatformUnsupported`. CLI Safe Mode forces that startup preference for the
+current session without persisting a changed setting. It controls the launcher's native
+UI backend, separately from the game's GPU/renderer policies.
+
+OS preferences use current-user native adapters with explicit unsupported/dependency
+results. Jump List is Windows-only; file associations cover `.mrpack`/`.nexapack` on supported
+platforms, not arbitrary files. Clipboard detection reads on focus only when enabled and
+requires confirmation of recognized `nexacl://` navigation. Window blur is a supported
+compositor mode hint, without strength/sampling controls. Local PNG consumers enforce
+16 MiB/4096×4096 budgets; audio/video require their local playback engines and own process
+cleanup. Reduced motion pauses video and disables dynamic UI effects; music/video auto-pause
+uses window inactivity or game quiet state. See [XSR-803](XSR-803-system-preferences-completion.md).
+
+Provider gates apply to new requests for the named content authorities, preserving login
+and update endpoints. Trace contains bounded host/status/timing facts without credentials
+or payloads; automatic probes are bounded anonymous requests. Dependency auto-install off
+still validates the entire required graph and rejects missing required dependencies.
+Background-download off rejects new Background/Idle transfers while allowing Interactive
+requests. Startup-page applies once and explicit CLI/URI/file activations take precedence;
+see [XSR-815](XSR-815-general-network-completion.md). AI enablement only admits explicit
+preview/send, with ephemeral per-request credentials; reasoning is a previewed provider
+parameter. Backup count is consumed by existing CAS prune previews and opt-in maintenance,
+with policy revalidation before mutation; see [XSR-814](XSR-814-scoped-diagnostic-preferences.md).
+
 The animation row is positive UI wording backed by a negative legacy flag; catalog `InvertBoolean` makes this explicit. Repeated title rows share `game.title`, and instance server defaults use `game.server`.
 
 Legacy memory uses the existing piecewise slider-to-MiB conversion. A custom new MiB value is stored exactly; it is not rounded back into a lossy slider coordinate. Global Auto/reset clears the old manual policy. Stage 4 consumers must read the effective contract before exposing the new editor. Window mode maps fullscreen to legacy 0 and windowed to 1. Existing unchanged legacy keys remain byte-compatible.
@@ -70,15 +170,37 @@ Apply timing is not a claim that a setting has a working consumer.
 Consumers now include memory/Java acquisition, animation/window lock, game-file batch
 and source policy, default servers/automatic repair, and preferred Java distributions;
 startup region formatting and the live animation tick rate; see XSR-761 through XSR-768
-and the current migration ledger. Other unconnected entries
-remain unavailable. Profile and Temporary have resolution
-semantics but reject public mutation.
+and the current migration ledger. Other unconnected entries remain unavailable.
+
+Profile and Temporary have actual editing, resolution and launch consumers. Resolution is
+Builtin → Global → Instance → selected Profile → Temporary. Named profiles bind to a
+fully qualified instance identity and persist their values, selection and owned-overlay
+configuration through revision-checked settings transactions. An instance has at most 32
+profiles, each at most 128 values; identifiers use 1–64 ASCII letters/digits/`-`/`_`, and
+names use 1–128 printable characters. Profiles only override instance-eligible keys.
+Temporary values and overlay sources remain in memory for the current launcher lifecycle;
+begin/end commands validate the expected revision and revoke the layer explicitly. Generic
+`Set` supports Global/Instance/existing Profile; Temporary edits use its lifecycle commands.
+Changes do not mutate a launch plan already captured.
+
+Owned mods/resourcepacks/shaderpacks/config overlays use exclusive directory leases,
+bounded read-only sources and recovery journals. Failure, cancellation and actual game exit
+restore the original directories; restart recovery checks actual process identity/liveness
+before moving anything. Safe Launch clears custom JVM/game arguments, environment, classpath,
+wrapper, pre/post hooks, graphics choices and System GLFW, and temporarily removes all four
+directories. It retains required launch/authentication inputs and mandatory verification.
+Launcher exit waits only for active owned recovery/post-exit effects. Profile-aware recovery
+targets the selected durable layer, and active Temporary must be revoked before durable
+baseline capture/restore. See [XSR-802](XSR-802-launch-profile-completion.md) for the complete
+cancellation, rollback, recovery, ordinary-game mutual-exclusion and bounded hook contracts.
 
 XSR-783–788 connect scoped launch commands/waiting, managed-runtime removal,
 proxy/DoH/address-family and transfer budgets, committed theme/accent, bounded disk
 retention/export, and previewed storage transactions. The compatibility definition
-above is retained for the future optional policy; mandatory Java compatibility is
-not disabled or exposed as a working toggle. The `Next task` network timing above
+is retained obsolete, not an optional future bypass. Java compatibility checks stay
+mandatory. `Set`, batch mutation, import preview/apply, and Profile/Temporary writes to
+`java.compatibility` reject explicitly; exports omit it. Retained old data cannot disable
+the checks, and the catalog does not expose a mutable toggle. The `Next task` network timing above
 means capture at the next HTTP request or admitted transfer; active responses and
 transfers retain their captured transport or bandwidth generation. See the slice
 documents and ledger for consumer-specific limits and validation status.
@@ -115,8 +237,14 @@ operation. The JSON contract and local-only filtering below remain unchanged.
 
 Import/export format: `{ "version": 1, "scope": "global" | "instance", "values": { "key": { "mode": "Custom" | "Auto" | "Inherit", "value": "..." } } }`. Auto/Inherit omit the payload. Instance imports use a directory identity supplied separately; exports do not carry machine-specific instance locations. Unknown keys, local-only keys, wrong scopes, invalid values and unsupported versions are rejected. Missing keys leave current values unchanged. Preview has no persistence or state effects; apply revalidates and checks its revision.
 
-## Nonblocking effective reads
-Effective queries read one immutable committed revision and values snapshot. They never acquire the persistence gate. While Save is pending, readers retain the previous snapshot; failed saves do not publish a new snapshot. The durable writer publishes the complete snapshot before revision notifications.
+## Committed effective reads
+
+Effective queries read one immutable committed revision and values snapshot without
+acquiring the store's persistence gate. Ordinary pending saves leave readers on the previous
+snapshot; failed saves do not publish a new snapshot. Profile/Temporary queries serialize
+with their lifecycle transactions under the profile coherence lock, so they are not claimed
+to be lock-free during those transactions. The durable writer publishes the complete
+snapshot before revision notifications.
 
 
 ## Scoped reset

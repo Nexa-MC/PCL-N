@@ -14,7 +14,7 @@ public sealed partial class SettingsPolicyService
             string? instance = InstanceKey(query.InstanceId);
             var effective = Resolve(snapshot.Revision, snapshot.Values, document, null);
             JsonObject values = new();
-            foreach (var definition in SettingsPolicySchema.Definitions.Where(item => item.Exportable))
+            foreach (var definition in SettingsPolicySchema.Definitions.Where(item => item.Exportable && item.Key != "java.compatibility"))
             {
                 if (instance is null)
                 {

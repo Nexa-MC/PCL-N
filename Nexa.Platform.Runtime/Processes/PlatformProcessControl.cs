@@ -48,12 +48,25 @@ public sealed class PlatformProcessControl : IPlatformProcessControl
     {
         process.Refresh();
         long read = 0, write = 0;
+        bool ioObserved = false;
         if (OperatingSystem.IsWindows() && GetProcessIoCounters(process.Handle, out IoCounters counters))
         {
             read = checked((long)Math.Min(counters.ReadTransferCount, long.MaxValue));
             write = checked((long)Math.Min(counters.WriteTransferCount, long.MaxValue));
+            ioObserved = true;
         }
-        return new(process.WorkingSet64, process.PrivateMemorySize64, process.Threads.Count, process.TotalProcessorTime, read, write);
+        if (OperatingSystem.IsLinux())
+        {
+            try
+            {
+                var values = File.ReadLines($"/proc/{process.Id}/io").Take(32).Select(static line => line.Split(':', 2))
+                    .Where(static parts => parts.Length == 2).ToDictionary(static parts => parts[0], static parts => parts[1].Trim(), StringComparer.Ordinal);
+                ioObserved = long.TryParse(values.GetValueOrDefault("read_bytes"), out read)
+                    && long.TryParse(values.GetValueOrDefault("write_bytes"), out write);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
+        return new(process.WorkingSet64, process.PrivateMemorySize64, process.Threads.Count, process.TotalProcessorTime, read, write) { IoObserved = ioObserved };
     }
     [StructLayout(LayoutKind.Sequential)]
     private struct IoCounters

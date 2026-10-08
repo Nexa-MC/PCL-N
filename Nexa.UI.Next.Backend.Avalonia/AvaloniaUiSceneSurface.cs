@@ -178,6 +178,7 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
         {
             _scene = next;
             ApplyScene(next);
+            AvaloniaUiRuntimeDiagnostics.SceneCommitted();
             SceneCommitted?.Invoke(this, new AvaloniaUiSceneCommittedEventArgs(next));
         }
         // Attachment can make native focus available without changing the scene version.
@@ -1265,6 +1266,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
+        AvaloniaUiRuntimeDiagnostics.NodePainted();
         Rect rect = new(Bounds.Size);
         XsrUiVisualStyleSnapshot style = _node.VisualStyle;
         double enter = EnterProgress * (_node.OverlayMotion == XsrUiOverlayMotionKind.None

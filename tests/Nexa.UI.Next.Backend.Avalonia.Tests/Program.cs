@@ -22,6 +22,11 @@ internal static partial class Program
 {
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("ScreenshotCodecCropsActualPixelsAndPreservesSource", ScreenshotCodecCropsActualPixelsAndPreservesSource),
+        ("CommandPaletteGesturesRequireExactKeysAndAdmittedCallbacks", CommandPaletteGesturesRequireExactKeysAndAdmittedCallbacks),
+        ("WorldEditLeaseRejectsNonMacBeforeLoadingNativeLibraries", WorldEditLeaseRejectsNonMacBeforeLoadingNativeLibraries),
+        ("MediaFramesRejectUnboundedInputAndOwnedDecoderPauses", MediaFramesRejectUnboundedInputAndOwnedDecoderPauses),
+        ("MprisNativeBusPropertiesAndControlsUseRealAdapter", MprisNativeBusPropertiesAndControlsUseRealAdapter),
         ("unchanged nodes skip apply and retain clip geometry", UnchangedNodesSkipApplyAndRetainClipGeometry),
         ("automation invoke and focus route through the renderer", AutomationInvokeAndFocusRouteThroughRenderer),
         ("navigation peers expose selection and route selection through invoke", NavigationPeersExposeSelectionAndRouteSelection),
@@ -37,10 +42,16 @@ internal static partial class Program
         ("typeface cache reports missing fonts without caching failure", TypefaceCacheDoesNotCacheFailure),
         ("document transfers bound actual bytes and replace atomically", DocumentTransfersBoundActualBytesAndReplaceAtomically),
         ("lifetime: splash never owns the process and main window close terminates", LifetimeSplashNeverOwnsProcessAndMainWindowCloseTerminates),
+        ("memory pressure preserves visible leases and disposes idle resources", MemoryPressurePreservesVisibleLeasesAndDisposesIdle),
+        ("VerifyBackgroundFitAndImageOpacityDrawing", VerifyBackgroundFitAndImageOpacityDrawing),
+        ("RuntimeDiagnosticsObserveRealCommitsPaintAndAdmission", RuntimeDiagnosticsObserveRealCommitsPaintAndAdmission),
+        ("LauncherRenderingPolicySelectsActualNativeOptionsAndPreservesRestartCapture", LauncherRenderingPolicySelectsActualNativeOptionsAndPreservesRestartCapture),
+        ("LocalFileAssociationAdmitsRegularPathsAndCapturesIndependentArguments", LocalFileAssociationAdmitsRegularPathsAndCapturesIndependentArguments),
     ];
 
     private static int Main(string[] args)
     {
+        if (args.Contains("--native-startup-smoke")) return RunNativeStartupSmoke();
         if (args.Contains("--native-corner-smoke")) return RunNativeCornerSmoke();
         if (args.Contains("--native-font-smoke")) return RunNativeFontSmoke(args.Contains("--expect-font-fallback"));
         foreach ((string name, Action body) in TestCases)

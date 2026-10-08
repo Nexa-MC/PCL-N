@@ -16,6 +16,9 @@ public readonly record struct XsrUiImageLayer(XsrUiRect Source, XsrUiRect Destin
 /// <summary>A fixed lighting palette with bounded native resources.</summary>
 public enum XsrUiImageShade { None, Highlight, Bottom, Back, Side }
 
+/// <summary>Placement of a complete image within its carrier, with cover cropped to the carrier.</summary>
+public enum XsrUiImageFitMode { Contain, Cover, Stretch }
+
 /// <summary>Normalized affine map, using row-vector matrix order.</summary>
 public readonly record struct XsrUiImageTransform(double M11, double M12, double M21, double M22, double OffsetX, double OffsetY);
 
@@ -27,7 +30,11 @@ public sealed record XsrUiRasterImage(PngImage Image, IReadOnlyList<XsrUiImageLa
 {
     /// <summary>Fit a complete local image into its bounds instead of composing square skin layers.</summary>
     public bool FitToBounds { get; init; }
+    /// <summary>Complete-image placement; existing recipes retain proportional containment.</summary>
+    public XsrUiImageFitMode FitMode { get; init; } = XsrUiImageFitMode.Contain;
     /// <summary>Logical width divided by height; existing square recipes use one.</summary>
     public double AspectRatio { get; init; } = 1;
+    /// <summary>Only the image carrier is translucent; child content remains opaque.</summary>
+    public double ImageOpacity { get; init; } = 1;
     public IReadOnlyList<XsrUiImageEllipse> BackgroundEllipses { get; init; } = [];
 }

@@ -8,4 +8,8 @@ public sealed record MinecraftInstanceDescriptor(
     string DirectoryPath,
     string VersionId,
     MinecraftVersionDescriptor Version,
-    MinecraftInstanceMetadata Metadata);
+    MinecraftInstanceMetadata Metadata)
+{
+    public Nexa.Core.Media.PngImage? Icon { get; init; }
+    public string? MetadataError { get; init; }
+}

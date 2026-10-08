@@ -23,26 +23,36 @@ public static class AvaloniaUiShellHost
     /// Builds an Avalonia app configured for the supplied shell. Keeping this separate from
     /// <see cref="Run"/> makes the composition edge testable without starting a native loop.
     /// </summary>
-    public static AppBuilder Build(XsrUiShell shell, AvaloniaUiPlatformActions? platformActions = null)
+    public static AppBuilder Build(XsrUiShell shell, AvaloniaUiPlatformActions? platformActions = null,
+        bool disableHardwareAcceleration = false)
     {
         ArgumentNullException.ThrowIfNull(shell);
         _shell = shell;
         _platformActions = platformActions;
-        return AppBuilder.Configure<ShellApplication>().UsePlatformDetect()
-            .With(new Win32PlatformOptions
-            {
-                CompositionMode = [Win32CompositionMode.WinUIComposition, Win32CompositionMode.DirectComposition,
-                    Win32CompositionMode.RedirectionSurface],
-            });
+        return new AvaloniaUiRenderingConfiguration(disableHardwareAcceleration)
+            .Apply(AppBuilder.Configure<ShellApplication>().UsePlatformDetect());
     }
 
     /// <summary>
     /// Starts the classic desktop lifetime: splash first, then the shell window with the splash
     /// dismissing on top of it.
     /// </summary>
-    public static int Run(XsrUiShell shell, string[]? args = null, AvaloniaUiPlatformActions? platformActions = null)
+    public static int Run(XsrUiShell shell, string[]? args = null, AvaloniaUiPlatformActions? platformActions = null,
+        bool disableHardwareAcceleration = false)
     {
-        return Build(shell, platformActions).StartWithClassicDesktopLifetime(args ?? []);
+        if (AvaloniaUiStartupSession.Active is { } startup)
+            return startup.Present(shell, platformActions, TryOpenProductAsset("Nexa.Desktop.Assets.icon.png"));
+        return Build(shell, platformActions, disableHardwareAcceleration).StartWithClassicDesktopLifetime(args ?? []);
+    }
+
+    internal static void BindActivation(Application application, AvaloniaUiPlatformActions? actions)
+    {
+        if (application.TryGetFeature<IActivatableLifetime>() is { } activation)
+            activation.Activated += (_, args) =>
+            {
+                if (args is ProtocolActivatedEventArgs protocol) actions?.OnProtocolActivated(protocol.Uri.AbsoluteUri);
+                else if (args.Kind == ActivationKind.Reopen) actions?.RestoreWindow();
+            };
     }
 
     private static XsrUiShell CurrentShell =>
@@ -72,6 +82,7 @@ public static class AvaloniaUiShellHost
     {
         public override void OnFrameworkInitializationCompleted()
         {
+            AvaloniaUiFileActivation.Initialize(this);
             Styles.Add(new FluentTheme());
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
@@ -83,12 +94,7 @@ public static class AvaloniaUiShellHost
                     TryOpenProductAsset("Nexa.Desktop.Assets.icon.png"),
                     TryOpenProductAsset("Nexa.Desktop.Assets.icon.png"));
                 _platformActions?.Attach(window);
-                if (this.TryGetFeature<IActivatableLifetime>() is { } activation)
-                    activation.Activated += (_, args) =>
-                    {
-                        if (args is ProtocolActivatedEventArgs protocol) _platformActions?.OnProtocolActivated(protocol.Uri.AbsoluteUri);
-                        else if (args.Kind == ActivationKind.Reopen) _platformActions?.RestoreWindow();
-                    };
+                BindActivation(this, _platformActions);
             }
 
             base.OnFrameworkInitializationCompleted();

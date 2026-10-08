@@ -1,3 +1,4 @@
+using Nexa.Platform;
 using Nexa.Services.Logging;
 using Nexa.Services.Minecraft.Java;
 using Nexa.Services.Minecraft.Libraries;
@@ -14,6 +15,14 @@ public sealed class MinecraftLaunchExecutor
     private readonly IJvmHost _jvmHost;
     private readonly LogService? _log;
     private readonly IMinecraftLaunchHookPort _hooks;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, TaskCompletionSource> _finalizations = new();
+    public IPlatformProcessIdentity ProcessIdentity { get; init; } = PlatformProcessIdentityFactory.Create();
+    public MinecraftLaunchGraphicsPolicy Graphics { get; init; } = new(new PlatformGameGraphicsRuntime());
+    public MinecraftLaunchPlanDiagnostics? Diagnostics { get; init; }
+
+    public bool HasPendingFinalization => !_finalizations.IsEmpty;
+    public Task WaitForFinalizationAsync(CancellationToken cancellationToken = default)
+        => Task.WhenAll(_finalizations.Values.Select(completion => completion.Task)).WaitAsync(cancellationToken);
 
     public MinecraftLaunchExecutor(MinecraftProcessService processes, LogService? log = null)
         : this(new JvmHostService(processes), log, new SystemMinecraftLaunchHookPort())
@@ -49,6 +58,10 @@ public sealed class MinecraftLaunchExecutor
         IMinecraftLaunchHookSession? hook = null;
         MinecraftProcessSession? startedSession = null;
         JavaRuntimeUseLease? javaUse = null;
+        MinecraftLaunchOverlayLease? overlay = null;
+        MinecraftGameDirectoryUseLease? gameUse = null;
+        Guid lifetimeId = Guid.NewGuid();
+        TaskCompletionSource? lifetime = null;
         bool completed = false;
         try
         {
@@ -57,6 +70,19 @@ public sealed class MinecraftLaunchExecutor
                 .ConfigureAwait(false);
             _ = MinecraftLaunchHooks.ParseWrapper(plan.WrapperCommand);
             MinecraftLaunchHooks.ValidatePreLaunch(plan.PreLaunchCommand);
+            MinecraftLaunchHooks.ValidatePreLaunch(plan.PostExitCommand);
+            if (plan.Overlay.IsRequired || !string.IsNullOrWhiteSpace(plan.PostExitCommand)
+                || Directory.Exists(Path.Combine(plan.GameDirectory, ".nexacl-launch-overlay")))
+            {
+                lifetime = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                _finalizations[lifetimeId] = lifetime;
+            }
+            if (plan.Overlay.IsRequired || Directory.Exists(Path.Combine(plan.GameDirectory, ".nexacl-launch-overlay")))
+                overlay = await MinecraftLaunchOverlayLease.AcquireAsync(plan.GameDirectory, plan.Overlay, ProcessIdentity, cancellationToken)
+                    .ConfigureAwait(false);
+            else
+                gameUse = await MinecraftGameDirectoryUseLease.AcquireAsync(plan.GameDirectory, ProcessIdentity, cancellationToken)
+                    .ConfigureAwait(false);
 
             operation?.Stage("validate_native_archives", $"count={plan.NativeLibraries.Count}");
             IReadOnlyList<MinecraftLibraryToken> natives = plan.NativeLibraries;
@@ -105,9 +131,18 @@ public sealed class MinecraftLaunchExecutor
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();
+            operation?.Stage("prepare_graphics_environment");
+            var graphics = Graphics.Apply(plan, plan.GpuPreference, plan.RendererPreference);
+            if (!graphics.IsSuccess) throw new InvalidOperationException(graphics.Error!.Message);
+            plan = graphics.Value!;
+            try { Diagnostics?.Capture(plan); }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+            { _log?.Warn("Launch", "The launch diagnostic capture is unavailable; process launch continues."); }
             operation?.Stage("start_process");
             stage?.Invoke("start_process");
             MinecraftProcessSession session = startedSession = await _jvmHost.StartAsync(plan, instanceId, cancellationToken).ConfigureAwait(false);
+            overlay?.BindProcess(session.Process);
+            if (gameUse is not null) await gameUse.BindProcessAsync(session.Process).ConfigureAwait(false);
             if (javaUse is { } runtimeUse)
             {
                 runtimeUse.BindProcess(session.Snapshot.ProcessId);
@@ -136,6 +171,10 @@ public sealed class MinecraftLaunchExecutor
             }
             operation?.Complete($"session={session.Snapshot.SessionId} pid={session.Snapshot.ProcessId}");
             completed = true;
+            if (overlay is not null || !string.IsNullOrWhiteSpace(plan.PostExitCommand))
+                _ = CompleteLaunchLifetimeAsync(session, overlay, gameUse, plan.PostExitCommand, plan.WorkingDirectory, instanceId, lifetimeId, lifetime!);
+            else if (gameUse is not null) _ = ReleaseGameUseAfterExitAsync(session, gameUse);
+            overlay = null; gameUse = null;
             return session;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -163,8 +202,61 @@ public sealed class MinecraftLaunchExecutor
                     if (!completed && startedSession is not null)
                         await startedSession.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
                 }
-                finally { javaUse?.Dispose(); }
+                finally
+                {
+                    try
+                    {
+                        javaUse?.Dispose();
+                        try { if (overlay is not null) await overlay.DisposeAsync().ConfigureAwait(false); }
+                        finally { if (gameUse is not null) await gameUse.DisposeAsync().ConfigureAwait(false); }
+                    }
+                    finally
+                    {
+                        if (!completed && lifetime is not null)
+                        { _finalizations.TryRemove(lifetimeId, out _); lifetime.TrySetResult(); }
+                    }
+                }
             }
+        }
+    }
+
+    private async Task CompleteLaunchLifetimeAsync(MinecraftProcessSession session, MinecraftLaunchOverlayLease? overlay,
+        MinecraftGameDirectoryUseLease? gameUse,
+        string postExitCommand, string workingDirectory, string instanceId, Guid lifetimeId, TaskCompletionSource lifetime)
+    {
+        try
+        {
+            await session.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+            if (overlay is not null) await overlay.DisposeAsync().ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(postExitCommand)) return;
+            using var postExitTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            await using var hook = await _hooks.StartAsync(postExitCommand, workingDirectory, postExitTimeout.Token).ConfigureAwait(false);
+            int exitCode = await hook.WaitForExitAsync(postExitTimeout.Token).ConfigureAwait(false);
+            if (exitCode != 0) _log?.Warn("Launch", $"Post-exit command failed instance={instanceId} exit_code={exitCode}.");
+        }
+        catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+        { _log?.Warn("Launch", $"Launch directory restoration or post-exit command failed instance={instanceId} exception={error.GetType().Name}."); }
+        finally
+        {
+            try { if (overlay is not null) await overlay.DisposeAsync().ConfigureAwait(false); }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+            { _log?.Warn("Launch", $"Launch overlay recovery retained instance={instanceId} exception={error.GetType().Name}."); }
+            try { if (gameUse is not null) await gameUse.DisposeAsync().ConfigureAwait(false); }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+            { _log?.Warn("Launch", $"Exited game directory receipt retained instance={instanceId} exception={error.GetType().Name}."); }
+            _finalizations.TryRemove(lifetimeId, out _); lifetime.TrySetResult();
+        }
+    }
+
+    private async Task ReleaseGameUseAfterExitAsync(MinecraftProcessSession session, MinecraftGameDirectoryUseLease lease)
+    {
+        try { await session.WaitForExitAsync().ConfigureAwait(false); }
+        catch (Exception error) when (error is InvalidOperationException or ObjectDisposedException or System.ComponentModel.Win32Exception) { }
+        finally
+        {
+            try { await lease.DisposeAsync().ConfigureAwait(false); }
+            catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
+            { _log?.Warn("Launch", $"Exited game directory receipt retained session={session.Snapshot.SessionId} exception={error.GetType().Name}."); }
         }
     }
 

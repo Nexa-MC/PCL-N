@@ -190,6 +190,7 @@ internal static partial class Program
     private static void VersionSubpagesHaveIndependentRoutesAndRestoreFocus()
     {
         using LaunchPageFixture fixture = new(new ImmediateInstanceSource([Instance("playable")]), addProfile: true);
+        using var productPages = new LaunchFixtureNavigationPages(fixture);
         XsrUiSize size = new(850, 500);
         foreach ((string entry, string key, string title) in new[]
         {

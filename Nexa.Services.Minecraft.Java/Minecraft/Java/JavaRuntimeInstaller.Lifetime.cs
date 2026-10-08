@@ -34,8 +34,20 @@ public sealed partial class JavaRuntimeInstaller
     private sealed class JavaProgress(Action<JavaRuntimeInstallProgress> report) : IProgress<JavaRuntimeInstallProgress>
     { public void Report(JavaRuntimeInstallProgress value) => report(value); }
 
-    public async Task<string> InstallAsync(string requestedComponent, string runtimeRootDirectory,
+    public Task<string> InstallAsync(string requestedComponent, string runtimeRootDirectory,
         IProgress<JavaRuntimeInstallProgress>? progress = null, CancellationToken cancellationToken = default)
+        => InstallOwnedAsync(requestedComponent, runtimeRootDirectory, progress, null, cancellationToken);
+
+    public Task<string> InstallConfirmedAsync(string component, string runtimeRootDirectory, string expectedPlanFingerprint,
+        IProgress<JavaRuntimeInstallProgress>? progress = null, CancellationToken cancellationToken = default)
+    {
+        if (expectedPlanFingerprint is not { Length: 64 } || expectedPlanFingerprint.Any(c => !char.IsAsciiHexDigit(c)))
+            throw new ArgumentException("A reviewed Java plan fingerprint is required.", nameof(expectedPlanFingerprint));
+        return InstallOwnedAsync(component, runtimeRootDirectory, progress, expectedPlanFingerprint, cancellationToken);
+    }
+
+    private async Task<string> InstallOwnedAsync(string requestedComponent, string runtimeRootDirectory,
+        IProgress<JavaRuntimeInstallProgress>? progress, string? expectedPlanFingerprint, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(requestedComponent);
         string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(runtimeRootDirectory));
@@ -55,7 +67,7 @@ public sealed partial class JavaRuntimeInstaller
                 {
                     task?.Report("下载 Java", value.Detail ?? "正在准备", value.Progress, value.CompletedFiles, value.TotalFiles, 0);
                     progress?.Report(value);
-                }), execution, linked.Token).ConfigureAwait(false);
+                }), execution, expectedPlanFingerprint, linked.Token).ConfigureAwait(false);
                 task?.Complete(); return result;
             }
             catch (OperationCanceledException) { task?.Paused(); throw; }

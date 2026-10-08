@@ -202,7 +202,7 @@ internal static partial class Program
     {
         var catalog = SettingsCatalog.Read(new(true));
         AssertEqual(10, catalog.GlobalPages.Count); AssertEqual(9, catalog.InstancePages.Count); AssertEqual(10, catalog.InstanceSettingsSections.Count);
-        AssertEqual(540, catalog.Entries.Count);
+        AssertEqual(543, catalog.Entries.Count);
         AssertFalse(catalog.GlobalPages.Any(page => page.Id == "cloud"));
         AssertFalse(catalog.Entries.Any(entry => entry.Page is "cloud" or "sync" || entry.Label.Contains("云同步", StringComparison.Ordinal)));
         AssertTrue(catalog.InstanceSettingsSections.Any(page => page.Id == "backup"));
@@ -288,7 +288,7 @@ internal static partial class Program
             AssertEqual("1440", result.Value!.Values.Single(item => item.Key == "game.width").Value.Value);
             AssertEqual(1L, host.StateStore.Read<long>(host.StateStore.Resolve(SettingsPolicyContract.RevisionKey)).Value);
             var content = await runtime.Queries.QueryAsync<SettingsCatalogQuery, SettingsCatalogSnapshot>(catalog, new(true));
-            AssertTrue(content.IsSuccess); AssertEqual(540, content.Value!.Entries.Count);
+            AssertTrue(content.IsSuccess); AssertEqual(543, content.Value!.Entries.Count);
             AssertTrue(runtime.Queries.TryResolve(SettingsPolicyContract.ResetPreviewQuery, out var resetPreview));
             AssertTrue(runtime.Commands.TryResolve(SettingsPolicyContract.ResetCommand, out var reset));
             var proposal = await runtime.Queries.QueryAsync<SettingsResetQuery, SettingsResetPreview>(resetPreview, new());

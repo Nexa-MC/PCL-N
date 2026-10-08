@@ -7,6 +7,49 @@ namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
+    private static XsrUiSceneNode ShowSettingsFixtureControl(LaunchPageFixture fixture, SettingsPageController settings,
+        ref XsrUiScene scene, string key, XsrUiSize? viewport = null)
+    {
+        XsrUiSize size = viewport ?? new(1000, 650);
+        var current = scene;
+        // A durable write can finish before the profile/effective-value views consume its revision.
+        // Wait for the same admission used by the real instance editor, then scroll the current card.
+        AssertTrue(SpinWait.SpinUntil(() =>
+        {
+            current = fixture.Shell.Render(size);
+            var profiles = FindTree("LaunchProfiles");
+            var baseChoice = FindTree("LaunchProfileBase");
+            return FindTree(key).IsAssigned && !settings.SettingsWritePending
+                && (!profiles.IsAssigned || baseChoice.IsAssigned
+                    && fixture.Shell.Tree.GetComponent<XsrUiInput>(baseChoice)?.Enabled == true);
+        }, TimeSpan.FromSeconds(5)));
+        for (int step = -1; step < 512; step++)
+        {
+            var container = FindByKey(fixture.Shell, current, "SettingsSections");
+            var target = current.Nodes.FirstOrDefault(node => fixture.Shell.Tree.Name(node.Entity) == key);
+            if (target.Entity.IsAssigned && target.Rect.Y >= container.Rect.Y
+                && target.Rect.Y + target.Rect.Height <= container.Rect.Y + container.Rect.Height + .01)
+            { scene = current; return target; }
+            var measured = container.Scroll!.Value;
+            double offset = Math.Min((step + 1) * Math.Max(1, measured.ViewportHeight / 2), measured.MaximumOffsetY);
+            var scroll = fixture.Shell.Tree.GetComponent<XsrUiScroll>(container.Entity)!;
+            if (step >= 0 && offset <= scroll.OffsetY) break;
+            scroll.OffsetY = offset;
+            fixture.Shell.Tree.MarkDirty(container.Entity, XsrUiDirtyKinds.Layout);
+            current = fixture.Shell.Render(size);
+        }
+        scene = current;
+        throw new InvalidOperationException("Settings control is not visible in its measured form: " + key);
+
+        XsrUiEntityId FindTree(string name)
+        {
+            XsrUiEntityId found = default;
+            fixture.Shell.Tree.Walk(settings.Page, entity =>
+            { if (fixture.Shell.Tree.Name(entity) == name) found = entity; return true; });
+            return found;
+        }
+    }
+
     private static void ProductPxmlShellAcceptsNativeWindowMetrics()
     {
         using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([]));
@@ -63,7 +106,24 @@ internal static partial class Program
                 scene = fixture.Shell.Render(new(1000, 650));
                 AssertTrue(scene.Nodes.Any(item => item.Text == "鸣谢"));
             }
-            if (page.Id != "platform") AssertFalse(scene.Nodes.Any(item => item.Text == "尚未可用"));
+            if (page.Id == "appearance")
+            {
+                XsrUiEntityId reserved = default;
+                fixture.Shell.Tree.Walk(settings.Page, entity =>
+                {
+                    if (fixture.Shell.Tree.Name(entity) == "SettingsRow.global.appearance.414d92ec0335") reserved = entity;
+                    return true;
+                });
+                AssertTrue(reserved.IsAssigned);
+                bool unavailable = false;
+                fixture.Shell.Tree.Walk(reserved, entity =>
+                {
+                    if (fixture.Shell.Tree.GetComponent<XsrUiText>(entity)?.Content == "此平台不支持") unavailable = true;
+                    AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiCommandBinding>(entity) is null);
+                    return true;
+                });
+                AssertTrue(unavailable);
+            }
             AssertTrue(scene.Nodes.Where(item => fixture.Shell.Tree.Name(item.Entity).StartsWith("SettingsRow.", StringComparison.Ordinal)).All(item => item.Rect.Width > 0));
         }
         scene = fixture.Shell.Render(new(760, 500));
@@ -106,7 +166,7 @@ internal static partial class Program
         var scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
-        var input = FindByKey(fixture.Shell, scene, "SettingsInput.game.width");
+        var input = ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsInput.game.width");
         bool javaRuntimePresent = false;
         fixture.Shell.Tree.Walk(settings.Page, entity =>
         {
@@ -116,20 +176,25 @@ internal static partial class Program
         AssertTrue(javaRuntimePresent);
         AssertFalse(scene.Nodes.Any(node => fixture.Shell.Tree.Name(node.Entity) is "SettingsNav.java" or "SettingsNav.components"));
         fixture.Shell.Renderer.SetTextInputValue(input.Entity, "1440");
-        Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.game.width").Entity);
+        Emit(fixture.Intents, "ui.settings.edit", ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsEdit.game.width").Entity);
         fixture.Shell.Render(new(1000, 650));
         string? ReadWidth(string? scope) => fixture.Foundation.Host.SettingsPolicy.Read(new(scope)).Value!.Values.Single(item => item.Key == "game.width").Value.Value;
-        AssertTrue(SpinWait.SpinUntil(() => ReadWidth(instance) == "1440", TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() =>
+        { scene = fixture.Shell.Render(new(1000, 650)); return !settings.SettingsWritePending && ReadWidth(instance) == "1440"; }, TimeSpan.FromSeconds(5)));
+        AssertEqual(SettingsLayer.Instance, fixture.Foundation.Host.SettingsPolicy.Read(new(instance)).Value!.Values.Single(item => item.Key == "game.width").Source);
         AssertTrue(ReadWidth(null) != "1440");
         fixture.Shell.Render(new(1000, 650));
-        Emit(fixture.Intents, "ui.settings.inherit", FindByKey(fixture.Shell, scene, "SettingsInherit.game.width").Entity);
+        Emit(fixture.Intents, "ui.settings.inherit", ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsInherit.game.width").Entity);
         fixture.Shell.Render(new(1000, 650));
-        AssertTrue(SpinWait.SpinUntil(() => ReadWidth(instance) == ReadWidth(null), TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() =>
+        { scene = fixture.Shell.Render(new(1000, 650)); return !settings.SettingsWritePending && ReadWidth(instance) == ReadWidth(null); }, TimeSpan.FromSeconds(5)));
+        AssertEqual(fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(item => item.Key == "game.width").Source,
+            fixture.Foundation.Host.SettingsPolicy.Read(new(instance)).Value!.Values.Single(item => item.Key == "game.width").Source);
         instance = Path.GetFullPath("other-root/test-instance-settings");
         scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
-        input = FindByKey(fixture.Shell, scene, "SettingsInput.game.width");
+        input = ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsInput.game.width");
         AssertEqual(ReadWidth(null), fixture.Shell.Tree.GetComponent<XsrUiTextInput>(input.Entity)!.ReadDraft());
     }
 
@@ -171,60 +236,47 @@ internal static partial class Program
         var scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.game").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
-        var input = FindByKey(fixture.Shell, scene, "SettingsInput.game.memory").Entity;
+        var input = ShowFormControl("SettingsInput.game.memory").Entity;
         var serverInput = ShowFormControl("SettingsInput.game.server").Entity;
         fixture.Shell.Renderer.SetTextInputValue(serverInput, "test.invalid:25565");
-        Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.game.server").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.server").Value.Value == "test.invalid:25565"; }, TimeSpan.FromSeconds(5)));
+        Emit(fixture.Intents, "ui.settings.edit", ShowFormControl("SettingsEdit.game.server").Entity);
+        WaitCommitted(() => Read("game.server").Value.Value == "test.invalid:25565");
         scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.choice", ShowFormControl("SettingsOption.game.auto-repair.false").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.auto-repair").Value.Value == "false"; }, TimeSpan.FromSeconds(5)));
+        WaitCommitted(() => Read("game.auto-repair").Value.Value == "false");
         ShowFormControl("SettingsInput.game.memory");
         fixture.Shell.Renderer.SetTextInputValue(input, "6145");
-        Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.game.memory").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.memory").Value.Value == "6145"; }, TimeSpan.FromSeconds(5)));
+        Emit(fixture.Intents, "ui.settings.edit", ShowFormControl("SettingsEdit.game.memory").Entity);
+        WaitCommitted(() => Read("game.memory").Value.Value == "6145");
         scene = fixture.Shell.Render(new(1000, 650));
-        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsAuto.game.memory").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.memory").Value.Mode == SettingsOverrideMode.Auto; }, TimeSpan.FromSeconds(5)));
+        Emit(fixture.Intents, "ui.settings.choice", ShowFormControl("SettingsAuto.game.memory").Entity);
+        WaitCommitted(() => Read("game.memory").Value.Mode == SettingsOverrideMode.Auto);
         scene = fixture.Shell.Render(new(1000, 650));
         AssertEqual("6145", fixture.Shell.Tree.GetComponent<XsrUiTextInput>(input)!.ReadDraft());
-        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsManual.game.memory").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.memory").Value.Mode == SettingsOverrideMode.Custom && Read("game.memory").Value.Value == "6145"; }, TimeSpan.FromSeconds(5)));
+        Emit(fixture.Intents, "ui.settings.choice", ShowFormControl("SettingsManual.game.memory").Entity);
+        WaitCommitted(() => Read("game.memory").Value.Mode == SettingsOverrideMode.Custom && Read("game.memory").Value.Value == "6145");
         scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.java").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
         AssertEqual("false", Read("java.auto-install").Value.Value);
-        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsOption.java.auto-install.true").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("java.auto-install").Value.Value == "true"; }, TimeSpan.FromSeconds(5)));
+        Emit(fixture.Intents, "ui.settings.choice", ShowFormControl("SettingsOption.java.auto-install.true").Entity);
+        WaitCommitted(() => Read("java.auto-install").Value.Value == "true");
         scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.network").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
-        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsOption.network.game-source.official-only").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("network.game-source").Value.Value == "official-only"; }, TimeSpan.FromSeconds(5)));
+        Emit(fixture.Intents, "ui.settings.choice", ShowFormControl("SettingsOption.network.game-source.official-only").Entity);
+        WaitCommitted(() => Read("network.game-source").Value.Value == "official-only");
         scene = fixture.Shell.Render(new(1000, 650));
-        fixture.Shell.Renderer.SetTextInputValue(FindByKey(fixture.Shell, scene, "SettingsInput.network.file-concurrency").Entity, "3");
-        Emit(fixture.Intents, "ui.settings.edit", FindByKey(fixture.Shell, scene, "SettingsEdit.network.file-concurrency").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("network.file-concurrency").Value.Value == "3"; }, TimeSpan.FromSeconds(5)));
+        fixture.Shell.Renderer.SetTextInputValue(ShowFormControl("SettingsInput.network.file-concurrency").Entity, "3");
+        Emit(fixture.Intents, "ui.settings.edit", ShowFormControl("SettingsEdit.network.file-concurrency").Entity);
+        WaitCommitted(() => Read("network.file-concurrency").Value.Value == "3");
         scene = fixture.Shell.Render(new(1000, 650));
-        Emit(fixture.Intents, "ui.settings.choice", FindByKey(fixture.Shell, scene, "SettingsOption.network.file-retry.false").Entity);
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("network.file-retry").Value.Value == "false"; }, TimeSpan.FromSeconds(5)));
+        Emit(fixture.Intents, "ui.settings.choice", ShowFormControl("SettingsOption.network.file-retry.false").Entity);
+        WaitCommitted(() => Read("network.file-retry").Value.Value == "false");
         SettingsEffectiveValue Read(string key) => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(value => value.Key == key);
-        XsrUiSceneNode ShowFormControl(string key)
-        {
-            XsrUiEntityId found = default;
-            fixture.Shell.Tree.Walk(settings.Page, entity => { if (fixture.Shell.Tree.Name(entity) == key) found = entity; return true; });
-            AssertTrue(found.IsAssigned);
-            var container = FindByKey(fixture.Shell, scene, "SettingsSections").Entity;
-            var scroll = fixture.Shell.Tree.GetComponent<XsrUiScroll>(container)!;
-            for (int offset = 0; offset <= 3000; offset += 150)
-            {
-                scroll.OffsetY = offset;
-                fixture.Shell.Tree.MarkDirty(container, XsrUiDirtyKinds.Layout);
-                scene = fixture.Shell.Render(new(1000, 650));
-                if (scene.Nodes.Any(node => node.Entity == found)) break;
-            }
-            return FindByKey(fixture.Shell, scene, key);
-        }
+        XsrUiSceneNode ShowFormControl(string key) => ShowSettingsFixtureControl(fixture, settings, ref scene, key);
+        void WaitCommitted(Func<bool> condition) => AssertTrue(SpinWait.SpinUntil(() =>
+        { scene = fixture.Shell.Render(new(1000, 650)); return !settings.SettingsWritePending && condition(); }, TimeSpan.FromSeconds(5)));
     }
 
     private static void SettingsDeveloperToggleKeepsPositionAndFocus()
@@ -237,16 +289,19 @@ internal static partial class Program
         var scene = fixture.Shell.Render(new(1000, 650));
         Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.advanced").Entity);
         scene = fixture.Shell.Render(new(1000, 650));
+        var toggle = ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsOption.developer.enabled.true").Entity;
         var list = FindByKey(fixture.Shell, scene, "SettingsSections").Entity;
-        fixture.Shell.Tree.GetComponent<XsrUiScroll>(list)!.OffsetY = 100000;
-        fixture.Shell.Tree.MarkDirty(list, XsrUiDirtyKinds.Layout);
-        scene = fixture.Shell.Render(new(1000, 650));
         double offset = fixture.Shell.Tree.GetComponent<XsrUiScroll>(list)!.OffsetY;
-        var toggle = FindByKey(fixture.Shell, scene, "SettingsOption.developer.enabled.true").Entity;
-        fixture.Shell.Renderer.Focus(toggle);
+        AssertTrue(offset > 0);
+        AssertTrue(fixture.Shell.Renderer.Focus(toggle));
         Emit(fixture.Intents, "ui.settings.choice", toggle);
         fixture.Shell.Render(new(1000, 650));
-        AssertTrue(SpinWait.SpinUntil(() => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(item => item.Key == "developer.enabled").Value.Value == "true", TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() =>
+        {
+            scene = fixture.Shell.Render(new(1000, 650));
+            return !settings.SettingsWritePending && fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(item => item.Key == "developer.enabled").Value.Value == "true"
+                && !fixture.Shell.Tree.IsAlive(toggle);
+        }, TimeSpan.FromSeconds(5)));
         scene = fixture.Shell.Render(new(1000, 650));
         AssertEqual("SettingsOption.developer.enabled.true", fixture.Shell.Tree.Name(fixture.Shell.Renderer.Focused));
         AssertTrue(fixture.Shell.Tree.GetComponent<XsrUiScroll>(list)!.OffsetY >= offset);

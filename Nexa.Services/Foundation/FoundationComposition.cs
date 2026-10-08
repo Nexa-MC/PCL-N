@@ -88,6 +88,7 @@ public sealed class FoundationHost : IDisposable
         SettingsPolicy = new SettingsPolicyService(Settings);
         NetworkHttp = new(CaptureNetworkPreferences, RegionalPolicy.Current.IsMainlandChina);
         Downloads.BandwidthLimiter = new(CaptureBandwidthLimit);
+        Downloads.BackgroundDownloadsEnabled = () => SettingsPolicy.Read(new()).Value?.Values.FirstOrDefault(item => item.Key == "network.background-download")?.Value.Value != "false";
         _loggingSettings = new(Settings, SettingsPolicy, Logging);
         InputUsage = new InputUsageTracker();
         ObservationHistory = new ResourceObservationHistory();
@@ -176,7 +177,13 @@ public sealed class FoundationHost : IDisposable
             ProxyUser = Text("network.proxy-user"),
             ProxyPassword = Text("network.proxy-password"),
             DnsOverHttps = Text("network.doh", "true") == "true",
-            IpStack = Text("network.ip-stack", "auto")
+            IpStack = Text("network.ip-stack", "auto"),
+            OfficialProviderEnabled = Text("network.provider-official", "true") == "true",
+            ModrinthProviderEnabled = Text("network.provider-modrinth", "true") == "true",
+            CurseForgeProviderEnabled = Text("network.provider-curseforge", "true") == "true",
+            MirrorProviderEnabled = Text("network.provider-mirror", "true") == "true",
+            TraceEnabled = Text("network.trace", "false") == "true",
+            AutoDiagnose = Text("network.auto-diagnose", "false") == "true"
         };
     }
 

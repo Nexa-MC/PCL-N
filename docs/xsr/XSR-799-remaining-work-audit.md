@@ -4,6 +4,9 @@
 本次为静态审计与文档订正，没有实现或开启保留功能，没有修改发布验收状态。
 范围为 PCL-N；外部 Nexa.Plugin SDK/执行引擎不属于本次工作。
 
+本页保留核查时的数量与缺口。后续实现、当前目录计数及集成验证见
+[XSR-820](XSR-820-completion-closure.md) 与 [当前迁移清单](settings-migration-status.md)。
+
 ## 当前数量
 
 `SettingsCatalog.json` 共 540 个 IA 位置，原始状态为 87 Available、453 NotImplemented。

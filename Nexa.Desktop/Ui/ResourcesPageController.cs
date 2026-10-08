@@ -16,7 +16,7 @@ internal static class ResourcesPresentationState
 }
 
 /// <summary>Presentation-only catalog. Request replacement cancels and forgets the old query.</summary>
-internal sealed class ResourcesPageController : IDisposable
+internal sealed partial class ResourcesPageController : IDisposable
 {
     private static readonly XsrSemanticId Action = XsrSemanticId.Parse("ui.resources.action");
     private static readonly XsrUiColor Ink = new(43, 51, 64), Muted = new(113, 124, 140), Blue = new(11, 91, 203), Tint = new(241, 245, 250), White = new(255, 255, 255);
@@ -120,7 +120,8 @@ internal sealed class ResourcesPageController : IDisposable
         });
         var pagination = _entities["ResourcePagination"];
         _status = Text(pagination, "Modrinth", 12, Muted, 28); E(_status).Weight = 1;
-        Segment(pagination, "ResourceNetwork", ["镜像优先", "官方优先"], index => { _filter = _filter with { MirrorFirst = index == 0 }; Search(0); }, 66);
+        Segment(pagination, "ResourceNetwork", ["镜像优先", "官方优先"], SelectSourceFromPage, 66);
+        InitializeSourcePolicyNotice();
         E(_entities["ResourceNetwork.0"]).Height = 28; E(_entities["ResourceNetwork.1"]).Height = 28;
         Check(pagination, "ResourceHideInstalled", "隐藏已有", () => _hideInstalled, value => { _hideInstalled = value; ReadContext(); if (_result is not null) ShowResults(); });
         Check(pagination, "ResourceHideLibraries", "隐藏前置", () => _hideLibraries, value => { _hideLibraries = value; if (_result is not null) ShowResults(); });
@@ -141,6 +142,7 @@ internal sealed class ResourcesPageController : IDisposable
 
     private void OnFrame(object? sender, EventArgs args)
     {
+        UpdateSourcePolicyNotice();
         if (_disposed) return;
         bool visible = _shell.Stage.Navigation.Current == Page || _shell.Stage.Navigation.Current == DetailPage;
         if (visible != _visible)
@@ -156,6 +158,7 @@ internal sealed class ResourcesPageController : IDisposable
             _visible = visible; _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
         }
         SyncIcons(visible ? _shell.Stage.Navigation.Current : default);
+        SyncSidecarSource(_shell.Stage.Navigation.Current == Page);
         if (!visible) return;
         string language = DesktopResourceText.Language(_store);
         if (_resourcePresentationLanguage is { } previous && previous != language)
@@ -270,26 +273,6 @@ internal sealed class ResourcesPageController : IDisposable
     }
 
     private string Draft(XsrUiEntityId entity) => _shell.Tree.GetComponent<XsrUiTextInput>(entity)!.ReadDraft().Trim();
-    private void ProjectSidecarModules()
-    {
-        if (_sidecarUi is null) return;
-        var snapshot = _store.Read<XsrUiModuleSnapshot>(_sidecarUi.ModuleState);
-        if (snapshot.Revision == _moduleRevision) return;
-        _moduleRevision = snapshot.Revision;
-        var card = snapshot.Value?.CardAt(_sidecarUi.CardIndex);
-        var slot = _entities["ResourceExtensionCard"];
-        foreach (var child in _shell.Tree.Children(slot).ToArray()) _shell.Tree.Destroy(child);
-        E(slot).IsVisible = card is not null;
-        if (card is not null)
-        {
-            LiteralText(slot, card.Title, 14, Ink, 22, 600);
-            var body = LiteralText(slot, card.Body, 13, Muted, 0, lines: 0);
-            E(body).Height = null;
-            _shell.Tree.GetComponent<XsrUiVisualStyle>(body)!.WrapText = true;
-        }
-        _shell.Tree.GetComponent<XsrUiScroll>(slot)!.OffsetY = 0;
-        _shell.Tree.MarkDirty(slot, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
-    }
     private void ProjectSidecarCaptions()
     {
         if (_sidecarUi is null) return;
@@ -340,7 +323,7 @@ internal sealed class ResourcesPageController : IDisposable
             var copy = Stack(row, "ResourceProjectCopy"); E(copy).Weight = 1;
             LiteralText(copy, ProjectTitle(DesktopResourceText.Name(project, _store)), 15, Ink, 22, 600);
             Translate(LiteralText(copy, DesktopResourceText.Description(project, _store), 12, Muted, 20), project);
-            Text(copy, $"{project.SourceLabel}  ·  {project.Author}  ·  {FormatDownloads(project.Downloads)} 次下载", 11, Muted, 18);
+            Text(copy, $"{project.SourceLabel}  ·  {project.Author}  ·  {FormatDownloads(Math.Max(0, ResourceCaptions.DownloadCount(_functionPatches.Runtime, _functionPatches.DownloadCount, project.Downloads)))} 次下载", 11, Muted, 18);
             _listActions.Add(IconButton(row, "ResourceDetails." + project.Id, "详情", "lucide/info", () =>
             {
                 _detailProject = project; _detailPage = 0; _shell.Stage.Navigation.Push(DetailPage); ReadDetail(project.Id);
@@ -375,7 +358,7 @@ internal sealed class ResourcesPageController : IDisposable
         Translate(LiteralText(_detailBody, DesktopResourceText.Description(detail.Project, _store), 14, Muted, 68, lines: 3), detail.Project);
         if (!string.IsNullOrEmpty(detail.Notice)) Text(_detailBody, detail.Notice, 12, Muted, 24);
         var tools = Stack(_detailBody, "ResourceDetailTools", horizontal: true);
-        var info = Text(tools, $"{detail.Project.SourceLabel}  ·  {FormatDownloads(detail.Project.Downloads)} 次下载  ·  {detail.License}", 12, Muted, 34); E(info).Weight = 1;
+        var info = Text(tools, $"{detail.Project.SourceLabel}  ·  {FormatDownloads(Math.Max(0, ResourceCaptions.DownloadCount(_functionPatches.Runtime, _functionPatches.DownloadCount, detail.Project.Downloads)))} 次下载  ·  {detail.License}", 12, Muted, 34); E(info).Weight = 1;
         _detailActions.Add(Button(tools, "ResourceWebsite", "项目主页 ↗", 110, () => _open(new Uri(detail.Project.Website))));
         Text(_detailBody, $"版本  ·  {detail.Versions.Count} 个" + (_filter.GameVersion.Length > 0 ? "  ·  Minecraft " + _filter.GameVersion : ""), 16, Ink, 36, 600);
         if (detail.Versions.Count == 0) Text(_detailBody, "没有符合当前筛选条件的版本。", 14, Muted, 48);
@@ -700,6 +683,7 @@ internal sealed class ResourcesPageController : IDisposable
     private void Segment(XsrUiEntityId parent, string name, string[] labels, Action<int> selected, double width = 84, int initial = 0)
     {
         var track = Stack(parent, name, true); _shell.Tree.GetComponent<XsrUiStackPanel>(track)!.Spacing = 0; E(track).Width = width * labels.Length;
+        _entities[name] = track;
         _segments.Add((track, width));
         E(track).MaxWidth = 960;
         _shell.Tree.SetComponent(track, new XsrUiScroll());
@@ -713,6 +697,7 @@ internal sealed class ResourcesPageController : IDisposable
             int index = i;
             var option = Button(track, name + "." + i, labels[i], width, () =>
             {
+                if (name == "ResourceNetwork" && _sourcePolicyForced) return;
                 for (int j = 0; j < options.Count; j++) _shell.Tree.GetComponent<XsrUiSelection>(options[j])!.IsSelected = j == index;
                 _shell.Tree.GetComponent<XsrUiSegmentedTrack>(track)!.Selected = options[index]; selected(index);
             });
@@ -756,7 +741,7 @@ internal sealed class ResourcesPageController : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true; _planStop.Cancel(); _planStop.Dispose(); _contextStop.Cancel(); _contextStop.Dispose(); _downloadsStop.Cancel(); _downloadsStop.Dispose();
+        _disposed = true; RetireSidecarSource(); _moduleSourceStop.Dispose(); _planStop.Cancel(); _planStop.Dispose(); _contextStop.Cancel(); _contextStop.Dispose(); _downloadsStop.Cancel(); _downloadsStop.Dispose();
         _iconStop.Cancel(); _iconStop.Dispose(); _translationStop.Cancel(); _translationStop.Dispose(); ReleaseIcons(); _iconDescriptors.Clear(); _icons.Clear(); _translations.Clear();
         _stop.Cancel(); _stop.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }

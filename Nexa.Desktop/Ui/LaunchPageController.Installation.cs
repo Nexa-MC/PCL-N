@@ -610,36 +610,6 @@ internal sealed partial class LaunchPageController
     }
 
 
-    private XsrUiEntityId LoadVersionSubpage(string key, string title)
-    {
-        PxmlHostIr template = PxmlCompiler.Compile(PxmlParser.Parse(ReadEmbeddedResource("Ui.VersionSubpage.pxml")));
-        PxmlIrNode Project(PxmlIrNode node) => node with
-        {
-            Key = node.Key == "VersionSubpage" ? key : node.Key,
-            Label = node.Key == "VersionSubpage" ? title : node.Label,
-            Content = node.Key == "MigrationTitle" ? title + " · 尚未迁移" : node.Content,
-            Children = [.. node.Children.Select(Project)],
-        };
-        XsrUiEntityId parent = _shell.Tree.Create("subpage-loader");
-        XsrUiEntityId page = PxmlUiLoader.Load(new PxmlHostIr(Project(template.Root)), _shell.Tree, _store, parent);
-        _shell.Tree.Detach(page);
-        _shell.Tree.Destroy(parent);
-        _shell.Tree.Walk(page, entity =>
-        {
-            string name = _shell.Tree.Name(entity);
-            XsrUiVisualStyle style = new() { Foreground = PrimaryText, FontSize = 14, TextAlignment = XsrUiTextAlignment.Center };
-            if (name == "MigrationCard") { style.Background = new(245, 248, 252); style.CornerRadius = 20; }
-            if (name == "MigrationTitle") { style.FontSize = 22; style.FontWeight = 600; }
-            if (name == "MigrationMessage") { style.Foreground = SecondaryText; style.WrapText = true; }
-            if (name == "MigrationIcon") style.Foreground = LaunchButtonBackground;
-            if (name == "MigrationReturn") { style.Background = LaunchButtonBackground; style.Foreground = new(255, 255, 255); style.CornerRadius = 19; }
-            _shell.Tree.SetComponent(entity, style);
-            return true;
-        });
-        return page;
-    }
-
-
     /// <summary>
     /// Loads the dedicated launching page: the legacy launching card (centered 420px card with
     /// the progress bar, key/value rows, trivia hint, and cancel) as its own navigation page.

@@ -53,7 +53,7 @@ internal sealed partial class LaunchPageController
                 return;
             }
             new CrashChangesPresentation(_feedback, dialogId, reason, result.Value!,
-                () => ShowCrashRecoveryChoices(failure, reason, result.Value!)).Show();
+                () => ShowCrashRecoveryChoices(failure, reason, result.Value!), _shell.Renderer.LocalizeText).Show();
         }
         catch (OperationCanceledException) { }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
@@ -111,7 +111,7 @@ internal sealed partial class LaunchPageController
 // Bounded pages keep wrapping/layout work independent of the size of a modpack.
 // Every change remains reachable, without creating thousands of UI entities.
 internal sealed class CrashChangesPresentation(DesktopFeedbackService feedback, Guid dialogId,
-    string reason, InstanceRecoveryReport report, Action? restore = null)
+    string reason, InstanceRecoveryReport report, Action? restore = null, Func<string, string>? localize = null)
 {
     internal const int PageSize = 12;
     private int _page;
@@ -127,8 +127,8 @@ internal sealed class CrashChangesPresentation(DesktopFeedbackService feedback, 
         string heading = count == 0 ? "与上次成功运行相比，恢复范围内没有更改。"
             : $"上次成功运行后的更改 · {count} 项（{_page + 1}/{pages}）";
         var rows = report.Changes.Skip(_page * PageSize).Take(PageSize).Select(change =>
-            $"{RecoveryExplanation.Kind(change.Kind)} · {RecoveryExplanation.Display(change.Category)}\n{RecoveryExplanation.Display(change.Path)}");
-        string body = reason + "\n\n" + RecoveryExplanation.Summary(report.Changes) + "\n\n" + heading + "\n" + string.Join("\n\n", rows);
+            $"{RecoveryExplanation.Kind(change.Kind, localize)} · {RecoveryExplanation.Category(change.Category, localize)}\n{RecoveryExplanation.Display(change.Path)}");
+        string body = reason + "\n\n" + RecoveryExplanation.Summary(report.Changes, localize) + "\n\n" + heading + "\n" + string.Join("\n\n", rows);
         feedback.TryUpdateMessageDialog(dialogId, body, pages > 1 ? (_page + 1 == pages ? "回到首批" : "下一批更改") : null,
             pages > 1 ? () => { _page = (_page + 1) % pages; Show(); }
         : null, count > 0 && restore is not null ? "回滚更改…" : null, count > 0 ? restore : null);

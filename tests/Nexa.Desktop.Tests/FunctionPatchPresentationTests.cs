@@ -58,7 +58,8 @@ internal static partial class Program
 
     private static async Task<(SidecarHostSession Session, SidecarConnection Plugin)> ActivateCaptionPatch(DesktopFunctionPatches patches, string prefix,
         DesktopSidecarSignals? signals = null, SidecarRegistrationItem[]? declarations = null,
-        DesktopSidecarUiPatches? uiPatches = null)
+        DesktopSidecarUiPatches? uiPatches = null, SidecarFeatures features = SidecarFeatures.None,
+        (uint Id, byte[] Value)[]? initialState = null)
     {
         byte[] text = Encoding.UTF8.GetBytes(prefix);
         byte[] payload = new byte[15 + text.Length]; "NFP1"u8.CopyTo(payload); payload[4] = 1; payload[5] = 4; payload[6] = 5;
@@ -75,7 +76,7 @@ internal static partial class Program
             var handshake = session.HandshakeAsync(); var hello = await plugin.ReceiveAsync();
             await plugin.SendAsync(new(SidecarProtocol.Version, SidecarMessageType.Welcome,
                 SidecarFrameTraits.None, hello.CorrelationId,
-                SidecarHandshake.EncodeWelcome(SidecarProtocol.Version, Guid.NewGuid())));
+                SidecarHandshake.EncodeWelcome(SidecarProtocol.Version, Guid.NewGuid(), null, features)));
             await handshake;
             var registration = session.AcceptRegistrationAsync();
             declarations ??= [new(SidecarRegistrationKind.FunctionPatch,
@@ -85,7 +86,9 @@ internal static partial class Program
                 await Send(SidecarMessageType.RegisterItem, SidecarRegistration.EncodeItem(declaration));
             await Send(SidecarMessageType.RegisterEnd, SidecarRegistration.EncodeEnd()); await registration;
             var snapshot = session.AcceptStateSnapshotAsync();
-            await Send(SidecarMessageType.StateSnapshotBegin, SidecarStateSnapshot.EncodeBegin(0));
+            initialState ??= [];
+            await Send(SidecarMessageType.StateSnapshotBegin, SidecarStateSnapshot.EncodeBegin((uint)initialState.Length));
+            foreach (var item in initialState) await Send(SidecarMessageType.StateSnapshotItem, SidecarStateSnapshot.EncodeItem(item.Id, item.Value));
             await Send(SidecarMessageType.StateSnapshotEnd, []); await snapshot; _ = await plugin.ReceiveAsync();
             await session.ActivateAsync(); _ = await plugin.ReceiveAsync();
             return (session, plugin);

@@ -165,6 +165,14 @@ public sealed class LogService : ILogWriter, IDisposable
         [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) =>
         new(this, module, name, context, $"{Path.GetFileName(file)}:{line}", level);
 
+    public LogOperation BeginInstanceOperation(string module, string name, DiagnosticInstanceContext instance, LogLevel level = LogLevel.Info,
+        [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+    {
+        ArgumentNullException.ThrowIfNull(instance);
+        if (!DiagnosticInstanceIdentity.Valid(instance)) throw new ArgumentException("实例诊断事实无效。", nameof(instance));
+        return new(this, module, name, null, $"{Path.GetFileName(file)}:{line}", level, instance);
+    }
+
     // Ergonomic manual log points: one call per statement instead of spelling the level enum
     // at every call site. Info marks user-visible operations, Debug marks one-shot internals,
     // Trace marks hot loops (the RealTime tier), and Warn/Error mark failures.

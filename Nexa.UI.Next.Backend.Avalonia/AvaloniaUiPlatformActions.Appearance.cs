@@ -32,6 +32,14 @@ public sealed partial class AvaloniaUiPlatformActions : IXsrUiSystemAppearance
         _appearanceSettings = owner.GetPlatformSettings();
         if (_appearanceSettings is not null) _appearanceSettings.ColorValuesChanged += OnPlatformColorsChanged;
         ApplyRequestedTheme();
+        ApplyWindowAppearance();
+        if (owner is Window activatedWindow)
+        {
+            activatedWindow.Activated += (_, _) => PublishWindowActivity(true);
+            activatedWindow.Deactivated += (_, _) => PublishWindowActivity(false);
+            activatedWindow.KeyDown += OnMediaKey;
+            PublishWindowActivity(activatedWindow.IsActive);
+        }
         try { PublishSystemAppearance(_appearanceSettings?.GetColorValues()); }
         catch (Exception) { PublishSystemAppearance(null); }
         if (owner is Window window)

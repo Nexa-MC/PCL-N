@@ -1,10 +1,11 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
 namespace Nexa.Services.Network;
 
 /// <summary>Host-owned socket pools selected from the committed policy for every new request.</summary>
-public sealed class NetworkHttpClientPool : IDisposable
+public sealed partial class NetworkHttpClientPool : IDisposable
 {
     private readonly Func<NetworkPreferences> _capture;
     private readonly Func<NetworkPreferences, bool, HttpMessageHandler> _factory;
@@ -33,11 +34,18 @@ public sealed class NetworkHttpClientPool : IDisposable
     {
         NetworkPreferences policy = _capture();
         policy.Validate();
+        bool probe = request.Options.TryGetValue(ProbeOption, out bool marked) && marked;
+        long started = Stopwatch.GetTimestamp();
+        if (!NetworkProviderAdmission.IsAllowed(policy, request.RequestUri!))
+        {
+            RecordTrace(policy, request, probe, started, null, "ProviderDisabled");
+            throw new HttpRequestException("The selected content provider is disabled.");
+        }
         Generation generation;
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (!_current.TryGetValue(redirects, out generation!) || generation.Policy != policy)
+            if (!_current.TryGetValue(redirects, out generation!) || !SameTransport(generation.Policy, policy))
             {
                 var next = new Generation(policy, new HttpMessageInvoker(_factory(policy, redirects)));
                 generation?.Retire();
@@ -49,11 +57,22 @@ public sealed class NetworkHttpClientPool : IDisposable
         try
         {
             HttpResponseMessage response = await generation.Transport.SendAsync(request, token).ConfigureAwait(false);
+            RecordTrace(policy, request, probe, started, (int)response.StatusCode, null);
+            if (policy.AutoDiagnose && !probe && (int)response.StatusCode >= 500) StartDiagnosticProbe(request.RequestUri!);
             response.Content = new LeasedContent(response.Content, generation);
             return response;
         }
-        catch { generation.Release(); throw; }
+        catch (Exception error)
+        {
+            RecordTrace(policy, request, probe, started, null, error.GetType().Name);
+            if (policy.AutoDiagnose && !probe && !token.IsCancellationRequested) StartDiagnosticProbe(request.RequestUri!);
+            generation.Release(); throw;
+        }
     }
+
+    private static bool SameTransport(NetworkPreferences first, NetworkPreferences second) =>
+        first.ProxyMode == second.ProxyMode && first.ProxyAddress == second.ProxyAddress && first.ProxyUser == second.ProxyUser
+        && first.ProxyPassword == second.ProxyPassword && first.DnsOverHttps == second.DnsOverHttps && first.IpStack == second.IpStack;
 
     internal static SocketsHttpHandler CreateSocketsHandler(NetworkPreferences policy, bool redirects)
     {
@@ -126,6 +145,8 @@ public sealed class NetworkHttpClientPool : IDisposable
             foreach (Generation generation in _current.Values) generation.Retire();
             _current.Clear();
         }
+        _diagnosticStop.Cancel();
+        _diagnosticStop.Dispose();
     }
 
     private sealed class RoutingHandler(NetworkHttpClientPool owner, bool redirects) : HttpMessageHandler

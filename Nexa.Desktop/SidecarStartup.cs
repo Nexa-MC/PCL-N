@@ -25,7 +25,7 @@ internal static class SidecarStartup
         { log.Warn("Sidecar", "Sidecar discovery failed: " + error.Message); }
     }
 
-    public static Lifetime StartLifetime(SidecarSupervisor supervisor, LogService log) => new(supervisor, StartAsync(supervisor, log));
+    public static Lifetime StartLifetime(SidecarSupervisor supervisor, LogService log, bool enabled = true) => new(supervisor, enabled ? StartAsync(supervisor, log) : Task.CompletedTask);
 
     /// <summary>Joins discovery diagnostics before the Desktop releases logging/state dependencies.</summary>
     internal sealed class Lifetime(SidecarSupervisor supervisor, Task startup) : IAsyncDisposable

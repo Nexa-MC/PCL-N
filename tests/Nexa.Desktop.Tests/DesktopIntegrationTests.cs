@@ -27,16 +27,31 @@ internal static partial class Program
         try
         {
             AssertTrue(Nexa.Desktop.Program.SingleInstanceEnabled(root));
+            AssertFalse(Nexa.Desktop.Program.HardwareAccelerationDisabled(root));
             Directory.CreateDirectory(Path.Combine(root, FolderNames.Settings));
             string path = Path.Combine(root, FolderNames.Settings, "settings.json");
             File.WriteAllText(path, "{\"schemaVersion\":1,\"booleanOptions\":{\"SystemSingleInstance\":false}}");
             AssertTrue(!Nexa.Desktop.Program.SingleInstanceEnabled(root));
+            File.WriteAllText(path, "{\"schemaVersion\":1,\"booleanOptions\":{\"SystemDisableHardwareAcceleration\":true}}");
+            AssertTrue(Nexa.Desktop.Program.HardwareAccelerationDisabled(root));
+            foreach (string value in new[] { "false", "\"true\"", "null" })
+            {
+                File.WriteAllText(path, "{\"schemaVersion\":1,\"booleanOptions\":{\"SystemDisableHardwareAcceleration\":" + value + "}}");
+                AssertFalse(Nexa.Desktop.Program.HardwareAccelerationDisabled(root));
+            }
             foreach (string invalid in new[] { "[]", "{\"schemaVersion\":\"1\"}", "{\"schemaVersion\":2,\"booleanOptions\":{\"SystemSingleInstance\":false}}", "broken" })
             {
                 File.WriteAllText(path, invalid);
                 AssertTrue(Nexa.Desktop.Program.SingleInstanceEnabled(root));
+                AssertFalse(Nexa.Desktop.Program.HardwareAccelerationDisabled(root));
                 AssertEqual(invalid, File.ReadAllText(path));
             }
+            string oversized = "{\"schemaVersion\":1,\"booleanOptions\":{\"SystemSingleInstance\":false,\"SystemDisableHardwareAcceleration\":true}}"
+                + new string(' ', 4 * 1024 * 1024);
+            File.WriteAllText(path, oversized);
+            AssertTrue(Nexa.Desktop.Program.SingleInstanceEnabled(root));
+            AssertFalse(Nexa.Desktop.Program.HardwareAccelerationDisabled(root));
+            AssertEqual(oversized, File.ReadAllText(path));
             AssertTrue(LauncherDefaults.BooleanDefaults["SystemSingleInstance"]);
             foreach (string key in new[] { "general.single-instance", "general.tray", "general.close-to-tray", "general.minimize-to-tray" })
                 AssertEqual(SettingsCapabilityAvailability.Available, SettingsCatalog.Entries.Single(entry => entry.SettingKey == key).Availability);
@@ -75,6 +90,17 @@ internal static partial class Program
         AssertTrue(desktop.Contains("Exec=\"/opt/App Space/100%%/dotnet\" \"/opt/app/Nexa.Desktop.dll\" %u", StringComparison.Ordinal));
         AssertTrue(desktop.Contains("MimeType=x-scheme-handler/nexacl;", StringComparison.Ordinal));
         AssertTrue(!desktop.Contains("sh -c", StringComparison.Ordinal));
+        string pack = Path.Combine(Path.GetTempPath(), "整合包 with spaces.mrpack");
+        AssertTrue(DesktopActivation.TryFile(pack, out string admitted)); AssertEqual(Path.GetFullPath(pack), admitted);
+        AssertTrue(DesktopActivation.TryFile(Path.ChangeExtension(pack, ".NEXAPACK"), out _));
+        foreach (string invalid in new[] { "relative.mrpack", "https://example.test/x.mrpack", "file:///tmp/a.mrpack", pack + "\n", pack + "\0", Path.ChangeExtension(pack, ".jar"), Path.Combine(Path.GetTempPath(), "bad\ud800.mrpack") })
+            AssertTrue(!DesktopActivation.TryFile(invalid, out _));
+        string prefix = Path.GetTempPath();
+        string maximum = prefix + new string('a', DesktopActivation.MaximumFileBytes - System.Text.Encoding.UTF8.GetByteCount(prefix) - 7) + ".mrpack";
+        AssertTrue(DesktopActivation.TryFile(maximum, out _));
+        AssertTrue(!DesktopActivation.TryFile(maximum.Insert(prefix.Length, "a"), out _));
+        DesktopFilesWaitForRendererFrame();
+        DesktopJumpListPreservesBoundedLauncherArguments();
     }
 
     private static void DesktopSingleInstanceForwardsAcrossProcessesAndReleases()
@@ -96,6 +122,19 @@ internal static partial class Program
                 AssertTrue(peer.WaitForExit(10000)); AssertEqual(0, peer.ExitCode);
                 AssertTrue(primary.TryTake(out var forwarded)); AssertEqual(DesktopDestination.Settings, forwarded);
                 AssertEqual(1, Volatile.Read(ref wakes));
+                string file = Path.Combine(directory, "中文 Pack.nexapack");
+                var fileStart = new ProcessStartInfo(command[0]) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+                foreach (string argument in command.Skip(1)) fileStart.ArgumentList.Add(argument);
+                fileStart.ArgumentList.Add("--desktop-instance-file-peer"); fileStart.ArgumentList.Add(directory); fileStart.ArgumentList.Add(file);
+                using (Process filePeer = Process.Start(fileStart)!)
+                { AssertTrue(filePeer.WaitForExit(10000)); AssertEqual(0, filePeer.ExitCode); }
+                AssertTrue(primary.TryTakeActivation(out var forwardedFile));
+                AssertEqual(DesktopDestination.Install, forwardedFile.Destination); AssertEqual(file, forwardedFile.File!);
+                AssertEqual(2, Volatile.Read(ref wakes));
+                SendMalformedDesktopActivation(directory, [2, (byte)DesktopDestination.Activate, 2, 0, 0xff, 0xff]);
+                SendMalformedDesktopActivation(directory, [2, (byte)DesktopDestination.Activate, 1, 32]);
+                SendMalformedDesktopActivation(directory, [7, (byte)DesktopDestination.Activate]);
+                AssertTrue(!primary.TryTakeActivation(out _));
                 // Fill the bounded queue, then reject without replacing the primary lease.
                 for (int index = 0; index < 16; index++)
                     AssertTrue(DesktopSingleInstance.AcquireAsync(directory, DesktopDestination.Activate).GetAwaiter().GetResult() is null);
@@ -111,5 +150,43 @@ internal static partial class Program
             restarted!.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
+
+    private static void SendMalformedDesktopActivation(string directory, byte[] packet)
+    {
+        string path = Path.Combine(Path.GetFullPath(directory), "instance.lock");
+        string pipe = "nexacl-" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path)))[..24];
+        using var client = new System.IO.Pipes.NamedPipeClientStream(".", pipe, System.IO.Pipes.PipeDirection.InOut,
+            System.IO.Pipes.PipeOptions.Asynchronous | System.IO.Pipes.PipeOptions.CurrentUserOnly);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        client.ConnectAsync(timeout.Token).GetAwaiter().GetResult();
+        client.WriteAsync(packet, timeout.Token).AsTask().GetAwaiter().GetResult();
+        byte[] reply = new byte[1]; client.ReadExactlyAsync(reply, timeout.Token).AsTask().GetAwaiter().GetResult();
+        AssertEqual((byte)0, reply[0]);
+        client.WriteAsync(new byte[] { 0xA6 }, timeout.Token).AsTask().GetAwaiter().GetResult();
+    }
+
+    private static void DesktopFilesWaitForRendererFrame()
+    {
+        var store = new XsrStateStoreBuilder().Build();
+        var shell = XsrUiShellComposer.Compose(store);
+        var intents = new DesktopUiIntentSink();
+        var platform = new Nexa.UI.Next.Backend.Avalonia.AvaloniaUiPlatformActions();
+        var mediaCommand = Nexa.Xsr.XsrSemanticId.Parse("ui.media.play-pause");
+        shell.Tree.SetComponent(shell.Root, new XsrUiContextMenu([new("音乐播放 / 暂停", mediaCommand)]));
+        List<string> opened = [];
+        string file = Path.Combine(Path.GetTempPath(), "confirmation-required.mrpack");
+        var integration = new DesktopIntegrationSession(shell, intents, store, platform, null, [file],
+            static _ => { }, opened.Add, registerProtocol: false);
+        try
+        {
+            AssertEqual(1, shell.Tree.GetComponent<XsrUiContextMenu>(shell.Root)!.Items.Count(item => item.Command == mediaCommand));
+            AssertEqual(0, opened.Count);
+            shell.Render(new(800, 600));
+            AssertEqual(1, opened.Count); AssertEqual(file, opened[0]);
+            shell.Render(new(800, 600)); AssertEqual(1, opened.Count);
+        }
+        finally { integration.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+        AssertEqual(mediaCommand, shell.Tree.GetComponent<XsrUiContextMenu>(shell.Root)!.Items.Single().Command);
     }
 }

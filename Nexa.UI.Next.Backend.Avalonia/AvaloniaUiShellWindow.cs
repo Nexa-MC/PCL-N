@@ -108,7 +108,8 @@ public sealed class AvaloniaUiShellWindow : Window
         _surface = new AvaloniaUiSceneSurface(shell);
         _surface.TitleBarDragRequested += OnTitleBarDragRequested;
         _surface.SceneCommitted += OnSceneCommitted;
-        _windowActions = new AvaloniaNativeWindowActions(_surface, () => _shell.Renderer.EffectiveReducedMotion)
+        _windowActions = new AvaloniaNativeWindowActions(_surface, () => _shell.Renderer.EffectiveReducedMotion,
+            _shell.Renderer.LocalizeText)
         {
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,

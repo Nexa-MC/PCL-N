@@ -15,15 +15,18 @@ public sealed partial class SettingsPolicyService
         for (int i = 0; i < plan.Before.Count; i++)
             values[plan.Before[i].Key] = new JsonObject
             {
+                ["layer"] = plan.Before[i].Layer == SettingsLayer.Profile ? "profile" : "instance",
+                ["profileId"] = plan.Before[i].ProfileId,
                 ["before"] = plan.Before[i].Value.Mode == SettingsOverrideMode.Inherit ? null : Encode(plan.Before[i].Value),
                 ["after"] = plan.After[i].Value.Mode == SettingsOverrideMode.Inherit ? null : Encode(plan.After[i].Value)
             };
-        return new JsonObject { ["version"] = 1, ["instance"] = plan.InstanceDirectory, ["revision"] = plan.Revision, ["values"] = values };
+        return new JsonObject { ["version"] = 2, ["instance"] = plan.InstanceDirectory, ["revision"] = plan.Revision, ["values"] = values };
     }
 
     internal static RecoverySettingsPlan DecodeRecoverySettingsPlan(JsonObject document)
     {
-        if (document["version"]?.GetValue<int>() != 1 || document["values"] is not JsonObject values
+        int version = document["version"]?.GetValue<int>() ?? 0;
+        if (version is not (1 or 2) || document["values"] is not JsonObject values
             || values.Count > SettingsPolicySchema.Definitions.Count) throw new InvalidDataException("恢复设置计划无效。");
         string instance = document["instance"]!.GetValue<string>();
         List<SettingsMutation> before = [], after = [];
@@ -31,8 +34,11 @@ public sealed partial class SettingsPolicyService
         {
             if (item.Value is not JsonObject value || !value.ContainsKey("before") || !value.ContainsKey("after"))
                 throw new InvalidDataException("恢复设置计划缺少原值或目标值。");
-            before.Add(new(item.Key, SettingsLayer.Instance, ReadOverride(value["before"]) ?? new(SettingsOverrideMode.Inherit), instance));
-            after.Add(new(item.Key, SettingsLayer.Instance, ReadOverride(value["after"]) ?? new(SettingsOverrideMode.Inherit), instance));
+            SettingsLayer layer = version == 1 ? SettingsLayer.Instance : value["layer"]?.GetValue<string>() switch
+            { "instance" => SettingsLayer.Instance, "profile" => SettingsLayer.Profile, _ => throw new InvalidDataException("恢复计划的设置层无效。") };
+            string? profileId = version == 1 ? null : value["profileId"]?.GetValue<string>();
+            before.Add(new(item.Key, layer, ReadOverride(value["before"]) ?? new(SettingsOverrideMode.Inherit), instance) { ProfileId = profileId });
+            after.Add(new(item.Key, layer, ReadOverride(value["after"]) ?? new(SettingsOverrideMode.Inherit), instance) { ProfileId = profileId });
         }
         var plan = new RecoverySettingsPlan(instance, document["revision"]!.GetValue<long>(), before.AsReadOnly(), after.AsReadOnly());
         ValidateRecoverySettingsPlan(plan);
@@ -41,6 +47,11 @@ public sealed partial class SettingsPolicyService
 
     internal RecoverySettingsPlan PlanRecoverySettings(string instanceDirectory, string baseline, IReadOnlyList<string> selectedKeys)
     {
+        lock (_profileGate) return PlanRecoverySettingsCore(instanceDirectory, baseline, selectedKeys);
+    }
+
+    private RecoverySettingsPlan PlanRecoverySettingsCore(string instanceDirectory, string baseline, IReadOnlyList<string> selectedKeys)
+    {
         var selected = selectedKeys.ToHashSet(StringComparer.Ordinal);
         if (selected.Count != selectedKeys.Count || selected.Any(key => !RecoverySetting(key)))
             throw new InvalidDataException("恢复设置字段无效或重复。");
@@ -48,10 +59,9 @@ public sealed partial class SettingsPolicyService
         if (preview.Errors.Count != 0) throw new InvalidDataException("无法准备所选启动设置。");
         var snapshot = _settings.ReadBatch();
         if (snapshot.Revision != preview.Revision) throw new IOException("恢复预览期间设置发生变化。");
-        string instance = InstanceKey(instanceDirectory)!;
-        var local = ReadDocument(snapshot.Values)["instances"]![instance] as JsonObject;
+        var document = ReadDocument(snapshot.Values);
         var after = preview.Changes.Where(item => selected.Contains(item.Key)).ToArray();
-        var before = after.Select(item => item with { Value = ReadOverride(local?[item.Key]) ?? new(SettingsOverrideMode.Inherit) }).ToArray();
+        var before = after.Select(item => item with { Value = ReadOverride(RecoveryMutationValues(document, item)?[item.Key]) ?? new(SettingsOverrideMode.Inherit) }).ToArray();
         return new(instanceDirectory, snapshot.Revision, Array.AsReadOnly(before), Array.AsReadOnly(after));
     }
 
@@ -64,10 +74,11 @@ public sealed partial class SettingsPolicyService
         for (int i = 0; i < plan.Before.Count; i++)
         {
             var before = plan.Before[i]; var after = plan.After[i];
-            if (before.Key != after.Key || !keys.Add(before.Key) || !RecoverySetting(before.Key))
+            if (before.Key != after.Key || before.Layer != after.Layer || before.ProfileId != after.ProfileId
+                || !keys.Add(before.Key) || !RecoverySetting(before.Key))
                 throw new InvalidDataException("恢复设置计划字段无效。");
             foreach (var item in new[] { before, after })
-                if (item.Layer != SettingsLayer.Instance || InstanceKey(item.InstanceId) != InstanceKey(plan.InstanceDirectory)
+                if (item.Layer is not (SettingsLayer.Instance or SettingsLayer.Profile) || InstanceKey(item.InstanceId) != InstanceKey(plan.InstanceDirectory)
                     || ValidateMutation(item) is not null) throw new InvalidDataException("恢复设置计划超出实例范围。");
         }
     }
@@ -77,18 +88,24 @@ public sealed partial class SettingsPolicyService
 
     internal XsrResult ApplyRecoverySettingsPlan(RecoverySettingsPlan plan, bool reverse)
     {
+        lock (_profileGate) return ApplyRecoverySettingsPlanCore(plan, reverse);
+    }
+
+    private XsrResult ApplyRecoverySettingsPlanCore(RecoverySettingsPlan plan, bool reverse)
+    {
         try
         {
             ValidateRecoverySettingsPlan(plan);
+            RequireDurableRecoveryScope(InstanceKey(plan.InstanceDirectory)!);
             var snapshot = _settings.ReadBatch();
             if (_settings.LoadError is not null) throw new InvalidDataException("无法读取完整启动设置。");
             if (!reverse && snapshot.Revision != plan.Revision) throw new InvalidDataException("设置已变化，请重新比较。");
-            var local = ReadDocument(snapshot.Values)["instances"]![InstanceKey(plan.InstanceDirectory)!] as JsonObject;
+            var document = ReadDocument(snapshot.Values);
             List<SettingsMutation> changes = [];
             for (int i = 0; i < plan.Before.Count; i++)
             {
                 var before = plan.Before[i]; var after = plan.After[i];
-                var current = ReadOverride(local?[before.Key]) ?? new(SettingsOverrideMode.Inherit);
+                var current = ReadOverride(RecoveryMutationValues(document, before)?[before.Key]) ?? new(SettingsOverrideMode.Inherit);
                 if (reverse)
                 {
                     if (current == before.Value) continue;

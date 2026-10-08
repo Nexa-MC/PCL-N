@@ -7,12 +7,18 @@ public sealed partial class SettingsPolicyService
     // Local recovery only: includes private launch arguments, never a sharing/telemetry payload.
     internal string CaptureRecoverySettings(string instanceDirectory)
     {
+        lock (_profileGate) return CaptureRecoverySettingsCore(instanceDirectory);
+    }
+
+    private string CaptureRecoverySettingsCore(string instanceDirectory)
+    {
         string instance = InstanceKey(instanceDirectory) ?? throw new InvalidDataException("实例目录不能为空。");
+        RequireDurableRecoveryScope(instance);
         var snapshot = _settings.ReadBatch();
         if (_settings.LoadError is not null) throw new InvalidDataException("无法读取完整启动设置。");
         var document = ReadDocument(snapshot.Values);
         var effective = Resolve(snapshot.Revision, snapshot.Values, document, instance);
-        var local = document["instances"]![instance] as JsonObject;
+        var (_, _, local) = RecoveryScope(document, instance);
         JsonObject values = new();
         foreach (var definition in SettingsPolicySchema.Definitions.Where(item => item.InstanceOverride && !item.Key.StartsWith("recovery.", StringComparison.Ordinal)))
         {
@@ -32,12 +38,18 @@ public sealed partial class SettingsPolicyService
     // Planning only. The recovery transaction must atomically coordinate files and settings.
     internal SettingsImportPreview PreviewRecoverySettings(string instanceDirectory, string baseline)
     {
+        lock (_profileGate) return PreviewRecoverySettingsCore(instanceDirectory, baseline);
+    }
+
+    private SettingsImportPreview PreviewRecoverySettingsCore(string instanceDirectory, string baseline)
+    {
         var snapshot = _settings.ReadBatch();
         List<SettingsMutation> changes = [];
         List<string> errors = [];
         try
         {
             string instance = InstanceKey(instanceDirectory) ?? throw new InvalidDataException("实例目录不能为空。");
+            RequireDurableRecoveryScope(instance);
             if (_settings.LoadError is not null) throw new InvalidDataException("无法读取完整启动设置。");
             if (baseline.Length > 1024 * 1024) throw new InvalidDataException("启动设置快照超过大小限制。");
             var input = JsonNode.Parse(baseline) as JsonObject;
@@ -48,8 +60,10 @@ public sealed partial class SettingsPolicyService
             if (values.Count != definitions.Length || values.Any(item => !SettingsPolicySchema.ByKey.TryGetValue(item.Key, out var definition) || !definition.InstanceOverride))
                 throw new InvalidDataException("启动设置快照的字段不完整或不受支持。");
             var document = ReadDocument(snapshot.Values);
-            var inherited = Resolve(snapshot.Revision, snapshot.Values, document, null);
-            var local = document["instances"]![instance] as JsonObject;
+            var (layer, profileId, local) = RecoveryScope(document, instance);
+            var below = (JsonObject)document.DeepClone();
+            if (profileId is not null) ProfileInstance(below, instance).Remove("selected");
+            var inherited = Resolve(snapshot.Revision, snapshot.Values, below, profileId is null ? null : instance);
             foreach (var definition in definitions)
             {
                 if (values[definition.Key] is not JsonObject item) throw new InvalidDataException("启动设置快照缺少字段。");
@@ -61,11 +75,38 @@ public sealed partial class SettingsPolicyService
                 if (currentInherited.ValidationError is not null) throw new InvalidDataException("当前继承设置无效。");
                 var desired = original ?? (currentInherited.Value == effective ? new(SettingsOverrideMode.Inherit) : effective);
                 var current = ReadOverride(local?[definition.Key]) ?? new(SettingsOverrideMode.Inherit);
-                if (current != desired) changes.Add(new(definition.Key, SettingsLayer.Instance, desired, instanceDirectory));
+                if (current != desired) changes.Add(new(definition.Key, layer, desired, instanceDirectory) { ProfileId = profileId });
             }
             _ = PrepareChanges(snapshot.Values, changes);
         }
         catch (Exception error) when (Recoverable(error)) { errors.Add(error.Message); changes.Clear(); }
         return new(snapshot.Revision, changes.AsReadOnly(), errors.AsReadOnly());
+    }
+
+    private void RequireDurableRecoveryScope(string instance)
+    {
+        if (_temporaryProfiles.ContainsKey(instance))
+            throw new InvalidDataException("请先撤销 Temporary 配置，再创建或恢复持久启动设置备份。");
+    }
+
+    private static (SettingsLayer Layer, string? ProfileId, JsonObject? Values) RecoveryScope(JsonObject document, string instance)
+    {
+        var scope = ProfileInstance(document, instance);
+        string? profileId = scope["selected"]?.GetValue<string>();
+        return profileId is null
+            ? (SettingsLayer.Instance, null, document["instances"]![instance] as JsonObject)
+            : (SettingsLayer.Profile, ProfileIdentity(profileId), RecoveryProfileValues(scope, profileId));
+    }
+
+    private static JsonObject RecoveryProfileValues(JsonObject scope, string profileId)
+        => scope["profiles"]?[profileId]?["values"] as JsonObject
+            ?? throw new InvalidDataException("恢复计划引用的 Profile 已不存在。");
+
+    private static JsonObject? RecoveryMutationValues(JsonObject document, SettingsMutation mutation)
+    {
+        string instance = InstanceKey(mutation.InstanceId)!;
+        return mutation.Layer == SettingsLayer.Profile
+            ? RecoveryProfileValues(ProfileInstance(document, instance), mutation.ProfileId!)
+            : document["instances"]![instance] as JsonObject;
     }
 }

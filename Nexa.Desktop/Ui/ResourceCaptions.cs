@@ -9,4 +9,6 @@ internal static class ResourceCaptions
     {
         return title;
     }
+    [XsrFunctionPatch("ui.resource.download-count.v1")]
+    internal static long DownloadCount(XsrFunctionPatchRuntime runtime, XsrFunctionPatchPoint point, long count) => count;
 }

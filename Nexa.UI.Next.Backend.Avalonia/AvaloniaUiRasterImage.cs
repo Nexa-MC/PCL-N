@@ -42,7 +42,7 @@ internal sealed partial class AvaloniaUiSceneNodeControl
         if (raster is not null && fit)
         {
             double density = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-            decodeWidth = PreviewWidth(raster.Image.Width, raster.Image.Height, width, height, density);
+            decodeWidth = PreviewWidth(raster.Image.Width, raster.Image.Height, width, height, density, raster.FitMode);
         }
         if (ReferenceEquals(_rasterRecipe, raster) && _rasterKey == key && _rasterFit == fit && _rasterWidth == decodeWidth
             && (!_rasterCapacityBlocked || _rasterAttemptRevision == _rasterPool.Revision)) return;
@@ -132,10 +132,13 @@ internal sealed partial class AvaloniaUiSceneNodeControl
         return right > left && bottom > top;
     }
 
-    internal static int PreviewWidth(int sourceWidth, int sourceHeight, double width, double height, double density)
+    internal static int PreviewWidth(int sourceWidth, int sourceHeight, double width, double height, double density,
+        XsrUiImageFitMode fitMode = XsrUiImageFitMode.Contain)
     {
         int maximum = Math.Max(1, (int)(sourceWidth * Math.Min(1d, 1024d / Math.Max(sourceWidth, sourceHeight))));
-        double scale = Math.Min(width / sourceWidth, height / sourceHeight) * density;
+        double scale = (fitMode is XsrUiImageFitMode.Cover or XsrUiImageFitMode.Stretch
+            ? Math.Max(width / sourceWidth, height / sourceHeight)
+            : Math.Min(width / sourceWidth, height / sourceHeight)) * density;
         int required = double.IsFinite(scale) ? (int)Math.Clamp(Math.Ceiling(sourceWidth * scale), 1, maximum) : maximum;
         int bucket = 32;
         while (bucket < required) bucket *= 2;
@@ -167,10 +170,15 @@ internal sealed partial class AvaloniaUiSceneNodeControl
         // DPI can change without changing the immutable scene node.
         UpdateRaster(_node.RasterImage, bounds.Width, bounds.Height);
         if (DecodedRaster is not { } bitmap || _node.RasterImage is not { } raster) return false;
+        using var imageOpacity = context.PushOpacity(double.IsFinite(raster.ImageOpacity) ? Math.Clamp(raster.ImageOpacity, 0, 1) : 1);
         if (raster.FitToBounds)
         {
-            double scale = Math.Min(bounds.Width / raster.Image.Width, bounds.Height / raster.Image.Height);
-            double width = raster.Image.Width * scale, height = raster.Image.Height * scale;
+            double scale = raster.FitMode == XsrUiImageFitMode.Cover
+                ? Math.Max(bounds.Width / raster.Image.Width, bounds.Height / raster.Image.Height)
+                : Math.Min(bounds.Width / raster.Image.Width, bounds.Height / raster.Image.Height);
+            double width = raster.FitMode == XsrUiImageFitMode.Stretch ? bounds.Width : raster.Image.Width * scale;
+            double height = raster.FitMode == XsrUiImageFitMode.Stretch ? bounds.Height : raster.Image.Height * scale;
+            using var clip = context.PushClip(bounds);
             using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.MediumQuality }))
                 context.DrawImage(bitmap, new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height),
                     new Rect(bounds.X + (bounds.Width - width) / 2, bounds.Y + (bounds.Height - height) / 2, width, height));

@@ -39,13 +39,19 @@ public static class InstanceServerStatusService
             if (root.ValueKind != JsonValueKind.Object) throw new InvalidDataException("服务器状态不是对象。");
             string description = root.TryGetProperty("description", out var text) ? Description(text, 0) : "";
             string version = root.TryGetProperty("version", out var v) && v.ValueKind == JsonValueKind.Object && v.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String ? name.GetString()![..Math.Min(128, name.GetString()!.Length)] : "";
+            int? serverProtocol = v.ValueKind == JsonValueKind.Object && v.TryGetProperty("protocol", out var protocol)
+                && protocol.ValueKind == JsonValueKind.Number && protocol.TryGetInt32(out int number) && number >= 0 ? number : null;
             int? online = null, max = null;
             if (root.TryGetProperty("players", out var players) && players.ValueKind == JsonValueKind.Object)
             {
                 if (players.TryGetProperty("online", out var o) && o.ValueKind == JsonValueKind.Number && o.TryGetInt32(out int value) && value >= 0) online = value;
                 if (players.TryGetProperty("max", out var m) && m.ValueKind == JsonValueKind.Number && m.TryGetInt32(out value) && value >= 0) max = value;
             }
-            return new(true, description, version, online, max, clock.ElapsedMilliseconds);
+            return new(true, description, version, online, max, clock.ElapsedMilliseconds)
+            {
+                ServerProtocol = serverProtocol,
+                ClientProtocol = await InstanceOfflineReadinessService.ReadClientProtocolAsync(query.InstanceDirectory, token).ConfigureAwait(false),
+            };
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception error) when (error is IOException or SocketException or OperationCanceledException or JsonException or InvalidDataException)

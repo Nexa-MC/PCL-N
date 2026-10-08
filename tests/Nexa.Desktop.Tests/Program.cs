@@ -19,6 +19,13 @@ internal static partial class Program
 {
     public static void Main(string[] args)
     {
+        if (args is ["--desktop-instance-file-peer", var fileDirectory, var file])
+        {
+            var primary = Nexa.Desktop.DesktopSingleInstance.AcquireAsync(fileDirectory, Nexa.Desktop.DesktopDestination.Install, file).GetAwaiter().GetResult();
+            Environment.ExitCode = primary is null ? 0 : 11;
+            primary?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            return;
+        }
         if (args is ["--desktop-instance-peer", var directory])
         {
             var primary = Nexa.Desktop.DesktopSingleInstance.AcquireAsync(directory, Nexa.Desktop.DesktopDestination.Settings).GetAwaiter().GetResult();
@@ -38,17 +45,62 @@ internal static partial class Program
             Console.WriteLine("PASS: native window property store roundtrip");
             return;
         }
+        int failures = 0;
         foreach ((string name, Action body) in TestCases)
         {
-            body();
-            Console.WriteLine($"PASS: {name}");
+            try
+            {
+                body();
+                Console.WriteLine($"PASS: {name}");
+            }
+            catch (Exception error)
+            {
+                failures++;
+                Console.Error.WriteLine($"FAIL: {name}\n{error}");
+            }
         }
 
-        Console.WriteLine($"Desktop composition tests passed: {TestCases.Length}.");
+        Console.WriteLine($"Desktop composition tests passed: {TestCases.Length - failures}; failed: {failures}.");
+        Environment.ExitCode = failures == 0 ? 0 : 1;
     }
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("InstanceIdentityDraftSurvivesScopedFactRebuildsAndRetiresOnNavigation", InstanceIdentityDraftSurvivesScopedFactRebuildsAndRetiresOnNavigation),
+        ("DialogLiteralBodiesPreserveCatalogMatchesAndRefreshTranslationPolicy", DialogLiteralBodiesPreserveCatalogMatchesAndRefreshTranslationPolicy),
+        ("ContentIntegrityDetailsShowActualFactsAndRetireScopedReads", ContentIntegrityDetailsShowActualFactsAndRetireScopedReads),
+        ("JavaPolicyStateFollowsCommittedPreferenceAndInheritanceWithoutRebuildingEditors", () => JavaPolicyStateFollowsCommittedPreferenceAndInheritanceWithoutRebuildingEditors().AsTask().GetAwaiter().GetResult()),
+        ("LaunchNavigationRejectsUnknownAndUnboundWithoutChangingPage", LaunchNavigationRejectsUnknownAndUnboundWithoutChangingPage),
+        ("LaunchNavigationBindingsBorrowRealPagesAndPreserveRepeatedAssignments", LaunchNavigationBindingsBorrowRealPagesAndPreserveRepeatedAssignments),
+        ("DiagnosticAiWorkspaceRebuildsCommittedAdmissionAndCancelsRetiredSend", () => DiagnosticAiWorkspaceRebuildsCommittedAdmissionAndCancelsRetiredSend().AsTask().GetAwaiter().GetResult()),
+        ("HardwareAdviceUsesSameCapturedEstimatePreflightAndNeverWritesConfiguration", HardwareAdviceUsesSameCapturedEstimatePreflightAndNeverWritesConfiguration),
+        ("ManualJavaWorkspaceRequiresLicenseUsesActualReceiptAndRetiresActions", ManualJavaWorkspaceRequiresLicenseUsesActualReceiptAndRetiresActions),
+        ("StartupHintsConsumeCommittedChoiceAndKeepLaunchProgress", StartupHintsConsumeCommittedChoiceAndKeepLaunchProgress),
+        ("ManualNetworkProbeUiCancelsAndKeepsObservedFactsLiteral", ManualNetworkProbeUiCancelsAndKeepsObservedFactsLiteral),
+        ("ResourceSourcePolicyDisablesLocalOverrideAndRestoresIt", ResourceSourcePolicyDisablesLocalOverrideAndRestoresIt),
+        ("MediaMenuDeduplicatesAndRetiresOnlyOwnedItems", MediaMenuDeduplicatesAndRetiresOnlyOwnedItems),
+        ("AdvancedLaunchFactsPageUsesReadOnlyTypedQueriesAndPagedSnapshots", AdvancedLaunchFactsPageUsesReadOnlyTypedQueriesAndPagedSnapshots),
+        ("RecoveryTimelineOrdersPersistedPointsBoundsRowsAndRetiresInstanceHistory", () => RecoveryTimelineOrdersPersistedPointsBoundsRowsAndRetiresInstanceHistory().AsTask().GetAwaiter().GetResult()),
+        ("AdvancedWorkspaceDispatchesFiniteRoutesAndCancelsRetiredDelay", AdvancedWorkspaceDispatchesFiniteRoutesAndCancelsRetiredDelay),
+        ("AdvancedSettingsSnapshotRedactsSecretsPathsCommandsAndCopiesCapturedRows", AdvancedSettingsSnapshotRedactsSecretsPathsCommandsAndCopiesCapturedRows),
+        ("RuntimeTraceWorkspaceCapturesOncePagesMetadataAndRejectsRetiredActions", RuntimeTraceWorkspaceCapturesOncePagesMetadataAndRejectsRetiredActions),
+        ("InstanceDiagnosticsJoinScopePreserveUnknownAndUseDurableHistory", InstanceDiagnosticsJoinScopePreserveUnknownAndUseDurableHistory),
+        ("ReducedMotionConsumesTypedCommittedPreferenceAndLegacyOr", ReducedMotionConsumesTypedCommittedPreferenceAndLegacyOr),
+        ("DeveloperRuntimeDiagnosticsCaptureActualSceneAndRemainReadOnly", DeveloperRuntimeDiagnosticsCaptureActualSceneAndRemainReadOnly),
+        ("JavaDiagnosticWorkspaceDispatchesSelectedRevisionCopiesPreviewAndRetiresReads", JavaDiagnosticWorkspaceDispatchesSelectedRevisionCopiesPreviewAndRetiresReads),
+        ("BackgroundPresentationPreservesVideoPriorityAndRoutedAppearance", BackgroundPresentationPreservesVideoPriorityAndRoutedAppearance),
+        ("WorldHealthAndScreenshotTimelineUseScopedActualRoutes", WorldHealthAndScreenshotTimelineUseScopedActualRoutes),
+        ("CommandRoutesForwardNumericDestinationsAndSafeBootstrapRefusesOwner", CommandRoutesForwardNumericDestinationsAndSafeBootstrapRefusesOwner),
+        ("SystemPreferencesConsumeRoutedCommittedChanges", SystemPreferencesConsumeRoutedCommittedChanges),
+        ("CommandPaletteDefersToModalDecisionsAndClosesOnNavigation", CommandPaletteDefersToModalDecisionsAndClosesOnNavigation),
+        ("CommandPaletteFiltersLocalizedRoutesAndRetiresSources", CommandPaletteFiltersLocalizedRoutesAndRetiresSources),
+        ("CommandLineAdmitsOnlyFiniteNavigationAndExplicitSafeMode", CommandLineAdmitsOnlyFiniteNavigationAndExplicitSafeMode),
+        ("FileWorkspaceRequiresPreviewBeforeExplicitSaveAndPreservesOtherLines", FileWorkspaceRequiresPreviewBeforeExplicitSaveAndPreservesOtherLines),
+        ("InstanceIdentityEditorWritesTypedMetadataAndShowsServerRequirements", InstanceIdentityEditorWritesTypedMetadataAndShowsServerRequirements),
+        ("ContentBatchUpdatesDispatchOnlySelectedLiveFiles", ContentBatchUpdatesDispatchOnlySelectedLiveFiles),
+        ("LaunchProfileSettingsEditNamedAndTemporaryLayers", LaunchProfileSettingsEditNamedAndTemporaryLayers),
+        ("SystemRegistrationsAndCustomAppearancePreserveBounds", SystemRegistrationsAndCustomAppearancePreserveBounds),
+        ("SystemAutostartIsOwnedReversibleAndLocal", SystemAutostartIsOwnedReversibleAndLocal),
         ("single instance waits for closing owner before reopening", DesktopSingleInstanceWaitsForClosingOwner),
         ("desktop branding and safe default single-instance bootstrap", DesktopBrandAndBootstrapDefaults),
         ("desktop protocol routes and registration preserve arguments", DesktopProtocolRoutesAndRegistrationCommands),
@@ -145,6 +197,8 @@ internal static partial class Program
         ("installed content online info preserves local details and rejects stale results", InstalledContentOnlineInfoKeepsLocalDetailsAndDiscardsStaleResults),
         ("resource optional dependencies wait for user choice", ResourceOptionalDependenciesWaitForUserChoice),
         ("resources page downloads by identity and projects Chinese text", ResourcesPageDownloadsByIdentityAndProjectsChineseText),
+        ("resource primitive function patch changes presentation only", ResourcePrimitiveFunctionPatchChangesPresentationOnly),
+        ("resource interactive module presents live state and cancels retired source", ResourceInteractiveModulePresentsLiveStateAndCancelsRetiredSource),
         ("resource function patch rewrites actual list and detail captions", ResourceFunctionPatchRewritesActualListAndDetailCaptions),
         ("resources page uses service queries and preserves search", ResourcesPageUsesServiceQueriesAndPreservesSearch),
         ("resource icons arrive without rebuilding search or rows", ResourceIconsArriveWithoutRebuildingSearchOrRows),
@@ -340,18 +394,20 @@ internal static partial class Program
     private static void NavigationIntentsRouteBetweenPages()
     {
         using LaunchPageFixture fixture = new(new ImmediateInstanceSource([]));
+        using var productPages = new LaunchFixtureNavigationPages(fixture);
         fixture.Controller.WaitUntilIdle().GetAwaiter().GetResult();
 
         Emit(fixture.Intents, "ui.navigation.settings");
-        XsrUiScene placeholder = fixture.Shell.Render(new XsrUiSize(1280, 800));
-        AssertTrue(placeholder.Nodes.Any(node => node.Text == "这项功能尚未迁移到 Nexa。你可以返回首页，继续选择版本和启动游戏。"));
-        AssertFalse(HasKey(fixture.Shell, placeholder, "LaunchButton"));
+        XsrUiScene settings = fixture.Shell.Render(new XsrUiSize(1280, 800));
+        AssertTrue(HasKey(fixture.Shell, settings, "SettingsPage"));
+        AssertFalse(HasKey(fixture.Shell, settings, "MigrationCard"));
+        AssertFalse(HasKey(fixture.Shell, settings, "LaunchButton"));
 
         Emit(fixture.Intents, "ui.navigation.launch");
         fixture.Controller.WaitUntilIdle().GetAwaiter().GetResult();
         XsrUiScene launch = fixture.Shell.Render(new XsrUiSize(1280, 800));
         AssertTrue(HasKey(fixture.Shell, launch, "LaunchButton"));
-        AssertFalse(launch.Nodes.Any(node => node.Text == "这项功能尚未迁移到 Nexa。你可以返回首页，继续选择版本和启动游戏。"));
+        AssertFalse(HasKey(fixture.Shell, launch, "MigrationCard"));
     }
 
     private static void DownloadAndInstanceActionsRouteToInstallationAndVersionManagement()
@@ -364,7 +420,7 @@ internal static partial class Program
         XsrUiScene install = fixture.Shell.Render(new XsrUiSize(1280, 800));
         AssertTrue(HasKey(fixture.Shell, install, "InstallPage"));
         AssertTrue(HasKey(fixture.Shell, install, "InstallJavaChoice"));
-        AssertFalse(install.Nodes.Any(node => node.Text == "这项功能尚未迁移到 Nexa。你可以返回首页，继续选择版本和启动游戏。"));
+        AssertFalse(HasKey(fixture.Shell, install, "MigrationCard"));
         AssertTrue(fixture.Feedback.Snapshot().Notifications.Any(notification =>
             notification.Level == DesktopNotificationLevel.Info
             && notification.Message == "请在安装页选择或下载游戏版本。"));
@@ -564,11 +620,11 @@ internal static partial class Program
         fixture.Controller.WaitUntilIdle().GetAwaiter().GetResult();
 
         // The rail expand/collapse toggle is shell presentation, not a destination: it must
-        // never route the content host to the placeholder page.
+        // never replace the current content page.
         Emit(fixture.Intents, "ui.navigation.expand");
         XsrUiScene scene = fixture.Shell.Render(new XsrUiSize(1280, 800));
         AssertTrue(HasKey(fixture.Shell, scene, "LaunchButton"));
-        AssertFalse(scene.Nodes.Any(node => node.Text == "这项功能尚未迁移到 Nexa。你可以返回首页，继续选择版本和启动游戏。"));
+        AssertFalse(HasKey(fixture.Shell, scene, "MigrationCard"));
     }
 
     private static void AccountCardListsProfilesAndSwitchesSelection()

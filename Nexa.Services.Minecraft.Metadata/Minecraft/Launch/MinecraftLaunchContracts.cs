@@ -10,6 +10,7 @@ public static class MinecraftLaunchPlanner
     public static MinecraftLaunchPlan CreatePlan(MinecraftLaunchRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
+        request = MinecraftSafeLaunchPolicy.Apply(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.VersionId);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.PlayerName);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.PlayerUuid);
@@ -149,6 +150,12 @@ public static class MinecraftLaunchPlanner
             WrapperCommand = request.WrapperCommand,
             PreLaunchCommand = request.PreLaunchCommand,
             WaitForPreLaunchCommand = request.WaitForPreLaunchCommand,
+            EnvironmentVariables = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(
+                new Dictionary<string, string>(request.EnvironmentVariables, OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)),
+            GpuPreference = request.GpuPreference,
+            RendererPreference = request.RendererPreference,
+            PostExitCommand = request.PostExitCommand,
+            Overlay = request.Overlay,
             HeapLimitMiB = args.Count(static arg => arg.StartsWith("-Xmx", StringComparison.Ordinal)) == 1
                 ? Math.Max(256, request.MemoryMegabytes) : -1,
             IsInheritedClientJar = clientJarResolution.IsInherited,

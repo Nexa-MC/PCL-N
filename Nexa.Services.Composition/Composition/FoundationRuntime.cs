@@ -59,17 +59,29 @@ public static class FoundationRuntimeComposer
         TimeProvider? timeProvider = null) => ComposeCore(host, observer, timeProvider,
             storagePreferences ?? throw new ArgumentNullException(nameof(storagePreferences)));
 
+    public static FoundationRuntime ComposeWithStorageAndMedia(
+        FoundationHost host, StoragePreferencesService storagePreferences,
+        Func<ReadOnlyMemory<byte>, int, int, int, int, byte[]> screenshotCrop,
+        IXsrDispatchObserver? observer = null, TimeProvider? timeProvider = null,
+        Action<XsrCommandRouterBuilder, XsrQueryRouterBuilder>? configureRoutes = null,
+        Func<string, CancellationToken, Task>? captureWorld = null, Func<string, IDisposable>? acquireWorldSessionLock = null) =>
+        ComposeCore(host, observer, timeProvider, storagePreferences, screenshotCrop, configureRoutes, captureWorld, acquireWorldSessionLock);
+
     private static FoundationRuntime ComposeCore(
         FoundationHost host,
         IXsrDispatchObserver? observer,
         TimeProvider? timeProvider,
-        StoragePreferencesService? storagePreferences)
+        StoragePreferencesService? storagePreferences,
+        Func<ReadOnlyMemory<byte>, int, int, int, int, byte[]>? screenshotCrop = null,
+        Action<XsrCommandRouterBuilder, XsrQueryRouterBuilder>? configureRoutes = null,
+        Func<string, CancellationToken, Task>? captureWorld = null, Func<string, IDisposable>? acquireWorldSessionLock = null)
     {
         ArgumentNullException.ThrowIfNull(host);
 
         IXsrDispatchObserver dispatchObserver = observer ?? NullDispatchObserver.Instance;
 
         XsrCommandRouterBuilder commands = new();
+        XsrQueryRouterBuilder queries = new();
         if (storagePreferences is not null)
         {
             commands.Register<StorageMigrationCommand>(StoragePreferencesContract.Migrate,
@@ -118,6 +130,7 @@ public static class FoundationRuntimeComposer
             (command, token) => new(Task.Run(() => host.SettingsPolicy.ApplyImport(command), token)));
         commands.Register<SettingsResetCommand>(SettingsPolicyContract.ResetCommand,
             (command, token) => new(Task.Run(() => host.SettingsPolicy.ApplyReset(command), token)));
+        SettingsLaunchProfileRuntime.Register(commands, queries, host.SettingsPolicy);
         commands.Register<MachineCapabilityRefresh>(MachineCapabilityStateContract.RefreshCommand, async (command, token) =>
         {
             await host.MachineCapabilities.ReadAsync(refresh: true, cancellationToken: token).ConfigureAwait(false);
@@ -140,9 +153,12 @@ public static class FoundationRuntimeComposer
         });
         var javaManagement = new Nexa.Services.Minecraft.Java.JavaRuntimeManagementService(host.JavaLocator, host.JavaRegistrations, host.JavaManagedRuntimeRoots);
         commands.Register<Nexa.Services.Minecraft.Java.JavaRuntimeManageCommand>(Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.Manage, javaManagement.ManageAsync);
-        XsrCommandRouter commandRouter = commands.Build(dispatchObserver, timeProvider);
-
-        XsrQueryRouterBuilder queries = new();
+        ContentManagementRuntime.Register(commands, queries, host.StateStore, captureWorld, acquireWorldSessionLock);
+        InstanceIdentityRuntime.Register(commands, queries);
+        InstanceOfflineReadinessRuntime.Register(queries, host.JavaLocator, host.SettingsPolicy);
+        if (screenshotCrop is not null)
+            commands.Register<InstanceScreenshotCropCommand>(InstanceScreenshotContract.Crop,
+                (command, token) => new(InstanceScreenshotService.CropAsync(command, host.StateStore, screenshotCrop, token)));
         if (storagePreferences is not null)
         {
             queries.Register<StoragePreferencesQuery, StoragePreferencesStatus>(StoragePreferencesContract.Status,
@@ -152,6 +168,7 @@ public static class FoundationRuntimeComposer
             queries.Register<StorageCleanupQuery, StorageCleanupPreview>(StoragePreferencesContract.CleanupPreview,
                 async (query, token) => await storagePreferences.PreviewCleanupAsync(query, token).ConfigureAwait(false));
         }
+        JavaDiagnosticsRuntime.Register(queries, host);
         var javaInventory = new Nexa.Services.Minecraft.Java.JavaRuntimeInventoryService(host.JavaLocator, host.JavaRegistrations, host.JavaManagedRuntimeRoots);
         queries.Register<Nexa.Services.Minecraft.Java.JavaRuntimeInventoryQuery, Nexa.Services.Minecraft.Java.JavaRuntimeInventorySnapshot>(
             Nexa.Services.Minecraft.Java.JavaRuntimeInventoryContract.Query, javaInventory.ReadAsync);
@@ -205,6 +222,15 @@ public static class FoundationRuntimeComposer
                 return ValueTask.FromResult(Nexa.Xsr.XsrResult.Success(
                     CapabilityPreflightEngine.Evaluate(query.Snapshot)));
             });
+        queries.Register<Nexa.Services.Network.NetworkTraceQuery, IReadOnlyList<Nexa.Services.Network.NetworkRequestTrace>>(
+            Nexa.Services.Network.NetworkDiagnosticsContract.Trace,
+            (_, _) => ValueTask.FromResult(Nexa.Xsr.XsrResult.Success(host.NetworkHttp.TraceSnapshot())));
+        var networkProbe = new Nexa.Services.Network.NetworkManualProbeService(() => host.CreateHttpClient(false));
+        queries.Register<Nexa.Services.Network.NetworkManualProbeQuery, Nexa.Services.Network.NetworkManualProbeSnapshot>(
+            Nexa.Services.Network.NetworkDiagnosticsContract.Probe,
+            async (_, token) => Nexa.Xsr.XsrResult.Success(await networkProbe.ProbeAsync(token).ConfigureAwait(false)));
+        configureRoutes?.Invoke(commands, queries);
+        XsrCommandRouter commandRouter = commands.Build(dispatchObserver, timeProvider);
         XsrQueryRouter queryRouter = queries.Build(dispatchObserver, timeProvider);
 
         return new FoundationRuntime(host, commandRouter, queryRouter);

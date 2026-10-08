@@ -4,7 +4,10 @@ namespace Nexa.Platform;
 
 public sealed record PlatformProcessControlResult(bool Succeeded, string Code, string Message);
 public readonly record struct PlatformProcessSample(long WorkingSetBytes, long PrivateBytes, int ThreadCount,
-    TimeSpan CpuTime, long IoReadBytes, long IoWriteBytes);
+    TimeSpan CpuTime, long IoReadBytes, long IoWriteBytes)
+{
+    public bool IoObserved { get; init; }
+}
 
 public interface IPlatformProcessControl
 {

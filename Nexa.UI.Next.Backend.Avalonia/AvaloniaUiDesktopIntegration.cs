@@ -119,6 +119,8 @@ public sealed partial class AvaloniaUiPlatformActions
     private bool _windowClosed;
     private void OnDesktopWindowClosed(object? sender, EventArgs args)
     {
+        _clipboardScreenshot?.Dispose();
+        _clipboardScreenshot = null;
         lock (_postedGate) { _windowClosed = true; _beforeAttach.Clear(); }
         WindowClosed?.Invoke();
     }

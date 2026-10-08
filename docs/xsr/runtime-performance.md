@@ -24,7 +24,12 @@
 
 Time To Splash从用户启动进程到首次实际呈现测量，争取100–200ms以内；不能用窗口构造/Show调用完成代替首次显示。最小Shell必须能重绘、处理DPI、显示错误并安全退出，慢初始化不得阻塞消息循环。真实阶段可以是设置、事务恢复、账户、实例、界面；只有可计量的真实工作量才给百分比，其余使用indeterminate。
 
-当前 `AvaloniaSplashWindow` 是装饰图标，`AvaloniaUiShellLifetime.Compose` 接收已构造的shell且先构造主窗口再Show splash；不等同于上述早期可用Shell。现有2秒fallback是装饰关闭兜底，不是启动SLA。早期Splash、阶段/错误状态与首次呈现instrumentation待交付，不能因已有Splash类而宣称Time To Splash已达标。
+`AvaloniaUiStartupSession` 在慢速事务恢复与 composition 前启动可交互原生窗口和
+独立 dispatcher，报告实际阶段、初始化失败和取消；主 shell 准备后交接同一个
+application lifetime。`FirstRenderElapsed` 测量首次 Render 提交回调，
+`ShellReadyElapsed` 单独测量交接。它们不等同于屏幕扫描输出，也不证明100–200ms
+实机 SLA。旧 `AvaloniaSplashWindow` 保留为其他同步宿主的装饰图标，其2秒fallback
+只用于关闭装饰，见 [XSR-805](XSR-805-runtime-performance-completion.md)。
 
 ## 日志与下载发布契约
 
@@ -50,8 +55,13 @@ control共享同一pool，更换、退休及surface关闭释放lease，关闭还
 后由正常绘制重新获取当前图片，不暂停必要的state/launch/recovery观察。
 预算拒绝不产生timer/frame；后续正常绘制或场景提交在容量变化后可重试。畸形图片
 不会逐帧重试。固定内嵌avatar/version bitmap、临时decoder内存、compositor持有的
-引用与GPU texture不在该动态pool计账内；OS memory-pressure adapter和实机曲线
-仍须单独验收，不能把64 MiB pixel charge宣布为实际CPU/GPU或进程RAM上限。
+引用与GPU texture不在该动态pool计账内。原生压力 adapter 每5秒采样 Linux
+MemAvailable/cgroup、Windows GlobalMemoryStatusEx 或 macOS vm_stat/sysctl；压力
+升高或严重时 admission 分别降至1/2或1/4，闲置 bitmap 被实际 dispose，活跃
+lease 保持有效并在释放时执行超额回收。Linux DRM `drm-resident-*` 若由驱动
+暴露，则用实际进程 GPU 驻留超过128 MiB作为额外收缩信号；缺计数器保持 unknown。
+这些是全进程/OS测量与缓存准入策略，不是逐纹理预算或显卡allocator上限，实机
+曲线仍须单独验收，不能把64 MiB pixel charge宣布为实际CPU/GPU或进程RAM上限。
 
 日志 batch publication 采用一次性唤醒：无待发布条目时 timer 必须停用，第一条
 新消息才启动一个 publication interval。连续写入合并为同一 batch；显式 flush、

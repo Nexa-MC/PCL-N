@@ -6,6 +6,7 @@ namespace Nexa.Services.Resources;
 
 public sealed class ResourceDownloadService(IResourceCatalogSource catalog, DownloadService downloads, TaskCenterService tasks, HttpClient http)
 {
+    public Func<string>? SourcePriority { get; init; }
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA5350", Justification = "CurseForge publishes SHA1 identities; HTTPS protects metadata. Prefer SHA512 when provided.")]
     public async Task DownloadAsync(ResourceDownloadCommand command, CancellationToken token)
     {
@@ -33,7 +34,7 @@ public sealed class ResourceDownloadService(IResourceCatalogSource catalog, Down
             {
                 DestinationPath = stage,
                 AllowResume = false,
-                Sources = Sources(file.Url, command.MirrorFirst),
+                Sources = Sources(file.Url, ResourceSourcePriority.Apply(SourcePriority?.Invoke(), command.MirrorFirst)),
                 ConnectionFactory = url => new Connection(http, url, file.Size, Hash(file.Sha512, 128) ? file.Sha512! : file.Sha1!)
             }, progress => task.Report("下载", file.Name, (double)progress.DownloadedBytes / file.Size, 0, 1, progress.BytesPerSecond), token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
