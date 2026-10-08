@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using Nexa.Services.Caching;
 using Nexa.Services.Files;
 using Nexa.Services.Minecraft.Management;
 
@@ -45,5 +46,33 @@ internal static partial class Program
             catch (OperationCanceledException) { }
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    internal static async ValueTask ArchiveDisplayCacheReusesParsingAndChargesEachReadBudget()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            string path = Path.Combine(root, "local.jar");
+            using (var zip = ZipFile.Open(path, ZipArchiveMode.Create))
+            using (var writer = new StreamWriter(zip.CreateEntry("fabric.mod.json").Open()))
+                writer.Write("{\"id\":\"local\",\"name\":\"Shared display\",\"version\":\"1\"}");
+            using SharedStateCache cache = new();
+            var source = new InstanceContentSnapshot("mods", [new("local.jar", false, new FileInfo(path).Length) { Enabled = true }], true, null);
+            ArchiveReadBudget firstBudget = new(4 * 1024 * 1024);
+            var first = await InstanceContentMetadata.EnrichAsync(source, root, firstBudget, cache, default);
+            AssertEqual("Shared display", first.Entries[0].DisplayName); AssertTrue(firstBudget.Remaining < 4 * 1024 * 1024);
+            using (var blocked = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                ArchiveReadBudget secondBudget = new(4 * 1024 * 1024);
+                var second = await InstanceContentMetadata.EnrichAsync(source with { Entries = [source.Entries[0] with { Enabled = false }] },
+                    root, secondBudget, cache, default);
+                AssertEqual("Shared display", second.Entries[0].DisplayName); AssertEqual<bool?>(false, second.Entries[0].Enabled);
+                AssertEqual(firstBudget.Remaining, secondBudget.Remaining);
+                var small = await InstanceContentMetadata.EnrichAsync(source, root, new(1), cache, default);
+                AssertEqual("local.jar", small.Entries[0].DisplayName);
+            }
+        }
+        finally { Directory.Delete(root, recursive: true); }
     }
 }

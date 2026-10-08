@@ -31,6 +31,8 @@ internal sealed class CustomAppearanceSession : IAsyncDisposable
     private Task _assetLoad = Task.CompletedTask;
     private readonly Channel<bool> _policy = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly Task _policyWorker;
+    private readonly TaskCompletionSource _initialReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal Task InitialReady => _initialReady.Task;
     private long _generation;
     private bool _disposed;
 
@@ -90,9 +92,16 @@ internal sealed class CustomAppearanceSession : IAsyncDisposable
         try
         {
             await foreach (bool ignored in _policy.Reader.ReadAllAsync(_token).ConfigureAwait(false))
-                if (await CommittedSettingsRead.QueryAsync(_queries, _token).ConfigureAwait(false) is { } settings) ApplyPolicy(settings);
+            {
+                if (await CommittedSettingsRead.QueryAsync(_queries, _token).ConfigureAwait(false) is not { } settings)
+                { _initialReady.TrySetException(new IOException("无法读取初始外观设置。")); continue; }
+                ApplyPolicy(settings);
+                await _assetLoad.ConfigureAwait(false);
+                _initialReady.TrySetResult();
+            }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { _initialReady.TrySetCanceled(_token); }
+        catch (Exception error) { _initialReady.TrySetException(error); throw; }
     }
     private void OnFrame(object? sender, EventArgs args)
     {

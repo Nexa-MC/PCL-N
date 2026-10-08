@@ -183,7 +183,7 @@ internal static partial class Program
             catch (OperationCanceledException) { cancelled = true; }
             AssertTrue(cancelled); AssertEqual(0, order.Count); AssertFalse(nextHook.IsCompleted);
         }
-        finally { Directory.Delete(root, true); }
+        finally { await WaitForLaunchGameDirectoryReleasedAsync(root); Directory.Delete(root, true); }
     }
 
     private static async ValueTask LaunchWrapperRealProcessForwardsPrivateBootstrapAndExit()

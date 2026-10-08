@@ -24,7 +24,8 @@ public static class MinecraftLibraryRuntimeComposer
     public static MinecraftLibraryRuntime Compose(FoundationHost host, string defaultDirectory,
         IMinecraftInstanceSource? source = null, IXsrDispatchObserver? observer = null)
     {
-        MinecraftLibraryService service = new(host.Settings, defaultDirectory, source ?? new MinecraftInstanceDiscovery(host.Logging));
+        MinecraftLibraryService service = new(host.Settings, defaultDirectory, source ?? new MinecraftInstanceDiscovery(
+            host.SharedStateCache, host.CacheDirectory is null ? null : Path.Combine(host.CacheDirectory, "instances"), host.Logging));
         XsrCommandRouterBuilder commands = new();
         commands.Register<MinecraftLibraryRefreshCommand>(MinecraftLibraryRoutes.Refresh, async (_, token) => await service.RefreshAsync(token).ConfigureAwait(false));
         commands.Register<MinecraftLibraryDirectoryCommand>(MinecraftLibraryRoutes.Directory, async (command, token) =>

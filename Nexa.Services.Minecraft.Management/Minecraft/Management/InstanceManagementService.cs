@@ -1,3 +1,4 @@
+using Nexa.Services.Caching;
 using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Minecraft.Process;
 
@@ -7,6 +8,12 @@ namespace Nexa.Services.Minecraft.Management;
 public static class InstanceManagementService
 {
     public static Task<InstanceManagementSnapshot> ReadAsync(InstanceManagementQuery query, CancellationToken token = default) =>
+        ReadCoreAsync(query, null, token);
+
+    public static Task<InstanceManagementSnapshot> ReadAsync(InstanceManagementQuery query, ISharedStateCache sharedCache,
+        CancellationToken token = default) => ReadCoreAsync(query, sharedCache ?? throw new ArgumentNullException(nameof(sharedCache)), token);
+
+    private static Task<InstanceManagementSnapshot> ReadCoreAsync(InstanceManagementQuery query, ISharedStateCache? sharedCache, CancellationToken token) =>
         Task.Run(async () =>
         {
             if (!Path.IsPathFullyQualified(query.InstanceDirectory)) throw new InvalidDataException("请选择有效的版本目录。");
@@ -26,7 +33,7 @@ public static class InstanceManagementService
             List<InstanceContentSnapshot> contents = [];
             var mediaBudget = new Nexa.Services.Files.ArchiveReadBudget(64 * 1024 * 1024);
             foreach (var page in pages.Where(page => page.Directory is not null))
-                contents.Add(await InstanceContentMetadata.EnrichAsync(ReadContent(page, token), page.Directory!, mediaBudget, token).ConfigureAwait(false));
+                contents.Add(await InstanceContentMetadata.EnrichAsync(ReadContent(page, token), page.Directory!, mediaBudget, sharedCache, token).ConfigureAwait(false));
             if (query.CheckModUpdates)
             {
                 for (int i = 0; i < contents.Count; i++)

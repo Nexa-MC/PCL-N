@@ -6,6 +6,11 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("ScrollbarThumbDragAndTrackPageUseSceneGeometry", Sync(ScrollbarThumbDragAndTrackPageUseSceneGeometry)),
+        ("ScrollbarDragSharesWheelOffsetAndAdaptsToResize", Sync(ScrollbarDragSharesWheelOffsetAndAdaptsToResize)),
+        ("ScrollbarOwnershipRejectsLiveBarriersAndRetiredPages", Sync(ScrollbarOwnershipRejectsLiveBarriersAndRetiredPages)),
+        ("ScrollbarsRespectNestedClipsOcclusionAndPagerOwnership", Sync(ScrollbarsRespectNestedClipsOcclusionAndPagerOwnership)),
+        ("BothScrollbarGuttersAndTinyThumbsStayWithinBounds", Sync(BothScrollbarGuttersAndTinyThumbsStayWithinBounds)),
         ("settled list entries do not replay after refresh or scroll", Sync(SettledListEntriesDoNotReplayAfterUnrelatedFramesOrScrolling)),
         ("context menus resolve parents and reject retired commands", Sync(ContextMenusResolveParentsAndRetireCommands)),
         ("horizontal card wheel preserves axes and bubbles at boundaries", Sync(HorizontalCardWheelPreservesAxesAndBubblesAtBoundaries)),

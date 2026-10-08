@@ -261,9 +261,11 @@ public sealed partial class AvaloniaUiSceneSurface : Panel, IDisposable
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         _contextMenu?.Close();
         bool handled = _shell.Renderer.PointerPressed(point);
-        TrackFileDrag(e, position);
+        bool scrollbarGesture = _shell.Renderer.IsScrollbarGestureActive;
+        if (scrollbarGesture) { _fileDragPress = null; _textSelecting = default; }
+        else TrackFileDrag(e, position);
         CommitScene();
-        BeginTextSelection(position, e.ClickCount);
+        if (!scrollbarGesture) BeginTextSelection(position, e.ClickCount);
         if (handled)
         {
             e.Pointer.Capture(this);
@@ -1399,9 +1401,14 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
         }
 
         DrawSelectionPill(context, style);
-        if (_node.Scroll is { ShowsVerticalIndicator: true, CanScrollVertically: true } scroll)
+        if (_node.Scroll is { } scroll)
         {
-            DrawScrollIndicator(context, rect, scroll, _node.ColorScheme);
+            if (_node.VerticalScrollbar is { } vertical) DrawScrollbar(context, LocalScrollbar(vertical), _node.ColorScheme);
+            else if (scroll.Scrollbar(new(0, 0, rect.Width, rect.Height), XsrUiOrientation.Vertical) is { } projectedVertical)
+                DrawScrollbar(context, projectedVertical, _node.ColorScheme);
+            if (_node.HorizontalScrollbar is { } horizontal) DrawScrollbar(context, LocalScrollbar(horizontal), _node.ColorScheme);
+            else if (scroll.Scrollbar(new(0, 0, rect.Width, rect.Height), XsrUiOrientation.Horizontal) is { } projectedHorizontal)
+                DrawScrollbar(context, projectedHorizontal, _node.ColorScheme);
         }
 
         if (_node.IsFocusVisible)
@@ -1512,36 +1519,32 @@ internal sealed partial class AvaloniaUiSceneNodeControl : Control
 
     internal static void DrawScrollIndicator(DrawingContext context, Rect rect, XsrUiScrollSnapshot scroll, XsrUiColorScheme scheme = default)
     {
+        if (scroll.Scrollbar(new(0, 0, rect.Width, rect.Height), XsrUiOrientation.Vertical) is { } vertical)
+            DrawScrollbar(context, vertical, scheme);
+        if (scroll.Scrollbar(new(0, 0, rect.Width, rect.Height), XsrUiOrientation.Horizontal) is { } horizontal)
+            DrawScrollbar(context, horizontal, scheme);
+    }
 
-        const double width = 3;
-        const double inset = 6;
-        const double minimumThumbHeight = 28;
-        double trackHeight = Math.Max(0, rect.Height - (inset * 2));
-        if (trackHeight <= 0)
-        {
-            return;
-        }
+    private XsrUiScrollbarSnapshot LocalScrollbar(XsrUiScrollbarSnapshot scrollbar) => scrollbar with
+    {
+        Track = scrollbar.Track with { X = scrollbar.Track.X - _node.Rect.X, Y = scrollbar.Track.Y - _node.Rect.Y },
+        Thumb = scrollbar.Thumb with { X = scrollbar.Thumb.X - _node.Rect.X, Y = scrollbar.Thumb.Y - _node.Rect.Y },
+        HitRect = scrollbar.HitRect with { X = scrollbar.HitRect.X - _node.Rect.X, Y = scrollbar.HitRect.Y - _node.Rect.Y },
+    };
 
-        double thumbHeight = Math.Clamp(
-            trackHeight * (scroll.ViewportHeight / scroll.ContentHeight),
-            Math.Min(minimumThumbHeight, trackHeight),
-            trackHeight);
-        double travel = Math.Max(0, trackHeight - thumbHeight);
-        double progress = scroll.MaximumOffsetY <= 0
-            ? 0
-            : Math.Clamp(scroll.OffsetY / scroll.MaximumOffsetY, 0, 1);
-        double x = Math.Max(0, rect.Width - width - 4);
-        Rect track = new(x, inset, width, trackHeight);
-        Rect thumb = new(x, inset + (travel * progress), width, thumbHeight);
+    private static void DrawScrollbar(DrawingContext context, XsrUiScrollbarSnapshot scrollbar, XsrUiColorScheme scheme)
+    {
+        Rect track = new(scrollbar.Track.X, scrollbar.Track.Y, scrollbar.Track.Width, scrollbar.Track.Height);
+        Rect thumb = new(scrollbar.Thumb.X, scrollbar.Thumb.Y, scrollbar.Thumb.Width, scrollbar.Thumb.Height);
         XsrUiColor ink = scheme.Foreground(new(91, 105, 122));
         context.DrawRectangle(
             Brush(ink with { Alpha = 28 }),
             null,
-            new RoundedRect(track, new CornerRadius(width / 2)));
+            new RoundedRect(track, new CornerRadius(1.5)));
         context.DrawRectangle(
             Brush(ink with { Alpha = scheme.IsDark ? (byte)185 : (byte)124 }),
             null,
-            new RoundedRect(thumb, new CornerRadius(width / 2)));
+            new RoundedRect(thumb, new CornerRadius(1.5)));
     }
 
     /// <summary>

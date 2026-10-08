@@ -136,7 +136,8 @@ public sealed class MinecraftLibraryService : IDisposable
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!PathComparer.Equals(root, _document.ActiveDirectory) || !_snapshot.Instances.Any(item => item.Id == instanceId)
+                if (_snapshot.IsProvisional || _snapshot.IsLoading
+                    || !PathComparer.Equals(root, _document.ActiveDirectory) || !_snapshot.Instances.Any(item => item.Id == instanceId)
                     || string.IsNullOrWhiteSpace(instanceId) || instanceId is "." or ".." || instanceId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
                     || instanceId.Contains('/') || instanceId.Contains('\\'))
                     return XsrResult.Failure(MinecraftErrors.InvalidRequest("版本路径无效。"));
@@ -168,7 +169,8 @@ public sealed class MinecraftLibraryService : IDisposable
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (!PathComparer.Equals(root, _document.ActiveDirectory) || !_snapshot.Instances.Any(instance => instance.Id == instanceId))
+            if (_snapshot.IsProvisional || _snapshot.IsLoading
+                || !PathComparer.Equals(root, _document.ActiveDirectory) || !_snapshot.Instances.Any(instance => instance.Id == instanceId))
                 return XsrResult.Failure(MinecraftErrors.InstanceNotFound(instanceId));
             XsrResult saved = Remember(_document.ActiveDirectory, instanceId);
             if (saved.IsSuccess) Publish(_snapshot with { SelectedInstanceId = instanceId, Directories = Array.AsReadOnly(_document.Directories), Error = null });
@@ -209,13 +211,15 @@ public sealed class MinecraftLibraryService : IDisposable
         string remembered = PathComparer.Equals(root, _snapshot.RootDirectory)
             ? _snapshot.SelectedInstanceId
             : "";
+        var displayed = PathComparer.Equals(root, _snapshot.RootDirectory) ? _snapshot.Instances : [];
         Publish(new(
             _snapshot.Revision,
             Array.AsReadOnly(_document.Directories),
             root,
-            [],
+            displayed,
             remembered,
-            true));
+            true)
+        { IsProvisional = displayed.Count > 0 });
         return ScanAsync(root, generation, _scanCancellation.Token);
     }
 
@@ -225,6 +229,20 @@ public sealed class MinecraftLibraryService : IDisposable
         XsrError? error = _configurationError;
         try
         {
+            if (_source is IMinecraftInstanceSnapshotSource persisted)
+            {
+                var cached = await persisted.LoadSnapshotAsync(root, cancellationToken).ConfigureAwait(false);
+                if (cached is not null)
+                {
+                    lock (_gate)
+                    {
+                        if (_disposed || generation != _generation || cancellationToken.IsCancellationRequested)
+                            return XsrResult.Failure(XsrRuntimeErrors.Cancelled());
+                        if (_snapshot.Instances.Count == 0)
+                            Publish(_snapshot with { Instances = cached.Instances, IsProvisional = true });
+                    }
+                }
+            }
             if (!Directory.Exists(root)) throw new IOException("The Minecraft directory is unavailable.");
             instances = await _source.DiscoverAsync(root, cancellationToken).ConfigureAwait(false);
         }
@@ -253,8 +271,17 @@ public sealed class MinecraftLibraryService : IDisposable
                 XsrResult saved = Remember(root, selected);
                 if (!saved.IsSuccess) { error = saved.Error; selected = ""; }
             }
-            if (error is not null) selected = "";
-            Publish(new(_snapshot.Revision, Array.AsReadOnly(_document.Directories), root, Array.AsReadOnly(instances.ToArray()), selected, false, error));
+            if (error is not null)
+            {
+                Publish(_snapshot with
+                {
+                    IsLoading = false,
+                    Error = error,
+                    IsProvisional = _snapshot.Instances.Count > 0
+                });
+                return XsrResult.Failure(error);
+            }
+            Publish(new(_snapshot.Revision, Array.AsReadOnly(_document.Directories), root, Array.AsReadOnly(instances.ToArray()), selected, false));
             return error is null ? XsrResult.Success() : XsrResult.Failure(error);
         }
     }

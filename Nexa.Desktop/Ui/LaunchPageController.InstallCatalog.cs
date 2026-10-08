@@ -130,6 +130,7 @@ internal sealed partial class LaunchPageController
     }
     private void RequestInstallCatalog(bool force = false)
     {
+        if (force) _startupCatalogOffline = false;
         if (_installCatalogCommands is null || !_catalogHosts.ContainsKey(_activeJavaInstallPage)) return;
         InstallLoader? loader = ActiveCatalogLoader;
         string key = CurrentCatalogKey;
@@ -299,7 +300,9 @@ internal sealed partial class LaunchPageController
         }
         Spacer("CatalogBefore", first * 50);
         var eligibility = QueryInstallEligibility(snapshot.Loader, snapshot.Versions.Skip(first).Take(count).Select(v => v.Id).ToArray());
-        string message = snapshot.Loading ? "正在获取版本…" : snapshot.Unsupported ?? (snapshot.Error is not null ? "获取失败，请重试。" : snapshot.Versions.Count == 0 ? (query.Length > 0 ? "没有匹配的版本。" : "此游戏版本暂无兼容版本。") : snapshot.Versions[0].Warning is not null ? "部分来源获取失败，点击重试。" : "");
+        string message = snapshot.IsStale ? snapshot.Error ?? "正在显示缓存版本资料，请刷新以确认最新版本。"
+            : snapshot.Loading ? _startupCatalogOffline ? "版本来源暂时不可用，请稍后重试。" : "正在获取版本…"
+                : snapshot.Unsupported ?? (snapshot.Error is not null ? "获取失败，请重试。" : snapshot.Versions.Count == 0 ? (query.Length > 0 ? "没有匹配的版本。" : "此游戏版本暂无兼容版本。") : snapshot.Versions[0].Warning is not null ? "部分来源获取失败，点击重试。" : "");
         if (message.Length == 0 && snapshot.Loader is { } noticeLoader && snapshot.Versions.Count > 0)
             message = eligibility?.Builds.Values.Select(item => item.Notice).FirstOrDefault(notice => notice is not null) ?? "";
         XsrUiEntityId status = _catalogStatus[_activeJavaInstallPage];

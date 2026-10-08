@@ -7,11 +7,12 @@ using static Nexa.Services.Resources.ResourceProviderHttp;
 
 namespace Nexa.Services.Resources;
 
-public sealed class ResourceInstanceService(ResourceProviderHttp http)
+public sealed class ResourceInstanceService(ResourceProviderHttp http, ResourceOnlineInformationCache? information = null) : IDisposable
 {
+    public ResourceInstanceService(ResourceProviderHttp http) : this(http, null) { }
     internal sealed record Fingerprint(string Name, long Size, long Modified, string Sha512, string Sha1, uint CurseForge, bool Enabled);
-    private readonly ResourceSnapshotCache<string, Fingerprint> _cache = new(512);
-    private readonly ResourceSnapshotCache<string, (ResourceInstalledFile[] Files, bool Complete)> _identified = new(1024);
+    private readonly ResourceOnlineInformationCache _information = information ?? new();
+    public void Dispose() { if (information is null) _information.Dispose(); }
     public Task<ResourceInstanceContext> ReadAsync(ResourceInstanceQuery query, CancellationToken token) => Task.Run(async () =>
     {
         var edit = await MinecraftInstallEditService.ReadAsync(new(query.Root, query.InstanceId), token).ConfigureAwait(false);
@@ -20,12 +21,16 @@ public sealed class ResourceInstanceService(ResourceProviderHttp http)
         var metadata = await new MinecraftInstanceMetadataStore().LoadAsync(instance, token).ConfigureAwait(false);
         string mods = Path.Combine(metadata.InstanceIsolation ? instance : Path.GetFullPath(query.Root), "mods");
         string loader = edit.Selection.Select(s => s.Loader switch { InstallLoader.Fabric => "fabric", InstallLoader.LegacyFabric => "fabric", InstallLoader.Quilt => "quilt", InstallLoader.Forge or InstallLoader.Cleanroom => "forge", InstallLoader.NeoForge => "neoforge", _ => "" }).FirstOrDefault(s => s.Length > 0) ?? "";
-        if (!Directory.Exists(mods)) return new ResourceInstanceContext(edit.GameVersion, loader, [], null) { GameDirectory = Path.GetDirectoryName(mods)! };
+        if (!Directory.Exists(mods))
+        {
+            token.ThrowIfCancellationRequested();
+            return new ResourceInstanceContext(edit.GameVersion, loader, [], null) { GameDirectory = Path.GetDirectoryName(mods)! };
+        }
         CheckLinks(mods);
         List<Fingerprint> files = [];
         long budget = 2L * 1024 * 1024 * 1024;
         bool complete = true;
-        foreach (string path in Directory.EnumerateFiles(mods).Where(p => p.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) || p.EndsWith(".jar.disabled", StringComparison.OrdinalIgnoreCase)).Take(513))
+        foreach (string path in Directory.EnumerateFiles(mods).Where(p => p.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) || (p.EndsWith(".jar.disabled", StringComparison.OrdinalIgnoreCase) || p.EndsWith(".disabled.jar", StringComparison.OrdinalIgnoreCase))).Take(513))
         {
             token.ThrowIfCancellationRequested();
             if (files.Count >= 512) { complete = false; break; }
@@ -35,50 +40,95 @@ public sealed class ResourceInstanceService(ResourceProviderHttp http)
             var fingerprint = await ReadFingerprintAsync(file, token).ConfigureAwait(false);
             if (fingerprint is not null) files.Add(fingerprint); else complete = false;
         }
-        var lookups = await Task.WhenAll(ReadModrinth(files, query.MirrorFirst, token), ReadCurseForge(files, query.MirrorFirst, token)).ConfigureAwait(false);
-        return new ResourceInstanceContext(edit.GameVersion, loader, lookups.SelectMany(r => r.Files).DistinctBy(f => (f.Source, f.FileName)).ToArray(),
-            complete && lookups.All(r => r.Complete) ? null : "部分模组暂时无法识别，未识别的项目仍会显示。")
+        var lookups = await IdentifyManyAsync(files, query.MirrorFirst, token).ConfigureAwait(false);
+        var installed = files.SelectMany(file => lookups.TryGetValue(file.Sha512, out var value)
+            ? value.Files.Select(match => match with { FileName = file.Name, Enabled = file.Enabled }) : []).DistinctBy(f => (f.Source, f.FileName)).ToArray();
+        token.ThrowIfCancellationRequested();
+        return new ResourceInstanceContext(edit.GameVersion, loader, installed,
+            lookups.Values.Any(value => value.IsStale) ? ResourceOnlineInformationCache.StaleNotice
+            : complete && lookups.Values.All(r => r.Complete) ? null : "部分模组暂时无法识别，未识别的项目仍会显示。")
         { GameDirectory = Path.GetDirectoryName(mods)! };
     }, token);
     internal async Task<Fingerprint?> ReadFingerprintAsync(FileInfo file, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        string key = file.FullName + "|" + file.Length + "|" + file.LastWriteTimeUtc.Ticks;
-        if (_cache.TryRead(key, out var cached)) return cached;
-        var fingerprint = await FingerprintAsync(file, token).ConfigureAwait(false);
-        if (fingerprint is not null) _cache.Save(key, fingerprint);
-        return fingerprint;
+        long size = file.Length, modified = file.LastWriteTimeUtc.Ticks;
+        string identity = ResourceOnlineInformationCache.Identity(file.FullName, size.ToString(System.Globalization.CultureInfo.InvariantCulture), modified.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        var fingerprint = await _information.ReadAsync("fingerprint", identity, ResourceOnlineInformationCache.MetadataFresh, ResourceOnlineInformationCache.MetadataRetain,
+            1024, ResourceMetadataJsonContext.Default.ResourceMetadataEnvelopeFingerprintMetadata,
+            async ct => new FingerprintMetadata(await FingerprintAsync(file, ct).ConfigureAwait(false)),
+            value => value.Fingerprint is { } f && f.Size == size && f.Modified == modified && f.Sha512.Length == 128 && f.Sha512.All(char.IsAsciiHexDigit)
+                && f.Sha1.Length == 40 && f.Sha1.All(char.IsAsciiHexDigit), value => value, value => value, token: token).ConfigureAwait(false);
+        file.Refresh();
+        return file.Exists && file.Length == size && file.LastWriteTimeUtc.Ticks == modified
+            ? fingerprint.Fingerprint is { } value ? value with { Name = file.Name, Enabled = Enabled(file.Name) } : null : null;
     }
-    internal Task<(ResourceInstalledFile[] Files, bool Complete)> IdentifyAsync(Fingerprint file, bool mirror, CancellationToken token) => IdentifyAsync(file, mirror, false, token);
-    internal async Task<(ResourceInstalledFile[] Files, bool Complete)> IdentifyAsync(Fingerprint file, bool mirror, bool useCache, CancellationToken token)
+    internal async Task<ResourceIdentityMetadata> IdentifyAsync(Fingerprint file, bool mirror, CancellationToken token, bool refresh = false, bool waitForRefresh = false)
     {
-        string key = file.Sha512 + mirror;
-        if (useCache && _identified.TryRead(key, out var cached))
-            return (cached.Files.Select(f => f with { FileName = file.Name, Enabled = file.Enabled }).ToArray(), cached.Complete);
-        var results = await Task.WhenAll(ReadModrinth([file], mirror, token), ReadCurseForge([file], mirror, token)).ConfigureAwait(false);
-        var result = (Files: results.SelectMany(result => result.Files).ToArray(), Complete: results.All(result => result.Complete));
-        if (result.Complete) _identified.Save(key, result);
-        return result;
+        var result = await IdentifyManyAsync([file], mirror, token, refresh, waitForRefresh).ConfigureAwait(false);
+        var value = result[file.Sha512];
+        return value with { Files = value.Files.Select(match => match with { FileName = file.Name, Enabled = file.Enabled }).ToArray() };
     }
-    internal async Task<IReadOnlyDictionary<string, (ResourceInstalledFile[] Files, bool Complete)>> IdentifyManyAsync(List<Fingerprint> files, bool mirror, CancellationToken token, bool refresh = false)
+    internal async Task<IReadOnlyDictionary<string, ResourceIdentityMetadata>> IdentifyManyAsync(List<Fingerprint> files, bool mirror, CancellationToken token, bool refresh = false, bool waitForRefresh = false)
     {
-        var identified = new Dictionary<string, (ResourceInstalledFile[] Files, bool Complete)>(StringComparer.OrdinalIgnoreCase);
+        token.ThrowIfCancellationRequested();
+        string policy = ResourceOnlineInformationCache.Identity(http.CachePolicyIdentity, mirror.ToString());
+        var identified = new Dictionary<string, ResourceIdentityMetadata>(StringComparer.OrdinalIgnoreCase);
         var missing = new List<Fingerprint>();
-        foreach (var file in files)
-            if (!refresh && _identified.TryRead(file.Sha512 + mirror, out var cached)) identified[file.Sha512] = cached;
-            else missing.Add(file);
-        if (missing.Count == 0) return identified;
-        var results = await Task.WhenAll(ReadModrinth(missing, mirror, token), ReadCurseForge(missing, mirror, token)).ConfigureAwait(false);
-        bool complete = results.All(r => r.Complete);
-        var matches = results.SelectMany(r => r.Files).ToLookup(f => f.Sha512, StringComparer.OrdinalIgnoreCase);
-        foreach (var file in missing)
+        foreach (var file in files.DistinctBy(file => file.Sha512, StringComparer.OrdinalIgnoreCase))
         {
-            var value = (Files: matches[file.Sha512].ToArray(), Complete: complete);
-            identified[file.Sha512] = value;
-            if (complete) _identified.Save(file.Sha512 + mirror, value);
+            var cached = await _information.ReadSnapshotAsync("identity", ResourceOnlineInformationCache.Identity(policy, file.Sha512),
+                ResourceOnlineInformationCache.IdentityFresh, ResourceOnlineInformationCache.MetadataRetain, 2048,
+                ResourceMetadataJsonContext.Default.ResourceMetadataEnvelopeResourceIdentityMetadata,
+                value => Verified(value, file.Sha512), token).ConfigureAwait(false);
+            if (cached is not null)
+            {
+                identified[file.Sha512] = cached.Value with { IsStale = refresh || cached.IsStale, Complete = !refresh && !cached.IsStale && cached.Value.Complete };
+                if (refresh || cached.IsStale) missing.Add(file);
+            }
+            else missing.Add(file);
         }
+        if (missing.Count == 0) return identified;
+        string batchIdentity = ResourceOnlineInformationCache.Identity(policy, string.Join(",", files.Select(file => file.Sha512).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal)));
+        async Task<ResourceIdentityBatchMetadata> Read(CancellationToken ct)
+        {
+            var results = await Task.WhenAll(ReadModrinth(missing, mirror, ct), ReadCurseForge(missing, mirror, ct)).ConfigureAwait(false);
+            bool complete = results.All(result => result.Complete);
+            var matches = results.SelectMany(result => result.Files).ToLookup(match => match.Sha512, StringComparer.OrdinalIgnoreCase);
+            var values = new Dictionary<string, ResourceIdentityMetadata>(StringComparer.OrdinalIgnoreCase);
+            foreach (var file in missing)
+            {
+                var value = new ResourceIdentityMetadata(matches[file.Sha512].DistinctBy(match => (match.Source, match.VersionId)).ToArray(), complete);
+                values[file.Sha512] = value;
+                if (Verified(value, file.Sha512))
+                    await _information.SaveAsync("identity", ResourceOnlineInformationCache.Identity(policy, file.Sha512), value,
+                        ResourceOnlineInformationCache.IdentityFresh, ResourceOnlineInformationCache.MetadataRetain, 2048,
+                        ResourceMetadataJsonContext.Default.ResourceMetadataEnvelopeResourceIdentityMetadata,
+                        value => value with { Files = value.Files.Select(match => match with { FileName = "", Enabled = false }).ToArray() }, ct).ConfigureAwait(false);
+            }
+            return new(values);
+        }
+        async Task<ResourceIdentityBatchMetadata> Fetch(CancellationToken waiter) => await _information.ReadAsync("identity-batch", batchIdentity,
+            ResourceOnlineInformationCache.IdentityFresh, ResourceOnlineInformationCache.MetadataRetain, Math.Max(2048, missing.Count * 2048),
+            ResourceMetadataJsonContext.Default.ResourceMetadataEnvelopeResourceIdentityBatchMetadata, Read,
+            value => value.Matches.Values.All(item => item.Complete && item.Files.Length > 0), value => value,
+            value => new(value.Matches.ToDictionary(item => item.Key, item => item.Value with { IsStale = true, Complete = false }, StringComparer.OrdinalIgnoreCase)),
+            refresh: refresh, persistent: false, waitForRefresh: waitForRefresh, token: waiter).ConfigureAwait(false);
+        if (!refresh && !waitForRefresh && missing.All(file => identified.ContainsKey(file.Sha512)))
+        {
+            _ = Refresh();
+            return identified;
+        }
+        var current = await Fetch(token).ConfigureAwait(false);
+        foreach (var item in current.Matches)
+            if (item.Value.Files.Length > 0 || !identified.ContainsKey(item.Key)) identified[item.Key] = item.Value;
         return identified;
+        async Task Refresh() { try { await Fetch(CancellationToken.None).ConfigureAwait(false); } catch (Exception error) when (ResourceOnlineInformationCache.Recoverable(error)) { } }
     }
+    private static bool Verified(ResourceIdentityMetadata value, string hash) => value.Complete && value.Files.Length is > 0 and <= 2
+        && value.Files.All(match => Enum.IsDefined(match.Source.Provider) && match.Sha512.Equals(hash, StringComparison.OrdinalIgnoreCase)
+            && (match.Source.Provider == ResourceProvider.Modrinth ? ModrinthId(match.Source.ProjectId) && ModrinthId(match.VersionId)
+                : CurseForgeId(match.Source.ProjectId) && CurseForgeId(match.VersionId)));
     private async Task<(ResourceInstalledFile[] Files, bool Complete)> ReadModrinth(List<Fingerprint> files, bool mirror, CancellationToken token)
     {
         List<ResourceInstalledFile> matches = [];
@@ -96,12 +146,15 @@ public sealed class ResourceInstanceService(ResourceProviderHttp http)
                     if (!document.RootElement.TryGetProperty(file.Sha512, out var version)) continue;
                     string project = Text(version, "project_id"), id = Text(version, "id");
                     if (version.ValueKind != JsonValueKind.Object || !ModrinthId(project) || !ModrinthId(id)) { complete = false; continue; }
+                    if (version.TryGetProperty("files", out var actualFiles) && (actualFiles.ValueKind != JsonValueKind.Array
+                        || !actualFiles.EnumerateArray().Any(actual => actual.ValueKind == JsonValueKind.Object && actual.TryGetProperty("hashes", out var hashes)
+                            && Text(hashes, "sha512").Equals(file.Sha512, StringComparison.OrdinalIgnoreCase)))) { complete = false; continue; }
                     matches.Add(new(new(ResourceProvider.Modrinth, project), id, file.Name, file.Sha512, file.Enabled));
                 }
             }
             token.ThrowIfCancellationRequested(); return (matches.ToArray(), complete);
         }
-        catch (Exception e) when (!token.IsCancellationRequested && e is IOException or InvalidDataException or HttpRequestException or JsonException or OperationCanceledException) { return (matches.ToArray(), false); }
+        catch (Exception e) when (!token.IsCancellationRequested && ResourceOnlineInformationCache.Recoverable(e)) { return (matches.ToArray(), false); }
     }
     private async Task<(ResourceInstalledFile[] Files, bool Complete)> ReadCurseForge(List<Fingerprint> files, bool mirror, CancellationToken token)
     {
@@ -125,13 +178,13 @@ public sealed class ResourceInstanceService(ResourceProviderHttp http)
                     if (!CurseForgeId(project) || !CurseForgeId(id)) { complete = false; continue; }
                     string sha1 = hashes.EnumerateArray().Where(h => Number(h, "algo") == 1).Select(h => Text(h, "value")).FirstOrDefault() ?? "";
                     if (sha1.Length != 40 || !sha1.All(char.IsAsciiHexDigit)) { complete = false; continue; }
-                    foreach (var file in batch.Where(f => f.CurseForge == Number(version, "fileFingerprint") && f.Sha1.Equals(sha1, StringComparison.OrdinalIgnoreCase)))
+                    foreach (var file in batch.Where(f => f.CurseForge == (Number(version, "fileFingerprint") is > 0 and <= uint.MaxValue ? Number(version, "fileFingerprint") : Number(match, "id")) && f.Sha1.Equals(sha1, StringComparison.OrdinalIgnoreCase)))
                         matches.Add(new(new(ResourceProvider.CurseForge, project), id, file.Name, file.Sha512, file.Enabled));
                 }
             }
             token.ThrowIfCancellationRequested(); return (matches.ToArray(), complete);
         }
-        catch (Exception e) when (!token.IsCancellationRequested && e is IOException or InvalidDataException or HttpRequestException or JsonException or OperationCanceledException) { return (matches.ToArray(), false); }
+        catch (Exception e) when (!token.IsCancellationRequested && ResourceOnlineInformationCache.Recoverable(e)) { return (matches.ToArray(), false); }
     }
     private static bool ModrinthId(string value) => value.Length is > 0 and <= 64 && value.All(char.IsAsciiLetterOrDigit);
     private static bool CurseForgeId(string value) => value.Length is > 0 and < 20 && value.All(char.IsAsciiDigit);
@@ -170,8 +223,9 @@ public sealed class ResourceInstanceService(ResourceProviderHttp http)
             hash ^= hash >> 13; hash *= 0x5bd1e995; hash ^= hash >> 15;
         }
         file.Refresh();
-        return actual == size && file.Exists && file.Length == size && file.LastWriteTimeUtc.Ticks == modified ? new(file.Name, size, modified, Convert.ToHexString(sha512.GetHashAndReset()).ToLowerInvariant(), Convert.ToHexString(sha1.GetHashAndReset()), hash, !file.Name.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase)) : null;
+        return actual == size && file.Exists && file.Length == size && file.LastWriteTimeUtc.Ticks == modified ? new(file.Name, size, modified, Convert.ToHexString(sha512.GetHashAndReset()).ToLowerInvariant(), Convert.ToHexString(sha1.GetHashAndReset()), hash, Enabled(file.Name)) : null;
     }
+    private static bool Enabled(string name) => !name.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase) && !name.EndsWith(".disabled.jar", StringComparison.OrdinalIgnoreCase);
     private static bool Whitespace(byte b) => b is 9 or 10 or 13 or 32;
     private static void CheckLinks(string path)
     {

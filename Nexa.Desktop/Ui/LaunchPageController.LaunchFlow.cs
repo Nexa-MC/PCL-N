@@ -30,6 +30,11 @@ internal sealed partial class LaunchPageController
 
     private async Task StartLaunchAsync(string instanceId, XsrUiEntityId source, string? serverAddress = null)
     {
+        if (_store.ReadAppliedValue(_libraryId) is MinecraftLibrarySnapshot { IsProvisional: true })
+        {
+            _feedback.Warn("请先刷新并校验本地版本。");
+            return;
+        }
         IReadOnlyList<LaunchProfileView> profiles = ReadProfiles();
         int selected = SelectedAccountIndex;
         if (!profiles.Any(profile => profile.Index == selected))

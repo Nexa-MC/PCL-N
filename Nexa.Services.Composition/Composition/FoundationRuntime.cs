@@ -183,7 +183,7 @@ public static class FoundationRuntimeComposer
         queries.Register<InstanceManagementQuery, InstanceManagementSnapshot>(InstanceManagementContract.Query,
             async (query, token) =>
             {
-                var snapshot = await InstanceManagementService.ReadAsync(query, token).ConfigureAwait(false);
+                var snapshot = await InstanceManagementService.ReadAsync(query, host.SharedStateCache, token).ConfigureAwait(false);
                 if (query.IncludeRecoveryStorage)
                 {
                     var comparison = await recovery.ReadAsync(new(query.InstanceDirectory), token).ConfigureAwait(false);

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Nexa.Services.Files;
 using Nexa.Xsr;
 
 namespace Nexa.Services.Settings;
@@ -93,44 +94,16 @@ public sealed class LauncherSettingsJsonPort : ISettingsPort
 
         lock (PathLocks.GetOrAdd(_path, static _ => new object()))
         {
-            string directory = System.IO.Path.GetDirectoryName(_path)
-                ?? throw new IOException($"The launcher settings path '{_path}' has no parent directory.");
-            Directory.CreateDirectory(directory);
-            string temporaryPath = System.IO.Path.Combine(
-                directory,
-                $".{System.IO.Path.GetFileName(_path)}.{Guid.NewGuid():N}.tmp");
-            bool replaced = false;
-            try
-            {
-                using (FileStream stream = new(
-                    temporaryPath,
-                    FileMode.CreateNew,
-                    FileAccess.Write,
-                    FileShare.None,
-                    bufferSize: 16 * 1024,
-                    FileOptions.WriteThrough | FileOptions.SequentialScan))
+            AtomicFileWriter.Write(
+                _path,
+                "launcher settings",
+                stream =>
                 {
                     using Utf8JsonWriter writer = new(stream, new JsonWriterOptions { Indented = true });
                     WriteDocument(writer, values);
-                }
-
-                ReplaceWithRetry(temporaryPath);
-                replaced = true;
-            }
-            finally
-            {
-                if (!replaced)
-                {
-                    try
-                    {
-                        File.Delete(temporaryPath);
-                    }
-                    catch (IOException)
-                    {
-                        // Preserve the original save exception.
-                    }
-                }
-            }
+                },
+                ReplaceAttemptCount,
+                static attempt => TimeSpan.FromMilliseconds(25 * attempt * attempt));
         }
     }
 
@@ -336,31 +309,5 @@ public sealed class LauncherSettingsJsonPort : ISettingsPort
             // Loading valid settings matters more than persisting the quarantine copy; the next
             // successful save replaces the quarantined content anyway.
         }
-    }
-
-    private void ReplaceWithRetry(string temporaryPath)
-    {
-        IOException? lastFailure = null;
-        for (int attempt = 1; attempt <= ReplaceAttemptCount; attempt++)
-        {
-            try
-            {
-                File.Move(temporaryPath, _path, overwrite: true);
-                return;
-            }
-            catch (IOException failure) when (attempt < ReplaceAttemptCount)
-            {
-                lastFailure = failure;
-                Thread.Sleep(TimeSpan.FromMilliseconds(25 * attempt * attempt));
-            }
-            catch (IOException failure)
-            {
-                lastFailure = failure;
-            }
-        }
-
-        throw new IOException(
-            $"Unable to replace launcher settings file '{_path}' after {ReplaceAttemptCount} attempts.",
-            lastFailure);
     }
 }

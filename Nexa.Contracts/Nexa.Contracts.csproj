@@ -4,6 +4,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Nexa.Jvm.Host" />
+    <InternalsVisibleTo Include="Nexa.Services.Minecraft.Java" />
+    <InternalsVisibleTo Include="Nexa.Services.Tests" />
     <ProjectReference Include="../Nexa.Core/Nexa.Core.csproj" />
   </ItemGroup>
 </Project>

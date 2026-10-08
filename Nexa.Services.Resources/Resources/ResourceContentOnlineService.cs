@@ -10,7 +10,7 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
         if (query.Files.Count > 100) throw new InvalidDataException("一次最多识别 100 个资源文件。");
         long budget = 1024L * 1024 * 1024;
         Dictionary<ResourceContentOnlineQuery, ResourceInstanceService.Fingerprint> eligible = [];
-        Dictionary<ResourceContentOnlineQuery, (ResourceInstalledFile[] Files, bool Complete)> identified = [];
+        Dictionary<ResourceContentOnlineQuery, ResourceIdentityMetadata> identified = [];
         foreach (var group in query.Files.GroupBy(q => q.MirrorFirst))
         {
             List<ResourceInstanceService.Fingerprint> fingerprints = [];
@@ -35,7 +35,7 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
                 }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
             }
-            var identities = await instances.IdentifyManyAsync(fingerprints, group.Key, token, query.Refresh).ConfigureAwait(false);
+            var identities = await instances.IdentifyManyAsync(fingerprints, group.Key, token, query.Refresh, query.WaitForRefresh).ConfigureAwait(false);
             foreach (var item in group)
                 if (eligible.TryGetValue(item, out var fingerprint) && identities.TryGetValue(fingerprint.Sha512, out var identity))
                     identified[item] = identity;
@@ -49,7 +49,7 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
             {
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 deadline.CancelAfter(TimeSpan.FromSeconds(20));
-                var content = await ReadCoreAsync(file, identity, query.Refresh, deadline.Token).ConfigureAwait(false);
+                var content = await ReadCoreAsync(file with { WaitForRefresh = query.WaitForRefresh }, identity, query.Refresh, deadline.Token).ConfigureAwait(false);
                 matches[i] = new(file, content with { Versions = content.Versions.Take(1).ToArray() });
             }
             catch (Exception error) when (!ct.IsCancellationRequested && error is IOException or InvalidDataException or UnauthorizedAccessException or HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or KeyNotFoundException or OperationCanceledException)
@@ -57,8 +57,8 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
         }).ConfigureAwait(false);
         return new ResourceContentOnlineBatch(Array.AsReadOnly(matches));
     }, token);
-    public Task<ResourceContentOnline> ReadAsync(ResourceContentOnlineQuery query, CancellationToken token) => ReadCoreAsync(query, null, false, token);
-    private Task<ResourceContentOnline> ReadCoreAsync(ResourceContentOnlineQuery query, (ResourceInstalledFile[] Files, bool Complete)? preloaded, bool refresh, CancellationToken token) => Task.Run(async () =>
+    public Task<ResourceContentOnline> ReadAsync(ResourceContentOnlineQuery query, CancellationToken token) => ReadCoreAsync(query, null, query.Refresh, token);
+    private Task<ResourceContentOnline> ReadCoreAsync(ResourceContentOnlineQuery query, ResourceIdentityMetadata? preloaded, bool refresh, CancellationToken token) => Task.Run(async () =>
     {
         ResourceKind kind = query.PageId switch
         {
@@ -82,26 +82,31 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
         if (file.Length > 512L * 1024 * 1024) return new ResourceContentOnline(null, null, [], "文件较大，暂不进行在线识别。");
         var fingerprint = await instances.ReadFingerprintAsync(file, token).ConfigureAwait(false);
         if (fingerprint is null) throw new IOException("文件已变化，请刷新后重试。");
-        var identified = preloaded ?? await instances.IdentifyAsync(fingerprint, query.MirrorFirst, token).ConfigureAwait(false);
-        if (preloaded is not null) identified = (identified.Files.Select(match => match with { FileName = file.Name, Enabled = fingerprint.Enabled }).ToArray(), identified.Complete);
+        var identified = preloaded ?? await instances.IdentifyAsync(fingerprint, query.MirrorFirst, token, refresh, query.WaitForRefresh).ConfigureAwait(false);
+        if (preloaded is not null) identified = identified with { Files = identified.Files.Select(match => match with { FileName = file.Name, Enabled = fingerprint.Enabled }).ToArray() };
         if (identified.Files.Length == 0) return new ResourceContentOnline(null, null, [], identified.Complete ? "模组站尚未收录此文件，已保留本地信息。" : "暂时无法连接模组站，已保留本地信息。");
         var edit = await MinecraftInstallEditService.ReadAsync(new(versions.Parent.FullName, Path.GetFileName(instance)), token).ConfigureAwait(false);
         string loader = kind == ResourceKind.Mod ? edit.Selection.Select(selection => selection.Loader switch
         { InstallLoader.Fabric or InstallLoader.LegacyFabric => "fabric", InstallLoader.Quilt => "quilt", InstallLoader.Forge or InstallLoader.Cleanroom => "forge", InstallLoader.NeoForge => "neoforge", _ => "" }).FirstOrDefault(value => value.Length > 0) ?? "" : "";
         var sources = identified.Files.Select(match => match.Source).Distinct().ToArray();
-        var detail = await catalog.DetailAsync(new(sources[0].ProjectId, edit.GameVersion, loader) { Sources = sources, MirrorFirst = query.MirrorFirst, Refresh = refresh }, token).ConfigureAwait(false);
+        var detail = await catalog.DetailAsync(new(sources[0].ProjectId, edit.GameVersion, loader) { Sources = sources, MirrorFirst = query.MirrorFirst, Refresh = refresh, WaitForRefresh = query.WaitForRefresh }, token).ConfigureAwait(false);
         var project = detail.Project with { Kind = kind };
+        string? translationNotice = null;
+        // List batches only project name/version/update facts. Translate descriptions when the detail consumes them.
         if (preloaded is null && translations is not null && string.IsNullOrWhiteSpace(project.ChineseDescription))
         {
             var translated = await translations.ReadAsync(new(sources[0], project.Description), token).ConfigureAwait(false);
             project = project with { ChineseDescription = translated.Description };
+            translationNotice = translated.Notice;
         }
         List<ResourceVersion> installed = [];
+        bool versionUnavailable = false;
         foreach (var match in identified.Files)
         {
             var version = detail.Versions.FirstOrDefault(v => v.Id == match.VersionId && v.Provider == match.Source.Provider && v.ProjectId == match.Source.ProjectId);
             if (version is null && catalog is IResourceFileSource files)
-                version = await files.ReadVersionAsync(new(match.Source.Provider, match.Source.ProjectId, match.VersionId, "", query.MirrorFirst), token).ConfigureAwait(false);
+                try { version = await files.ReadVersionAsync(new(match.Source.Provider, match.Source.ProjectId, match.VersionId, "", query.MirrorFirst), token).ConfigureAwait(false); }
+                catch (Exception error) when (!token.IsCancellationRequested && ResourceOnlineInformationCache.Recoverable(error)) { versionUnavailable = true; }
             if (version is not null && version.Id == match.VersionId && version.Provider == match.Source.Provider && version.ProjectId == match.Source.ProjectId)
                 installed.Add(version);
         }
@@ -125,8 +130,13 @@ public sealed class ResourceContentOnlineService(ResourceInstanceService instanc
             updateAvailable = update is not null ? true : identified.Complete && string.IsNullOrWhiteSpace(detail.Notice) ? false : null;
         }
         file.Refresh(); CheckIdentity(file, query); CheckLinks(file.FullName);
-        return new ResourceContentOnline(project, installedName, detail.Versions, detail.Notice ?? (identified.Complete ? null : "部分来源暂时无法连接。"))
-        { InstalledFiles = Array.AsReadOnly(identified.Files), UpdateVersion = update, UpdateAvailable = updateAvailable };
+        bool stale = identified.IsStale || detail.IsStale || detail.Notice?.Contains(ResourceOnlineInformationCache.StaleNotice, StringComparison.Ordinal) == true;
+        string? notice = identified.IsStale ? ResourceOnlineInformationCache.Notice(detail.Notice) : detail.Notice;
+        if (!identified.Complete || versionUnavailable) notice = string.IsNullOrEmpty(notice) ? "部分来源暂时无法连接。" : notice + " 部分来源暂时无法连接。";
+        if (translationNotice is not null) notice = string.IsNullOrEmpty(notice) ? translationNotice : notice + " " + translationNotice;
+        var versionsWithInstalled = installed.Concat(detail.Versions).DistinctBy(version => (version.Provider, version.ProjectId, version.Id)).ToArray();
+        return new ResourceContentOnline(project, installedName, versionsWithInstalled, notice)
+        { InstalledFiles = Array.AsReadOnly(identified.Files), UpdateVersion = stale ? null : update, UpdateAvailable = stale ? null : updateAvailable, IsStale = stale };
     }, token);
 
     private static DateTimeOffset? Publication(ResourceVersion version) => DateTimeOffset.TryParse(version.Published,

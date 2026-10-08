@@ -222,9 +222,7 @@ public sealed class MinecraftLaunchCoordinator
             string javaRoot = Nexa.Core.PathIdentity.Comparer.Equals(root, _minecraftRootDirectory)
                 ? _javaRuntimeRootDirectory : Path.Combine(root, "runtime");
             operation?.Stage("resolve_instance");
-            IReadOnlyList<MinecraftInstanceDescriptor> installed = await _instances
-                .DiscoverAsync(root, cancellationToken)
-                .ConfigureAwait(false);
+            IReadOnlyList<MinecraftInstanceDescriptor> installed = await _instances.RefreshAsync(root, cancellationToken).ConfigureAwait(false);
             MinecraftInstanceDescriptor? instance = installed.FirstOrDefault(candidate =>
                 string.Equals(candidate.Id, instanceId, StringComparison.OrdinalIgnoreCase));
             if (instance is null)

@@ -6,6 +6,10 @@ public sealed class ResourceProviderHttp(HttpClient http, string? curseForgeKey 
 {
     public RegionalPolicy CountryPolicy { get; init; } = RegionalPolicy.Current;
     public Func<string>? SourcePriority { get; init; }
+    // This identity contains capability and endpoint policy, never the API key itself.
+    internal string CachePolicyIdentity => ResourceOnlineInformationCache.Identity(CountryPolicy.CountryCode,
+        SourcePriority?.Invoke() ?? "follow-request", string.IsNullOrEmpty(_key) ? "no-official-key" : "official-key-available",
+        Mirror, "https://api.modrinth.com/v2/", "https://api.curseforge.com/v1/");
     private ResourceSourceResolution? _lastResolution;
     public ResourceSourceResolution? LastResolution => Volatile.Read(ref _lastResolution);
     internal const string Mirror = "https://mod.mcimirror.top";

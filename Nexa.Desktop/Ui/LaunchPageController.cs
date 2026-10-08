@@ -392,7 +392,7 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
         Publish(LaunchPageState.SelectedInstanceKey, snapshot.SelectedInstance?.Id ?? "");
         Publish(LaunchPageState.InstanceSummaryKey, snapshot.SelectedInstance is { } selected
             ? string.IsNullOrWhiteSpace(selected.Metadata.DisplayName) ? selected.Id : selected.Metadata.DisplayName
-            : snapshot.IsLoading ? ScanningInstances : NoInstances);
+            : snapshot.IsProvisional ? "正在校验已缓存的版本…" : snapshot.IsLoading ? ScanningInstances : NoInstances);
         Publish(LaunchPageState.InstanceDirectoryKey, snapshot.RootDirectory);
         UpdateLaunchButton();
     }
@@ -409,7 +409,12 @@ internal sealed partial class LaunchPageController : IDisposable, IAsyncDisposab
             && _shell.Tree.GetComponent<XsrUiText>(versionName) is { } versionText) versionText.Localize = !hasInstance;
         string label;
         bool enabled;
-        if (!hasInstance)
+        if (_store.ReadAppliedValue(_libraryId) is MinecraftLibrarySnapshot { IsProvisional: true })
+        {
+            label = "版本待校验";
+            enabled = false;
+        }
+        else if (!hasInstance)
         {
             label = DownloadLabel;
             enabled = true;

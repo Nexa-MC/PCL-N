@@ -155,22 +155,6 @@ public sealed class InputCapabilityProvider(InputUsageTracker? usage = null) : I
         Array.AsReadOnly(InputCatalog.Definitions().Where(static definition => !definition.Id.StartsWith("input.usage.", StringComparison.Ordinal))
             .Select(definition => definition.Unavailable(CapabilityAvailability.PlatformUnsupported, timestamp, reason)).ToArray());
 
-    private static int CountXInputControllers()
-    {
-        // XInputGetState over the four user slots; battery-free and returns ERROR_EMPTY on
-        // free slots, so any success means a controller is present.
-        int connected = 0;
-        for (uint user = 0; user < 4; user++)
-        {
-            if (XInputGetState(user, out _) == 0)
-            {
-                connected++;
-            }
-        }
-
-        return connected;
-    }
-
     private static List<(string Name, bool Haptics)> ReadXInputControllers()
     {
         List<(string Name, bool Haptics)> devices = [];
@@ -201,15 +185,6 @@ public sealed class InputCapabilityProvider(InputUsageTracker? usage = null) : I
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct XInputState
-    {
-        public uint PacketNumber;
-        public ushort GamepadButtons;
-        public byte LeftTrigger, RightTrigger;
-        public short ThumbLX, ThumbLY, ThumbRX, ThumbRY;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
     private struct XInputCapabilities
     {
         public byte Type;
@@ -233,9 +208,6 @@ public sealed class InputCapabilityProvider(InputUsageTracker? usage = null) : I
         public ushort LeftMotorSpeed;
         public ushort RightMotorSpeed;
     }
-
-    [DllImport("xinput1_4.dll", SetLastError = false)]
-    private static extern int XInputGetState(uint userIndex, out XInputState state);
 
     [DllImport("xinput1_4.dll", SetLastError = false)]
     private static extern int XInputGetCapabilities(uint userIndex, uint flags, out XInputCapabilities capabilities);

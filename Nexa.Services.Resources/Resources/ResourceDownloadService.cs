@@ -13,6 +13,7 @@ public sealed class ResourceDownloadService(IResourceCatalogSource catalog, Down
         using var task = tasks.Begin(new("resource." + Guid.NewGuid().ToString("N"), "下载资源", ["读取版本", "下载", "校验"]));
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, task.CancellationToken);
         token = linked.Token;
+        command = command with { Refresh = true };
         string? stage = null;
         try
         {
@@ -20,7 +21,8 @@ public sealed class ResourceDownloadService(IResourceCatalogSource catalog, Down
             if (catalog is IResourceFileSource files) file = await files.ReadFileAsync(command, token).ConfigureAwait(false);
             else
             {
-                var detail = await catalog.DetailAsync(new(command.ProjectId) { Sources = [new(command.Provider, command.ProjectId)], MirrorFirst = command.MirrorFirst }, token).ConfigureAwait(false);
+                var detail = await catalog.DetailAsync(new(command.ProjectId) { Sources = [new(command.Provider, command.ProjectId)], MirrorFirst = command.MirrorFirst, Refresh = true }, token).ConfigureAwait(false);
+                if (detail.IsStale || detail.Notice?.Contains(ResourceOnlineInformationCache.StaleNotice, StringComparison.Ordinal) == true) throw new IOException("请连接资源站重新确认下载文件。缓存资料仍可浏览。");
                 file = detail.Versions.FirstOrDefault(v => v.Id == command.VersionId && v.Provider == command.Provider && v.ProjectId == command.ProjectId)?.File;
             }
             if (file is null) throw new IOException("作者未开放此文件的直接下载，请前往项目主页下载。");

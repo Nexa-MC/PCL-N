@@ -135,7 +135,7 @@ public static class MinecraftLaunchPlanner
         EnsureNoUnresolvedTokens(args);
         _ = MinecraftLaunchHooks.ParseWrapper(request.WrapperCommand);
         MinecraftLaunchHooks.ValidatePreLaunch(request.PreLaunchCommand);
-        return new MinecraftLaunchPlan(request.JavaExecutablePath, instance, args, classpath.Entries, libraries, loader)
+        return new MinecraftLaunchPlan(request.JavaExecutablePath, gameDirectory, args, classpath.Entries, libraries, loader)
         {
             MainClassIndex = gameArgumentStart - 1,
             NativesDirectory = nativesDirectory,

@@ -6,6 +6,7 @@ Services 不引用 Avalonia，renderer 不读取剪贴板或注册操作系统�
 ## 本次关闭的边界
 
 - 开机启动只写当前用户入口；关闭仅删除由 NexaCL 创建的入口，不申请管理员权限。
+  关闭时入口或父目录不存在均为幂等成功，不创建目录；访问拒绝仍报告失败。
   Windows Jump List 使用当前 NexaCL AppID 的四项固定导航任务，关闭删除本应用的列表，
   不接管用户对其他应用的选择；标签在 UI dispatcher 拍取不可变的当前语言快照。
 - 文件关联只声明 NexaCL 可处理的 `.mrpack` 与 `.nexapack`，不接管普通 ZIP/JAR；

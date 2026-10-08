@@ -1,3 +1,4 @@
+using Nexa.Services.Caching;
 using Nexa.Services.Minecraft.Downloads;
 using Nexa.Services.Minecraft.Java;
 using Nexa.Services.Minecraft.Process;
@@ -16,6 +17,7 @@ public sealed class JavaEnvironmentCapabilityProvider(
     IJavaRuntimeLocator? javaLocator = null,
     string? minecraftRootDirectory = null) : IMachineCapabilityProvider
 {
+    public ISharedStateCache? SharedStateCache { get; init; }
     private readonly IJavaRuntimeLocator _javaLocator = javaLocator ?? new LocalJavaRuntimeLocator();
     private readonly string? _minecraftRootDirectory = minecraftRootDirectory;
 
@@ -45,7 +47,7 @@ public sealed class JavaEnvironmentCapabilityProvider(
         else runtimes = await _javaLocator.FindAllAsync(cancellationToken).ConfigureAwait(false);
         List<ICapability> facts = [.. MachineInstanceCatalog.CollectJava(runtimes, timestamp)];
         facts.AddRange(await JavaCompatibilityProjection.CollectAsync(
-            runtimes, _minecraftRootDirectory, query, timestamp, cancellationToken).ConfigureAwait(false));
+            runtimes, _minecraftRootDirectory, query, timestamp, SharedStateCache, cancellationToken).ConfigureAwait(false));
         return Array.AsReadOnly<ICapability>([.. facts]);
     }
 
@@ -62,6 +64,7 @@ public sealed class MinecraftEnvironmentCapabilityProvider(
     string? minecraftRootDirectory = null,
     Func<IReadOnlyList<MinecraftExpectedFile>>? expectedFiles = null) : IMachineCapabilityProvider
 {
+    public ISharedStateCache? SharedStateCache { get; init; }
     private readonly string? _minecraftRootDirectory = minecraftRootDirectory;
 
     private readonly Func<IReadOnlyList<MinecraftExpectedFile>> _expectedFiles = expectedFiles ?? CreateDefaultPlan(minecraftRootDirectory);
@@ -98,7 +101,7 @@ public sealed class MinecraftEnvironmentCapabilityProvider(
         MachineCapabilityQuery query, CancellationToken cancellationToken)
     {
         const string source = "options.txt";
-        if (await MinecraftPrimaryInstanceScope.ResolveAsync(_minecraftRootDirectory, query, cancellationToken)
+        if (await MinecraftPrimaryInstanceScope.ResolveAsync(_minecraftRootDirectory, query, SharedStateCache, cancellationToken)
             .ConfigureAwait(false) is not { } primary
             || primary.Options is not { Readable: true } options)
         {

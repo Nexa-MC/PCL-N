@@ -51,6 +51,7 @@ internal static unsafe class NativeJvmHost
         if (!Path.IsPathFullyQualified(request.JavaExecutable) || !File.Exists(request.JavaExecutable))
             throw new FileNotFoundException("A concrete Java runtime is required.");
         string executable = new FileInfo(request.JavaExecutable).ResolveLinkTarget(true)?.FullName ?? request.JavaExecutable;
+        JvmChildLaunch.Configure(executable);
         string bin = Path.GetDirectoryName(executable)!;
         string home = Path.GetDirectoryName(bin)!;
         string[] candidates = OperatingSystem.IsWindows()
@@ -89,6 +90,10 @@ internal static unsafe class NativeJvmHost
             else if (option.StartsWith("--class-path=", StringComparison.Ordinal)) options.Add("-Djava.class.path=" + option[13..]);
             else options.Add(option);
         }
+        // Java's executable launcher normally supplies this property. Keep the JNI fallback
+        // main-only so diagnostics can identify the entry point without copying game credentials.
+        if (!options.Any(static option => option.StartsWith("-Dsun.java.command=", StringComparison.Ordinal)))
+            options.Add("-Dsun.java.command=" + request.MainClass);
         VmOption[] nativeOptions = new VmOption[options.Count];
         nint vm = 0, env = 0;
         try

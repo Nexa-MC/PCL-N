@@ -109,18 +109,4 @@ public sealed partial class MinecraftInstallService
             }
         }
     }
-
-    private static async Task CopyAtomicAsync(string source, string destination, CancellationToken token)
-    {
-        string temporary = destination + ".nexa-" + Guid.NewGuid().ToString("N") + ".tmp";
-        try
-        {
-            await using (var input = File.OpenRead(source))
-            await using (var output = File.Create(temporary))
-                await input.CopyToAsync(output, token).ConfigureAwait(false);
-            token.ThrowIfCancellationRequested();
-            File.Move(temporary, destination, overwrite: true);
-        }
-        finally { TryDelete(temporary); }
-    }
 }

@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json.Nodes;
 using Nexa.Core.Media;
+using Nexa.Services.Caching;
 using Nexa.Services.Files;
 
 namespace Nexa.Services.Minecraft.Management;
@@ -9,15 +10,14 @@ namespace Nexa.Services.Minecraft.Management;
 /// <summary>Untrusted presentation metadata only. Never executes content or resolves remote icons.</summary>
 internal static class InstanceContentMetadata
 {
-    private static readonly object CacheGate = new();
-    private static readonly Dictionary<string, CachedMetadata> Cache = new(Nexa.Core.PathIdentity.Comparer);
-    private static readonly Queue<string> CacheOrder = new();
-    private static long _cacheBytes;
-    private sealed record CachedMetadata(string Page, long Length, long Modified, long ReadCost,
-        long MemoryCost, InstanceContentEntry Entry);
+    private const long ProducerReadLimit = 4 * 1024 * 1024;
+    private sealed record CachedMetadata(long ReadCost, bool Stable, InstanceContentEntry Entry);
+
+    internal static Task<InstanceContentSnapshot> EnrichAsync(InstanceContentSnapshot snapshot, string directory,
+        ArchiveReadBudget budget, CancellationToken token) => EnrichAsync(snapshot, directory, budget, null, token);
 
     internal static async Task<InstanceContentSnapshot> EnrichAsync(InstanceContentSnapshot snapshot, string directory,
-        ArchiveReadBudget budget, CancellationToken token)
+        ArchiveReadBudget budget, ISharedStateCache? sharedCache, CancellationToken token)
     {
         List<InstanceContentEntry> entries = [];
         int worlds = 0;
@@ -33,11 +33,30 @@ internal static class InstanceContentMetadata
                     CheckPath(path);
                     var info = new FileInfo(path);
                     bool cacheable = !entry.IsDirectory && snapshot.PageId is "mods" or "resourcepacks" or "shaderpacks";
-                    long length = cacheable ? info.Length : 0, modified = cacheable ? info.LastWriteTimeUtc.Ticks : 0;
-                    CachedMetadata? cached;
-                    lock (CacheGate) Cache.TryGetValue(path, out cached);
-                    if (cacheable && cached is not null && cached.Page == snapshot.PageId
-                        && cached.Length == length && cached.Modified == modified && cached.ReadCost <= budget.Remaining)
+                    long length = cacheable ? info.Length : 0, modified = cacheable ? info.LastWriteTimeUtc.Ticks : 0,
+                        created = cacheable ? info.CreationTimeUtc.Ticks : 0;
+                    string identity = OperatingSystem.IsWindows() ? path.ToUpperInvariant() : path;
+                    StateCacheKey key = new("minecraft.archive-display", identity,
+                        string.Create(System.Globalization.CultureInfo.InvariantCulture, $"schema-1|{snapshot.PageId}|{length}|{modified}|{created}"));
+                    CachedMetadata? cached = null;
+                    if (cacheable && sharedCache is not null && sharedCache.TryGet<CachedMetadata>(key, out var existing))
+                        cached = existing.Value;
+                    if (cacheable && sharedCache is not null && cached is null && budget.Remaining >= ProducerReadLimit)
+                    {
+                        cached = await sharedCache.GetOrCreateAsync(key,
+                            new(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10), 1024 * 1024 + 32768), async cancellation =>
+                        {
+                            CheckPath(path);
+                            ArchiveReadBudget readBudget = new(ProducerReadLimit);
+                            InstanceContentEntry read = await ReadAsync(result, snapshot.PageId, path, readBudget, cancellation).ConfigureAwait(false);
+                            FileInfo after = new(path);
+                            bool stable = after.Exists && after.Length == length && after.LastWriteTimeUtc.Ticks == modified
+                                && after.CreationTimeUtc.Ticks == created && readBudget.Remaining > 0;
+                            return new CachedMetadata(ProducerReadLimit - readBudget.Remaining, stable, read);
+                        }, shouldStore: static read => read.Stable && read.ReadCost > 0 && read.Entry.PackageReadable is not false,
+                            cancellationToken: token).ConfigureAwait(false);
+                    }
+                    if (cached is not null && cached.Stable && cached.ReadCost <= budget.Remaining)
                     {
                         budget.Consume(cached.ReadCost);
                         result = result with
@@ -50,28 +69,7 @@ internal static class InstanceContentMetadata
                             PackageProblem = cached.Entry.PackageProblem
                         };
                     }
-                    else
-                    {
-                        long before = budget.Remaining;
-                        result = await ReadAsync(result, snapshot.PageId, path, budget, token).ConfigureAwait(false);
-                        info.Refresh();
-                        // Do not cache partial results caused by the shared read budget.
-                        if (cacheable && before >= 4 * 1024 * 1024 && info.Exists
-                            && info.Length == length && info.LastWriteTimeUtc.Ticks == modified)
-                        {
-                            long cost = 1024 + (result.Icon?.Bytes.Length ?? 0)
-                                + 2L * ((result.DisplayName?.Length ?? 0) + (result.Description?.Length ?? 0));
-                            lock (CacheGate)
-                            {
-                                if (Cache.Remove(path, out var old)) _cacheBytes -= old.MemoryCost;
-                                else CacheOrder.Enqueue(path);
-                                Cache[path] = new(snapshot.PageId, length, modified, before - budget.Remaining, cost, result);
-                                _cacheBytes += cost;
-                                while ((Cache.Count > 1024 || _cacheBytes > 64L * 1024 * 1024) && CacheOrder.TryDequeue(out var key))
-                                    if (Cache.Remove(key, out var removed)) _cacheBytes -= removed.MemoryCost;
-                            }
-                        }
-                    }
+                    else result = await ReadAsync(result, snapshot.PageId, path, budget, token).ConfigureAwait(false);
                 }
                 catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException or ArgumentException)
                 {

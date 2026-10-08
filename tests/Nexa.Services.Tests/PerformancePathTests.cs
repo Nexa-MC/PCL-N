@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using Nexa.Services.Caching;
 using Nexa.Services.Downloads;
 using Nexa.Services.Files;
 using Nexa.Services.Logging;
@@ -144,6 +145,7 @@ internal static partial class Program
 
     private static async ValueTask MetadataCacheKeepsBudgetAndInvalidatesFileStamp()
     {
+        using SharedStateCache cache = new();
         string root = CreateTempDirectory();
         try
         {
@@ -157,17 +159,17 @@ internal static partial class Program
             Write("First");
             var raw = InstanceManagementService.ReadContent(new("mods", "mods", root), default);
             var budget = new ArchiveReadBudget(8 * 1024 * 1024);
-            var first = await InstanceContentMetadata.EnrichAsync(raw, root, budget, default);
+            var first = await InstanceContentMetadata.EnrichAsync(raw, root, budget, cache, default);
             long remaining = budget.Remaining;
             budget = new(8 * 1024 * 1024);
             using (var locked = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
-                var cached = await InstanceContentMetadata.EnrichAsync(raw, root, budget, default);
+                var cached = await InstanceContentMetadata.EnrichAsync(raw, root, budget, cache, default);
                 AssertEqual("First", cached.Entries[0].DisplayName);
                 AssertEqual(remaining, budget.Remaining);
             }
             File.Delete(path); Write("Second"); File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(2));
-            var second = await InstanceContentMetadata.EnrichAsync(raw, root, new(8 * 1024 * 1024), default);
+            var second = await InstanceContentMetadata.EnrichAsync(raw, root, new(8 * 1024 * 1024), cache, default);
             AssertEqual("Second", second.Entries[0].DisplayName);
         }
         finally { Directory.Delete(root, true); }

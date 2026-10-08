@@ -104,6 +104,6 @@ internal static partial class Program
             AssertFalse(provider.Prepare("secondary", "auto").Succeeded); // Two primaries are ambiguous.
             AssertTrue(provider.Prepare("auto", "auto").Succeeded);
         }
-        finally { Directory.Delete(root, recursive: true); }
+        finally { await WaitForLaunchGameDirectoryReleasedAsync(root); Directory.Delete(root, recursive: true); }
     }
 }

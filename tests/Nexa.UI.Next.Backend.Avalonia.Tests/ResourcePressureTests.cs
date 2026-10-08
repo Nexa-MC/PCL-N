@@ -68,15 +68,36 @@ internal static partial class Program
         AssertTrue(await Dispatcher.UIThread.InvokeAsync(() =>
             ((IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).MainWindow!
                 .GetVisualDescendants().OfType<TextBlock>().Any(static text => text.Text == "initialization-failed")));
+        Task<bool> retry = startup.WaitForRetryAsync("initialization-failed-retry");
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var desktop = (IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!;
+            Button button = desktop.MainWindow!.GetVisualDescendants().OfType<Button>()
+                .Single(static button => (string?)button.Content == "重试");
+            AssertTrue(button.IsVisible && button.IsEnabled && !retry.IsCompleted);
+            button.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        });
+        AssertTrue(await retry.WaitAsync(timeout.Token));
         var shell = XsrUiShellComposer.Compose(new XsrStateStoreBuilder().Build());
         shell.Renderer.ReducedMotion = true;
-        Task<int> present = Task.Run(() => AvaloniaUiShellHost.Run(shell));
+        var actions = new AvaloniaUiPlatformActions();
+        await startup.PrepareShellAsync(shell, actions, timeout.Token);
+        await startup.InvokeAsync(() =>
+        {
+            var desktop = (IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!;
+            AssertTrue(desktop.MainWindow is not AvaloniaUiShellWindow);
+            actions.RestoreWindow();
+            AssertTrue(!desktop.Windows.OfType<AvaloniaUiShellWindow>().Any(window => window.IsVisible));
+        }, timeout.Token);
+        await startup.WarmUpShellAsync(shell, timeout.Token);
+        Task<int> present = Task.Run(() => AvaloniaUiShellHost.Run(shell, platformActions: actions));
         while (!startup.ShellReadyElapsed.HasValue) await Task.Delay(10, timeout.Token);
         AssertEqual(OperatingSystem.IsWindows() || OperatingSystem.IsLinux(), startup.HardwareAccelerationDisabled);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             var desktop = (IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!;
             AssertTrue(desktop.MainWindow is AvaloniaUiShellWindow && desktop.Windows.Count == 1);
+            AssertTrue(((AvaloniaUiShellWindow)desktop.MainWindow!).Surface.Scene is { Count: > 0 });
             desktop.MainWindow!.Close();
         });
         AssertEqual(0, await present.WaitAsync(timeout.Token));

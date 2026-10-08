@@ -46,24 +46,33 @@ internal static partial class Program
                     : new JsonObject { ["data"] = new JsonObject { ["exactMatches"] = new JsonArray((JsonNode)new JsonObject { ["file"] = new JsonObject { ["id"] = 99, ["modId"] = 123, ["fileFingerprint"] = 1621425345, ["hashes"] = new JsonArray((JsonNode)new JsonObject { ["algo"] = 1, ["value"] = corruptCf || unknown ? new string('0', 40) : Convert.ToHexString(SHA1.HashData(bytes)) }) } }) } }.ToJsonString();
                 return new(HttpStatusCode.OK) { Content = new StringContent(body) };
             }));
-            var catalog = new OnlineCatalog(); var service = new ResourceContentOnlineService(new(new(http, "")), catalog);
+            var transport = new ResourceProviderHttp(http, "");
+            using var instances = new ResourceInstanceService(transport);
+            var catalog = new OnlineCatalog(); var service = new ResourceContentOnlineService(instances, catalog);
             foreach (string page in new[] { "mods", "resourcepacks", "shaderpacks" })
             {
                 string directory = Path.Combine(instance, page); Directory.CreateDirectory(directory);
                 string path = Path.Combine(directory, page == "mods" ? "a.jar.disabled" : "a.zip"); await File.WriteAllBytesAsync(path, bytes);
                 var file = new FileInfo(path); var query = new ResourceContentOnlineQuery(instance, page, file.Name, file.Length, file.LastWriteTimeUtc.Ticks);
-                var result = await service.ReadAsync(query, default);
+                var result = await service.ReadAsync(query with { Refresh = true }, default);
                 AssertEqual("在线中文名称", result.Project!.DisplayName); AssertEqual("1.0.0", result.InstalledVersion!);
                 AssertEqual(page == "mods" ? "fabric" : "", catalog.LastQuery!.Loader);
                 AssertEqual("1.21.1", catalog.LastQuery.GameVersion); AssertEqual(2, catalog.LastQuery.Sources.Count);
-                corruptCf = true; result = await service.ReadAsync(query, default);
+                corruptCf = true; result = await service.ReadAsync(query with { Refresh = true }, default);
                 AssertEqual(1, catalog.LastQuery.Sources.Count); // A Murmur fingerprint alone never proves a match.
                 corruptCf = false;
                 int before = posts;
                 bool rejected = false;
                 try { await service.ReadAsync(query with { ExpectedSize = file.Length + 1 }, default); } catch (IOException) { rejected = true; }
                 AssertTrue(rejected); AssertEqual(before, posts);
-                unknown = true; result = await service.ReadAsync(query, default); AssertTrue(result.Project is null && result.Notice is not null); unknown = false;
+                unknown = true;
+                using (var unknownInstances = new ResourceInstanceService(transport))
+                {
+                    var unknownService = new ResourceContentOnlineService(unknownInstances, catalog);
+                    result = await unknownService.ReadAsync(query with { Refresh = true }, default);
+                    AssertTrue(result.Project is null && result.Notice is not null);
+                }
+                unknown = false;
             }
         }
         finally { Directory.Delete(root, true); }

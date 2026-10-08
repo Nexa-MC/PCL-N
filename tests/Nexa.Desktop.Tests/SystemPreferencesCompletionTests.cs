@@ -38,12 +38,16 @@ internal static partial class Program
         if (!OperatingSystem.IsLinux()) return;
         string directory = Path.Combine(Path.GetTempPath(), "nexa-autostart-" + Guid.NewGuid().ToString("N"));
         string? previous = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-        Directory.CreateDirectory(Path.Combine(directory, "autostart"));
+        Directory.CreateDirectory(directory);
         string foreign = Path.Combine(directory, "autostart", "another-launcher.desktop");
-        File.WriteAllText(foreign, "other-owned-entry");
         try
         {
             Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", directory);
+            Nexa.Desktop.DesktopSystemPreferences.ApplyAutostartAsync(false, default).GetAwaiter().GetResult();
+            AssertFalse(Directory.Exists(Path.Combine(directory, "autostart")));
+            AssertTrue(Directory.Exists(directory));
+            Directory.CreateDirectory(Path.Combine(directory, "autostart"));
+            File.WriteAllText(foreign, "other-owned-entry");
             Nexa.Desktop.DesktopSystemPreferences.ApplyAutostartAsync(true, default).GetAwaiter().GetResult();
             string owned = Path.Combine(directory, "autostart", "nexacl.desktop");
             AssertTrue(File.Exists(owned));

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Nexa.Services.Files;
 
 namespace Nexa.Services.Accounts;
 
@@ -89,36 +90,13 @@ public sealed class LaunchProfileFilePort : ILaunchProfilePort
 
         lock (PathLocks.GetOrAdd(_path, static _ => new object()))
         {
-            string directory = System.IO.Path.GetDirectoryName(_path)
-                ?? throw new IOException($"The launch profile path '{_path}' has no parent directory.");
-            Directory.CreateDirectory(directory);
-            string temporaryPath = System.IO.Path.Combine(
-                directory,
-                $".{System.IO.Path.GetFileName(_path)}.{Guid.NewGuid():N}.tmp");
-            bool replaced = false;
-            try
-            {
-                using (FileStream stream = new(
-                    temporaryPath,
-                    FileMode.CreateNew,
-                    FileAccess.Write,
-                    FileShare.None,
-                    bufferSize: 16 * 1024,
-                    FileOptions.WriteThrough | FileOptions.SequentialScan))
-                {
-                    JsonSerializer.Serialize(stream, profiles, LaunchProfileJsonContext.Default.LaunchProfileSet);
-                }
-
-                ReplaceWithRetry(temporaryPath);
-                replaced = true;
-            }
-            finally
-            {
-                if (!replaced)
-                {
-                    TryDeleteTemporaryFile(temporaryPath);
-                }
-            }
+            AtomicFileWriter.Write(
+                _path,
+                "launch profile",
+                stream => JsonSerializer.Serialize(stream, profiles, LaunchProfileJsonContext.Default.LaunchProfileSet),
+                ReplaceAttemptCount,
+                static attempt => TimeSpan.FromMilliseconds(25 * attempt),
+                retryUnauthorizedAccess: true);
         }
     }
 
@@ -131,43 +109,6 @@ public sealed class LaunchProfileFilePort : ILaunchProfilePort
         catch (IOException)
         {
             // Loading valid profiles matters more than persisting the quarantine copy.
-        }
-    }
-
-    private void ReplaceWithRetry(string temporaryPath)
-    {
-        Exception? lastFailure = null;
-        for (int attempt = 1; attempt <= ReplaceAttemptCount; attempt++)
-        {
-            try
-            {
-                File.Move(temporaryPath, _path, overwrite: true);
-                return;
-            }
-            catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
-            {
-                lastFailure = failure;
-                if (attempt < ReplaceAttemptCount)
-                {
-                    Thread.Sleep(TimeSpan.FromMilliseconds(25 * attempt));
-                }
-            }
-        }
-
-        throw new IOException(
-            $"Unable to replace launch profile file '{_path}' after {ReplaceAttemptCount} attempts.",
-            lastFailure);
-    }
-
-    private static void TryDeleteTemporaryFile(string temporaryPath)
-    {
-        try
-        {
-            File.Delete(temporaryPath);
-        }
-        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
-        {
-            // Preserve the original save exception.
         }
     }
 }

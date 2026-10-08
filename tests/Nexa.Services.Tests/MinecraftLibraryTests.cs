@@ -92,8 +92,12 @@ internal static partial class Program
         source.Requests[0].SetResult([LibraryDescriptor(a, "stale")]);
         AssertFalse((await first).IsSuccess);
         AssertEqual(b, fixture.Snapshot.RootDirectory); AssertEqual("chosen", fixture.Snapshot.SelectedInstanceId);
-        // A loading scan publishes an empty instance list, so selection waits for it.
+        // A loading scan keeps display entries while preventing an old entry from launching.
         Task<XsrResult> refresh = service.RefreshAsync();
+        AssertEqual(2, fixture.Snapshot.Instances.Count);
+        AssertTrue(fixture.Snapshot.IsProvisional);
+        AssertTrue(fixture.Snapshot.SelectedInstance is null);
+        AssertFalse(service.SelectInstance(b, "same").IsSuccess);
         source.Requests[2].SetResult([LibraryDescriptor(b, "chosen"), LibraryDescriptor(b, "same")]);
         AssertTrue((await refresh).IsSuccess);
         AssertTrue(service.SelectInstance(b, "same").IsSuccess);

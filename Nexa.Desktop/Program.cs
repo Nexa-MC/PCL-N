@@ -173,27 +173,60 @@ internal static partial class Program
                 try { Console.Error.WriteLine("存储恢复未完成，继续使用原数据位置：" + storageStartup.Error?.Message); }
                 catch (IOException) { }
             }
-            exitCode = await Nexa.Platform.ApplicationSession.RunAsync(() => RunAsync(args, logging =>
+            while (true)
+            {
+                try
                 {
-                    log = logging;
-                    if (startup?.FirstRenderElapsed is { } firstRender)
-                        logging.Info("Startup", FormattableString.Invariant($"first_native_render_submission_ms={firstRender.TotalMilliseconds:F2} main_to_native_submission_ms={mainToNativeSubmissionMs:F2}"));
-                },
-                sink => fileSink = sink, value =>
+                    exitCode = await Nexa.Platform.ApplicationSession.RunAsync(() => RunAsync(args, logging =>
+                        {
+                            log = logging;
+                            if (startup?.FirstRenderElapsed is { } firstRender)
+                                logging.Info("Startup", FormattableString.Invariant($"first_native_render_submission_ms={firstRender.TotalMilliseconds:F2} main_to_native_submission_ms={mainToNativeSubmissionMs:F2}"));
+                        },
+                        sink => fileSink = sink, value =>
+                        {
+                            stage = value;
+                            if (value is "gui_lifetime" or "first_run_lifetime") guiStarted = true;
+                            if (!guiStarted) startup?.CancellationToken.ThrowIfCancellationRequested();
+                            startup?.ReportStage(value switch
+                            {
+                                "compose_foundation" => "加载设置与服务",
+                                "compose_shell" => "准备界面",
+                                "first_run" => "准备首次设置",
+                                "startup_local_instances" => "读取本地版本",
+                                "startup_local_recovery" => "恢复本地事务",
+                                "startup_sidecar_discovery" => "发现插件接口",
+                                "startup_settings_metadata" => "加载设置目录",
+                                "startup_initial_policies" => "应用启动偏好",
+                                "startup_hidden_native_shell" or "startup_first_run_native_shell" => "准备原生窗口",
+                                "startup_controller_projection" or "startup_final_layout" => "准备页面布局",
+                                "startup_destination_facts" => "加载初始页面资料",
+                                "startup_install_catalog" => "加载安装目录",
+                                "startup_resource_catalog" => "加载资源目录",
+                                "startup_update_preferences" => "读取更新状态",
+                                "startup_update_discovery" => "检查启动器更新",
+                                "startup_native_fonts_media_icons" or "startup_first_run_scene" => "准备字体与图像",
+                                "startup_ready" or "startup_first_run_ready" => "初始化完成",
+                                "gui_lifetime" => "启动完成",
+                                _ => "准备启动器"
+                            });
+                        }, folders, locationLocked, storageStartup.Error, instance, disableHardwareAcceleration, startup)).ConfigureAwait(false);
+                    return exitCode;
+                }
+                catch (Exception exception) when (startup is not null && !guiStarted
+                    && exception is not OperationCanceledException and not OutOfMemoryException and not AccessViolationException)
                 {
-                    stage = value;
-                    if (value is "gui_lifetime" or "first_run") guiStarted = true;
-                    if (!guiStarted) startup?.CancellationToken.ThrowIfCancellationRequested();
-                    startup?.ReportStage(value switch
-                    {
-                        "compose_foundation" => "加载设置与服务",
-                        "compose_shell" => "准备界面",
-                        "first_run" => "准备首次设置",
-                        "gui_lifetime" => "启动完成",
-                        _ => "准备启动器"
-                    });
-                }, folders, locationLocked, storageStartup.Error, instance, disableHardwareAcceleration)).ConfigureAwait(false);
-            return exitCode;
+                    log?.Error("Startup", "Initialization failed at " + stage, ExceptionDiagnostics.Describe(exception));
+                    try { Console.Error.WriteLine("启动初始化失败：" + LogRedactor.Redact(ExceptionDiagnostics.Describe(exception))); }
+                    catch (IOException) { }
+                    bool retry = await startup.WaitForRetryAsync("初始化失败，请查看启动日志后重试或关闭。").ConfigureAwait(false);
+                    if (!retry) { exitCode = 1; return exitCode; }
+                    log?.Dispose(); log = null;
+                    if (fileSink is not null) await fileSink.DisposeAsync().ConfigureAwait(false);
+                    fileSink = null;
+                    stage = "retry_initialization";
+                }
+            }
         }
         catch (OperationCanceledException) when (startup?.CancellationToken.IsCancellationRequested == true)
         {
@@ -238,7 +271,7 @@ internal static partial class Program
 
     private static async Task<int> RunAsync(string[] args, Action<LogService> onLogReady, Action<FileLogSink> onSinkReady,
         Action<string> setStage, AppFolders folders, bool locationLocked, Nexa.Xsr.XsrError? storageStartupError,
-        DesktopSingleInstance? instance, bool disableHardwareAcceleration)
+        DesktopSingleInstance? instance, bool disableHardwareAcceleration, AvaloniaUiStartupSession? startup)
     {
         // Composition root: the two-phase foundation composition. Phase one declares every
         // foundation module's state into one shared builder; phase two builds the store once
@@ -250,7 +283,7 @@ internal static partial class Program
         if (validateSetup || (storageStartupError is null && !args.Contains("--validate-shell", StringComparer.OrdinalIgnoreCase) && setup.Read().Required))
         {
             setStage("first_run");
-            return RunFirstRun(args, setup, validateSetup, instance, disableHardwareAcceleration);
+            return RunFirstRun(args, setup, validateSetup, instance, disableHardwareAcceleration, startup, setStage);
         }
         bool safeMode = args.Contains("--safe-mode", StringComparer.OrdinalIgnoreCase);
         string logFilePath = Path.Combine(folders.EnsureFolder(FolderNames.Logs), "launcher.log");
@@ -282,7 +315,7 @@ internal static partial class Program
         bool consoleAttached = Console.IsOutputRedirected
             || (OperatingSystem.IsWindows() && GetConsoleWindow() != IntPtr.Zero);
         setStage("compose_foundation");
-        using FoundationHost host = FoundationComposer.ComposeWithJavaRuntimeRoot(
+        using FoundationHost host = FoundationComposer.ComposeWithJavaRuntimeRootAndCacheDirectory(
             new LauncherSettingsJsonPort(System.IO.Path.Combine(settingsFolder, "settings.json"), settingsSchema),
             settingsSchema,
             new ProtectedLaunchProfilePort(System.IO.Path.Combine(profilesFolder, "profiles.json")),
@@ -290,6 +323,7 @@ internal static partial class Program
             declareHostState: LaunchPageState.DeclareState,
             minecraftRootDirectory: minecraftRootDirectory,
             javaRuntimeRootDirectory: javaRuntimeRootDirectory,
+            cacheDirectory: Path.Combine(folders.Root, "cache"),
             configureLogging: logging =>
             {
                 if (consoleAttached || buildInfo.DiagnosticsRequired) logging.MaximumLevel = LogLevel.RealTime;
@@ -302,6 +336,7 @@ internal static partial class Program
             });
         if (storageStartupError is not null)
             host.Logging.Warn("Storage", "Startup storage recovery was not completed; retaining the source data root: " + storageStartupError.Message);
+        await using var accountServiceLifetime = host.Accounts;
         using var telemetryLifetime = host.Telemetry;
         host.Accounts.ConfigureRegionalPolicy(Nexa.Services.RegionalPolicy.Current);
         DesktopFunctionPatches functionPatches = new();
@@ -457,7 +492,7 @@ internal static partial class Program
             var remembered = library.Service.RememberRenamedInstance(root, previous, current);
             if (!remembered.IsSuccess) feedback.Warn("版本已改名，但未能保存选择，请在版本列表中重新选择。");
         };
-        using LaunchPageController launchPage = new(
+        await using LaunchPageController launchPage = new(
             shell,
             uiIntents,
             minecraft,
@@ -479,6 +514,12 @@ internal static partial class Program
         using AccountFormController accountForm = new(shell, uiIntents, accounts.Commands,
             runtime.Host.StateStore, launchPage.AccountBody, feedback,
             new NativeAccountUiEffects(platformActions), runtime.Host.Logging);
+        var recoveryRoots = host.StateStore.Read<MinecraftLibrarySnapshot>(host.StateStore.Resolve(MinecraftLibraryService.StateKey)).Value?.Directories
+            .Select(directory => directory.Path).ToArray() ?? [minecraftRootDirectory];
+        await using var installRecovery = new DesktopInstallRecoverySession(installRun.Commands, recoveryRoots,
+            message => host.Logging.Warn("Install", message), minecraft.Commands, runtime.Commands);
+        await new DesktopStartupReadiness(setStage, startup?.CancellationToken ?? default)
+            .RunAsync("startup_local_recovery", token => installRecovery.InitialReady.WaitAsync(token)).ConfigureAwait(false);
         launchPage.Attach();
         using SettingsPageController settingsPage = new(shell, uiIntents, runtime.Queries, runtime.Commands, host.StateStore, feedback);
         settingsPage.CopyJavaDiagnosticsTextAsync = platformActions.CopyTextAsync;
@@ -510,7 +551,7 @@ internal static partial class Program
             () => string.Join("\n", host.Logging.GetSnapshot().Select(entry => entry.Message)));
         settingsPage.ConfigureDiagnosticAi(true);
         settingsPage.TelemetryRequired = buildInfo.DiagnosticsRequired;
-        using var networking = new LauncherNetworkRuntime(host, settingsFolder, buildInfo);
+        await using var networking = new LauncherNetworkRuntime(host, settingsFolder, buildInfo);
         HttpClient updateHttp = networking.Http;
         string updateRid = networking.RuntimeId;
         string updateChannel = buildInfo.UpdateChannel;
@@ -598,16 +639,12 @@ internal static partial class Program
             return 0;
         }
 
-        using var telemetry = new LauncherTelemetryRuntime(host, rollouts, updateService, ResolveInformationalVersion(),
+        await using var telemetry = new LauncherTelemetryRuntime(host, rollouts, updateService, ResolveInformationalVersion(),
             () => typeof(Program).Assembly.GetManifestResourceStream("Nexa.Desktop.Assets.api-client.pfx"));
         var telemetrySession = telemetry.Session;
         using IDisposable? telemetrySubscription = telemetrySession is null ? null : stateObservation.Subscribe(telemetrySession);
         operationLog.Diagnostics = telemetrySession;
         rollouts.Start();
-        var recoveryRoots = host.StateStore.Read<MinecraftLibrarySnapshot>(host.StateStore.Resolve(MinecraftLibraryService.StateKey)).Value?.Directories
-            .Select(directory => directory.Path).ToArray() ?? [minecraftRootDirectory];
-        using var installRecovery = new DesktopInstallRecoverySession(installRun.Commands, recoveryRoots,
-            message => host.Logging.Warn("Install", message), minecraft.Commands, runtime.Commands);
         var installExit = new DesktopInstallExitCoordinator(host.StateStore, installRun.Commands, feedback, platformActions.RequestClose, minecraft.Commands);
         using var launchExit = new DesktopLaunchExitCoordinator(() => minecraft.LaunchCoordinator!.HasPendingFinalization,
             minecraft.LaunchCoordinator!.WaitForFinalizationAsync, platformActions.PostToWindow, platformActions.RequestClose, feedback);
@@ -629,10 +666,16 @@ internal static partial class Program
                         desktopIntegration.ActivateProtocol("nexacl://" + destination.ToString().ToLowerInvariant());
                 },
             setLaunchHints: launchPage.SetStartupHintsVisible);
-        setStage("gui_lifetime");
-        host.Logging.Info("Launcher", "Entering Avalonia GUI lifetime.");
         int exitCode;
-        try { exitCode = AvaloniaUiShellHost.Run(shell, args, platformActions, disableHardwareAcceleration); }
+        try
+        {
+            await PrepareNormalStartupAsync(startup, shell, platformActions, launchPage, settingsPage, versionSettings,
+                resourcesPage, customAppearance, mediaSession, presentationSession, systemPreferences, setStage, host.Logging,
+                desktopIntegration, sidecarLifetime).ConfigureAwait(false);
+            setStage("gui_lifetime");
+            host.Logging.Info("Launcher", "Entering Avalonia GUI lifetime.");
+            exitCode = AvaloniaUiShellHost.Run(shell, args, platformActions, disableHardwareAcceleration);
+        }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         {
             telemetrySession?.Record("app.failure", "failed");
@@ -667,7 +710,7 @@ internal static partial class Program
     }
 
     private static int RunFirstRun(string[] args, FirstRunService service, bool validate, DesktopSingleInstance? instance,
-        bool disableHardwareAcceleration)
+        bool disableHardwareAcceleration, AvaloniaUiStartupSession? startup, Action<string> setStage)
     {
         XsrUiRuntimeContext context = new();
         XsrStateStoreBuilder builder = new();
@@ -711,6 +754,8 @@ internal static partial class Program
             }
             return 0;
         }
+        PrepareFirstRunStartupAsync(startup, shell, platform, setStage).GetAwaiter().GetResult();
+        setStage("first_run_lifetime");
         int result = AvaloniaUiShellHost.Run(shell, args, platform, disableHardwareAcceleration);
         if (controller.Completed)
         {

@@ -63,7 +63,7 @@ public static class AvaloniaUiShellHost
     /// assets; this host only consumes streams). Missing assets disable the decoration that
     /// needed them — the splash is never a startup dependency.
     /// </summary>
-    private static Stream? TryOpenProductAsset(string resourceName)
+    internal static Stream? TryOpenProductAsset(string resourceName)
     {
         try
         {

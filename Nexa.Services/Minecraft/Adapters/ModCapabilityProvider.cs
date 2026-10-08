@@ -1,4 +1,5 @@
 
+using Nexa.Services.Caching;
 using Nexa.Services.Minecraft.Process;
 
 namespace Nexa.Services.Capabilities;
@@ -35,6 +36,7 @@ public static class ModCatalog
 /// </summary>
 public sealed class ModCapabilityProvider(string? minecraftRootDirectory) : IMachineCapabilityProvider
 {
+    public ISharedStateCache? SharedStateCache { get; init; }
     public string Id => ModCatalog.ProviderId;
 
     public ValueTask<IReadOnlyList<ICapability>> CollectAsync(DateTimeOffset timestamp, CancellationToken cancellationToken)
@@ -44,7 +46,7 @@ public sealed class ModCapabilityProvider(string? minecraftRootDirectory) : IMac
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (await MinecraftPrimaryInstanceScope.ResolveAsync(minecraftRootDirectory, query, cancellationToken).ConfigureAwait(false) is not { } primary)
+        if (await MinecraftPrimaryInstanceScope.ResolveAsync(minecraftRootDirectory, query, SharedStateCache, cancellationToken).ConfigureAwait(false) is not { } primary)
         {
             return Unavailable(timestamp, "尚未发现 Minecraft 实例");
         }

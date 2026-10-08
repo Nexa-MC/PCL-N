@@ -11,6 +11,7 @@ internal sealed partial class ResourcesPageController
     private XsrUiEntityId _sourcePolicyNote;
     private long _sourcePolicyRevision = -1;
     private bool _sourcePolicyForced;
+    private string? _sourcePolicyPriority;
     private Task<XsrResult<ResourceNetworkPolicySnapshot>>? _sourcePolicyReading;
 
     private void InitializeSourcePolicyNotice()
@@ -40,11 +41,14 @@ internal sealed partial class ResourcesPageController
         _sourcePolicyReading = null;
         if (!read.IsCompletedSuccessfully || !read.Result.IsSuccess) return;
         string priority = read.Result.Value!.Priority;
+        bool changed = _sourcePolicyPriority is not null && _sourcePolicyPriority != priority;
+        _sourcePolicyPriority = priority;
         _sourcePolicyForced = priority is "official-first" or "mirrors-first";
         string source = priority == "official-first" ? "资源站使用全局官方优先。" : "资源站使用全局镜像优先。";
         E(_sourcePolicyNote).IsVisible = _sourcePolicyForced;
         _shell.Tree.GetComponent<XsrUiText>(_sourcePolicyNote)!.Content = source;
         _shell.Tree.GetComponent<XsrUiSemantic>(_sourcePolicyNote)!.Label = source;
+        // A global override changes transport policy and presentation, while retaining the page's request preference.
         int selected = (_sourcePolicyForced ? priority == "mirrors-first" : _filter.MirrorFirst) ? 0 : 1;
         for (int index = 0; index < SourcePolicyOptions.Length; index++)
         {
@@ -55,5 +59,6 @@ internal sealed partial class ResourcesPageController
             _shell.Tree.MarkDirty(option, XsrUiDirtyKinds.Paint);
         }
         _shell.Tree.MarkDirty(_sourcePolicyNote, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
+        if (changed) Search(0);
     }
 }

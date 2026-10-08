@@ -81,7 +81,7 @@ internal static partial class Program
                 var second = await executor.ExecuteAsync(plan with { ProcessPriority = null }, "priority-unspecified");
                 AssertEqual(1, host.PriorityCalls); AssertFalse(second.Process.HasExited);
             }
-            finally { Directory.Delete(root, true); }
+            finally { await WaitForLaunchGameDirectoryReleasedAsync(root); Directory.Delete(root, true); }
         }
     }
 

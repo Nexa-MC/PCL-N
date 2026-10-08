@@ -256,8 +256,11 @@ public sealed class XsrUiScroll
     /// </summary>
     public bool StickToEnd { get; set; }
 
-    /// <summary>Requests a backend-neutral vertical position indicator when content overflows.</summary>
+    /// <summary>Requests a backend-neutral vertical scrollbar when content overflows.</summary>
     public bool ShowsVerticalIndicator { get; set; }
+
+    /// <summary>Requests a backend-neutral horizontal scrollbar when content overflows.</summary>
+    public bool ShowsHorizontalIndicator { get; set; }
 
     internal double MaximumOffsetY { get; set; }
     internal double MaximumOffsetX { get; set; }
@@ -273,9 +276,55 @@ public readonly record struct XsrUiScrollSnapshot(
     double ContentHeight,
     bool ShowsVerticalIndicator)
 {
+    public bool ShowsHorizontalIndicator { get; init; }
+
+    public double MaximumOffsetX => Math.Max(0, ContentWidth - ViewportWidth);
+
     public double MaximumOffsetY => Math.Max(0, ContentHeight - ViewportHeight);
 
+    public bool CanScrollHorizontally => MaximumOffsetX > 0;
+
     public bool CanScrollVertically => MaximumOffsetY > 0;
+
+    /// <summary>Projects the same scene-coordinate geometry for painting and pointer input.</summary>
+    public XsrUiScrollbarSnapshot? Scrollbar(XsrUiRect rect, XsrUiOrientation direction)
+    {
+        bool vertical = direction == XsrUiOrientation.Vertical;
+        double maximum = vertical ? MaximumOffsetY : MaximumOffsetX;
+        if (!(vertical ? ShowsVerticalIndicator : ShowsHorizontalIndicator) || maximum <= 0) return null;
+        const double inset = 6, width = 3, gutter = 12;
+        double length = Math.Max(0, (vertical ? rect.Height : rect.Width)
+            - ((vertical ? ShowsHorizontalIndicator : ShowsVerticalIndicator) ? gutter : 0) - inset * 2);
+        double crossLength = vertical ? rect.Width : rect.Height;
+        if (length <= 0 || crossLength <= 0) return null;
+        double viewport = vertical ? ViewportHeight : ViewportWidth;
+        double content = vertical ? ContentHeight : ContentWidth;
+        double thumbLength = Math.Clamp(length * (viewport / content), Math.Min(28, length), length);
+        double travel = length - thumbLength;
+        double offset = vertical ? OffsetY : OffsetX;
+        double thumbStart = inset + travel * Math.Clamp(offset / maximum, 0, 1);
+        double paintCross = Math.Max(0, crossLength - width - 4);
+        double hitCross = Math.Max(0, crossLength - gutter);
+        return vertical
+            ? new(direction, new(rect.X + paintCross, rect.Y + inset, Math.Min(width, crossLength), length),
+                new(rect.X + paintCross, rect.Y + thumbStart, Math.Min(width, crossLength), thumbLength),
+                new(rect.X + hitCross, rect.Y + inset, Math.Min(gutter, crossLength), length))
+            : new(direction, new(rect.X + inset, rect.Y + paintCross, length, Math.Min(width, crossLength)),
+                new(rect.X + thumbStart, rect.Y + paintCross, thumbLength, Math.Min(width, crossLength)),
+                new(rect.X + inset, rect.Y + hitCross, length, Math.Min(gutter, crossLength)));
+    }
+}
+
+/// <summary>Immutable scrollbar geometry. Hit width includes the reserved content gutter.</summary>
+public readonly record struct XsrUiScrollbarSnapshot(
+    XsrUiOrientation Direction, XsrUiRect Track, XsrUiRect Thumb, XsrUiRect HitRect)
+{
+    public double Travel => Direction == XsrUiOrientation.Vertical ? Track.Height - Thumb.Height : Track.Width - Thumb.Width;
+
+    public bool HitsThumb(XsrUiPoint point) => HitRect.Contains(point)
+        && (Direction == XsrUiOrientation.Vertical
+            ? point.Y >= Thumb.Y && point.Y < Thumb.Y + Thumb.Height
+            : point.X >= Thumb.X && point.X < Thumb.X + Thumb.Width);
 }
 
 /// <summary>

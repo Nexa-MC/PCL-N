@@ -119,6 +119,16 @@ public sealed partial class AvaloniaUiPlatformActions
     private bool _windowClosed;
     private void OnDesktopWindowClosed(object? sender, EventArgs args)
     {
+        // An abandoned hidden attempt is not an application close; single-instance ownership
+        // and activation forwarding survive so the startup window can retry composition.
+        if (_startupHidden)
+        {
+            _desktopIntegration?.Dispose();
+            _desktopIntegration = null;
+            _owner = null;
+            lock (_postedGate) { _windowClosed = true; _beforeAttach.Clear(); }
+            return;
+        }
         _clipboardScreenshot?.Dispose();
         _clipboardScreenshot = null;
         lock (_postedGate) { _windowClosed = true; _beforeAttach.Clear(); }

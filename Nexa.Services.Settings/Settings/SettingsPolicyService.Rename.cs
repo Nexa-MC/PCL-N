@@ -1,5 +1,4 @@
 using System.Text.Json.Nodes;
-using Nexa.Xsr;
 
 namespace Nexa.Services.Settings;
 
@@ -53,26 +52,5 @@ public sealed partial class SettingsPolicyService
             var result = _settings.SetRawValues(new Dictionary<string, string> { [SettingsPolicySchema.StorageKey] = document.ToJsonString() }, snapshot.Revision);
             if (!result.IsSuccess) throw new IOException(result.Error?.Message ?? "实例设置迁移失败。");
         }
-    }
-    internal XsrResult MoveInstanceSettings(string source, string destination)
-    {
-        try
-        {
-            var snapshot = _settings.ReadBatch();
-            if (_settings.LoadError is { } error) return XsrResult.Failure(error);
-            string from = InstanceKey(source)!, to = InstanceKey(destination)!;
-            if (from == to) return XsrResult.Success();
-            var document = ReadDocument(snapshot.Values);
-            var instances = (JsonObject)document["instances"]!;
-            var profiles = ProfileInstances(document);
-            if (instances[to] is not null) return XsrResult.Failure(Invalid("目标名称已有实例设置，请先处理冲突。"));
-            if (profiles[to] is not null) return XsrResult.Failure(Invalid("目标名称已有启动配置，请先处理冲突。"));
-            lock (_profileGate)
-                if (_temporaryProfiles.ContainsKey(from)) return XsrResult.Failure(Invalid("请先撤销临时启动覆盖，再改名实例。"));
-            if (instances[from] is { } value) { instances[to] = value.DeepClone(); instances.Remove(from); }
-            if (profiles[from] is { } profileValue) { profiles[to] = profileValue.DeepClone(); profiles.Remove(from); }
-            return _settings.SetRawValues(new Dictionary<string, string> { [SettingsPolicySchema.StorageKey] = document.ToJsonString() }, snapshot.Revision);
-        }
-        catch (Exception error) when (Recoverable(error)) { return XsrResult.Failure(Invalid(error.Message)); }
     }
 }

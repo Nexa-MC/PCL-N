@@ -29,7 +29,7 @@ public enum ResourceProvider { Modrinth, CurseForge }
 public sealed record ResourceReference(ResourceProvider Provider, string ProjectId);
 public sealed record ResourceSearchQuery(ResourceKind Kind = ResourceKind.Mod, string Text = "",
     string GameVersion = "", string Loader = "", ResourceOrder Order = ResourceOrder.Relevance, int Page = 0)
-{ public bool MirrorFirst { get; init; } = true; }
+{ public bool MirrorFirst { get; init; } = true; public bool Refresh { get; init; } public bool WaitForRefresh { get; init; } }
 public sealed record ResourceProject(string Id, string Title, string Description, string Author,
     long Downloads, string Website)
 {
@@ -49,9 +49,9 @@ public sealed record ResourceProject(string Id, string Title, string Description
 public sealed record ResourceIconQuery(string Url);
 public sealed record ResourceIconResult(Nexa.Core.Media.PngImage? Image);
 public sealed record ResourceSearchResult(IReadOnlyList<ResourceProject> Projects, int Total, int Page)
-{ public string? Notice { get; init; } public bool? HasMore { get; init; } }
+{ public string? Notice { get; init; } public bool? HasMore { get; init; } public bool IsStale { get; init; } }
 public sealed record ResourceDetailQuery(string ProjectId, string GameVersion = "", string Loader = "")
-{ public IReadOnlyList<ResourceReference> Sources { get; init; } = []; public bool MirrorFirst { get; init; } = true; public bool Refresh { get; init; } }
+{ public IReadOnlyList<ResourceReference> Sources { get; init; } = []; public bool MirrorFirst { get; init; } = true; public bool Refresh { get; init; } public bool WaitForRefresh { get; init; } }
 public sealed record ResourceVersion(string Id, string Name, string Number, string Channel,
     IReadOnlyList<string> Games, IReadOnlyList<string> Loaders, string Published, string Website)
 {
@@ -63,10 +63,12 @@ public sealed record ResourceVersion(string Id, string Name, string Number, stri
 }
 public sealed record ResourceFile(string Name, string Url, long Size, string? Sha1, string? Sha512);
 public sealed record ResourceDetail(ResourceProject Project, string License, IReadOnlyList<ResourceVersion> Versions)
-{ public string? Notice { get; init; } }
+{ public string? Notice { get; init; } public bool IsStale { get; init; } }
 public sealed record ResourceTranslationQuery(ResourceReference Source, string Original);
-public sealed record ResourceTranslation(string? Description);
-public sealed record ResourceDownloadCommand(ResourceProvider Provider, string ProjectId, string VersionId, string DestinationDirectory, bool MirrorFirst = true);
+public sealed record ResourceTranslation(string? Description)
+{ public string? Notice { get; init; } }
+public sealed record ResourceDownloadCommand(ResourceProvider Provider, string ProjectId, string VersionId, string DestinationDirectory, bool MirrorFirst = true)
+{ public bool Refresh { get; init; } }
 
 public interface IResourceCatalogSource
 {
@@ -94,15 +96,16 @@ public sealed record ResourceFavoritesQuery;
 public sealed record ResourceFavoritesSnapshot(IReadOnlyList<ResourceProject> Projects);
 public sealed record ResourceFavoriteCommand(ResourceProject Project, bool Saved);
 public sealed record ResourceContentOnlineQuery(string InstanceDirectory, string PageId, string Name, long ExpectedSize, long ExpectedModifiedUtcTicks)
-{ public bool MirrorFirst { get; init; } = true; }
+{ public bool MirrorFirst { get; init; } = true; public bool Refresh { get; init; } public bool WaitForRefresh { get; init; } }
 public sealed record ResourceContentOnline(ResourceProject? Project, string? InstalledVersion, IReadOnlyList<ResourceVersion> Versions, string? Notice)
 {
+    public bool IsStale { get; init; }
     public IReadOnlyList<ResourceInstalledFile> InstalledFiles { get; init; } = [];
     public ResourceVersion? UpdateVersion { get; init; }
     public bool? UpdateAvailable { get; init; }
 }
 public sealed record ResourceContentOnlineBatchQuery(IReadOnlyList<ResourceContentOnlineQuery> Files)
-{ public bool Refresh { get; init; } }
+{ public bool Refresh { get; init; } public bool WaitForRefresh { get; init; } }
 public sealed record ResourceContentOnlineMatch(ResourceContentOnlineQuery File, ResourceContentOnline Content);
 public sealed record ResourceContentOnlineBatch(IReadOnlyList<ResourceContentOnlineMatch> Matches);
 public sealed record ResourceContentUpdateCommand(ResourceContentOnlineQuery File, ResourceReference Source, string VersionId);

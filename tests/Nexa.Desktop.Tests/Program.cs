@@ -66,6 +66,11 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("StartupReadinessOrdersAndReusesFiniteSteps", StartupReadinessOrdersAndReusesFiniteSteps),
+        ("StartupReadinessBoundsOfflineWorkAndKeepsCancellation", StartupReadinessBoundsOfflineWorkAndKeepsCancellation),
+        ("StartupReadinessPropagatesMandatoryFailure", StartupReadinessPropagatesMandatoryFailure),
+        ("StartupSettingsMetadataPreparesRetainedPageBeforeNavigation", StartupSettingsMetadataPreparesRetainedPageBeforeNavigation),
+        ("ResourcePagesRenewCachedMetadataOnceAndRetireLateDetail", ResourcePagesRenewCachedMetadataOnceAndRetireLateDetail),
         ("InstanceIdentityDraftSurvivesScopedFactRebuildsAndRetiresOnNavigation", InstanceIdentityDraftSurvivesScopedFactRebuildsAndRetiresOnNavigation),
         ("DialogLiteralBodiesPreserveCatalogMatchesAndRefreshTranslationPolicy", DialogLiteralBodiesPreserveCatalogMatchesAndRefreshTranslationPolicy),
         ("ContentIntegrityDetailsShowActualFactsAndRetireScopedReads", ContentIntegrityDetailsShowActualFactsAndRetireScopedReads),

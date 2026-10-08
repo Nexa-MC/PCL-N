@@ -28,6 +28,8 @@ internal sealed class DesktopPresentationSession : IDisposable
     private readonly Channel<XsrStateChange> _policyUpdates = Channel.CreateBounded<XsrStateChange>(
         new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly Task _policyWorker;
+    private readonly TaskCompletionSource _initialReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal Task InitialReady => _initialReady.Task;
     private int _preferenceReducedMotion, _disposed;
     private int _pending = 1;
     private bool? _lastResizeEnabled;
@@ -54,6 +56,7 @@ internal sealed class DesktopPresentationSession : IDisposable
         shell.Renderer.FramePreparing += OnFrame;
         OnFrame(this, EventArgs.Empty);
         _policyWorker = queries is null ? Task.CompletedTask : ReadReducedMotionAsync(_policyStop.Token);
+        if (queries is null) _initialReady.TrySetResult();
         if (queries is not null) _policyUpdates.Writer.TryWrite(default);
     }
 
@@ -92,10 +95,12 @@ internal sealed class DesktopPresentationSession : IDisposable
             await foreach (XsrStateChange change in _policyUpdates.Reader.ReadAllAsync(token).ConfigureAwait(false))
             {
                 var settings = await CommittedSettingsRead.QueryAsync(_queries!, token).ConfigureAwait(false);
-                if (settings is null || Volatile.Read(ref _disposed) != 0) continue;
+                if (settings is null || Volatile.Read(ref _disposed) != 0)
+                { _initialReady.TrySetException(new IOException("无法读取初始动画设置。")); continue; }
                 bool reduced = settings.Values.Any(item => item.Key == "appearance.reduced-motion"
                     && bool.TryParse(item.Value.Value, out bool enabled) && enabled);
                 int next = reduced ? 1 : 0;
+                _initialReady.TrySetResult();
                 if (Interlocked.Exchange(ref _preferenceReducedMotion, next) == next) continue;
                 Interlocked.Exchange(ref _pending, 1);
                 // Re-queue the actual committed revision only to request a new frame; the bridge never mutates the tree here.
@@ -107,7 +112,8 @@ internal sealed class DesktopPresentationSession : IDisposable
                 });
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { _initialReady.TrySetCanceled(token); }
+        catch (Exception error) { _initialReady.TrySetException(error); throw; }
     }
 
     private bool CanUseLowPower() => _lowPower.IsAssigned && _state.Read<bool>(_lowPower).Value

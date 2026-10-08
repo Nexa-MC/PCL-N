@@ -23,17 +23,18 @@ internal static partial class Program
         const string commandDraft = "echo 'user text' && echo ${literal}";
         fixture.Shell.Renderer.SetTextInputValue(wrapper, wrapperDraft);
         Emit(fixture.Intents, "ui.settings.edit", Find("SettingsEdit.game.wrapper"));
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.wrapper") == wrapperDraft; }, TimeSpan.FromSeconds(5)));
+        // A committed value can be visible before the asynchronous command retires.
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return !settings.SettingsWritePending && Read("game.wrapper") == wrapperDraft; }, TimeSpan.FromSeconds(5)));
         fixture.Shell.Renderer.SetTextInputValue(command, commandDraft);
         Emit(fixture.Intents, "ui.settings.edit", Find("SettingsEdit.game.pre-launch"));
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.pre-launch") == commandDraft; }, TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return !settings.SettingsWritePending && Read("game.pre-launch") == commandDraft; }, TimeSpan.FromSeconds(5)));
         Emit(fixture.Intents, "ui.settings.choice", Find("SettingsOption.game.pre-launch-wait.false"));
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.pre-launch-wait") == "false"; }, TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return !settings.SettingsWritePending && Read("game.pre-launch-wait") == "false"; }, TimeSpan.FromSeconds(5)));
         AssertEqual(commandDraft, fixture.Shell.Tree.GetComponent<XsrUiTextInput>(command)!.ReadDraft());
         AssertEqual(wrapperDraft, fixture.Shell.Tree.GetComponent<XsrUiTextInput>(wrapper)!.ReadDraft());
         fixture.Shell.Renderer.SetTextInputValue(command, "");
         Emit(fixture.Intents, "ui.settings.edit", Find("SettingsEdit.game.pre-launch"));
-        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return Read("game.pre-launch") == ""; }, TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() => { fixture.Shell.Render(new(1000, 650)); return !settings.SettingsWritePending && Read("game.pre-launch") == ""; }, TimeSpan.FromSeconds(5)));
 
         string? Read(string key) => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values.Single(value => value.Key == key).Value.Value;
         XsrUiEntityId Find(string name)

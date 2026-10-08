@@ -147,11 +147,21 @@ internal static partial class Program
         AssertFalse((await fixture.Management.ManageAsync(removal)).IsSuccess);
         byte[] retained = await File.ReadAllBytesAsync(path);
         AssertTrue(contradictory.SequenceEqual(retained));
-        // A current process born later proves that the record belongs to an old PID lifetime.
+        // Linux's independently calibrated CLR clocks cannot prove reuse while a PID runs.
+        // Other platforms can use the native birthday to prove the old PID lifetime ended.
         byte[] reused = (byte[])valid.Clone();
         BinaryPrimitives.WriteInt64LittleEndian(reused.AsSpan(12), actualStart - TimeSpan.TicksPerSecond);
         await File.WriteAllBytesAsync(path, reused);
-        AssertTrue((await fixture.Management.ManageAsync(removal)).IsSuccess); AssertFalse(File.Exists(path));
-        AssertFalse(File.Exists(fixture.Executable));
+        var reusedResult = await fixture.Management.ManageAsync(removal);
+        if (OperatingSystem.IsLinux())
+        {
+            AssertFalse(reusedResult.IsSuccess); AssertTrue(File.Exists(path)); AssertTrue(File.Exists(fixture.Executable));
+            byte[] retainedReused = await File.ReadAllBytesAsync(path);
+            AssertTrue(reused.SequenceEqual(retainedReused));
+        }
+        else
+        {
+            AssertTrue(reusedResult.IsSuccess); AssertFalse(File.Exists(path)); AssertFalse(File.Exists(fixture.Executable));
+        }
     }
 }

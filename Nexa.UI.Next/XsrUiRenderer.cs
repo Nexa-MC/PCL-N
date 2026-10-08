@@ -212,6 +212,7 @@ public sealed partial class XsrUiRenderer
             return true;
         }, entity => _tree.HasDirtyLayoutSubtree(entity));
 
+        RetireScrollGesture();
         XsrUiSceneNode[] nodes = CollectNodes(_root, depth: 0);
         _sceneVersion++;
         _scene = new XsrUiScene(_sceneVersion, nodes, _outgoingLayers.ToArray());
@@ -339,7 +340,9 @@ public sealed partial class XsrUiRenderer
             contentHeight = Math.Min(contentHeight, constrainedHeight + padding.Vertical);
         }
         double indicatorGutter = VerticalIndicatorGutter(entity);
+        double horizontalIndicatorGutter = HorizontalIndicatorGutter(entity);
         contentWidth = Math.Max(0, contentWidth - indicatorGutter);
+        contentHeight = Math.Max(0, contentHeight - horizontalIndicatorGutter);
         double width = 0;
         double height = 0;
         bool widthSensitive = false;
@@ -406,7 +409,7 @@ public sealed partial class XsrUiRenderer
             height = stack.Direction == XsrUiOrientation.Horizontal ? cross : main;
             _stackContentSizes[entity.Index] = new XsrUiSize(width, height);
             width += padding.Horizontal + indicatorGutter;
-            height += padding.Vertical;
+            height += padding.Vertical + horizontalIndicatorGutter;
         }
 
         // Explicit sizes constrain the content box; padding adds on top of them.
@@ -554,6 +557,7 @@ public sealed partial class XsrUiRenderer
 
         XsrUiScroll? scroll = _tree.GetComponent<XsrUiScroll>(entity);
         contentWidth = Math.Max(0, contentWidth - VerticalIndicatorGutter(entity));
+        contentHeight = Math.Max(0, contentHeight - HorizontalIndicatorGutter(entity));
         if (scroll is not null)
         {
             // Clamp scroll offsets to the measured content extent; children are placed into
@@ -650,6 +654,10 @@ public sealed partial class XsrUiRenderer
     private double VerticalIndicatorGutter(XsrUiEntityId entity) =>
         _tree.GetComponent<XsrUiStackPanel>(entity) is not null
         && _tree.GetComponent<XsrUiScroll>(entity) is { ShowsVerticalIndicator: true } ? 12 : 0;
+
+    private double HorizontalIndicatorGutter(XsrUiEntityId entity) =>
+        _tree.GetComponent<XsrUiStackPanel>(entity) is not null
+        && _tree.GetComponent<XsrUiScroll>(entity) is { ShowsHorizontalIndicator: true } ? 12 : 0;
 
     private Dictionary<int, double> AllocateWeightedMainSizes(
         XsrUiOrientation direction,
@@ -874,6 +882,7 @@ public sealed partial class XsrUiRenderer
     /// </summary>
     public XsrUiPointerCursor PointerCursorAt(XsrUiPoint point)
     {
+        if (TryHitScrollbar(point, out _, out _)) return XsrUiPointerCursor.Default;
         XsrUiEntityId entity = StableHoverTarget(point, InputAt(point));
         if (!entity.IsAssigned || _tree.GetComponent<XsrUiInput>(entity) is not { } input
             || !IsEnabled(input))
@@ -900,6 +909,8 @@ public sealed partial class XsrUiRenderer
         {
             _focused = default;
         }
+        if (TryHitScrollbar(point, out XsrUiEntityId scrollEntity, out XsrUiScrollbarSnapshot scrollbar))
+            return BeginScrollbarGesture(scrollEntity, scrollbar, point);
         XsrUiEntityId entity = InputAt(point);
         XsrUiInput? input = entity.IsAssigned ? _tree.GetComponent<XsrUiInput>(entity) : null;
         if (entity.IsAssigned && _tree.GetComponent<XsrUiTextInput>(entity) is not null && IsEnabled(input))
@@ -1120,7 +1131,7 @@ public sealed partial class XsrUiRenderer
     /// </summary>
     public bool PointerScroll(XsrUiPoint point, double deltaY, double deltaX = 0)
     {
-        if (_scene is null)
+        if (_scene is null || !double.IsFinite(deltaY) || !double.IsFinite(deltaX))
         {
             return false;
         }
@@ -1153,7 +1164,7 @@ public sealed partial class XsrUiRenderer
                     _ = MovePager(entity, Math.Sign(deltaY));
                     return true;
                 }
-                if (_tree.GetComponent<XsrUiScroll>(entity) is { } scroll)
+                if (_tree.GetComponent<XsrUiScroll>(entity) is { } scroll && CanUseScroll(entity))
                 {
                     StopScrollMotion(entity);
                     StopSegmentScroll(entity);
@@ -1303,6 +1314,7 @@ public sealed partial class XsrUiRenderer
 
     private XsrUiEntityId InputAt(XsrUiPoint point)
     {
+        if (TryHitScrollbar(point, out _, out _)) return default;
         if (_scene is null)
         {
             return default;
@@ -1430,17 +1442,7 @@ public sealed partial class XsrUiRenderer
         XsrUiScrollSnapshot? scrollSnapshot = null;
         if (scrollState is not null)
         {
-            XsrUiSize scrollContent = _stackContentSizes.TryGetValue(entity.Index, out XsrUiSize value)
-                ? value
-                : new XsrUiSize(rect.Width, rect.Height);
-            scrollSnapshot = new XsrUiScrollSnapshot(
-                scrollState.OffsetX,
-                scrollState.OffsetY,
-                Math.Max(0, rect.Width - VerticalIndicatorGutter(entity)),
-                rect.Height,
-                scrollContent.Width,
-                scrollContent.Height,
-                scrollState.ShowsVerticalIndicator);
+            scrollSnapshot = ProjectScroll(entity, scrollState, rect);
         }
         nodes.Add(new XsrUiSceneNode(
             entity,
@@ -1482,6 +1484,8 @@ public sealed partial class XsrUiRenderer
             IsStableContent(entity), ProjectTextRuns(text?.Runs))
         {
             ColorScheme = _colorScheme,
+            VerticalScrollbar = scrollSnapshot?.Scrollbar(rect, XsrUiOrientation.Vertical),
+            HorizontalScrollbar = scrollSnapshot?.Scrollbar(rect, XsrUiOrientation.Horizontal),
             Graph = components.Get<XsrUiGraph>()?.Snapshot(),
             ContextMenu = ProjectContextMenu(entity, components.Get<XsrUiContextMenu>()),
             IsChecked = components.Get<XsrUiToggle>()?.IsChecked,
@@ -1522,6 +1526,15 @@ public sealed partial class XsrUiRenderer
             || components.Get<XsrUiSegmentedTrack>() is not null
             ? visibleClip ?? rect
             : clip;
+        if (scrollState is not null)
+        {
+            XsrUiRect scrollViewport = rect with
+            {
+                Width = Math.Max(0, rect.Width - VerticalIndicatorGutter(entity)),
+                Height = Math.Max(0, rect.Height - HorizontalIndicatorGutter(entity)),
+            };
+            childClip = Intersect(scrollViewport, childClip ?? scrollViewport);
+        }
         if (transition is { MovesSelf: false })
         {
             offsetX += transition.PresentedOffsetX;

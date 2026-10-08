@@ -285,6 +285,7 @@ internal static partial class Program
                     await session.WaitForExitAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
                 }
                 catch (Exception error) when (error is OperationCanceledException or InvalidOperationException or IOException) { }
+                if (Directory.Exists(plan.GameDirectory)) await WaitForLaunchGameDirectoryReleasedAsync(plan.GameDirectory);
             }
         }
     }

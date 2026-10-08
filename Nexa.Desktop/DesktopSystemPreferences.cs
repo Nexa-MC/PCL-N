@@ -103,7 +103,12 @@ internal static class DesktopSystemPreferences
     private static async Task WriteOwnedAsync(string path, string? contents, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        if (contents is null) { File.Delete(path); return; }
+        if (contents is null)
+        {
+            try { File.Delete(path); }
+            catch (DirectoryNotFoundException) { }
+            return;
+        }
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try { await File.WriteAllTextAsync(temporary, contents, token).ConfigureAwait(false); File.Move(temporary, path, true); }

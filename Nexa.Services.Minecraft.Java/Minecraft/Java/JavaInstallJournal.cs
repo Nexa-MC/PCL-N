@@ -9,7 +9,7 @@ internal sealed record JavaInstallIntent(int Schema, string Root, string Compone
 
 internal sealed class JavaInstallJournal
 {
-    internal const string DirectoryName = ".nexa-java-jobs";
+    internal const string DirectoryName = Nexa.Services.Minecraft.Process.JvmRuntimeUseRecord.JobsDirectory;
     internal string Stage { get; }
     internal string Root { get; }
     internal string Payload => Path.Combine(Stage, "payload");

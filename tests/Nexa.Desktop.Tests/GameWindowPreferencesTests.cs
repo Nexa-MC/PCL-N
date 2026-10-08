@@ -57,11 +57,21 @@ internal static partial class Program
         scene = fixture.Shell.Render(new(1000, 1500));
         var isolation = FindByKey(fixture.Shell, scene, "SettingsOption.game.default-isolation.none");
         AssertTrue(fixture.Shell.Renderer.Activate(isolation.Entity)); fixture.Shell.Render(new(1000, 1500));
-        AssertTrue(SpinWait.SpinUntil(() => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values
-            .Single(value => value.Key == "game.default-isolation").Value.Value == "none", 5000));
+        // Wait for controller admission to reopen, not only for the committed value.
+        AssertTrue(SpinWait.SpinUntil(() =>
+        {
+            fixture.Shell.Render(new(1000, 1500));
+            return !settings.SettingsWritePending && fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values
+                .Single(value => value.Key == "game.default-isolation").Value.Value == "none";
+        }, 5000));
+        scene = fixture.Shell.Render(new(1000, 1500));
         var option = FindByKey(fixture.Shell, scene, "SettingsOption.game.launcher-visibility.hide");
         AssertTrue(fixture.Shell.Renderer.Activate(option.Entity)); fixture.Shell.Render(new(1000, 900));
-        AssertTrue(SpinWait.SpinUntil(() => fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values
-            .Single(value => value.Key == "game.launcher-visibility").Value.Value == "hide", TimeSpan.FromSeconds(5)));
+        AssertTrue(SpinWait.SpinUntil(() =>
+        {
+            fixture.Shell.Render(new(1000, 900));
+            return !settings.SettingsWritePending && fixture.Foundation.Host.SettingsPolicy.Read(new()).Value!.Values
+                .Single(value => value.Key == "game.launcher-visibility").Value.Value == "hide";
+        }, TimeSpan.FromSeconds(5)));
     }
 }

@@ -22,6 +22,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("StartupMediaWarmupSettlesMissingLocalAsset", StartupMediaWarmupSettlesMissingLocalAsset),
         ("ScreenshotCodecCropsActualPixelsAndPreservesSource", ScreenshotCodecCropsActualPixelsAndPreservesSource),
         ("CommandPaletteGesturesRequireExactKeysAndAdmittedCallbacks", CommandPaletteGesturesRequireExactKeysAndAdmittedCallbacks),
         ("WorldEditLeaseRejectsNonMacBeforeLoadingNativeLibraries", WorldEditLeaseRejectsNonMacBeforeLoadingNativeLibraries),
@@ -429,6 +430,7 @@ internal static partial class Program
             await VerifyPlatformClipboard(window).ConfigureAwait(true);
             await VerifyConfigurableMotionFrameClock().ConfigureAwait(true);
             VerifyNativeTextEditing(window, shell, surface);
+            VerifyNativeScrollbarPointerRouting(window, shell, surface);
             await VerifyNativeSettingsControls(shell, surface);
             VerifyNativeAppearancePreferences(window, shell, surface);
             VerifyReentrantRemovalCommit(shell, surface);

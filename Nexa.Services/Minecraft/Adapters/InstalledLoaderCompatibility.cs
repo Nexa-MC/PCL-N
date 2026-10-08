@@ -1,16 +1,15 @@
-using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
+using Nexa.Services.Caching;
 using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Minecraft.Launch;
 using Nexa.Services.Minecraft.ModLoaders;
 
 namespace Nexa.Services.Capabilities;
 
-internal sealed class InstalledLoaderCompatibility(IInstallCatalogSource? source = null)
+internal sealed class InstalledLoaderCompatibility(IInstallCatalogSource? source = null, ISharedStateCache? sharedCache = null)
 {
     private static readonly HttpClient Http = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(8) };
     private static readonly IInstallCatalogSource DefaultSource = new HttpInstallCatalogSource(Http);
-    private static readonly ConcurrentDictionary<(InstallLoader, string), (DateTimeOffset At, IReadOnlyList<InstallCatalogVersion> Versions)> Cache = new();
 
     internal async Task<bool?> EvaluateAsync(MinecraftResolvedVersionManifests manifests, MinecraftModLoaderDescriptor loader, CancellationToken token)
     {
@@ -43,26 +42,30 @@ internal sealed class InstalledLoaderCompatibility(IInstallCatalogSource? source
                 if (dash > 0 && parts[2][..dash] != game) return false;
             }
         }
-        var key = (kind.Value, game);
         IReadOnlyList<InstallCatalogVersion> versions;
-        if (source is null && Cache.TryGetValue(key, out var cached) && DateTimeOffset.UtcNow - cached.At < TimeSpan.FromHours(6)) versions = cached.Versions;
-        else
+        try
         {
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-            deadline.CancelAfter(TimeSpan.FromSeconds(8));
-            try
-            {
-                versions = await (source ?? DefaultSource).GetLoadersAsync(kind.Value, game, deadline.Token).ConfigureAwait(false);
-                if (source is null)
-                {
-                    if (Cache.Count >= 256) Cache.Clear();
-                    Cache[key] = (DateTimeOffset.UtcNow, versions);
-                }
-            }
-            catch (OperationCanceledException) when (!token.IsCancellationRequested) { return null; }
-            catch (Exception error) when (error is HttpRequestException or IOException or System.Text.Json.JsonException or System.Xml.XmlException or InvalidOperationException) { return null; }
+            if (source is null && sharedCache is not null)
+                versions = await sharedCache.GetOrCreateAsync<IReadOnlyList<InstallCatalogVersion>>(
+                    new("minecraft.install-catalog", game + "|" + kind.Value,
+                        "official-install-providers-v1|" + RegionalPolicy.Current.CountryCode),
+                    InstallCatalogInformationCache.Policy, FetchAsync,
+                    shouldStore: InstallCatalogInformationCache.Positive, cancellationToken: token).ConfigureAwait(false);
+            else versions = await FetchAsync(token).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested) { return null; }
+        catch (Exception error) when (error is HttpRequestException or IOException or System.Text.Json.JsonException or System.Xml.XmlException or InvalidOperationException) { return null; }
         return versions.Any(item => string.Equals(item.Id, loader.Version, StringComparison.Ordinal)) ? true : null;
+
+        async ValueTask<IReadOnlyList<InstallCatalogVersion>> FetchAsync(CancellationToken cancellation)
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            deadline.CancelAfter(TimeSpan.FromSeconds(8));
+            IReadOnlyList<InstallCatalogVersion> fetched = await (source ?? DefaultSource)
+                .GetLoadersAsync(kind.Value, game, deadline.Token).ConfigureAwait(false);
+            return Array.AsReadOnly(fetched.Where(item => !string.IsNullOrWhiteSpace(item.Id))
+                .DistinctBy(item => item.Id, StringComparer.Ordinal).ToArray());
+        }
     }
 
     private static bool HasLibrary(MinecraftResolvedVersionManifests manifests, string prefix) => Libraries(manifests).Any(name => name.StartsWith(prefix, StringComparison.Ordinal));

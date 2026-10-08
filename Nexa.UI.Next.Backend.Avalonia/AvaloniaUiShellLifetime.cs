@@ -15,6 +15,22 @@ namespace Nexa.UI.Next.Backend.Avalonia;
 /// </summary>
 public static class AvaloniaUiShellLifetime
 {
+    /// <summary>Creates the real shell while the startup window still owns the lifetime.</summary>
+    internal static AvaloniaUiShellWindow Prepare(XsrUiShell shell, Stream? windowIcon)
+    {
+        var window = new AvaloniaUiShellWindow(shell, windowIcon);
+        var pressure = new AvaloniaUiResourcePressureSession();
+        window.Closed += (_, _) => pressure.Dispose();
+        return window;
+    }
+
+    internal static void PresentPrepared(IClassicDesktopStyleApplicationLifetime desktop, AvaloniaUiShellWindow window)
+    {
+        desktop.MainWindow = window;
+        desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+        window.Show();
+    }
+
     public static AvaloniaUiShellWindow Compose(
         IClassicDesktopStyleApplicationLifetime desktop,
         XsrUiShell shell,
@@ -34,9 +50,7 @@ public static class AvaloniaUiShellLifetime
         {
             splash.Show();
         }
-        AvaloniaUiShellWindow window = new(shell, windowIcon);
-        var pressure = new AvaloniaUiResourcePressureSession();
-        window.Closed += (_, _) => pressure.Dispose();
+        AvaloniaUiShellWindow window = Prepare(shell, windowIcon);
         if (splash is not null)
         {
             // Hard guarantee that a lost reveal event can never leave the topmost splash stuck
@@ -61,8 +75,8 @@ public static class AvaloniaUiShellLifetime
             fallback.Start();
         }
 
-        desktop.MainWindow = window;
-        window.Show();
+        window.PrepareStartupScene();
+        PresentPrepared(desktop, window);
         return window;
     }
 }

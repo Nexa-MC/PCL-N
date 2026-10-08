@@ -6,11 +6,14 @@ using Nexa.Xsr.Runtime;
 
 namespace Nexa.Services.Composition;
 
-public sealed class ResourceCatalogRuntime(XsrQueryRouter queries, HttpClient? ownedHttp, ResourceIconService? icons = null) : IDisposable
+public sealed class ResourceCatalogRuntime(XsrQueryRouter queries, HttpClient? ownedHttp, ResourceIconService? icons = null,
+    ResourceOnlineInformationCache? ownedInformation = null) : IDisposable
 {
+    public ResourceCatalogRuntime(XsrQueryRouter queries, HttpClient? ownedHttp, ResourceIconService? icons = null)
+        : this(queries, ownedHttp, icons, null) { }
     public XsrCommandRouter? Commands { get; init; }
     public XsrQueryRouter Queries { get; } = queries;
-    public void Dispose() { ownedHttp?.Dispose(); icons?.Dispose(); }
+    public void Dispose() { ownedHttp?.Dispose(); icons?.Dispose(); ownedInformation?.Dispose(); }
 }
 
 public static class ResourceCatalogRuntimeComposer
@@ -23,9 +26,12 @@ public static class ResourceCatalogRuntimeComposer
         string SourcePriority() => host?.SettingsPolicy.Read(new()).Value?.Values.FirstOrDefault(item => item.Key == "network.resource-source")?.Value.Value ?? "follow-request";
         bool AutoDependencies() => host?.SettingsPolicy.Read(new()).Value?.Values.FirstOrDefault(item => item.Key == "network.auto-install-dependencies")?.Value.Value != "false";
         var transport = http is null ? null : new ResourceProviderHttp(http) { SourcePriority = SourcePriority };
-        source ??= new MergedResourceCatalog(new ResourceCatalogService(http!, transport), new CurseForgeResourceCatalog(transport!));
-        var translations = transport is null ? null : new ResourceTranslationService(transport);
-        ResourceIconService? icons = http is null ? null : new(http) { WorkScheduler = host?.Work };
+        var information = new ResourceOnlineInformationCache(host?.SharedStateCache,
+            host?.CacheDirectory is null ? null : Path.Combine(host.CacheDirectory, "resource-information"));
+        source ??= new MergedResourceCatalog(new ResourceCatalogService(http!, transport), new CurseForgeResourceCatalog(transport!),
+            information, () => transport!.CachePolicyIdentity);
+        var translations = transport is null ? null : new ResourceTranslationService(transport, information);
+        ResourceIconService? icons = http is null ? null : new(http, host?.SharedStateCache) { WorkScheduler = host?.Work };
         XsrQueryRouterBuilder queries = new();
         queries.Register<ResourceNetworkPolicyQuery, ResourceNetworkPolicySnapshot>(ResourceCatalogContract.NetworkPolicy,
             (_, _) => ValueTask.FromResult(XsrResult.Success(new ResourceNetworkPolicySnapshot(SourcePriority(), AutoDependencies(), transport?.LastResolution))));
@@ -48,7 +54,7 @@ public static class ResourceCatalogRuntimeComposer
         if (host is not null && http is not null)
         {
             var downloader = new ResourceDownloadService(source, host.Downloads, host.Tasks, http) { SourcePriority = SourcePriority };
-            var instances = new ResourceInstanceService(transport!);
+            var instances = new ResourceInstanceService(transport!, information);
             var content = new ResourceContentOnlineService(instances, source, translations);
             queries.Register<ResourceContentOnlineQuery, ResourceContentOnline>(ResourceCatalogContract.ContentOnline,
                 async (query, token) => XsrResult.Success(await content.ReadAsync(query, token).ConfigureAwait(false)));
@@ -97,7 +103,7 @@ public static class ResourceCatalogRuntimeComposer
                 { return XsrResult.Failure(new XsrError(XsrErrorKind.Rejected, XsrSemanticId.Parse("resources.download.failed"), error.Message)); }
             });
         }
-        return new(queries.Build(observer ?? new Observer()), http, icons) { Commands = commands.Build(observer ?? new Observer()) };
+        return new(queries.Build(observer ?? new Observer()), http, icons, information) { Commands = commands.Build(observer ?? new Observer()) };
     }
     private sealed class Observer : IXsrDispatchObserver { public void OnCompleted(XsrDispatchObservation observation) { } }
 }

@@ -1,5 +1,6 @@
 using Nexa.Services.Minecraft.Management;
 using Nexa.Services.Resources;
+using Nexa.Services.Settings;
 using Nexa.UI.Next;
 using Nexa.Xsr;
 using Nexa.Xsr.Runtime;
@@ -28,10 +29,16 @@ internal sealed partial class SettingsPageController
     private bool _onlineListIncomplete;
     private bool _onlineListFailed;
     private readonly Dictionary<ResourceContentOnlineQuery, ResourceContentOnline> _onlineList = [];
+    private readonly HashSet<ResourceContentOnlineQuery> _onlineListRenewed = [];
+    private bool _onlineContentRenewed;
     private readonly Dictionary<string, Nexa.Core.Media.PngImage?> _onlineListIcons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Task<XsrResult<ResourceIconResult>>> _onlineListIconReads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, XsrUiEntityId> _contentIconEntities = new(StringComparer.Ordinal);
     private string? _onlinePresentationLanguage;
+    private long _onlineSourceRevision = -1;
+    private string? _onlineSourcePriority;
+    private Task<XsrResult<ResourceNetworkPolicySnapshot>>? _onlineSourcePolicyRead;
+    private bool _onlineForceRefresh;
 
     internal void ConfigureOnlineContent(XsrQueryRouter queries, Action<Uri> open, XsrCommandRouter? commands = null)
     { _resourceQueries = queries; _openResourceLink = open; _resourceCommands = commands; }
@@ -44,7 +51,7 @@ internal sealed partial class SettingsPageController
             _ = pending.Read.ContinueWith(task => { _ = task.Exception; }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         _onlineListReads.Clear(); _onlineListRefresh = false;
         _onlineListTotal = -1; _onlineListMatched = 0; _onlineListIncomplete = false;
-        _onlineListInstance = _onlineListPage = null; _onlineList.Clear(); _onlineListFailed = false;
+        _onlineListInstance = _onlineListPage = null; _onlineList.Clear(); _onlineListRenewed.Clear(); _onlineListFailed = false;
         _onlineListIcons.Clear(); _onlineListIconReads.Clear();
         _contentIconEntities.Clear();
     }
@@ -77,7 +84,7 @@ internal sealed partial class SettingsPageController
             if (PendingQuery.Succeeded(read))
             {
                 foreach (var match in read.Result.Value!.Matches)
-                    if (pending.Files.Contains(match.File)) _onlineList[match.File] = match.Content;
+                    if (pending.Files.Contains(match.File)) _onlineList[match.File] = RetainOnlineContent(_onlineList.GetValueOrDefault(match.File), match.Content);
             }
             else { _ = read.Exception; _onlineListFailed = true; }
             foreach (var file in pending.Files)
@@ -91,26 +98,40 @@ internal sealed partial class SettingsPageController
         }
         UpdateOnlineListIcons();
         if (_onlineListTotal < 0) _onlineListTotal = _management.Contents.FirstOrDefault(p => p.PageId == _selected)?.Entries.Count(item => OnlineFile(item) is not null) ?? 0;
-        if (_onlineListReads.Count >= 2 || _onlineList.Count >= _onlineListTotal) { UpdateOnlineListStatus(); return; }
+        if (_onlineListReads.Count >= 2 || _onlineList.Count >= _onlineListTotal && !_onlineList.Any(item => item.Value.IsStale && !_onlineListRenewed.Contains(item.Key))) { UpdateOnlineListStatus(); return; }
         var visible = _contentSnapshot?.Entries.Skip(Math.Max(0, _contentWindowStart * Math.Max(1, _contentColumns))).Take(_contentWindowCount * Math.Max(1, _contentColumns)) ?? [];
         var candidates = visible.Concat(_management.Contents.FirstOrDefault(p => p.PageId == _selected)?.Entries ?? []).Select(OnlineFile)
             .Where(q => q is not null).Select(q => q!).Distinct().ToArray();
         while (_onlineListReads.Count < 2)
         {
-            var files = candidates.Where(q => !_onlineList.ContainsKey(q) && !_onlineListReads.Any(p => p.Files.Contains(q))).Take(2).ToArray();
+            var files = candidates.Where(q => (!_onlineList.TryGetValue(q, out var cached) || cached.IsStale && !_onlineListRenewed.Contains(q))
+                && !_onlineListReads.Any(p => p.Files.Contains(q))).Take(2).ToArray();
             if (files.Length == 0) break;
             _onlineListStop ??= new();
-            var read = _resourceQueries.QueryAsync<ResourceContentOnlineBatchQuery, ResourceContentOnlineBatch>(route, new(files) { Refresh = _onlineListRefresh }, cancellationToken: _onlineListStop.Token).AsTask();
+            bool renewal = files.Any(file => _onlineList.TryGetValue(file, out var cached) && cached.IsStale);
+            if (_onlineListRefresh || renewal) foreach (var file in files) _onlineListRenewed.Add(file);
+            var read = _resourceQueries.QueryAsync<ResourceContentOnlineBatchQuery, ResourceContentOnlineBatch>(route, new(files) { Refresh = _onlineListRefresh, WaitForRefresh = renewal }, cancellationToken: _onlineListStop.Token).AsTask();
             _onlineListReads.Add((files, read)); WakeOnPlatformCompletion(read);
         }
         UpdateOnlineListStatus();
     }
+
+    private static ResourceContentOnline RetainOnlineContent(ResourceContentOnline? previous, ResourceContentOnline current)
+        => previous?.Project is not null && current.Project is null
+            ? previous with
+            {
+                IsStale = true,
+                UpdateAvailable = null,
+                UpdateVersion = null,
+                Notice = "正在显示缓存资料。 " + (current.Notice ?? "暂时无法刷新在线信息。")
+            } : current;
 
     private void UpdateOnlineListStatus()
     {
         if (!_onlineListStatus.IsAssigned || !_shell.Tree.IsAlive(_onlineListStatus)) return;
         int total = Math.Max(0, _onlineListTotal);
         string label = _resourceQueries?.TryResolve(ResourceCatalogContract.ContentOnlineBatch, out _) != true ? "在线信息尚不可用"
+            : _onlineList.Values.Any(value => value.IsStale) ? "正在显示缓存在线资料，后台正在刷新"
             : _onlineListReads.Count > 0 || _onlineList.Count < total ? "正在关联在线信息"
             : _onlineListFailed || _onlineListIncomplete ? "在线信息已刷新，部分文件未能完整识别" : "在线信息已刷新";
         string content = _shell.Renderer.LocalizeText(label) + $" · {_onlineList.Count}/{total} · " + _shell.Renderer.LocalizeText("已关联") + " " + _onlineListMatched;
@@ -172,17 +193,18 @@ internal sealed partial class SettingsPageController
         _contentChangelogRead = null; _contentChangelog = null;
         _onlineStop?.Cancel(); _onlineStop?.Dispose(); _onlineStop = null;
         _onlineRead = null; _onlineQuery = null; _onlineContent = null; _onlineError = null; _onlineSection = default;
-        _onlineIconRead = null; _onlineIcon = null;
+        _onlineIconRead = null; _onlineIcon = null; _onlineContentRenewed = false;
     }
 
     private void BuildOnlineContent(XsrUiEntityId parent, InstanceContentEntry item)
     {
         if (_instance is null || item.IsDirectory || item.Size is not { } size || _selected is not ("mods" or "resourcepacks" or "shaderpacks")
             || _resourceQueries?.TryResolve(ResourceCatalogContract.ContentOnline, out var route) != true) return;
-        var query = new ResourceContentOnlineQuery(_instance, _selected, item.Name, size, item.ModifiedUtcTicks);
+        var query = new ResourceContentOnlineQuery(_instance, _selected, item.Name, size, item.ModifiedUtcTicks) { Refresh = _onlineForceRefresh };
+        _onlineForceRefresh = false;
         if (query != _onlineQuery)
         {
-            CancelOnlineContent(); _onlineQuery = query; _onlineStop = new();
+            CancelOnlineContent(); _onlineQuery = query; _onlineStop = new(); _onlineContentRenewed = query.Refresh;
             _onlineRead = _resourceQueries.QueryAsync<ResourceContentOnlineQuery, ResourceContentOnline>(route, query, cancellationToken: _onlineStop.Token).AsTask();
             WakeOnPlatformCompletion(_onlineRead);
         }
@@ -192,6 +214,25 @@ internal sealed partial class SettingsPageController
 
     private void UpdateOnlineContent()
     {
+        long sourceRevision = _store.TryResolve(SettingsPolicyContract.RevisionKey, out var sourceKey) ? _store.Read<long>(sourceKey).Value : 0;
+        if (_onlineSourcePolicyRead is null && _onlineSourceRevision != sourceRevision
+            && _resourceQueries?.TryResolve(ResourceCatalogContract.NetworkPolicy, out var policyRoute) == true)
+        {
+            _onlineSourceRevision = sourceRevision;
+            _onlineSourcePolicyRead = _resourceQueries.QueryAsync<ResourceNetworkPolicyQuery, ResourceNetworkPolicySnapshot>(policyRoute, new()).AsTask();
+            WakeOnPlatformCompletion(_onlineSourcePolicyRead);
+        }
+        if (_onlineSourcePolicyRead is { IsCompleted: true } policyRead)
+        {
+            _onlineSourcePolicyRead = null;
+            if (PendingQuery.Succeeded(policyRead))
+            {
+                string priority = policyRead.Result.Value!.Priority;
+                bool changed = _onlineSourcePriority is not null && _onlineSourcePriority != priority;
+                _onlineSourcePriority = priority;
+                if (changed) { CancelOnlineList(); CancelOnlineContent(); BuildSections(); }
+            }
+        }
         UpdateContentIntegrity();
         UpdateContentChangelog();
         string language = DesktopResourceText.Language(_store);
@@ -216,8 +257,16 @@ internal sealed partial class SettingsPageController
         if (_onlineRead is { IsCompleted: true } read)
         {
             _onlineRead = null; updated = true;
-            if (PendingQuery.Succeeded(read)) _onlineContent = read.Result.Value;
+            if (PendingQuery.Succeeded(read)) _onlineContent = RetainOnlineContent(_onlineContent, read.Result.Value!);
             else _onlineError = "暂时无法获取在线信息，请稍后重试。";
+            // Join the service's one background renewal and consume its result once; no polling loop.
+            if (_onlineContent is { IsStale: true } && !_onlineContentRenewed
+                && _resourceQueries?.TryResolve(ResourceCatalogContract.ContentOnline, out var contentRoute) == true)
+            {
+                _onlineContentRenewed = true;
+                _onlineRead = _resourceQueries.QueryAsync<ResourceContentOnlineQuery, ResourceContentOnline>(contentRoute, query with { Refresh = false, WaitForRefresh = true }, cancellationToken: _onlineStop!.Token).AsTask();
+                WakeOnPlatformCompletion(_onlineRead);
+            }
             if (_onlineContent?.Project?.IconUrl is { } url && _resourceQueries?.TryResolve(ResourceCatalogContract.Icon, out var route) == true)
             {
                 _onlineIconRead = _resourceQueries.QueryAsync<ResourceIconQuery, ResourceIconResult>(route, new(url), cancellationToken: _onlineStop!.Token).AsTask();
@@ -298,7 +347,7 @@ internal sealed partial class SettingsPageController
         if (notice is not null) ContentName(_onlineSection, notice, 13, null, maxLines: 0, foreground: Muted, literal: false);
         else if (_onlineRead is not null) Text(_onlineSection, "正在识别文件并获取项目资料…", 13, Muted, 26);
         if (_onlineRead is null)
-            ManagementButton(_onlineSection, "重新识别", () => { CancelOnlineContent(); BuildSections(); }, 96);
+            ManagementButton(_onlineSection, "重新识别", () => { CancelOnlineContent(); _onlineForceRefresh = true; BuildSections(); }, 96);
         _shell.Tree.MarkDirty(_onlineSection, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
     }
 }

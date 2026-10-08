@@ -31,6 +31,7 @@ internal sealed class DesktopIntegrationSession : IAsyncDisposable
     private readonly IDisposable? _nativeFiles;
     private bool _disposed;
     internal bool HasExplicitActivation { get; private set; }
+    internal Task InitialReady => _registration;
 
     internal DesktopIntegrationSession(XsrUiShell shell, DesktopUiIntentSink intents, XsrStateStore state,
         AvaloniaUiPlatformActions platform, DesktopSingleInstance? instance, string[] args, Action<string> report,

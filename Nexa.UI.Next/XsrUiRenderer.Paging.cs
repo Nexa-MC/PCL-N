@@ -65,7 +65,9 @@ public sealed partial class XsrUiRenderer
     public bool CancelPointerGesture()
     {
         bool scrollHandled = EndScrollGesture(cancelled: true);
-        bool handled = EndGraphGesture(null) || EndSegmentDrag() || scrollHandled || _gesturePager.IsAssigned || _pressed.IsAssigned;
+        bool graphHandled = EndGraphGesture(null);
+        bool segmentHandled = EndSegmentDrag();
+        bool handled = graphHandled || segmentHandled || scrollHandled || _gesturePager.IsAssigned || _pressed.IsAssigned;
         if (_gesturePager.IsAssigned && _tree.IsAlive(_gesturePager)
             && _tree.GetComponent<XsrUiPager>(_gesturePager) is { } pager)
         {

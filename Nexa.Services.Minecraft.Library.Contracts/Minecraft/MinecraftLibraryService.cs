@@ -36,7 +36,8 @@ public sealed record MinecraftLibrarySnapshot(long Revision, IReadOnlyList<Minec
     string RootDirectory, IReadOnlyList<MinecraftInstanceDescriptor> Instances, string SelectedInstanceId,
     bool IsLoading, XsrError? Error = null)
 {
-    public MinecraftInstanceDescriptor? SelectedInstance => Instances.FirstOrDefault(instance => instance.Id == SelectedInstanceId);
+    public bool IsProvisional { get; init; }
+    public MinecraftInstanceDescriptor? SelectedInstance => IsProvisional ? null : Instances.FirstOrDefault(instance => instance.Id == SelectedInstanceId);
 }
 
 public sealed record MinecraftLibraryRefreshCommand;

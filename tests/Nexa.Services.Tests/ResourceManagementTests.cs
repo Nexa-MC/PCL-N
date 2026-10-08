@@ -58,7 +58,7 @@ internal static partial class Program
     private static async ValueTask ResourceSearchCacheAvoidsDuplicateProviderWork()
     {
         int calls = 0;
-        var provider = new CatalogStub((query, _) => { calls++; return Task.FromResult(new ResourceSearchResult([], 0, query.Page)); });
+        var provider = new CatalogStub((query, _) => { calls++; return Task.FromResult(new ResourceSearchResult([new("Project", "Project", "", "", 0, "https://modrinth.com/project/Project") { Sources = [new(ResourceProvider.Modrinth, "Project")] }], 1, query.Page)); });
         var catalog = new MergedResourceCatalog(provider, provider);
         await catalog.SearchAsync(new(Text: "钠"), default);
         int first = calls;

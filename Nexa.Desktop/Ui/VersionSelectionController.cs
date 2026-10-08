@@ -295,7 +295,7 @@ internal sealed partial class VersionSelectionController : IDisposable
         Publish("list.count", snapshot.IsLoading ? "正在刷新…" : _transferSelection.Count > 0
             ? $"{shown.Count} 个版本 · 已选 {_transferSelection.Count} 项" : $"{shown.Count} 个版本");
         Publish("list.empty", shown.Count == 0);
-        Publish("list.status", snapshot.IsLoading ? "正在读取目录中的版本…" : snapshot.Error is not null
+        Publish("list.status", snapshot.IsProvisional ? "显示缓存版本，等待本地校验…" : snapshot.IsLoading ? "正在读取目录中的版本…" : snapshot.Error is not null
             ? "无法读取此目录" : snapshot.Instances.Count == 0
             ? "暂无已安装版本" : "无匹配版本");
         ReconcileRows(snapshot);

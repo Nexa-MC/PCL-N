@@ -815,10 +815,10 @@ internal static partial class Program
     internal static async ValueTask MinecraftLaunchRouteStagesNativesBeforeProcessStart()
     {
         string directory = CreateTempDirectory();
+        string root = Path.Combine(directory, "root");
         MinecraftProcessService? processes = null;
         try
         {
-            string root = Path.Combine(directory, "root");
             string instance = Path.Combine(directory, "instance");
             string natives = Path.Combine(instance, "natives");
             Directory.CreateDirectory(instance);
@@ -900,6 +900,7 @@ internal static partial class Program
         finally
         {
             if (processes is not null) await processes.DisposeAsync();
+            if (Directory.Exists(root)) await WaitForLaunchGameDirectoryReleasedAsync(root);
             Directory.Delete(directory, recursive: true);
         }
     }

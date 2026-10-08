@@ -25,6 +25,8 @@ internal sealed class SystemPreferencesSession : IAsyncDisposable
     private readonly Task _worker;
     private readonly Channel<bool> _policy = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly Task _policyWorker;
+    private readonly TaskCompletionSource _initialReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal Task InitialReady => _initialReady.Task;
     private readonly HashSet<Guid> _notified = [];
     private bool? _autostart, _association, _jumpList;
     private volatile bool _nativeNotifications, _notificationActions, _clipboard;
@@ -145,7 +147,7 @@ internal sealed class SystemPreferencesSession : IAsyncDisposable
             {
                 // Latest committed policy is re-read after every native effect; notifications cannot fill this queue.
                 var result = await CommittedSettingsRead.QueryAsync(_queries, _stop.Token).ConfigureAwait(false);
-                if (result is null) continue;
+                if (result is null) { _initialReady.TrySetException(new IOException("无法读取初始系统设置。")); continue; }
                 var values = result.Values.ToDictionary(item => item.Key, item => item.Value.Value);
                 ApplyPolicy(values);
                 bool Read(string key) => bool.TryParse(values.GetValueOrDefault(key), out bool value) && value;
@@ -166,9 +168,11 @@ internal sealed class SystemPreferencesSession : IAsyncDisposable
                 }
                 catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or OperationCanceledException or PlatformNotSupportedException)
                 { if (!_stop.IsCancellationRequested) _log("系统偏好应用失败：" + failure.Message); }
+                finally { _initialReady.TrySetResult(); }
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { _initialReady.TrySetCanceled(_stop.Token); }
+        catch (Exception error) { _initialReady.TrySetException(error); throw; }
     }
 
     public async ValueTask DisposeAsync()

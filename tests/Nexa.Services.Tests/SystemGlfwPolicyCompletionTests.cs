@@ -89,6 +89,8 @@ internal static partial class Program
                 AssertTrue(processes.TryCancel(processes.ListSessions().Single().SessionId));
                 await port.LastProcess!.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
                 await executor.WaitForFinalizationAsync().WaitAsync(TimeSpan.FromSeconds(5));
+                if (!item.Safe && port.LastStartInfo is { } startInfo)
+                    await WaitForLaunchGameDirectoryReleasedAsync(startInfo.WorkingDirectory);
             }
         }
         finally { Directory.Delete(root, true); }

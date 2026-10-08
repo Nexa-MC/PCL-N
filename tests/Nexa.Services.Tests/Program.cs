@@ -4,6 +4,36 @@ internal static partial class Program
 {
     private static readonly (string Name, Func<ValueTask> Body)[] TestCases =
     [
+        ("LibrarySnapshotsAreDisplayOnlyUntilReconciled", LibrarySnapshotsAreDisplayOnlyUntilReconciled),
+        ("LibraryOfflineRootRaceRetainsRealSnapshotAndAcceptsEmptyRoot", LibraryOfflineRootRaceRetainsRealSnapshotAndAcceptsEmptyRoot),
+        ("atomic publication preserves originals and retires scratch", AtomicFilePublicationPreservesOriginalsAndRetiresScratchOnFailure),
+        ("SharedCacheCoalescesWaitersWithoutSharingCancellation", SharedCacheCoalescesWaitersWithoutSharingCancellation),
+        ("SharedCacheInvalidationBlocksOlderPublication", SharedCacheInvalidationBlocksOlderPublication),
+        ("SharedCacheStoreDuringFlightKeepsProducerSharedAndRefreshPublication", SharedCacheStoreDuringFlightKeepsProducerSharedAndRefreshPublication),
+        ("SharedCacheEnforcesLruBytesAndOriginalAge", Sync(SharedCacheEnforcesLruBytesAndOriginalAge)),
+        ("DiscoverySnapshotReusesCatalogAcrossRestartWithFreshMetadata", DiscoverySnapshotReusesCatalogAcrossRestartWithFreshMetadata),
+        ("DiscoverySnapshotRejectsSameStampEditsAndMalformedHints", DiscoverySnapshotRejectsSameStampEditsAndMalformedHints),
+        ("DiscoverySnapshotDirectoryLeaseKeepsConcurrentBudgetsAndForeignFiles", DiscoverySnapshotDirectoryLeaseKeepsConcurrentBudgetsAndForeignFiles),
+        ("DiscoveryRefreshDoesNotJoinPersistedHintFlights", DiscoveryRefreshDoesNotJoinPersistedHintFlights),
+        ("ResourceOnlineInformationSurvivesRestartAndOfflineRefresh", ResourceOnlineInformationSurvivesRestartAndOfflineRefresh),
+        ("ResourceOnlineInformationCoalescesConcurrentCallersAndRejectsCorruption", ResourceOnlineInformationCoalescesConcurrentCallersAndRejectsCorruption),
+        ("ResourceOnlineInformationOwnsDiskPathsAndFreezesSnapshots", ResourceOnlineInformationOwnsDiskPathsAndFreezesSnapshots),
+        ("ResourceExactIdentityAndTranslationsReuseAfterRestart", ResourceExactIdentityAndTranslationsReuseAfterRestart),
+        ("LauncherModsUseGameDirectoryAndKeepPrivateBootstrap", LauncherModsUseGameDirectoryAndKeepPrivateBootstrap),
+        ("LauncherJavaChildBridgeIsBoundedAndPreservesExactArgv", Sync(LauncherJavaChildBridgeIsBoundedAndPreservesExactArgv)),
+        ("PrimaryInstanceQueriesReadAuthoritativeMetadataAfterEdits", PrimaryInstanceQueriesReadAuthoritativeMetadataAfterEdits),
+        ("ArchiveDisplayCacheReusesParsingAndChargesEachReadBudget", ArchiveDisplayCacheReusesParsingAndChargesEachReadBudget),
+        ("ResourceIconsShareApplicationFlightsAndIsolateCallerCancellation", ResourceIconsShareApplicationFlightsAndIsolateCallerCancellation),
+        ("ResourceIconsDoNotRetainFailuresOrExceedSharedByteAdmission", ResourceIconsDoNotRetainFailuresOrExceedSharedByteAdmission),
+        ("InstallCatalogInformationSurvivesRestartAndSeparatesPolicy", InstallCatalogInformationSurvivesRestartAndSeparatesPolicy),
+        ("InstallCatalogInformationPublishesStaleAndRenewsWithoutBlocking", InstallCatalogInformationPublishesStaleAndRenewsWithoutBlocking),
+        ("InstallCatalogInformationRejectsDamageSecretsLinksAndEnforcesDiskBudget", InstallCatalogInformationRejectsDamageSecretsLinksAndEnforcesDiskBudget),
+        ("InstallCatalogInformationReleasesNetworkBeforeNormalizationAndPersistence", InstallCatalogInformationReleasesNetworkBeforeNormalizationAndPersistence),
+        ("LaunchPreparationBypassesSelfConsistentPersistedCatalogHints", LaunchPreparationBypassesSelfConsistentPersistedCatalogHints),
+        ("LauncherAuxiliaryJavaLeaseOutlivesManagedGameAndGuardsRemoval", LauncherAuxiliaryJavaLeaseOutlivesManagedGameAndGuardsRemoval),
+        ("LauncherAuxiliaryRetiredParentEnrollmentCannotLaunchWithoutLease", LauncherAuxiliaryRetiredParentEnrollmentCannotLaunchWithoutLease),
+        ("LauncherAuxiliaryLeaseClockCalibrationCannotAuthorizeLiveRuntimeRemoval", LauncherAuxiliaryLeaseClockCalibrationCannotAuthorizeLiveRuntimeRemoval),
+        ("LauncherAuxiliaryLinuxExitStateUsesKernelDelimiterAndRejectsMalformedEvidence", Sync(LauncherAuxiliaryLinuxExitStateUsesKernelDelimiterAndRejectsMalformedEvidence)),
         ("ContentIntegrityReadsActualHashesAndOnlyManagedBaselines", ContentIntegrityReadsActualHashesAndOnlyManagedBaselines),
         ("ContentIntegrityRejectsStaleLinksTraversalBudgetAndCancellation", ContentIntegrityRejectsStaleLinksTraversalBudgetAndCancellation),
         ("SystemGlfwPoliciesReachExecutorNativeFilteringAndSafeLaunch", SystemGlfwPoliciesReachExecutorNativeFilteringAndSafeLaunch),
@@ -726,6 +756,7 @@ internal static partial class Program
         if (args is ["--interrupted-new-install", var installRoot]) return await RunInterruptedNewInstallChild(installRoot);
         if (args is ["--install-publication-child", var root, var stage]) return await RunInstallPublicationChild(root, stage);
         if (args is ["--jvm-host"]) return await ReceiveJvmHostFixture();
+        if (args is ["--jvm-child-use-probe", var runtimeRoot, var component]) return RunLauncherJavaUseProbe(runtimeRoot, component);
         if (args.Contains("--live-install-catalog")) { await LiveInstallCatalogSmoke(); return 0; }
         int passed = 0;
         foreach ((string name, Func<ValueTask> body) in TestCases)

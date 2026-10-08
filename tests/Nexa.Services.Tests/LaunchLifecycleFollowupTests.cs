@@ -18,8 +18,9 @@ internal static partial class Program
             var installer = new RecordingStubInstaller();
             var candidates = installed ? await ComposeWorkingJavaLocator().FindAllAsync() : [];
             var port = new LongLivedProcessPort();
+            MinecraftProcessService? processes = null;
             var (coordinator, host, _, root) = ComposeAcquisitionCoordinator(installer, processPort: port,
-                javaLocator: new AppearingJavaLocator(candidates));
+                javaLocator: new AppearingJavaLocator(candidates), processServiceCreated: service => processes = service);
             try
             {
                 var launch = Task.Run(() => coordinator.StartAsync("1.20.1", 0).AsTask());
@@ -37,12 +38,41 @@ internal static partial class Program
                 if (port.LastProcess is { } process)
                 {
                     if (!process.HasExited) process.Kill(entireProcessTree: true);
-                    await process.WaitForExitAsync();
+                    await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
                 }
+                if (processes is not null) await processes.DisposeAsync();
+                if (port.LastStartInfo is { } startInfo)
+                    await WaitForLaunchGameDirectoryReleasedAsync(startInfo.WorkingDirectory);
+                host.Dispose();
                 Directory.Delete(root, true);
             }
         }
     }
+
+    private static async Task WaitForLaunchGameDirectoryReleasedAsync(string gameDirectory)
+    {
+        // OS exit precedes the executor's async receipt cleanup. Its shared directory
+        // lock is released last, so exclusive acquisition proves no cleanup can recreate
+        // the gate file while this fixture recursively removes its owned root.
+        long started = Stopwatch.GetTimestamp();
+        while (true)
+        {
+            try
+            {
+                using var released = await MinecraftGameDirectoryUseLease.AcquireExclusiveAsync(gameDirectory);
+                return;
+            }
+            catch (IOException error) when (IsLaunchDirectoryLeaseBusy(error)
+                && Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(5))
+            { await Task.Delay(10); }
+        }
+    }
+
+    private static bool IsLaunchDirectoryLeaseBusy(IOException error)
+        => OperatingSystem.IsWindows()
+            ? (error.HResult & 0xffff) is 32 or 33 // Sharing or lock violation.
+            : error.InnerException is System.ComponentModel.Win32Exception native
+                && native.NativeErrorCode == (OperatingSystem.IsMacOS() ? 35 : 11); // flock EWOULDBLOCK.
 
     private sealed class AppearingJavaLocator(IReadOnlyList<JavaRuntimeCandidate> candidates) : IJavaRuntimeLocator
     {

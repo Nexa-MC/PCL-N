@@ -1,26 +1,47 @@
 namespace Nexa.Services.Resources;
 
 /// <summary>Partial provider failures do not discard healthy results. Identity comes from the curated index.</summary>
-public sealed class MergedResourceCatalog(IResourceCatalogSource modrinth, IResourceCatalogSource curseForge) : IResourceCatalogSource, IResourceFileSource, IResourceChangelogSource
+public sealed class MergedResourceCatalog(IResourceCatalogSource modrinth, IResourceCatalogSource curseForge, ResourceOnlineInformationCache? information = null, Func<string>? sourcePolicyIdentity = null) : IResourceCatalogSource, IResourceFileSource, IResourceChangelogSource, IDisposable
 {
-    private readonly ResourceSnapshotCache<ResourceSearchQuery, ResourceSearchResult> _searchCache = new();
+    public MergedResourceCatalog(IResourceCatalogSource modrinth, IResourceCatalogSource curseForge) : this(modrinth, curseForge, null, null) { }
+    private readonly ResourceOnlineInformationCache _information = information ?? new();
+    public void Dispose() { if (information is null) _information.Dispose(); }
+    private string Policy(bool mirror) => ResourceOnlineInformationCache.Identity(sourcePolicyIdentity?.Invoke() ?? "provider-default-v2", mirror.ToString());
     public Task<ResourceChangelog> ReadChangelogAsync(ResourceChangelogQuery query, CancellationToken token)
     {
         if (!Enum.IsDefined(query.Source.Provider)) throw new ArgumentException("资源站无效。");
         var source = query.Source.Provider == ResourceProvider.Modrinth ? modrinth : curseForge;
         return source is IResourceChangelogSource logs ? logs.ReadChangelogAsync(query, token) : Task.FromResult(new ResourceChangelog(""));
     }
-    private readonly ResourceSnapshotCache<(string Project, string Game, string Loader, bool Mirror, ResourceReference? First, ResourceReference? Second), ResourceDetail> _detailCache = new();
-    public Task<ResourceVersion?> ReadVersionAsync(ResourceDownloadCommand command, CancellationToken token)
-    {
-        if (!Enum.IsDefined(command.Provider)) throw new ArgumentException("资源站无效。");
-        var source = command.Provider == ResourceProvider.Modrinth ? modrinth : curseForge;
-        return source is IResourceFileSource files ? files.ReadVersionAsync(command, token) : throw new NotSupportedException("资源提供方不支持直接下载。");
-    }
-    public async Task<ResourceSearchResult> SearchAsync(ResourceSearchQuery query, CancellationToken token)
+    public async Task<ResourceVersion?> ReadVersionAsync(ResourceDownloadCommand command, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        if (_searchCache.TryRead(query, out var cached)) return cached!;
+        if (!Enum.IsDefined(command.Provider)) throw new ArgumentException("资源站无效。");
+        var source = command.Provider == ResourceProvider.Modrinth ? modrinth : curseForge;
+        if (source is not IResourceFileSource files) throw new NotSupportedException("资源提供方不支持直接下载。");
+        string identity = ResourceOnlineInformationCache.Identity(Policy(command.MirrorFirst), command.Provider.ToString(), command.ProjectId, command.VersionId);
+        var result = await _information.ReadAsync("version", identity, ResourceOnlineInformationCache.CatalogFresh, ResourceOnlineInformationCache.CatalogRetain,
+            16384, ResourceMetadataJsonContext.Default.ResourceMetadataEnvelopeResourceVersionMetadata,
+            async ct => new ResourceVersionMetadata(await files.ReadVersionAsync(command, ct).ConfigureAwait(false)),
+            value => value.Version is { } version && ValidVersion(version) && version.Id == command.VersionId && version.Provider == command.Provider
+                && (command.ProjectId.Length == 0 || version.ProjectId == command.ProjectId),
+            value => new(value.Version is null ? null : ResourceOnlineInformationCache.Sanitize(value.Version)), value => value, refresh: command.Refresh, allowStale: !command.Refresh, token: token).ConfigureAwait(false);
+        if (result.Version is { } version && (version.Id != command.VersionId || version.Provider != command.Provider
+            || command.ProjectId.Length > 0 && version.ProjectId != command.ProjectId)) throw new InvalidDataException("资源版本身份不匹配。");
+        return result.Version;
+    }
+    public Task<ResourceSearchResult> SearchAsync(ResourceSearchQuery query, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        string identity = ResourceOnlineInformationCache.Identity(Policy(query.MirrorFirst), query.Kind.ToString(), query.Text,
+            query.GameVersion, query.Loader, query.Order.ToString(), query.Page.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return _information.ReadAsync("search", identity, ResourceOnlineInformationCache.CatalogFresh, ResourceOnlineInformationCache.CatalogRetain,
+            65536, ResourceMetadataJsonContext.Default.ResourceMetadataEnvelopeResourceSearchResult,
+            ct => SearchCoreAsync(query, ct), value => value.Projects.Count > 0 && value.Projects.All(ValidProject) && string.IsNullOrEmpty(value.Notice),
+            ResourceOnlineInformationCache.Sanitize, value => value with { Notice = ResourceOnlineInformationCache.Notice(value.Notice), IsStale = true }, refresh: query.Refresh, waitForRefresh: query.WaitForRefresh, token: token);
+    }
+    private async Task<ResourceSearchResult> SearchCoreAsync(ResourceSearchQuery query, CancellationToken token)
+    {
         var index = await Task.Run(() => ChineseResourceIndex.Shared.Value, token).ConfigureAwait(false);
         var matches = index.Find(query.Text);
         var calls = new List<Task<(ResourceSearchResult? Value, string? Error)>>();
@@ -44,7 +65,6 @@ public sealed class MergedResourceCatalog(IResourceCatalogSource modrinth, IReso
         var result = new ResourceSearchResult(projects, results.Sum(r => r.Value?.Total ?? 0), query.Page)
         { Notice = string.Join("；", results.Select(r => r.Error).Where(s => s is not null).Distinct()), HasMore = results.Any(r => r.Value is { } value && (query.Page + 1) * 20 < value.Total) };
         token.ThrowIfCancellationRequested();
-        if (string.IsNullOrEmpty(result.Notice)) _searchCache.Save(query, result);
         return result;
     }
     private static async Task<(ResourceSearchResult?, string?)> SearchOne(IResourceCatalogSource source, ResourceSearchQuery query, ResourceProvider provider, CancellationToken token)
@@ -53,16 +73,42 @@ public sealed class MergedResourceCatalog(IResourceCatalogSource modrinth, IReso
         catch (Exception e) when (!token.IsCancellationRequested && e is HttpRequestException or IOException or InvalidDataException or System.Text.Json.JsonException or InvalidOperationException or KeyNotFoundException or OperationCanceledException)
         { return (null, provider + " 暂时不可用"); }
     }
-    public async Task<ResourceDetail> DetailAsync(ResourceDetailQuery query, CancellationToken token)
+    public Task<ResourceDetail> DetailAsync(ResourceDetailQuery query, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var sources = query.Sources.Count == 0 ? new[] { new ResourceReference(ResourceProvider.Modrinth, query.ProjectId) } : query.Sources.Distinct().Take(2).ToArray();
+        var sources = Sources(query);
+        string identity = ResourceOnlineInformationCache.Identity(Policy(query.MirrorFirst), query.ProjectId, query.GameVersion, query.Loader,
+            string.Join(",", sources.Select(source => source.Provider + ":" + source.ProjectId).Order(StringComparer.Ordinal)));
+        return _information.ReadAsync("detail", identity, ResourceOnlineInformationCache.CatalogFresh, ResourceOnlineInformationCache.CatalogRetain,
+            1024 * 1024, ResourceMetadataJsonContext.Default.ResourceMetadataEnvelopeResourceDetail,
+            ct => DetailCoreAsync(query, ct), value => ValidProject(value.Project) && sources.Any(source => source.ProjectId == value.Project.Id)
+                && value.Project.Sources.All(sources.Contains) && value.Versions.All(version => ValidVersion(version) && sources.Contains(new(version.Provider, version.ProjectId)))
+                && string.IsNullOrEmpty(value.Notice), ResourceOnlineInformationCache.Sanitize,
+            value => value with { Notice = ResourceOnlineInformationCache.Notice(value.Notice), IsStale = true }, refresh: query.Refresh, waitForRefresh: query.WaitForRefresh, token: token);
+    }
+    private static bool ValidReference(ResourceReference reference) => Enum.IsDefined(reference.Provider) && reference.ProjectId.Length is > 0 and <= 64
+        && (reference.Provider == ResourceProvider.Modrinth ? reference.ProjectId.All(char.IsAsciiLetterOrDigit) : reference.ProjectId.Length < 20 && reference.ProjectId.All(char.IsAsciiDigit));
+    private static bool ValidProject(ResourceProject project) => Enum.IsDefined(project.Kind) && project.Sources.Count is > 0 and <= 2
+        && project.Sources.All(ValidReference) && project.Sources.Any(source => source.ProjectId == project.Id);
+    private static bool ValidVersion(ResourceVersion version) => ValidReference(new(version.Provider, version.ProjectId))
+        && version.Id.Length is > 0 and <= 64 && (version.Provider == ResourceProvider.Modrinth ? version.Id.All(char.IsAsciiLetterOrDigit)
+            : version.Id.Length < 20 && version.Id.All(char.IsAsciiDigit));
+    private static ResourceReference[] Sources(ResourceDetailQuery query) => query.Sources.Count == 0
+        ? [new(ResourceProvider.Modrinth, query.ProjectId)] : query.Sources.Distinct().Take(2).ToArray();
+    private async Task<ResourceDetail> DetailCoreAsync(ResourceDetailQuery query, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var sources = Sources(query);
         if (sources.Any(reference => !Enum.IsDefined(reference.Provider))) throw new ArgumentException("资源站无效。");
-        var cacheKey = (query.ProjectId, query.GameVersion, query.Loader, query.MirrorFirst, sources.FirstOrDefault(), sources.Skip(1).FirstOrDefault());
-        if (!query.Refresh && _detailCache.TryRead(cacheKey, out var cached)) return cached!;
         var results = await Task.WhenAll(sources.Select(async reference =>
         {
-            try { return (Value: await (reference.Provider == ResourceProvider.Modrinth ? modrinth : curseForge).DetailAsync(query with { ProjectId = reference.ProjectId, Sources = [] }, token).ConfigureAwait(false), Error: (string?)null); }
+            try
+            {
+                var detail = await (reference.Provider == ResourceProvider.Modrinth ? modrinth : curseForge).DetailAsync(query with { ProjectId = reference.ProjectId, Sources = [] }, token).ConfigureAwait(false);
+                if (detail.Project.Id != reference.ProjectId || detail.Versions.Any(version => version.Provider != reference.Provider || version.ProjectId != reference.ProjectId))
+                    throw new InvalidDataException("资源详情不属于此提供方项目。");
+                return (Value: detail, Error: (string?)null);
+            }
             catch (Exception e) when (!token.IsCancellationRequested && e is HttpRequestException or IOException or InvalidDataException or System.Text.Json.JsonException or InvalidOperationException or KeyNotFoundException or OperationCanceledException)
             { return (Value: (ResourceDetail?)null, Error: reference.Provider + " 暂时不可用"); }
         })).ConfigureAwait(false);
@@ -84,7 +130,6 @@ public sealed class MergedResourceCatalog(IResourceCatalogSource modrinth, IReso
         var result = new ResourceDetail(index.Decorate(details[0].Project) with { Sources = sources }, details[0].License, versions)
         { Notice = string.Join("；", results.Select(r => r.Error ?? r.Value?.Notice).Where(s => s is not null)) };
         token.ThrowIfCancellationRequested();
-        if (string.IsNullOrEmpty(result.Notice)) _detailCache.Save(cacheKey, result);
         return result;
     }
 }

@@ -17,7 +17,7 @@ namespace Nexa.UI.Next.Backend.Avalonia;
 /// resize and fullscreen behavior. macOS keeps its system traffic lights; Windows uses DWM.
 /// The host reserves shadow space outside the scene and clips its presentation to rounded corners.
 /// </summary>
-public sealed class AvaloniaUiShellWindow : Window
+public sealed partial class AvaloniaUiShellWindow : Window
 {
     // Shadow space outside the preserved scene viewport, expressed in DIPs.
     private const double ChromeMargin = 24;

@@ -84,6 +84,8 @@ public readonly record struct XsrUiSceneNode(
     public XsrUiGraphSnapshot? Graph { get; init; }
     public XsrUiContextMenuSnapshot? ContextMenu { get; init; }
     public XsrUiSegmentScrollSnapshot? SegmentScroll { get; init; }
+    public XsrUiScrollbarSnapshot? VerticalScrollbar { get; init; }
+    public XsrUiScrollbarSnapshot? HorizontalScrollbar { get; init; }
     public bool? IsChecked { get; init; }
     public bool IsSelectionRequired { get; init; } = true;
     /// <summary>Confirmed, immutable palette for backend-owned decorations; independent of custom style colors.</summary>

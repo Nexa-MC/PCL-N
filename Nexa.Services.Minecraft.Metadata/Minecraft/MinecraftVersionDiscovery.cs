@@ -161,6 +161,7 @@ public sealed class MinecraftVersionDiscovery(Nexa.Services.Logging.LogService? 
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(minecraftRootDirectory);
         string root = Path.GetFullPath(minecraftRootDirectory);
+        log?.Debug("VersionScan", $"Scanning installed manifests root={root}");
         string versionsDirectory = Path.Combine(root, _versionsDirectoryName);
         if (!Directory.Exists(versionsDirectory))
         {

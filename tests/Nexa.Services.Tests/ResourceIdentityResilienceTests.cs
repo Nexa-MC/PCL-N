@@ -36,6 +36,8 @@ internal static partial class Program
             {
                 (ResourceProvider.Modrinth, "null"), (ResourceProvider.Modrinth, "[]"),
                 (ResourceProvider.Modrinth, nullModrinthMatch), (ResourceProvider.Modrinth, invalidModrinthId),
+                (ResourceProvider.Modrinth, new JsonObject { [sha512] = new JsonObject { ["project_id"] = "ValidProject", ["id"] = "ValidVersion",
+                    ["files"] = new JsonArray((JsonNode)new JsonObject { ["hashes"] = new JsonObject { ["sha512"] = new string('f', 128) } }) } }.ToJsonString()),
                 (ResourceProvider.CurseForge, "null"), (ResourceProvider.CurseForge, "[]"),
                 (ResourceProvider.CurseForge, "{}"), (ResourceProvider.CurseForge, "{\"data\":null}"),
                 (ResourceProvider.CurseForge, "{\"data\":{\"exactMatches\":null}}"),

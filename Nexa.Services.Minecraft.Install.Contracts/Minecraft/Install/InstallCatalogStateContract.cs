@@ -17,6 +17,7 @@ public sealed record InstallCatalogState(long Revision, string GameVersion, IRea
 public sealed record InstallCatalogSnapshot(long Revision, string GameVersion, InstallLoader? Loader,
     IReadOnlyList<InstallCatalogVersion> Versions, bool Loading, string? Error = null, string? Unsupported = null)
 {
+    public bool IsStale { get; init; }
     public bool? CacheHit { get; init; }
     public int? InputCount { get; init; }
     public double? NormalizeMilliseconds { get; init; }

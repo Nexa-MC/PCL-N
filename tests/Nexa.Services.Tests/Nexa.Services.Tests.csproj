@@ -1,4 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="../../Nexa.Jvm.Host/JvmChildLaunch.cs" Link="Fixtures/JvmChildLaunch.cs" />
+    <Compile Include="../../Nexa.Jvm.Host/JvmChildRuntimeLease.cs" Link="Fixtures/JvmChildRuntimeLease.cs" />
+  </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <Description>Executable contract tests for the XSR foundation services.</Description>

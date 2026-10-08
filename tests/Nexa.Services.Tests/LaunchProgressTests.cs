@@ -312,6 +312,8 @@ internal static partial class Program
                 await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
             }
             AssertTrue(SpinWait.SpinUntil(() => host.Work.Snapshot.QuietScopes == 0, TimeSpan.FromSeconds(5)));
+            if (processPort.LastStartInfo is { } startInfo)
+                await WaitForLaunchGameDirectoryReleasedAsync(startInfo.WorkingDirectory);
             host.Dispose();
             Directory.Delete(root, recursive: true);
         }
@@ -342,7 +344,8 @@ internal static partial class Program
     /// at the acquisition approval gate.
     /// </summary>
     private static (MinecraftLaunchCoordinator Coordinator, FoundationHost Host, T Installer, string Root)
-        ComposeAcquisitionCoordinator<T>(T installer, IMinecraftProcessPort? processPort = null, IJavaRuntimeLocator? javaLocator = null, IMinecraftWindowProbe? windowProbe = null) where T : IJavaRuntimeInstaller
+        ComposeAcquisitionCoordinator<T>(T installer, IMinecraftProcessPort? processPort = null, IJavaRuntimeLocator? javaLocator = null, IMinecraftWindowProbe? windowProbe = null,
+            Action<MinecraftProcessService>? processServiceCreated = null) where T : IJavaRuntimeInstaller
     {
         string root = CreateTempDirectory();
         string baseDirectory = CreateVersionDirectory(root, "1.20.1", new JsonObject
@@ -372,6 +375,7 @@ internal static partial class Program
             Kind = LaunchProfileKind.Offline,
         }).IsSuccess);
         MinecraftProcessService processes = new(processPort ?? new ExitingProcessPort(), host.StateStore);
+        processServiceCreated?.Invoke(processes);
         MinecraftLaunchCoordinator coordinator = new(
             root,
             Path.Combine(root, "runtime"),
@@ -484,6 +488,8 @@ internal static partial class Program
                 if (!child.HasExited) child.Kill(entireProcessTree: true);
                 await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
             }
+            if (processPort.LastStartInfo is { } startInfo)
+                await WaitForLaunchGameDirectoryReleasedAsync(startInfo.WorkingDirectory);
             Directory.Delete(root, recursive: true);
         }
     }
@@ -584,11 +590,13 @@ internal static partial class Program
         AssertFalse(ReadProgressFlag(store, MinecraftLaunchProgressState.LaunchedKey));
         // Launch narration finishes before background JVM metadata collection. Do not
         // delete the fixture's manifest while that real collector is still reading it.
-        Guid sessionId = processes.ListSessions().Single().SessionId;
+        var finishedSession = processes.ListSessions().Single();
+        Guid sessionId = finishedSession.SessionId;
         AssertTrue(SpinWait.SpinUntil(
             () => store.ReadCollection<JvmRunContext>(store.Resolve(JvmHostStateContract.ContextsKey))
                 .Items.Any(context => context.SessionId == sessionId), TimeSpan.FromSeconds(5)));
         await processes.DisposeAsync();
+        await WaitForLaunchGameDirectoryReleasedAsync(finishedSession.GameDirectory);
         Directory.Delete(root, recursive: true);
     }
 

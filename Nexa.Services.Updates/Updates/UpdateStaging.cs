@@ -180,11 +180,6 @@ public static class UpdateStaging
         }
     }
 
-    private static void RestoreUnixMode(string path, int? mode)
-    {
-        UpdateUnixMode.Apply(path, mode);
-    }
-
     /// <summary>
     /// Normalizes a relative path to forward slashes without traversal; null or empty input
     /// normalizes to the empty string.

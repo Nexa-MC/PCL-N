@@ -9,7 +9,7 @@ public enum AvaloniaUiMediaStatus { Stopped, Playing, Paused, Completed, Depende
 public sealed record AvaloniaUiMediaState(AvaloniaUiMediaStatus Status, string? Detail = null);
 
 /// <summary>Owns one bounded local decoder/player process; never launches URI or shell input.</summary>
-public sealed class AvaloniaUiLocalMediaPlayer : IAsyncDisposable
+public sealed partial class AvaloniaUiLocalMediaPlayer : IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1);
     private readonly bool _video;

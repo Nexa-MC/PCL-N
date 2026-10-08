@@ -354,7 +354,7 @@ internal static partial class Program
         AssertTrue(plan.Arguments.Contains("Steve"));
         AssertTrue(plan.Arguments.Contains("-Xmx4096m"));
         AssertTrue(plan.Arguments.Contains("-Dfile.encoding=COMPAT"));
-        AssertEqual(Path.GetFullPath(Path.Combine(Path.GetTempPath(), "minecraft-instance")), plan.WorkingDirectory);
+        AssertEqual(Path.GetFullPath(Path.Combine(Path.GetTempPath(), "minecraft-root")), plan.WorkingDirectory);
         AssertTrue(plan.ToStartInfo().ArgumentList.Contains("-Xmx4096m"));
     }
 

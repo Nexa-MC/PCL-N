@@ -31,8 +31,11 @@ timeout or failed termination leaves durable exclusion for the still-running pro
 
 Deletion and installer replacement parse unlocked records with exact length, version,
 PID and timestamp checks. They reclaim a bound record only when the PID no longer exists,
-its process is proved exited, or a later process-start timestamp proves PID reuse. An
-earlier observed start time does not establish reuse. Empty, partial, malformed and
+its process is proved exited, or (Windows/macOS) a later process-start timestamp
+proves PID reuse. Linux retains any running PID: independently calibrated CLR boot
+clocks cannot reliably prove reuse from UTC birthday differences. A stale record
+whose PID has been reused remains excluded until that PID is observed exited.
+An earlier observed start time does not establish reuse. Empty, partial, malformed and
 unresolved records remain excluded: host death between child creation and binding cannot
 establish that the child died. Such records require explicit recovery after the operator
 has established that no game still uses that runtime; automatic sweeping cannot discard
@@ -61,7 +64,7 @@ while a real child process runs, after process exit, and after failure or cancel
 Persistent-lease coverage releases the launcher lock while a real child is alive, checks
 both deletion and actual installer replacement, then proves reclamation after exit.
 Malformed, unresolved and contradictory identities remain untouched; a later process
-birthday safely retires an old PID lifetime.
+birthday safely retires an old PID lifetime on Windows/macOS; Linux requires exit.
 
 Launcher data migration does not relocate Minecraft or Java runtime roots. Its preview
 and startup admission reject data trees containing root-bound installation/recovery

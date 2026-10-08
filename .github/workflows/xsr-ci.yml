@@ -69,6 +69,7 @@ jobs:
         run: |
           $binary = if ($IsWindows) { './native-jvm-host/Nexa.Jvm.Host.exe' } else { './native-jvm-host/Nexa.Jvm.Host' }
           ./eng/xsr/Test-JvmHost.ps1 -HostExecutable $binary -JavaHome $env:JAVA_HOME
+          ./eng/xsr/Test-JvmModCompatibility.ps1 -HostExecutable $binary -JavaHome $env:JAVA_HOME
 
   account-security:
     name: Native account protection (${{ matrix.os }})

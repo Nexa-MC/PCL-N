@@ -1,4 +1,5 @@
 using Nexa.Core.Media;
+using Nexa.Services.Caching;
 using Nexa.Services.Scheduling;
 
 namespace Nexa.Services.Resources;
@@ -6,31 +7,42 @@ namespace Nexa.Services.Resources;
 public sealed class ResourceIconService : IDisposable
 {
     private readonly HttpClient _http;
-    private readonly long _byteBudget;
-    private readonly int _entryBudget;
+    private readonly ISharedStateCache _cache;
+    private readonly bool _ownsCache;
+    private static readonly StateCachePolicy IconPolicy = new(TimeSpan.FromDays(1), TimeSpan.FromDays(1), 1_048_576);
+    private static readonly StateCachePolicy StandalonePolicy = new(TimeSpan.MaxValue, TimeSpan.MaxValue);
     public IWorkScheduler? WorkScheduler { get; init; }
     private readonly SemaphoreSlim _slots = new(4);
-    private readonly Dictionary<string, LinkedListNode<(string Url, PngImage Image)>> _cache = new(StringComparer.Ordinal);
-    private readonly LinkedList<(string Url, PngImage Image)> _recency = new();
     private readonly object _gate = new();
-    private long _encodedBytes;
     private bool _disposed;
 
-    public ResourceIconService(HttpClient http) : this(http, 32 * 1_048_576, 256) { }
+    public ResourceIconService(HttpClient http) : this(http, null) { }
 
-    internal ResourceIconService(HttpClient http, long byteBudget, int entryBudget)
+    public ResourceIconService(HttpClient http, ISharedStateCache? cache) : this(http, 32 * 1_048_576, 256, cache) { }
+
+    internal ResourceIconService(HttpClient http, long byteBudget, int entryBudget) : this(http, byteBudget, entryBudget, null) { }
+
+    internal ResourceIconService(HttpClient http, long byteBudget, int entryBudget, ISharedStateCache? cache)
     {
         ArgumentNullException.ThrowIfNull(http);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteBudget);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entryBudget);
-        _http = http; _byteBudget = byteBudget; _entryBudget = entryBudget;
+        _http = http; _ownsCache = cache is null;
+        _cache = cache ?? new SharedStateCache(entryBudget, byteBudget, maximumPending: Math.Max(64, entryBudget));
     }
 
-    private PngImage? Find(string url)
+    private bool Retain(StateCacheKey key, ResourceIconResult result)
     {
-        if (!_cache.TryGetValue(url, out var node)) return null;
-        _recency.Remove(node); _recency.AddFirst(node);
-        return node.Value.Image;
+        if (result.Image is not { } image) return false;
+        if (!_ownsCache) return true;
+        lock (_gate)
+        {
+            if (!_disposed)
+                _cache.Store(key, result, StandalonePolicy with { SizeBytes = image.Bytes.Length });
+        }
+        // Only the private owner uses exact encoded sizes. Application flights keep the cache's
+        // guarded publication so invalidation cannot be undone by an older icon download.
+        return false;
     }
 
     public static bool IsAllowed(string url) => url.Length <= 2048 && Uri.TryCreate(url, UriKind.Absolute, out var uri)
@@ -44,8 +56,20 @@ public sealed class ResourceIconService : IDisposable
         lock (_gate)
         {
             if (_disposed) return new(null);
-            if (Find(query.Url) is { } cached) return new(cached);
         }
+        StateCacheKey key = new("resources.icon", query.Url, "static-image-admission-v1");
+        try
+        {
+            ResourceIconResult result = await _cache.GetOrCreateAsync(key, IconPolicy,
+                ct => ReadCoreAsync(query, ct), shouldStore: value => Retain(key, value), cancellationToken: token).ConfigureAwait(false);
+            lock (_gate) return _disposed ? new(null) : result;
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested) { return new(null); }
+        catch (ObjectDisposedException) { return new(null); }
+    }
+
+    private async ValueTask<ResourceIconResult> ReadCoreAsync(ResourceIconQuery query, CancellationToken token)
+    {
         IDisposable? admission = null;
         bool entered = false;
         try
@@ -54,8 +78,7 @@ public sealed class ResourceIconService : IDisposable
             token.ThrowIfCancellationRequested();
             lock (_gate)
             {
-                if (_disposed) return new(null);
-                if (Find(query.Url) is { } cached) return new(cached);
+                if (_ownsCache && _disposed) return new(null);
             }
             // All icon work is optional. Bound the entire encoded/decode pipeline locally,
             // before taking shared HTTP admission, so quiet CPU waits cannot retain HTTP slots.
@@ -82,26 +105,6 @@ public sealed class ResourceIconService : IDisposable
                 : await WorkScheduler.AcquireAsync(WorkPriority.Background, WorkResource.Cpu, token).ConfigureAwait(false);
             var image = PngImage.TryCreateResourceIcon(output.GetBuffer().AsSpan(0, (int)output.Length));
             token.ThrowIfCancellationRequested();
-            if (image is not null)
-            {
-                lock (_gate)
-                {
-                    if (_disposed) return new(null);
-                    // Concurrent requests for one URL share the first admitted image.
-                    if (Find(query.Url) is { } cached) return new(cached);
-                    if (image.Bytes.Length <= _byteBudget)
-                    {
-                        while (_cache.Count >= _entryBudget || _encodedBytes > _byteBudget - image.Bytes.Length)
-                        {
-                            var oldest = _recency.Last!;
-                            _cache.Remove(oldest.Value.Url); _recency.RemoveLast();
-                            _encodedBytes -= oldest.Value.Image.Bytes.Length;
-                        }
-                        _cache.Add(query.Url, _recency.AddFirst((query.Url, image)));
-                        _encodedBytes += image.Bytes.Length;
-                    }
-                }
-            }
             return new(image);
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { return new(null); }
@@ -114,7 +117,9 @@ public sealed class ResourceIconService : IDisposable
     {
         lock (_gate)
         {
-            _disposed = true; _cache.Clear(); _recency.Clear(); _encodedBytes = 0;
+            if (_disposed) return;
+            _disposed = true;
         }
+        if (_ownsCache) ((IDisposable)_cache).Dispose();
     }
 }

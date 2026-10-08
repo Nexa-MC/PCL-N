@@ -1,5 +1,6 @@
 using System.Globalization;
 using Nexa.Services.Accounts;
+using Nexa.Services.Caching;
 using Nexa.Services.Capabilities;
 using Nexa.Services.Downloads;
 using Nexa.Services.Logging;
@@ -76,10 +77,13 @@ public sealed class FoundationHost : IDisposable
         WorkScheduler work,
         string? minecraftRootDirectory = null,
         IEnumerable<IRemediationHandler>? remediationHandlers = null,
-        string? javaRuntimeRootDirectory = null)
+        string? javaRuntimeRootDirectory = null,
+        string? cacheDirectory = null)
     {
         Work = work ?? throw new ArgumentNullException(nameof(work));
         StateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
+        SharedStateCache = new SharedStateCache();
+        CacheDirectory = cacheDirectory is null ? null : Path.GetFullPath(cacheDirectory);
         Logging = logging ?? throw new ArgumentNullException(nameof(logging));
         Downloads = downloads ?? throw new ArgumentNullException(nameof(downloads));
         Accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
@@ -93,7 +97,7 @@ public sealed class FoundationHost : IDisposable
         InputUsage = new InputUsageTracker();
         ObservationHistory = new ResourceObservationHistory();
         OnlineResourceModels = new OnlineWorkingSetModelStore();
-        MinecraftRemediations = new(SettingsPolicy, StateStore);
+        MinecraftRemediations = new(SettingsPolicy, StateStore) { SharedStateCache = SharedStateCache };
         IRemediationHandler[] configuredRemediations = [.. remediationHandlers ?? []];
         HashSet<string> configuredRemediationIds = configuredRemediations
             .Select(static handler => handler.Id).ToHashSet(StringComparer.Ordinal);
@@ -128,13 +132,13 @@ public sealed class FoundationHost : IDisposable
             new DisplayCapabilityProvider(),
             new StorageCapabilityProvider(minecraftRootDirectory),
             new FilesystemCapabilityProvider(minecraftRootDirectory),
-            new JavaEnvironmentCapabilityProvider(JavaLocator, minecraftRootDirectory),
+            new JavaEnvironmentCapabilityProvider(JavaLocator, minecraftRootDirectory) { SharedStateCache = SharedStateCache },
             new GpuCapabilityProvider(),
             new ThermalCapabilityProvider(),
             new HardwarePowerCapabilityProvider(),
-            new MinecraftEnvironmentCapabilityProvider(minecraftRootDirectory),
-            new LoaderCapabilityProvider(minecraftRootDirectory),
-            new ModCapabilityProvider(minecraftRootDirectory),
+            new MinecraftEnvironmentCapabilityProvider(minecraftRootDirectory) { SharedStateCache = SharedStateCache },
+            new LoaderCapabilityProvider(minecraftRootDirectory) { SharedStateCache = SharedStateCache },
+            new ModCapabilityProvider(minecraftRootDirectory) { SharedStateCache = SharedStateCache },
             new AccountCapabilityProvider(accounts),
             new FormFactorCapabilityProvider(),
             new InputCapabilityProvider(InputUsage),
@@ -157,7 +161,9 @@ public sealed class FoundationHost : IDisposable
     }
 
     public WorkScheduler Work { get; }
-    public void Dispose() { _loggingSettings.Dispose(); NetworkHttp.Dispose(); Work.Dispose(); }
+    public SharedStateCache SharedStateCache { get; }
+    public string? CacheDirectory { get; }
+    public void Dispose() { SharedStateCache.Dispose(); _loggingSettings.Dispose(); NetworkHttp.Dispose(); Work.Dispose(); }
 
     public NetworkHttpClientPool NetworkHttp { get; }
     public IReadOnlyList<string> JavaManagedRuntimeRoots { get; }
@@ -244,9 +250,28 @@ public static class FoundationComposer
         Action<LogService>? configureLogging = null,
         string? minecraftRootDirectory = null,
         IEnumerable<IRemediationHandler>? remediationHandlers = null) =>
-        ComposeWithJavaRuntimeRoot(settingsPort, settingsSchema, profilePort, javaRuntimeRootDirectory: null,
+        ComposeWithCacheDirectory(settingsPort, settingsSchema, profilePort, observer, clock,
+            logCapacity, downloadBufferSize, minimumSegmentBytes, telemetryCapacity, declareHostState,
+            configureLogging, minecraftRootDirectory, remediationHandlers, cacheDirectory: null);
+
+    public static FoundationHost ComposeWithCacheDirectory(
+        ISettingsPort settingsPort,
+        SettingsSchema settingsSchema,
+        ILaunchProfilePort profilePort,
+        IXsrStateObserver? observer = null,
+        TimeProvider? clock = null,
+        int logCapacity = 2_000,
+        int downloadBufferSize = 128 * 1024,
+        long minimumSegmentBytes = 8 * 1024 * 1024,
+        int telemetryCapacity = 500,
+        Action<XsrStateStoreBuilder>? declareHostState = null,
+        Action<LogService>? configureLogging = null,
+        string? minecraftRootDirectory = null,
+        IEnumerable<IRemediationHandler>? remediationHandlers = null,
+        string? cacheDirectory = null) =>
+        ComposeWithJavaRuntimeRootAndCacheDirectory(settingsPort, settingsSchema, profilePort, javaRuntimeRootDirectory: null,
             observer, clock, logCapacity, downloadBufferSize, minimumSegmentBytes, telemetryCapacity,
-            declareHostState, configureLogging, minecraftRootDirectory, remediationHandlers);
+            declareHostState, configureLogging, minecraftRootDirectory, remediationHandlers, cacheDirectory);
 
     public static FoundationHost ComposeWithJavaRuntimeRoot(
         ISettingsPort settingsPort,
@@ -262,7 +287,28 @@ public static class FoundationComposer
         Action<XsrStateStoreBuilder>? declareHostState = null,
         Action<LogService>? configureLogging = null,
         string? minecraftRootDirectory = null,
-        IEnumerable<IRemediationHandler>? remediationHandlers = null)
+        IEnumerable<IRemediationHandler>? remediationHandlers = null) =>
+        ComposeWithJavaRuntimeRootAndCacheDirectory(settingsPort, settingsSchema, profilePort,
+            javaRuntimeRootDirectory, observer, clock, logCapacity, downloadBufferSize, minimumSegmentBytes,
+            telemetryCapacity, declareHostState, configureLogging, minecraftRootDirectory,
+            remediationHandlers, cacheDirectory: null);
+
+    public static FoundationHost ComposeWithJavaRuntimeRootAndCacheDirectory(
+        ISettingsPort settingsPort,
+        SettingsSchema settingsSchema,
+        ILaunchProfilePort profilePort,
+        string? javaRuntimeRootDirectory,
+        IXsrStateObserver? observer = null,
+        TimeProvider? clock = null,
+        int logCapacity = 2_000,
+        int downloadBufferSize = 128 * 1024,
+        long minimumSegmentBytes = 8 * 1024 * 1024,
+        int telemetryCapacity = 500,
+        Action<XsrStateStoreBuilder>? declareHostState = null,
+        Action<LogService>? configureLogging = null,
+        string? minecraftRootDirectory = null,
+        IEnumerable<IRemediationHandler>? remediationHandlers = null,
+        string? cacheDirectory = null)
     {
         ArgumentNullException.ThrowIfNull(settingsPort);
         ArgumentNullException.ThrowIfNull(settingsSchema);
@@ -283,6 +329,6 @@ public static class FoundationComposer
         var tasks = new TaskCenterService(store);
 
         return new FoundationHost(store, logging, downloads, accounts, telemetry, settings, tasks, work,
-            minecraftRootDirectory, remediationHandlers, javaRuntimeRootDirectory);
+            minecraftRootDirectory, remediationHandlers, javaRuntimeRootDirectory, cacheDirectory);
     }
 }

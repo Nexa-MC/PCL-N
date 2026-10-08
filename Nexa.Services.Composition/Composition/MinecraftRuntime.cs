@@ -119,7 +119,8 @@ public static class MinecraftRuntimeComposer
             : Path.GetFullPath(javaRuntimeRootDirectory);
 
         MinecraftVersionDiscovery versionDiscovery = discovery ?? new MinecraftVersionDiscovery(host.Logging);
-        MinecraftInstanceDiscovery instanceDiscovery = new(host.Logging, versionDiscovery);
+        MinecraftInstanceDiscovery instanceDiscovery = new(host.SharedStateCache,
+            host.CacheDirectory is null ? null : Path.Combine(host.CacheDirectory, "instances"), host.Logging, versionDiscovery);
         MinecraftProcessService processService = processes ?? new MinecraftProcessService(hostStore: host.StateStore, log: host.Logging,
             jvmHostExecutable: jvmHostExecutable);
         if (!ReferenceEquals(host.StateStore, processService.StateStore))

@@ -1,3 +1,4 @@
+using Nexa.Services.Caching;
 using Nexa.Services.Capabilities;
 using Nexa.Services.Minecraft.Launch;
 using Nexa.Services.Minecraft.ModLoaders;
@@ -73,11 +74,19 @@ internal static partial class Program
                 ["type"] = "release",
             });
             var query = new MachineCapabilityQuery(directory, "selected", root);
-            var first = await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, CancellationToken.None);
+            using SharedStateCache cache = new();
+            var first = await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, cache, CancellationToken.None);
             AssertTrue(first is not null);
             await File.WriteAllTextAsync(Path.Combine(directory, "selected.json"), "{broken");
-            AssertTrue(await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, CancellationToken.None) is not null);
-            AssertTrue(await MinecraftPrimaryInstanceScope.ResolveAsync(root, query with { RefreshInstance = true }, CancellationToken.None) is null);
+            AssertTrue(await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, cache, CancellationToken.None) is null);
+            AssertTrue(await MinecraftPrimaryInstanceScope.ResolveAsync(root, query with { RefreshInstance = true }, cache, CancellationToken.None) is null);
+            await File.WriteAllTextAsync(Path.Combine(directory, "selected.json"), "{\"id\":\"selected\",\"mainClass\":\"second.Main\",\"type\":\"release\"}");
+            var restored = await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, cache, CancellationToken.None);
+            AssertTrue(restored is not null);
+            AssertEqual("second.Main", restored!.Instance.Version.MainClass);
+            var refreshed = await MinecraftPrimaryInstanceScope.ResolveAsync(root, query with { RefreshInstance = true }, cache, CancellationToken.None);
+            AssertTrue(refreshed is not null);
+            AssertEqual("second.Main", refreshed!.Instance.Version.MainClass);
         }
         finally { Directory.Delete(root, recursive: true); }
     }

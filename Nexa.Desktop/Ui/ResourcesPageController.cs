@@ -217,6 +217,7 @@ internal sealed partial class ResourcesPageController : IDisposable
             {
                 var text = _shell.Tree.GetComponent<XsrUiText>(entity);
                 if (text is null) continue;
+                if (read.Result.Value.Notice is { } notice) description += " · " + _shell.Renderer.LocalizeText(notice);
                 _shell.Tree.SetComponent(entity, new XsrUiText(description) { MaxLines = text.MaxLines, TrimOverflow = true, Localize = false });
                 _shell.Tree.SetComponent(entity, new XsrUiSemantic(XsrUiSemanticRole.Text, description) { Localize = false });
                 _shell.Tree.MarkDirty(entity, XsrUiDirtyKinds.Paint);
@@ -259,15 +260,15 @@ internal sealed partial class ResourcesPageController : IDisposable
             _searching = null;
             _sidecarSignals?.ResourceSearchCompleted(PendingQuery.Succeeded(searching));
             if (PendingQuery.Succeeded(searching))
-            { _result = searching.Result.Value!; ShowResults(); }
-            else ShowFailure(_entities["ResourceList"], "暂时无法加载资源。请检查网络后重试。", () => Search(_filter.Page), _listActions);
+            { _result = searching.Result.Value!; ShowResults(); RenewCatalogSearchIfStale(); }
+            else if (!_catalogSearchRenewed || _result is null) ShowFailure(_entities["ResourceList"], "暂时无法加载资源。请检查网络后重试。", () => Search(_filter.Page), _listActions);
             UpdatePagination();
         }
         if (_reading is { IsCompleted: true } reading)
         {
             _reading = null;
-            if (PendingQuery.Succeeded(reading)) { _detail = reading.Result.Value!; ShowDetail(); }
-            else ShowFailure(_detailBody, "暂时无法加载详情。请重试。", () => ReadDetail(_detailId!), _detailActions);
+            if (PendingQuery.Succeeded(reading)) { _detail = reading.Result.Value!; ShowDetail(); RenewCatalogDetailIfStale(); }
+            else if (!_catalogDetailRenewed || _detail is null) ShowFailure(_detailBody, "暂时无法加载详情。请重试。", () => ReadDetail(_detailId!), _detailActions);
         }
         SyncIcons(_shell.Stage.Navigation.Current == Page || _shell.Stage.Navigation.Current == DetailPage ? _shell.Stage.Navigation.Current : default);
     }
@@ -388,7 +389,7 @@ internal sealed partial class ResourcesPageController : IDisposable
 
     private void UpdatePagination()
     {
-        _shell.Tree.SetComponent(_status, new XsrUiText(_searching is not null ? "正在搜索双源目录…" : _result is null ? "加载失败" : $"第 {_filter.Page + 1} 页 · {_result.Projects.Count} 项" + (string.IsNullOrEmpty(_result.Notice) ? "" : " · " + _result.Notice)) { MaxLines = 1, TrimOverflow = true });
+        _shell.Tree.SetComponent(_status, new XsrUiText(_searching is not null ? _result is { IsStale: true } ? "正在显示缓存资料，后台正在刷新…" : "正在搜索双源目录…" : _result is null ? "加载失败" : $"第 {_filter.Page + 1} 页 · {_result.Projects.Count} 项" + (string.IsNullOrEmpty(_result.Notice) ? "" : " · " + _result.Notice)) { MaxLines = 1, TrimOverflow = true });
         _shell.Tree.GetComponent<XsrUiInput>(_previous)!.Enabled = _searching is null && _filter.Page > 0;
         _shell.Tree.GetComponent<XsrUiInput>(_next)!.Enabled = _searching is null && _result is not null && (_result.HasMore ?? ((_filter.Page + 1) * 20 < _result.Total));
     }
@@ -581,7 +582,7 @@ internal sealed partial class ResourcesPageController : IDisposable
         TrackIcon(icon, project, DetailPage);
         return icon;
     }
-    private void Cancel() { _stop.Cancel(); _stop.Dispose(); _stop = new(); _searching = null; _reading = null; _instanceReading = null; }
+    private void Cancel() { ResetCatalogRenewal(); _stop.Cancel(); _stop.Dispose(); _stop = new(); _searching = null; _reading = null; _instanceReading = null; }
     private void CancelIcons() { _iconStop.Cancel(); _iconStop.Dispose(); _iconStop = new(); _icons.Clear(); _iconPage = default; }
     private void CancelTranslations() { _translations.Clear(); _translationStop.Cancel(); _translationStop.Dispose(); _translationStop = new(); }
     private readonly record struct ResourcePageIcon(XsrUiEntityId Entity, string Url, XsrUiEntityId Page);

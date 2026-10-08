@@ -32,6 +32,8 @@ internal sealed partial class DesktopMediaSession : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private readonly Channel<bool> _updates = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly Task _worker;
+    private readonly TaskCompletionSource _initialReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal Task InitialReady => _initialReady.Task;
     private readonly object _gate = new();
     private IReadOnlyDictionary<string, string?> _values = new Dictionary<string, string?>();
     private bool _requested, _muted, _initialized, _disposed;
@@ -111,7 +113,7 @@ internal sealed partial class DesktopMediaSession : IAsyncDisposable
                 try
                 {
                     var settings = await CommittedSettingsRead.QueryAsync(_queries, _stop.Token).ConfigureAwait(false);
-                    if (settings is null) continue;
+                    if (settings is null) { _initialReady.TrySetException(new IOException("无法读取初始媒体设置。")); continue; }
                     string audio, video; bool playAudio, playVideo, shuffle; int volume, index;
                     DesktopBackgroundAppearance appearance;
                     string? appearanceError = null;
@@ -145,12 +147,21 @@ internal sealed partial class DesktopMediaSession : IAsyncDisposable
                     }
                     await _audio.ConfigureAsync(audio, volume, playAudio, _stop.Token).ConfigureAwait(false);
                     await _video.ConfigureAsync(video, 0, playVideo, _stop.Token).ConfigureAwait(false);
+                    if (!_initialReady.Task.IsCompleted)
+                    {
+                        if (Read("music.enabled", false)) await _audio.WarmUpAsync(_stop.Token).ConfigureAwait(false);
+                        if (VideoPlaybackAllowed(video, _values, quiet: false, inactive: false)
+                            && await _video.WarmUpAsync(_stop.Token).ConfigureAwait(false) is { } firstFrame)
+                            _platform.PostToWindow(() => { if (!_disposed) _backgroundPresentation.SetVideo(firstFrame, appearance); });
+                    }
                 }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
                 { if (!_disposed) _log("媒体配置未应用：" + error.Message); }
+                finally { _initialReady.TrySetResult(); }
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { _initialReady.TrySetCanceled(_stop.Token); }
+        catch (Exception error) { _initialReady.TrySetException(error); throw; }
     }
     internal static bool VideoPlaybackAllowed(string path, IReadOnlyDictionary<string, string?> values, bool quiet, bool inactive)
     {

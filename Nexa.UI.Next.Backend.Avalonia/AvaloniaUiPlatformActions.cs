@@ -19,6 +19,13 @@ public sealed partial class AvaloniaUiPlatformActions
     private readonly PostNavigationDoubleClick _doubleClick = new();
     private IPointer? _consumedPointer;
     private WindowState? _stateBeforeMinimize;
+    private bool _startupHidden;
+    internal void AttachForStartup(TopLevel owner)
+    {
+        _startupHidden = true;
+        Attach(owner);
+    }
+    internal void CompleteStartup() => _startupHidden = false;
     internal void Attach(TopLevel owner)
     {
         _owner = owner;
@@ -77,6 +84,7 @@ public sealed partial class AvaloniaUiPlatformActions
     }
     public void RestoreWindow()
     {
+        if (_startupHidden) return;
         if (_owner is not Window window) return;
         if (!window.IsVisible) window.Show();
         if (window.WindowState == WindowState.Minimized) window.WindowState = _stateBeforeMinimize ?? WindowState.Normal;

@@ -1,9 +1,9 @@
-using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Nexa.Core;
 using Nexa.Platform;
 using Nexa.Services.Minecraft.Management;
+using Nexa.Services.Minecraft.Process;
 
 namespace Nexa.Services.Minecraft.Java;
 
@@ -87,14 +87,14 @@ internal sealed class JavaRuntimeManagedStore(IReadOnlyList<string> roots)
 
     internal static FileStream AcquireRoot(string root)
     {
-        string path = Path.Combine(root, ".nexa-java.lock");
+        string path = Path.Combine(root, JvmRuntimeUseRecord.RootLockName);
         RecoveryBlobStore.CheckLinks(path);
         return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
     }
 
     internal static void CheckUnused(string root, string component)
     {
-        string uses = Path.Combine(root, ".nexa-java-uses", component);
+        string uses = Path.Combine(root, JvmRuntimeUseRecord.UsesDirectory, component);
         RecoveryBlobStore.CheckLinks(uses);
         if (!Directory.Exists(uses)) return;
         var paths = Directory.EnumerateFiles(uses).Take(4097).ToArray();
@@ -160,8 +160,7 @@ internal sealed class JavaRuntimeManagedStore(IReadOnlyList<string> roots)
 internal readonly record struct JavaRuntimeLeaseIdentity(int ProcessId, long StartTimeUtcTicks)
 {
     internal static IPlatformProcessIdentity Processes { get; } = PlatformProcessIdentityFactory.Create();
-    private const int RecordLength = 20;
-    private static ReadOnlySpan<byte> Magic => "NXJAVA01"u8;
+    private const int RecordLength = JvmRuntimeUseRecord.Length;
 
     internal static JavaRuntimeLeaseIdentity Read(FileStream lease)
     {
@@ -170,9 +169,7 @@ internal readonly record struct JavaRuntimeLeaseIdentity(int ProcessId, long Sta
         Span<byte> record = stackalloc byte[RecordLength];
         lease.Position = 0;
         lease.ReadExactly(record);
-        int processId = BinaryPrimitives.ReadInt32LittleEndian(record[8..12]);
-        long ticks = BinaryPrimitives.ReadInt64LittleEndian(record[12..]);
-        if (!record[..8].SequenceEqual(Magic) || processId <= 0 || ticks <= 0 || ticks > DateTime.UtcNow.Ticks)
+        if (!JvmRuntimeUseRecord.TryRead(record, out int processId, out long ticks) || ticks > DateTime.UtcNow.Ticks)
             throw new IOException("Java 使用记录身份无效，请确认游戏退出后显式恢复。");
         return new(processId, ticks);
     }
@@ -180,9 +177,7 @@ internal readonly record struct JavaRuntimeLeaseIdentity(int ProcessId, long Sta
     internal void Write(FileStream lease)
     {
         Span<byte> record = stackalloc byte[RecordLength];
-        Magic.CopyTo(record);
-        BinaryPrimitives.WriteInt32LittleEndian(record[8..12], ProcessId);
-        BinaryPrimitives.WriteInt64LittleEndian(record[12..], StartTimeUtcTicks);
+        JvmRuntimeUseRecord.Write(record, ProcessId, StartTimeUtcTicks);
         lease.Position = 0;
         lease.SetLength(RecordLength);
         lease.Write(record);
@@ -192,10 +187,11 @@ internal readonly record struct JavaRuntimeLeaseIdentity(int ProcessId, long Sta
     internal bool HasDefinitelyExited()
     {
         var observation = Processes.Observe(ProcessId);
-        // Only a later birth proves reuse. Unknown or an earlier birth cannot
-        // establish that the recorded child terminated.
+        // Linux CLR boot-clock calibration varies across processes without a
+        // reliable bound. A running PID's UTC birthday cannot prove reuse there.
+        // Unknown and earlier births on every platform retain the record.
         return observation.State == PlatformProcessIdentityState.Exited
-            || (observation.State == PlatformProcessIdentityState.Running
+            || (!OperatingSystem.IsLinux() && observation.State == PlatformProcessIdentityState.Running
                 && observation.StartTimeUtcTicks is { } actualStart && actualStart > StartTimeUtcTicks);
     }
 }
@@ -223,7 +219,7 @@ public sealed class JavaRuntimeUseLease : IDisposable
             var plans = await JavaRuntimeManagedStore.PlansAsync(directory, token, includePending: true).ConfigureAwait(false);
             var plan = plans.FirstOrDefault(item => item.Files.Any(file => PathIdentity.Comparer.Equals(file.TargetPath, executable)));
             if (plan is null) return null;
-            string uses = Path.Combine(directory, ".nexa-java-uses", plan.ComponentName);
+            string uses = Path.Combine(directory, JvmRuntimeUseRecord.UsesDirectory, plan.ComponentName);
             RecoveryBlobStore.CheckLinks(uses); Directory.CreateDirectory(uses); RecoveryBlobStore.CheckLinks(uses);
             string path = Path.Combine(uses, Guid.NewGuid().ToString("N") + ".lease");
             token.ThrowIfCancellationRequested();

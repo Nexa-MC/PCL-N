@@ -1,4 +1,5 @@
 
+using Nexa.Services.Caching;
 using Nexa.Services.Minecraft.Install;
 using Nexa.Services.Minecraft.Java;
 using Nexa.Services.Minecraft.Launch;
@@ -12,6 +13,7 @@ namespace Nexa.Services.Capabilities;
 /// <summary>Composition-only, single-assignment bindings to the same installer lifetimes used by product routes.</summary>
 public sealed class MinecraftRemediationBindings(SettingsPolicyService settings, XsrStateStore store)
 {
+    public ISharedStateCache? SharedStateCache { get; init; }
     private sealed record JavaBindings(IJavaRuntimeLocator Locator, IJavaRuntimeInstaller Installer, string RuntimeRoot, MinecraftLaunchFileCompletion Files);
     private JavaBindings? _java;
     private MinecraftInstallService? _install;
@@ -66,13 +68,13 @@ public sealed class MinecraftRemediationBindings(SettingsPolicyService settings,
             { ForceReinstall = true }, token).ConfigureAwait(false);
             return new(request.Id, result.IsSuccess, result.IsSuccess ? "ok" : "install_failed", result.IsSuccess ? "已完成版本修复。" : result.Error?.Message ?? "版本修复未完成。");
         }
-        var primary = await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, token).ConfigureAwait(false)
+        var primary = await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, SharedStateCache, token).ConfigureAwait(false)
             ?? throw new InvalidDataException("无法读取实例清单。");
         var java = _java ?? throw new InvalidOperationException("Java services unavailable.");
         if (request.Id == "remediation.game.repair_files")
         {
             using var lease = await InstanceRecoveryOperationGate.EnterRestoreAsync(root, token).ConfigureAwait(false);
-            primary = await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, token).ConfigureAwait(false)
+            primary = await MinecraftPrimaryInstanceScope.ResolveAsync(root, query, SharedStateCache, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("无法读取实例清单。");
             if (store.TryResolve(MinecraftProcessStateComposition.SessionsKey, out var id)
                 && store.ReadCollection<MinecraftProcessSnapshot>(id, cancellationToken: token).Items.Any(item => item.State is MinecraftProcessState.Created or MinecraftProcessState.Running
