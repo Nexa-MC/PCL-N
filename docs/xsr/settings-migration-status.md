@@ -8,16 +8,19 @@ Cloud and cloud sync are excluded. Version settings merge Java into Game. The cu
 catalog has 540 positions, including five consumer-backed additions since the
 535-position XSR-764 baseline: global pre-launch wait, proxy mode, the storage-root
 fact, data-location migration, and finished task-card cleanup. This count describes
-IA positions, not 540 implemented capabilities. The value schema declares 46
-definitions, of which 45 have available consumers. `java.compatibility` remains
+IA positions, not 540 implemented capabilities. The value schema declares 50
+definitions, of which 49 have available consumers. `java.compatibility` remains
 unavailable: compatibility checks are mandatory, and the retained definition does
 not expose a switch that bypasses them.
 
 XSR-794 adds working consumers to the two existing developer diagnostics positions:
 read-only renderer snapshots and paged state metadata. The catalog remains 540 positions,
-with 83 available entries and 457 raw `NotImplemented` entries. These include structural
+with 83 available entries and 457 raw `NotImplemented` entries at that slice. XSR-798
+subsequently enables four desktop policies: the current raw counts are 87 Available
+and 453 `NotImplemented`. These include structural
 and duplicated positions and independent roadmap contracts; the complete inventory is
-[XSR-795](XSR-795-unimplemented-inventory.md). No additional persistent value is introduced.
+[XSR-795](XSR-795-unimplemented-inventory.md). XSR-794 introduced no additional persistent value;
+XSR-798 adds four. The current source audit is [XSR-799](XSR-799-remaining-work-audit.md).
 
 ## Delivered launch-policy slice
 

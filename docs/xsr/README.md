@@ -119,6 +119,8 @@ The user-requested constraints take precedence:
 - [migrations/XSR-725-capability-planning.md](migrations/XSR-725-capability-planning.md) — explicit instance-scoped capabilities, estimator provenance, and preflight/remediation layers
 - [migrations/XSR-726-jvm-host-observations.md](migrations/XSR-726-jvm-host-observations.md) — typed JVM host boundary, per-launch capabilities, and bounded runtime observations
 
+- [XSR-799-remaining-work-audit.md](XSR-799-remaining-work-audit.md) — 2026-10-08 remaining implementation, settings and acceptance audit
+
 ## Decision process
 
 Any change to a locked boundary requires:

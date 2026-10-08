@@ -2,10 +2,11 @@
 
 本文保留 2026-09-12 的历史规划。当前完成情况、已启用消费者和后续迁移顺序以
 [设置迁移清单](settings-migration-status.md) 为准；下文早期节点数量及 Cloud 规划不代表当前产品范围。
-当前目录为 540 个位置、46 个基础值契约，其中 45 个具有可用消费者。
+当前目录为 540 个位置、50 个基础值契约，其中 49 个具有可用消费者。
 `java.compatibility` 的可选策略仍未开放，现有兼容性检查保持强制。
 位置数量包含分组、选项、操作和事实，
 不表示所有 IA 能力均已实现。
+2026-10-08 的源码核查与剩余内容见 [XSR-799](XSR-799-remaining-work-audit.md)。
 
 交付入口：[目录与继承契约](migrations/settings-catalog-and-inheritance.md)、[完整 IA 条目表](settings-entry-map.md)、[基础值契约表](settings-value-contracts.md)。历史起点为 566 个 IA 节点和 29 个基础值契约。当前设置页、继承表单和已交付消费者已经接通；未来能力仍保留为 reserved / NotImplemented，不通过保存旧键或开启控件宣称完成。
 
