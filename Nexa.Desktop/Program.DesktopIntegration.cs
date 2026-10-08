@@ -9,10 +9,7 @@ internal static partial class Program
 
     internal static string ProductDisplayTitle(string version)
     {
-        string[] parts = version.Split('.');
-        string stage = parts.Length >= 5 ? parts[3] switch
-        { "alpha" => "Alpha " + parts[4], "beta" => "Beta " + parts[4], "ci" => "CI", _ => "" } : "";
-        return "NexaCL Firefly" + (stage.Length > 0 ? " " + stage : "");
+        return "NexaCL Firefly v" + version;
     }
 
     internal static bool SingleInstanceEnabled(string root)

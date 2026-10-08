@@ -299,7 +299,7 @@ internal static partial class Program
             uiRuntime,
             new XsrUiShellOptions
             {
-                Title = ProductDisplayTitle(buildInfo.ProductVersion),
+                Title = "NexaCL",
                 Version = buildInfo.ProductVersion,
             },
             uiIntents);
@@ -519,7 +519,7 @@ internal static partial class Program
         var store = builder.Build(context.StateBridge);
         DesktopUiIntentSink intents = new();
         var shell = PxmlShellComposer.Compose(store, context, new XsrUiShellOptions
-        { Title = ProductDisplayTitle(ResolveInformationalVersion()), Version = ResolveInformationalVersion() }, intents);
+        { Title = "NexaCL", Version = ResolveInformationalVersion() }, intents);
         using var languageSession = new DesktopLanguageSession(shell, store);
         var runtime = FirstRunRuntimeComposer.Compose(service);
         runtime.Queries.TryResolve(FirstRunContract.Status, out var read);

@@ -12,18 +12,17 @@ internal static partial class Program
 {
     private static void DesktopBrandAndBootstrapDefaults()
     {
-        AssertEqual("NexaCL Firefly Alpha 6", Nexa.Desktop.Program.ProductDisplayTitle("2.0.0.alpha.6"));
-        AssertEqual("NexaCL Firefly Beta 2", Nexa.Desktop.Program.ProductDisplayTitle("2.0.0.beta.2"));
-        AssertEqual("NexaCL Firefly CI", Nexa.Desktop.Program.ProductDisplayTitle("2.0.0.ci.abcdef"));
-        AssertEqual("NexaCL Firefly", Nexa.Desktop.Program.ProductDisplayTitle("2.0.0"));
+        AssertEqual("NexaCL Firefly v2.0.0.alpha.6", Nexa.Desktop.Program.ProductDisplayTitle("2.0.0.alpha.6"));
+        AssertEqual("NexaCL Firefly v2.0.0.beta.2", Nexa.Desktop.Program.ProductDisplayTitle("2.0.0.beta.2"));
+        AssertEqual("NexaCL Firefly v2.0.0.ci.abcdef", Nexa.Desktop.Program.ProductDisplayTitle("2.0.0.ci.abcdef"));
+        AssertEqual("NexaCL Firefly v2.0.0", Nexa.Desktop.Program.ProductDisplayTitle("2.0.0"));
         XsrStateStoreBuilder builder = new(); LaunchPageState.DeclareState(builder);
         var shell = PxmlShellComposer.Compose(builder.Build(), new XsrUiShellOptions
-        { Title = "NexaCL Firefly Alpha 6", Version = "2.0.0.alpha.6" });
+        { Title = "NexaCL", Version = "2.0.0.alpha.6" });
         var scene = shell.Render(new(1024, 600));
-        var title = scene.Nodes.Single(node => node.Text == "NexaCL Firefly Alpha 6");
-        var version = scene.Nodes.Single(node => node.Text == "v2.0.0.alpha.6");
-        AssertTrue(version.Rect.Y >= title.Rect.Y + title.Rect.Height);
-        AssertTrue(version.VisualStyle.FontSize < title.VisualStyle.FontSize);
+        AssertEqual("NexaCL", shell.Title);
+        AssertTrue(scene.Nodes.Any(node => node.Text == "NexaCL"));
+        AssertTrue(!scene.Nodes.Any(node => node.Text == "v2.0.0.alpha.6"));
         string root = Path.Combine(Path.GetTempPath(), "nexa-desktop-bootstrap-" + Guid.NewGuid().ToString("N"));
         try
         {

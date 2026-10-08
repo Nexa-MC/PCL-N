@@ -199,7 +199,6 @@ internal sealed partial class LaunchPageController
         }
         bool subpage = _shell.Stage.Navigation.Depth > 1;
         _shell.Tree.GetComponent<XsrUiElement>(_titleEntities["TitleBrand"])!.IsVisible = !subpage;
-        _shell.Tree.GetComponent<XsrUiVisualStyle>(_titleEntities["TitleVersion"])!.Foreground = _shell.Palette.TitleBarText;
         _shell.Tree.MarkDirty(_titleEntities["TitleBrand"], XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
         Publish(LaunchPageState.TitleTransitionKey, subpage
             ? _shell.Tree.GetComponent<XsrUiSemantic>(_shell.Stage.Navigation.Current)?.Label ?? string.Empty : "NexaCL");

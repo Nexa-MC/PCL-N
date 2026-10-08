@@ -10,7 +10,7 @@ internal sealed partial class SettingsPageController
     private int _diagnosticWriting;
     private void BuildAboutPage()
     {
-        Text(_sections, "关于 Nexa", 24, Ink, height: 36, weight: 600);
+        DesktopLiteralText.Preserve(_shell.Tree, Text(_sections, Program.ProductDisplayTitle(_shell.Version), 24, Ink, height: 36, weight: 600));
         AboutCopy("版权信息", "Copyright © 2025 muxue。Nexa 项目贡献者保留各自贡献的版权。", "AboutCopyright");
         AboutCopy("开源声明", "Nexa Host 采用 Apache License 2.0。源代码、许可证及贡献记录：\nhttps://github.com/PCL-N-Edition/PCL-N\n随附 LICENSE 为完整授权条款；独立 Sidecar、插件与第三方依赖按各自许可证发布。", "AboutOpenSource");
         if (OpenAboutLink is { } open)

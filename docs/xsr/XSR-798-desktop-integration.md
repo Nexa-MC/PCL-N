@@ -53,3 +53,10 @@ Services 只持有类型化设置。Desktop 将已提交的桌面策略传给原
 `settings` 和对应 `nexacl://open/<route>`；不支持的路径、查询或认证参数被拒绝。
 Linux 无托盘宿主的回退已覆盖；Windows/macOS 的实际系统托盘和 URL 回调仍需
 在对应桌面平台验收，不能以 Linux 测试替代。
+
+## 标题展示修订（2026-10-08）
+
+主窗口及首次设置标题改为 `NexaCL`，标题栏不再附版本副标题。更新页和关于页
+显示 `NexaCL Firefly v<实际版本>`。此前 Alpha 6 窗口标题实测记录属于修订前快照。
+
+修订验证：完整 Release 构建 0 警告/0 错误，Desktop 200 项、PXML 40 项和格式检查通过。

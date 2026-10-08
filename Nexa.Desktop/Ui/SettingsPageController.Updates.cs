@@ -196,7 +196,7 @@ internal sealed partial class SettingsPageController
         if (_updateQuery is null) return;
         var card = SettingsCard("SettingsUpdateCard", new(20, 18, 20, 18), spacing: 10, radius: 18);
         var header = Stack(card, "SettingsUpdateHeader", XsrUiOrientation.Horizontal, 12);
-        var title = Text(header, "NexaCL " + _updateQuery.CurrentVersion, 19, Ink, 28, 600);
+        var title = Text(header, Program.ProductDisplayTitle(_updateQuery.CurrentVersion), 19, Ink, 28, 600);
         _shell.Tree.GetComponent<XsrUiElement>(title)!.Weight = 1;
         var check = RefreshIcon(header, "SettingsCheckUpdate", CheckUpdate);
         _shell.Tree.GetComponent<XsrUiInput>(check)!.Enabled = _updateReading is null;
