@@ -3,10 +3,9 @@
 namespace Nexa.Services.Settings;
 
 /// <summary>
-/// The concrete launcher settings key universe and default values, migrated from the legacy
-/// launcher settings tables. This is the data-compatibility contract: every key the legacy
-/// launcher ever persisted has a declared type and default here, and defaults are byte-equal
-/// to the legacy tables.
+/// The supported launcher settings keys and default values, migrated from the legacy
+/// launcher settings tables. Compatible defaults remain byte-equal to the legacy tables;
+/// retired keys remain opaque persisted data rather than active settings.
 /// </summary>
 public static class LauncherDefaults
 {
@@ -32,7 +31,6 @@ public static class LauncherDefaults
         ["ToolUpdateSnapshot"] = false,
         ["UiLauncherLogo"] = true,
         ["UiLockWindowSize"] = false,
-        ["UiUltraLowPowerMode"] = false,
         ["UiShowLaunchingHint"] = true,
         ["UiHintAlignRight"] = false,
         ["UiLogoLeft"] = false,
@@ -137,7 +135,7 @@ public static class LauncherDefaults
     };
 
     /// <summary>
-    /// Builds the launcher settings schema: every legacy key with its declared type and default.
+    /// Builds the launcher settings schema with each supported key's declared type and default.
     /// </summary>
     public static SettingsSchema CreateSchema()
     {

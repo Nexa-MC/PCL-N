@@ -11,16 +11,19 @@ internal sealed class DesktopAppearanceSession : IDisposable
     private readonly XsrStateStore _state;
     private readonly XsrStateId _mode, _accent;
     private readonly IXsrUiSystemAppearance? _system;
+    private readonly XsrUiThemeMode _fallbackMode;
     private readonly XsrUiColorScheme _previousScheme;
     private XsrUiThemeMode? _previousMode;
     private int _pending = 1;
     private bool _disposed;
 
-    internal DesktopAppearanceSession(XsrUiShell shell, XsrStateStore state, IXsrUiSystemAppearance? system = null)
+    internal DesktopAppearanceSession(XsrUiShell shell, XsrStateStore state, IXsrUiSystemAppearance? system = null,
+        XsrUiThemeMode fallbackMode = XsrUiThemeMode.System)
     {
         _shell = shell;
         _state = state;
         _system = system;
+        _fallbackMode = fallbackMode;
         _previousScheme = shell.Renderer.ColorScheme;
         state.TryResolve(XsrSemanticId.Parse("UiDarkMode"), out _mode);
         state.TryResolve(XsrSemanticId.Parse("UiAccentColor"), out _accent);
@@ -40,7 +43,7 @@ internal sealed class DesktopAppearanceSession : IDisposable
     {
         if (_disposed || Interlocked.Exchange(ref _pending, 0) == 0) return;
         XsrUiThemeMode mode = _mode.IsAssigned ? _state.Read<int>(_mode).Value switch
-        { 0 => XsrUiThemeMode.Light, 1 => XsrUiThemeMode.Dark, _ => XsrUiThemeMode.System } : XsrUiThemeMode.System;
+        { 0 => XsrUiThemeMode.Light, 1 => XsrUiThemeMode.Dark, _ => XsrUiThemeMode.System } : _fallbackMode;
         XsrUiAccent accent = _accent.IsAssigned ? _state.Read<string>(_accent).Value switch
         { "purple" => XsrUiAccent.Purple, "green" => XsrUiAccent.Green, "orange" => XsrUiAccent.Orange, _ => XsrUiAccent.Blue } : XsrUiAccent.Blue;
         bool dark = mode == XsrUiThemeMode.Dark || mode == XsrUiThemeMode.System && _system?.IsSystemDark == true;

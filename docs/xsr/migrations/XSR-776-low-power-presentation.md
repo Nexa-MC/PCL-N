@@ -1,5 +1,13 @@
 # XSR-776 Low-power presentation
 
+Retired on 2026-10-09 at the user's request by
+[XSR-832](../XSR-832-retire-low-power-previews.md). The record below describes the
+former migration only. The launcher low-power catalog entry, schema/default and
+runtime consumer have been removed. Old persisted `appearance.low-power` and
+`UiUltraLowPowerMode` fields are inert and remain preserved user data. Current
+regressions cover that retirement and retain user-selected fps and reduced motion.
+Native/system power capability reporting keeps its separate contract.
+
 `appearance.low-power` preserves the legacy `UiUltraLowPowerMode` preference and
 the eligibility rule: enabled, window inactive/minimized, no active task, launch,
 or account sign-in. Missing activity truth never permits suspension. Eligibility

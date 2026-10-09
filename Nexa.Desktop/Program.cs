@@ -153,8 +153,8 @@ internal static partial class Program
             {
                 UiLocalizationCatalog startupLanguage = new();
                 startupLanguage.SetLanguage("auto");
-                startup = await AvaloniaUiStartupSession.StartAsync(args, disableHardwareAcceleration,
-                    localize: startupLanguage.Translate).ConfigureAwait(false);
+                startup = await AvaloniaUiStartupSession.StartWithAppearanceAsync(args, disableHardwareAcceleration,
+                    ReadStartupAppearance(folders.Root), localize: startupLanguage.Translate).ConfigureAwait(false);
                 mainToNativeSubmissionMs = System.Diagnostics.Stopwatch.GetElapsedTime(bootstrapStarted).TotalMilliseconds;
             }
             bool locationLocked = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NEXA_DATA_DIR")
@@ -173,6 +173,7 @@ internal static partial class Program
                 try { Console.Error.WriteLine("存储恢复未完成，继续使用原数据位置：" + storageStartup.Error?.Message); }
                 catch (IOException) { }
             }
+            startup?.SetAppearance(ReadStartupAppearance(folders.Root));
             while (true)
             {
                 try
@@ -671,7 +672,7 @@ internal static partial class Program
         {
             await PrepareNormalStartupAsync(startup, shell, platformActions, launchPage, settingsPage, versionSettings,
                 resourcesPage, customAppearance, mediaSession, presentationSession, systemPreferences, setStage, host.Logging,
-                desktopIntegration, sidecarLifetime).ConfigureAwait(false);
+                desktopIntegration, sidecarLifetime, host.StateStore).ConfigureAwait(false);
             setStage("gui_lifetime");
             host.Logging.Info("Launcher", "Entering Avalonia GUI lifetime.");
             exitCode = AvaloniaUiShellHost.Run(shell, args, platformActions, disableHardwareAcceleration);
@@ -743,7 +744,9 @@ internal static partial class Program
         if (instance is not null) instance.Wake = () => platform.PostToWindow(() =>
         { platform.RestoreWindow(); });
         if (instance is not null) platform.WindowClosed += instance.BeginShutdown;
-        using var appearanceSession = new DesktopAppearanceSession(shell, store, platform);
+        using var appearanceSession = new DesktopAppearanceSession(shell, store, platform,
+            startup?.Appearance.ThemeMode ?? XsrUiThemeMode.System);
+        shell.Renderer.ReducedMotion = startup?.Appearance.ReducedMotion ?? false;
         using var controller = new FirstRunController(shell, intents, store, runtime, status.Value!, platform.PickDirectoryAsync, platform.RequestClose);
         if (validate)
         {

@@ -1,42 +1,83 @@
+using System.Collections.Concurrent;
+using System.Text.Json.Nodes;
 using Nexa.Desktop.Ui;
-using Nexa.Services.Accounts;
-using Nexa.Services.Minecraft.Launch;
 using Nexa.Services.Settings;
-using Nexa.Services.Tasks;
 using Nexa.UI.Next;
+using Nexa.Xsr;
+using Nexa.Xsr.Runtime;
+using Nexa.Xsr.State;
 
 namespace Nexa.Desktop.Tests;
 
 internal static partial class Program
 {
-    private static void LowPowerPresentationYieldsToWorkAndRestoresPreference()
+    private static void RetiredLowPowerFactsCannotOverridePresentationPreferences()
     {
-        using var fixture = new LaunchPageFixture(new ImmediateInstanceSource([])); fixture.Controller.Dispose();
-        var policy = fixture.Foundation.Host.SettingsPolicy;
-        void Set(string key, string value) => AssertTrue(policy.Set(new(key, SettingsLayer.Global, new(SettingsOverrideMode.Custom, value))).IsSuccess);
-        Set("appearance.animation-fps", "120"); Set("appearance.low-power", "true");
-        List<int> rates = [];
-        using var session = new DesktopPresentationSession(fixture.Shell, fixture.Store, _ => { }, rates.Add);
-        AssertEqual(120, rates.Last());
-        void Pump() => fixture.Shell.Render(new(1000, 650));
-        fixture.Shell.PublishWindowActivity(false, false); Pump(); AssertEqual(10, rates.Last());
-        using var task = fixture.Foundation.Host.Tasks.Begin(new("low-power-task", "Fixture", []));
-        Pump(); AssertEqual(120, rates.Last()); task.Complete(); Pump(); AssertEqual(10, rates.Last());
-        var launch = fixture.Store.Resolve(MinecraftLaunchProgressState.SnapshotKey);
-        fixture.Store.Publish(launch, new MinecraftLaunchProgressSnapshot(true, "prepare", 0, "", "", false, null));
-        Pump(); AssertEqual(120, rates.Last());
-        fixture.Store.Publish(launch, MinecraftLaunchProgressSnapshot.Empty); Pump(); AssertEqual(10, rates.Last());
-        var login = fixture.Store.Resolve(AccountOnboardingState.Login);
-        fixture.Store.Publish(login, new AccountLoginSnapshot(1, AccountLoginPhase.Starting, "")); Pump(); AssertEqual(120, rates.Last());
-        fixture.Store.Publish(login, new AccountLoginSnapshot(1, AccountLoginPhase.Completed, "")); Pump(); AssertEqual(10, rates.Last());
-        Set("appearance.animation-fps", "30"); Pump(); AssertEqual(10, rates.Last());
-        fixture.Shell.PublishWindowActivity(true, false); Pump(); AssertEqual(30, rates.Last());
-        fixture.Shell.PublishWindowActivity(true, true); Pump(); AssertEqual(10, rates.Last());
-        Set("appearance.low-power", "false"); Pump(); AssertEqual(30, rates.Last());
-        AssertFalse(fixture.Shell.Renderer.ReducedMotion);
-        int calls = rates.Count; for (int i = 0; i < 10; i++) Pump(); AssertEqual(calls, rates.Count);
-        session.Dispose(); Set("appearance.animation-fps", "60"); Pump(); AssertEqual(calls, rates.Count);
-        AssertEqual("60", policy.Read(new()).Value!.Values.Single(v => v.Key == "appearance.animation-fps").Value.Value);
+        string directory = Path.Combine(Path.GetTempPath(), "nexa-retired-presentation-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string path = Path.Combine(directory, "settings.json");
+            File.WriteAllText(path, new JsonObject
+            {
+                ["schemaVersion"] = 1,
+                ["booleanOptions"] = new JsonObject { ["UiUltraLowPowerMode"] = true, ["SystemDisableUiAnimations"] = false },
+                ["integerOptions"] = new JsonObject { ["UiAniFPS"] = 119 },
+                ["textOptions"] = new JsonObject
+                {
+                    [SettingsPolicySchema.StorageKey] = """{"version":1,"global":{"appearance.low-power":{"mode":"Custom","value":"true"},"appearance.reduced-motion":{"mode":"Custom","value":"true"}},"instances":{}}""",
+                },
+            }.ToJsonString());
+            string original = File.ReadAllText(path);
+            var schema = LauncherDefaults.CreateSchema();
+            var builder = new XsrStateStoreBuilder();
+            SettingsService.DeclareState(builder, schema);
+            SettingsPolicyContract.DeclareState(builder);
+            XsrUiShellWindowState.Declare(builder);
+            // A foreign host retaining the old cell must not revive the removed consumer.
+            var retiredKey = XsrSemanticId.Parse("UiUltraLowPowerMode");
+            builder.Cell<bool>(retiredKey, "Fixture.RetiredLowPower");
+            var state = builder.Build();
+            var settings = new SettingsService(state, schema, new LauncherSettingsJsonPort(path, schema));
+            var policy = new SettingsPolicyService(settings);
+            AssertTrue(settings.LoadError is null);
+            AssertFalse(policy.Read(new()).Value!.Values.Any(value => value.Key == "appearance.low-power"));
+            state.Publish(state.Resolve(retiredKey), true);
+            var queries = new XsrQueryRouterBuilder();
+            queries.Register<SettingsEffectiveQuery, SettingsEffectiveSnapshot>(SettingsPolicyContract.EffectiveQuery,
+                (query, _) => ValueTask.FromResult(policy.Read(query)));
+            var shell = new XsrUiShell(state);
+            shell.PublishWindowActivity(false, false);
+            ConcurrentQueue<Action> posted = new();
+            List<int> rates = [];
+            using var session = new DesktopPresentationSession(shell, state, _ => { }, rates.Add,
+                queries.Build(new NoopDispatchObserver()), posted.Enqueue);
+            void Pump()
+            {
+                while (posted.TryDequeue(out var action)) action();
+                shell.Render(new(1000, 650));
+            }
+            void WaitForMotion(bool expected) => AssertTrue(SpinWait.SpinUntil(() =>
+            { Pump(); return shell.Renderer.ReducedMotion == expected; }, TimeSpan.FromSeconds(5)));
+            void Set(string key, string value) => AssertTrue(policy.Set(new(key, SettingsLayer.Global,
+                new(SettingsOverrideMode.Custom, value))).IsSuccess);
+            WaitForMotion(true);
+            AssertEqual(120, rates.Single());
+            AssertEqual(original, File.ReadAllText(path));
+            shell.PublishWindowActivity(true, true); Pump(); AssertEqual(120, rates.Last());
+            Set("appearance.animation-fps", "30"); Pump(); AssertEqual(30, rates.Last());
+            shell.PublishWindowActivity(false, false); Pump(); AssertEqual(30, rates.Last());
+            Set("appearance.reduced-motion", "false"); WaitForMotion(false);
+            Set("appearance.animations-disabled", "true"); Pump(); AssertTrue(shell.Renderer.ReducedMotion);
+            Set("appearance.animation-fps", "144"); Pump(); AssertEqual(144, rates.Last());
+            state.Publish(state.Resolve(retiredKey), false); Pump(); AssertEqual(144, rates.Last());
+            Set("appearance.animations-disabled", "false"); Pump(); AssertFalse(shell.Renderer.ReducedMotion);
+            AssertTrue(JsonNode.Parse(File.ReadAllText(path))!["booleanOptions"]!["UiUltraLowPowerMode"]!.GetValue<bool>());
+            int calls = rates.Count; for (int i = 0; i < 10; i++) Pump(); AssertEqual(calls, rates.Count);
+            session.Dispose(); Set("appearance.animation-fps", "60"); Pump(); AssertEqual(calls, rates.Count);
+            AssertEqual("60", policy.Read(new()).Value!.Values.Single(value => value.Key == "appearance.animation-fps").Value.Value);
+        }
+        finally { Directory.Delete(directory, true); }
     }
 
     private static void PresentationSettingsApplyWithoutNavigation()

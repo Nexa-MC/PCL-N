@@ -2,7 +2,11 @@
 
 This table mirrors the current checked-in catalog by stable ID, including its entry kind and policy key. A `—` value contract means that no SettingsPolicySchema key is assigned; structural entries, read-only facts, typed workspace controls, and unavailable IA positions can all have no policy key. It does not imply implementation availability. SettingsCatalog.Load derives effective availability from declared schema keys and the reviewed consumer map. Dedicated workspace commands and metadata have their own documented contracts. IDs must not be regenerated on label edits. See SettingsPolicySchema for type/default/range/unit/legacy/scope/timing/export metadata of declared keys.
 
-The frozen catalog contains 543 stable positions: 399 declare `Available`, 12 declare `PlatformUnsupported`, and 132 declare `NotImplemented`. The latter comprise 78 structural Group/Choice positions and 54 planned capability positions without a complete runtime contract. They remain unavailable. The policy schema contains 97 definitions, of which 96 admit mutation and 80 admit export; the mandatory Java-compatibility definition admits neither mutation nor export. These counts describe catalog and policy contracts, not physical-platform acceptance.
+The frozen catalog contains 542 stable positions: 398 declare `Available`, 12 declare `PlatformUnsupported`, and 132 declare `NotImplemented`. The latter comprise 78 structural Group/Choice positions and 54 planned capability positions without a complete runtime contract. They remain unavailable. The policy schema contains 96 definitions, of which 95 admit mutation and 79 admit export; the mandatory Java-compatibility definition admits neither mutation nor export. These counts describe catalog and policy contracts, not physical-platform acceptance.
+
+[XSR-832](XSR-832-retire-low-power-previews.md) removes the launcher low-power setting
+and its catalog position. Old persisted low-power fields remain inert; they are not
+current value contracts and are not actively deleted from user data.
 
 | ID | Scope / page / section | Entry | Kind | Value contract | Developer |
 |---|---|---|---|---|---|
@@ -50,7 +54,6 @@ The frozen catalog contains 543 stable positions: 399 declare `Available`, 12 de
 | global.appearance.5113a7179b1f | global / appearance / 动画 | 启用动画 | Setting | appearance.animations-disabled | False |
 | global.appearance.4a5860e2a3dd | global / appearance / 动画 | UI 动画帧率 | Setting | appearance.animation-fps | False |
 | global.appearance.8acdc9767f4b | global / appearance / 动画 | 减少动态效果 | Setting | appearance.reduced-motion | False |
-| global.appearance.8a3bf6aa3ebd | global / appearance / 动画 | 超低功耗模式 | Setting | appearance.low-power | False |
 | global.appearance.f87b191444e7 | global / appearance / 背景音乐 | 背景音乐 | Group | — | False |
 | global.appearance.c1deb15a846d | global / appearance / 背景音乐 | 启用背景音乐 | Setting | music.enabled | False |
 | global.appearance.b3e308418534 | global / appearance / 背景音乐 | 启动时播放 | Setting | music.startup | False |
@@ -558,9 +561,9 @@ Effective availability follows `SettingsCatalog.ResolveAvailability`, including 
 
 | Host platform | Available | PlatformUnsupported | NotImplemented |
 |---|---|---|---|
-| Linux | 395 | 16 | 132 |
-| Windows | 395 | 16 | 132 |
-| macOS | 389 | 22 | 132 |
+| Linux | 394 | 16 | 132 |
+| Windows | 394 | 16 | 132 |
+| macOS | 388 | 22 | 132 |
 
 | Conditional policy key | Available among Windows / Linux / macOS | Catalog positions |
 |---|---|---|

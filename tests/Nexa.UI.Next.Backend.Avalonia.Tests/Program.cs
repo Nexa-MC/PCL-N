@@ -22,6 +22,7 @@ internal static partial class Program
 {
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("neon theme selection honors explicit and system modes", NeonThemeSelectionHonorsExplicitAndSystemModes),
         ("StartupMediaWarmupSettlesMissingLocalAsset", StartupMediaWarmupSettlesMissingLocalAsset),
         ("ScreenshotCodecCropsActualPixelsAndPreservesSource", ScreenshotCodecCropsActualPixelsAndPreservesSource),
         ("CommandPaletteGesturesRequireExactKeysAndAdmittedCallbacks", CommandPaletteGesturesRequireExactKeysAndAdmittedCallbacks),
@@ -43,6 +44,7 @@ internal static partial class Program
         ("typeface cache reports missing fonts without caching failure", TypefaceCacheDoesNotCacheFailure),
         ("document transfers bound actual bytes and replace atomically", DocumentTransfersBoundActualBytesAndReplaceAtomically),
         ("lifetime: splash never owns the process and main window close terminates", LifetimeSplashNeverOwnsProcessAndMainWindowCloseTerminates),
+        ("window entrance preserves prepared input and retires motion", WindowEntrancePreservesPreparedInputAndRetiresMotion),
         ("memory pressure preserves visible leases and disposes idle resources", MemoryPressurePreservesVisibleLeasesAndDisposesIdle),
         ("VerifyBackgroundFitAndImageOpacityDrawing", VerifyBackgroundFitAndImageOpacityDrawing),
         ("RuntimeDiagnosticsObserveRealCommitsPaintAndAdmission", RuntimeDiagnosticsObserveRealCommitsPaintAndAdmission),
@@ -53,6 +55,7 @@ internal static partial class Program
     private static int Main(string[] args)
     {
         if (args.Contains("--native-startup-smoke")) return RunNativeStartupSmoke();
+        if (args.Contains("--native-startup-cancel-smoke")) return RunNativeStartupCancelSmoke();
         if (args.Contains("--native-corner-smoke")) return RunNativeCornerSmoke();
         if (args.Contains("--native-font-smoke")) return RunNativeFontSmoke(args.Contains("--expect-font-fallback"));
         foreach ((string name, Action body) in TestCases)
@@ -423,6 +426,7 @@ internal static partial class Program
             VerifyTypefaceRenderingAndInput();
             VerifyNativeContextMenusPreserveLeftClickAndPasswordRules();
             VerifyTrayCloseAndExplicitExitAdmission(window, shell);
+            await VerifyPreparedWindowEntranceAsync(window).ConfigureAwait(true);
             VerifyAccessibleContentAndNativeFocus(window, shell, surface);
             VerifyPointerCursorProjection(window, shell, surface);
             VerifyPostNavigationDoubleClickRouting(window);
@@ -433,6 +437,7 @@ internal static partial class Program
             VerifyNativeScrollbarPointerRouting(window, shell, surface);
             await VerifyNativeSettingsControls(shell, surface);
             VerifyNativeAppearancePreferences(window, shell, surface);
+            await VerifyNativeBrandAssetsAndCloseDecoration().ConfigureAwait(true);
             VerifyReentrantRemovalCommit(shell, surface);
             await VerifyTransitionGroupsAndMedia(shell, surface);
             VerifySharedRasterBudget();

@@ -2,7 +2,6 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Media;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 using Nexa.UI.Next;
@@ -23,6 +22,8 @@ public sealed partial class AvaloniaUiStartupSession : IAsyncDisposable
     private readonly Queue<string> _pendingProtocols = new(16);
     private Func<string, string> _localize = static text => text;
     private AvaloniaUiRenderingConfiguration _rendering = new(false);
+    private AvaloniaUiStartupAppearance _appearance = new();
+    public AvaloniaUiStartupAppearance Appearance => Volatile.Read(ref _appearance);
     public bool HardwareAccelerationDisabled => _rendering.HardwareAccelerationDisabled;
     internal AvaloniaUiRenderingConfiguration RenderingConfiguration => _rendering;
     public CancellationToken CancellationToken => _cancellation.Token;
@@ -38,8 +39,14 @@ public sealed partial class AvaloniaUiStartupSession : IAsyncDisposable
 
     public static async Task<AvaloniaUiStartupSession> StartAsync(string[]? args, bool disableHardwareAcceleration,
         Func<string, string>? localize = null, CancellationToken cancellationToken = default)
+        => await StartWithAppearanceAsync(args, disableHardwareAcceleration, new(), localize, cancellationToken).ConfigureAwait(false);
+
+    public static async Task<AvaloniaUiStartupSession> StartWithAppearanceAsync(string[]? args, bool disableHardwareAcceleration,
+        AvaloniaUiStartupAppearance appearance, Func<string, string>? localize = null, CancellationToken cancellationToken = default)
     {
-        var session = new AvaloniaUiStartupSession { _rendering = new(disableHardwareAcceleration) };
+        ArgumentNullException.ThrowIfNull(appearance);
+        appearance.Validate();
+        var session = new AvaloniaUiStartupSession { _rendering = new(disableHardwareAcceleration), _appearance = appearance };
         if (localize is not null) session._localize = localize;
         if (Interlocked.CompareExchange(ref _active, session, null) is not null)
             throw new InvalidOperationException("A native startup session is already running.");
@@ -80,6 +87,22 @@ public sealed partial class AvaloniaUiStartupSession : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(localize);
         if (Completion.IsCompleted) return;
         Dispatcher.UIThread.Post(() => { _localize = localize; _window?.Relocalize(localize); });
+    }
+
+    public void SetAppearance(AvaloniaUiStartupAppearance appearance)
+    {
+        ArgumentNullException.ThrowIfNull(appearance);
+        appearance.Validate();
+        if (Completion.IsCompleted) return;
+        void Apply()
+        {
+            if (_presented || Completion.IsCompleted || _appearance == appearance) return;
+            Volatile.Write(ref _appearance, appearance);
+            _window?.SetAppearance(appearance);
+            if (_preparedWindow is not null) _preparedWindow.StartupMotionSuppressed = appearance.ReducedMotion;
+        }
+        if (Dispatcher.UIThread.CheckAccess()) Apply();
+        else Dispatcher.UIThread.Post(Apply);
     }
 
     public void ReportStage(string stage)
@@ -155,7 +178,7 @@ public sealed partial class AvaloniaUiStartupSession : IAsyncDisposable
             {
                 session.FirstRenderElapsed ??= Stopwatch.GetElapsedTime(session._started);
                 session._ready.TrySetResult();
-            }, session._localize, () => session._retryRequested?.TrySetResult());
+            }, session._localize, () => session._retryRequested?.TrySetResult(), session._appearance);
             session._window = window;
             desktop.MainWindow = window;
             if (this.TryGetFeature<IActivatableLifetime>() is { } activation)
@@ -168,6 +191,7 @@ public sealed partial class AvaloniaUiStartupSession : IAsyncDisposable
                 };
             window.Closed += (_, _) =>
             {
+                if (ReferenceEquals(session._window, window)) session._window = null;
                 if (!session._presented) { session._cancellation.Cancel(); session.DiscardPreparedShell(); desktop.Shutdown(0); }
             };
             window.Show();
@@ -175,65 +199,4 @@ public sealed partial class AvaloniaUiStartupSession : IAsyncDisposable
         }
     }
 
-    private sealed class StartupWindow : Window
-    {
-        private readonly TextBlock _stage;
-        private readonly Action _rendered;
-        private readonly Button _close;
-        private readonly Button _retry;
-        private Func<string, string> _localize;
-        private string _stageSource = "启动中";
-        private bool _failed;
-        private bool _firstRender;
-        internal StartupWindow(Action rendered, Func<string, string> localize, Action retry)
-        {
-            _rendered = rendered;
-            _localize = localize;
-            Title = "NexaCL";
-            Width = 420;
-            Height = 200;
-            MinWidth = 320;
-            MinHeight = 160;
-            CanResize = true;
-            WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            var family = AvaloniaUiTypefaceCache.GetDefault(FontWeight.Normal).FontFamily;
-            _stage = new TextBlock { Text = localize("启动中"), TextWrapping = TextWrapping.Wrap, FontFamily = family };
-            _close = new Button { Content = localize("取消并退出"), FontFamily = family, HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Right };
-            _close.Click += (_, _) => Close();
-            _retry = new Button { Content = localize("重试"), FontFamily = family, IsVisible = false };
-            _retry.Click += (_, _) => { _retry.IsEnabled = false; retry(); };
-            Content = new StackPanel
-            {
-                Margin = new Thickness(24),
-                Spacing = 16,
-                Children = { new TextBlock { Text = "NexaCL", FontSize = 24, FontFamily = family }, _stage,
-                    new StackPanel { Orientation = global::Avalonia.Layout.Orientation.Horizontal, Spacing = 12,
-                        Children = { _retry, _close } } },
-            };
-        }
-        internal void SetStage(string stage, bool failed, bool canRetry = false)
-        {
-            _stageSource = stage;
-            _failed = failed;
-            stage = _localize(stage);
-            _stage.Text = stage.Length <= 1024 ? stage : stage[..1024];
-            _stage.Foreground = failed ? Brushes.Firebrick : Brushes.Gray;
-            _retry.IsVisible = canRetry;
-            _retry.IsEnabled = canRetry;
-        }
-        internal void Relocalize(Func<string, string> localize)
-        {
-            _localize = localize;
-            _close.Content = localize("取消并退出");
-            _retry.Content = localize("重试");
-            SetStage(_stageSource, _failed, _retry.IsVisible);
-        }
-        public override void Render(DrawingContext context)
-        {
-            base.Render(context);
-            if (_firstRender) return;
-            _firstRender = true;
-            _rendered();
-        }
-    }
 }

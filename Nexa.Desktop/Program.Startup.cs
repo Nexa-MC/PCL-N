@@ -2,6 +2,7 @@ using Nexa.Desktop.Ui;
 using Nexa.Services.Logging;
 using Nexa.UI.Next;
 using Nexa.UI.Next.Backend.Avalonia;
+using Nexa.Xsr.State;
 
 namespace Nexa.Desktop;
 
@@ -12,12 +13,13 @@ internal static partial class Program
         SettingsPageController settings, SettingsPageController versionSettings, ResourcesPageController resources,
         CustomAppearanceSession? appearance, DesktopMediaSession? media, DesktopPresentationSession presentation,
         SystemPreferencesSession? systemPreferences, Action<string> setStage, LogService log,
-        DesktopIntegrationSession? integration = null, SidecarStartup.Lifetime? sidecars = null)
+        DesktopIntegrationSession? integration = null, SidecarStartup.Lifetime? sidecars = null,
+        XsrStateStore? startupState = null)
     {
         try
         {
             await PrepareNormalStartupCoreAsync(startup, shell, platform, launch, settings, versionSettings,
-                resources, appearance, media, presentation, systemPreferences, setStage, log, integration, sidecars).ConfigureAwait(false);
+                resources, appearance, media, presentation, systemPreferences, setStage, log, integration, sidecars, startupState).ConfigureAwait(false);
         }
         catch
         {
@@ -33,7 +35,7 @@ internal static partial class Program
         SettingsPageController settings, SettingsPageController versionSettings, ResourcesPageController resources,
         CustomAppearanceSession? appearance, DesktopMediaSession? media, DesktopPresentationSession presentation,
         SystemPreferencesSession? systemPreferences, Action<string> setStage, LogService log,
-        DesktopIntegrationSession? integration, SidecarStartup.Lifetime? sidecars)
+        DesktopIntegrationSession? integration, SidecarStartup.Lifetime? sidecars, XsrStateStore? startupState)
     {
         CancellationToken cancellation = startup?.CancellationToken ?? default;
         DesktopStartupReadiness readiness = new(stage =>
@@ -47,6 +49,8 @@ internal static partial class Program
         {
             token.ThrowIfCancellationRequested();
             shell.Render(new XsrUiSize(850, 500));
+            if (startupState is not null)
+                startup?.SetAppearance(CommittedStartupAppearance(startupState, shell.Renderer));
             return Task.CompletedTask;
         }, token);
 

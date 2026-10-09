@@ -15,6 +15,7 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
     private readonly Action _restore;
     private readonly Action _settings;
     private readonly Func<string, string> _localize;
+    private readonly Func<TrayIcon?> _createTray;
     private TrayIcon? _tray;
     private AvaloniaUiDesktopPolicy _policy = new(false);
     private bool _disposed;
@@ -22,8 +23,13 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
     private CancellationTokenSource? _availabilityStop;
 
     internal AvaloniaUiDesktopIntegration(AvaloniaUiShellWindow window, Action restore, Action settings, Func<string, string> localize)
+        : this(window, restore, settings, localize, CreateNativeTray) { }
+
+    internal AvaloniaUiDesktopIntegration(AvaloniaUiShellWindow window, Action restore, Action settings,
+        Func<string, string> localize, Func<TrayIcon?> createTray)
     {
         _window = window; _restore = restore; _settings = settings; _localize = localize;
+        _createTray = createTray ?? throw new ArgumentNullException(nameof(createTray));
         window.HideToTrayRequested = TryHide;
         window.PropertyChanged += OnChanged;
         window.Closed += OnClosed;
@@ -44,8 +50,8 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
             return;
         }
         if (_tray is not null || _window.Icon is null) return;
-        using ITrayIconImpl? probe = PlatformManager.CreateTrayIcon();
-        if (probe is null) return;
+        TrayIcon? tray = _createTray();
+        if (tray is null) return;
         NativeMenu menu = new();
         NativeMenuItem restore = new(_localize("显示主窗口"));
         restore.Click += (_, _) => _restore();
@@ -54,7 +60,8 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
         NativeMenuItem exit = new(_localize("退出"));
         exit.Click += (_, _) => _window.RequestClose();
         menu.Items.Add(restore); menu.Items.Add(settings); menu.Items.Add(new NativeMenuItemSeparator()); menu.Items.Add(exit);
-        _tray = new TrayIcon { Icon = _window.Icon, ToolTipText = _window.Title, Menu = menu, IsVisible = true };
+        _tray = tray;
+        _tray.Icon = _window.Icon; _tray.ToolTipText = _window.Title; _tray.Menu = menu; _tray.IsVisible = true;
         _tray.Clicked += (_, _) => _restore();
         if (OperatingSystem.IsLinux())
         {
@@ -62,6 +69,12 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
             CancellationToken token = _availabilityStop.Token;
             _ = MonitorHostAsync(token);
         }
+    }
+
+    private static TrayIcon? CreateNativeTray()
+    {
+        using ITrayIconImpl? probe = PlatformManager.CreateTrayIcon();
+        return probe is null ? null : new TrayIcon();
     }
 
     private bool TryHide()
@@ -73,6 +86,7 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
     }
     private void OnChanged(object? sender, AvaloniaPropertyChangedEventArgs args)
     {
+        if (args.Property == Window.IconProperty && _tray is not null) _tray.Icon = _window.Icon;
         if (args.Property == Window.WindowStateProperty && _window.WindowState == WindowState.Minimized
             && _policy.MinimizeToTray && TrayAvailable) _window.Hide();
     }

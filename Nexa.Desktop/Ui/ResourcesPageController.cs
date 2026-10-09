@@ -97,26 +97,27 @@ internal sealed partial class ResourcesPageController : IDisposable
         shell.Tree.Detach(Page); shell.Tree.Destroy(host);
         shell.Tree.Walk(Page, entity => { _entities[shell.Tree.Name(entity)] = entity; return true; });
         shell.Tree.SetComponent(_entities["ResourceList"], new XsrUiScrollGesture());
+        shell.Tree.SetComponent(_entities["ResourceList"], new XsrUiStableContent());
         var extensionCard = _entities["ResourceExtensionCard"];
         Style(extensionCard, Tint, Ink, 10);
         shell.Tree.SetComponent(extensionCard, new XsrUiScrollGesture());
         Segment(_entities["ResourceCategories"], "ResourceCategory", ["收藏", "模组", "整合包", "资源包", "光影", "数据包"], index =>
-        { _favoriteMode = index == 0; if (!_favoriteMode) _filter = _filter with { Kind = (ResourceKind)(index - 1) }; Search(0); }, 62, initial: 1);
+        { _favoriteMode = index == 0; if (!_favoriteMode) _filter = _filter with { Kind = (ResourceKind)(index - 1) }; Search(); }, 62, initial: 1);
         var header = _entities["ResourceCategories"];
         E(Element(header, "ResourceHeaderSpace")).Weight = 1;
         Segment(header, "ResourceOrder", ["相关", "热门", "更新"], index =>
-        { _filter = _filter with { Order = (ResourceOrder)index }; Search(0); }, 54);
+        { _filter = _filter with { Order = (ResourceOrder)index }; Search(); }, 54);
         var toolbar = _entities["ResourceToolbar"];
         _search = Input(toolbar, "ResourceSearch", "搜索资源", 0); E(_search).Weight = 1;
         _game = Input(toolbar, "ResourceGame", "游戏版本", 104);
         _loader = Input(toolbar, "ResourceLoader", "加载器", 100);
         Button(toolbar, "ResourceSearchButton", "搜索", 56, () =>
-        { if (_sidecarSignals?.CatchResourceSearch() != true) Search(0); });
+        { if (_sidecarSignals?.CatchResourceSearch() != true) Search(); });
         Button(toolbar, "ResourceCurrentInstance", "当前版本", 76, UseCurrentInstance);
         Button(toolbar, "ResourceReset", "重置", 48, () =>
         {
             foreach (var input in new[] { _search, _game, _loader }) _shell.Renderer.SetTextInputValue(input, "");
-            Search(0);
+            Search();
         });
         var pagination = _entities["ResourcePagination"];
         _status = Text(pagination, "Modrinth", 12, Muted, 28); E(_status).Weight = 1;
@@ -125,8 +126,9 @@ internal sealed partial class ResourcesPageController : IDisposable
         E(_entities["ResourceNetwork.0"]).Height = 28; E(_entities["ResourceNetwork.1"]).Height = 28;
         Check(pagination, "ResourceHideInstalled", "隐藏已有", () => _hideInstalled, value => { _hideInstalled = value; ReadContext(); if (_result is not null) ShowResults(); });
         Check(pagination, "ResourceHideLibraries", "隐藏前置", () => _hideLibraries, value => { _hideLibraries = value; if (_result is not null) ShowResults(); });
-        _previous = Button(pagination, "ResourcePrevious", "上一页", 68, () => Search(Math.Max(0, _filter.Page - 1)));
-        _next = Button(pagination, "ResourceNext", "下一页", 68, () => Search(_filter.Page + 1));
+        _previous = Button(pagination, "ResourcePrevious", "返回顶部", 76, ReturnToListTop);
+        _next = Button(pagination, "ResourceNext", "加载更多", 76, RequestNextPage);
+        InitializeContinuousList();
         E(_previous).Height = 28; E(_next).Height = 28;
         DetailPage = Element(default, "ResourceDetailPage", XsrUiSemanticRole.Page, "资源详情");
         _detailBody = Stack(DetailPage, "ResourceDetailBody"); E(_detailBody).Weight = 1; E(_detailBody).Padding = new(24, 20, 24, 24);
@@ -148,11 +150,11 @@ internal sealed partial class ResourcesPageController : IDisposable
         if (visible != _visible)
         {
             var content = E(_shell.Content);
-            if (visible) { _previousPadding = content.Padding; content.Padding = default; }
+            if (visible) { _previousPadding = content.Padding; content.Padding = default; _listMediaPaused = false; }
             else
             {
                 content.Padding = _previousPadding;
-                if (_searching is not null) _started = false;
+                PauseContinuousList();
                 Cancel(); CancelTranslations(); _planStop.Cancel(); _planning = null; _installDraft = null; _contextStop.Cancel(); _contextRequest = null; _contextReading = null;
             }
             _visible = visible; _shell.Tree.MarkDirty(_shell.Content, XsrUiDirtyKinds.Layout);
@@ -237,7 +239,7 @@ internal sealed partial class ResourcesPageController : IDisposable
             }
         }
         _shell.Tree.GetComponent<XsrUiInput>(_entities["ResourceCurrentInstance"])!.Enabled = _instanceReading is null && _selectedInstance?.Invoke() is not null;
-        if (!_started) { _started = true; ReadFavorites(); Search(_filter.Page); }
+        if (!_started) { _started = true; ReadFavorites(); Search(); }
         while (_pending.TryDequeue(out var source)) if (_actions.TryGetValue(source, out var action)) action();
         if (_instanceReading is { IsCompleted: true } instanceReading)
         {
@@ -250,20 +252,13 @@ internal sealed partial class ResourcesPageController : IDisposable
                 _shell.Renderer.SetTextInputValue(_game, instance.GameVersion);
                 string loader = instance.Selection.Where(item => item.Loader is InstallLoader.Fabric or InstallLoader.Quilt or InstallLoader.Forge or InstallLoader.NeoForge).Select(item => item.Loader.ToString().ToLowerInvariant()).FirstOrDefault() ?? "";
                 _shell.Renderer.SetTextInputValue(_loader, loader is "fabric" or "quilt" or "forge" or "neoforge" ? loader : "");
-                Search(0);
+                Search();
             }
             else _shell.Tree.SetComponent(_status, new XsrUiText("无法读取当前版本，请手动填写筛选条件。"));
         }
         if (_shell.Stage.Navigation.Current == Page && _reading is not null) { Cancel(); _detailId = null; }
-        if (_searching is { IsCompleted: true } searching)
-        {
-            _searching = null;
-            _sidecarSignals?.ResourceSearchCompleted(PendingQuery.Succeeded(searching));
-            if (PendingQuery.Succeeded(searching))
-            { _result = searching.Result.Value!; ShowResults(); RenewCatalogSearchIfStale(); }
-            else if (!_catalogSearchRenewed || _result is null) ShowFailure(_entities["ResourceList"], "暂时无法加载资源。请检查网络后重试。", () => Search(_filter.Page), _listActions);
-            UpdatePagination();
-        }
+        if (_shell.Stage.Navigation.Current == Page) UpdateContinuousList();
+        else DeactivateListMedia();
         if (_reading is { IsCompleted: true } reading)
         {
             _reading = null;
@@ -286,53 +281,9 @@ internal sealed partial class ResourcesPageController : IDisposable
         _shell.Tree.SetComponent(button, new XsrUiSemantic(XsrUiSemanticRole.Button, caption ?? "搜索") { Localize = caption is null });
         _shell.Tree.MarkDirty(button, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
     }
-    private void Search(int page)
-    {
-        Cancel(); CancelIcons(); ReleaseIcons(); CancelTranslations(); _result = null;
-        _filter = _filter with { Text = Draft(_search), GameVersion = Draft(_game), Loader = Draft(_loader), Page = page };
-        Clear(_entities["ResourceList"], _listActions);
-        if (_favoriteMode) { ShowFavorites(); return; }
-        Text(_entities["ResourceList"], "正在加载资源…", 14, Muted, 54);
-        _shell.Tree.GetComponent<XsrUiScroll>(_entities["ResourceList"])!.OffsetY = 0;
-        if (_queries.TryResolve(ResourceCatalogContract.Search, out var route))
-        {
-            _searching = _queries.QueryAsync<ResourceSearchQuery, ResourceSearchResult>(route, _filter, cancellationToken: _stop.Token).AsTask();
-            Wake(_searching);
-        }
-        UpdatePagination();
-    }
+    private void Search() => BeginContinuousSearch();
 
-    private void ShowResults()
-    {
-        var list = _entities["ResourceList"]; Clear(list, _listActions);
-        if (_result!.Projects.Count == 0) { Text(list, "没有找到匹配的资源。试试其他关键词或筛选条件。", 14, Muted, 64); return; }
-        int displayed = 0;
-        foreach (var project in _result.Projects.Where(p => !_hideLibraries || p.Kind != ResourceKind.Mod || !p.IsLibrary)
-            .Where(p => !_hideInstalled || p.Kind != ResourceKind.Mod || _context is null || !p.Sources.Any(reference => _context.Installed.Any(f => f.Source == reference))))
-        {
-            displayed++;
-            var row = Card(list, "ResourceProject." + project.Id);
-            var icon = Element(row, "ResourceProjectIcon"); E(icon).Width = 48; E(icon).Height = 48; E(icon).VerticalAlignment = XsrUiAlignment.Center;
-            Style(icon, Tint, Muted, 12);
-            _shell.Tree.SetComponent(icon, new XsrUiImage(project.Kind switch
-            {
-                ResourceKind.Mod => "lucide/blocks",
-                ResourceKind.Shader => "nexa/content-shader",
-                _ => "nexa/content-package"
-            }));
-            TrackIcon(icon, project, Page);
-            var copy = Stack(row, "ResourceProjectCopy"); E(copy).Weight = 1;
-            LiteralText(copy, ProjectTitle(DesktopResourceText.Name(project, _store)), 15, Ink, 22, 600);
-            Translate(LiteralText(copy, DesktopResourceText.Description(project, _store), 12, Muted, 20), project);
-            Text(copy, $"{project.SourceLabel}  ·  {project.Author}  ·  {FormatDownloads(Math.Max(0, ResourceCaptions.DownloadCount(_functionPatches.Runtime, _functionPatches.DownloadCount, project.Downloads)))} 次下载", 11, Muted, 18);
-            _listActions.Add(IconButton(row, "ResourceDetails." + project.Id, "详情", "lucide/info", () =>
-            {
-                _detailProject = project; _detailPage = 0; _shell.Stage.Navigation.Push(DetailPage); ReadDetail(project.Id);
-            }));
-            _listActions.Add(IconButton(row, "ResourceQuickDownload." + project.Id, "下载", "lucide/download", () => _ = DownloadProjectAsync(project)));
-        }
-        if (displayed == 0) Text(list, "当前筛选下没有资源。", 14, Muted, 54);
-    }
+    private void ShowResults() => ReconcileVirtualRows();
 
     private void ReadDetail(string id)
     {
@@ -387,12 +338,7 @@ internal sealed partial class ResourcesPageController : IDisposable
         _shell.Tree.GetComponent<XsrUiScroll>(_detailBody)!.OffsetY = 0;
     }
 
-    private void UpdatePagination()
-    {
-        _shell.Tree.SetComponent(_status, new XsrUiText(_searching is not null ? _result is { IsStale: true } ? "正在显示缓存资料，后台正在刷新…" : "正在搜索双源目录…" : _result is null ? "加载失败" : $"第 {_filter.Page + 1} 页 · {_result.Projects.Count} 项" + (string.IsNullOrEmpty(_result.Notice) ? "" : " · " + _result.Notice)) { MaxLines = 1, TrimOverflow = true });
-        _shell.Tree.GetComponent<XsrUiInput>(_previous)!.Enabled = _searching is null && _filter.Page > 0;
-        _shell.Tree.GetComponent<XsrUiInput>(_next)!.Enabled = _searching is null && _result is not null && (_result.HasMore ?? ((_filter.Page + 1) * 20 < _result.Total));
-    }
+    private void UpdatePagination() => UpdateContinuousStatus();
     private void ShowFailure(XsrUiEntityId parent, string message, Action retry, List<XsrUiEntityId> actions)
     {
         Clear(parent, actions); Text(parent, message, 14, Muted, 54);
@@ -428,12 +374,13 @@ internal sealed partial class ResourcesPageController : IDisposable
         catch (OperationCanceledException) { }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException) { if (!_disposed) _feedback?.Error("资源下载失败：" + error.Message); }
     }
-    private void Translate(XsrUiEntityId entity, ResourceProject project)
+    private void Translate(XsrUiEntityId entity, ResourceProject project, CancellationToken lease = default)
     {
         if (!DesktopResourceText.UsesChinese(_store) || project.Sources.Count == 0 || !_queries.TryResolve(ResourceCatalogContract.Translate, out var route)) return;
         var source = project.Sources[0];
-        var read = _queries.QueryAsync<ResourceTranslationQuery, ResourceTranslation>(route, new(source, project.Description), cancellationToken: _translationStop.Token).AsTask();
-        _translations.Add((entity, read)); Wake(read, _translationStop.Token);
+        var token = lease.CanBeCanceled ? lease : _translationStop.Token;
+        var read = _queries.QueryAsync<ResourceTranslationQuery, ResourceTranslation>(route, new(source, project.Description), cancellationToken: token).AsTask();
+        _translations.Add((entity, read)); Wake(read, token);
     }
     private ResourceInstanceQuery? CurrentInstance() => _selectedInstance?.Invoke() is { } selected ? new(selected.RootDirectory, selected.InstanceId, _filter.MirrorFirst) : null;
     private void ReadContext()
@@ -452,9 +399,11 @@ internal sealed partial class ResourcesPageController : IDisposable
     }
     private void ShowFavorites()
     {
-        string text = Draft(_search);
+        string text = _filter.Text;
         var matches = _favorites.Projects.Where(p => text.Length == 0 || p.DisplayName.Contains(text, StringComparison.OrdinalIgnoreCase) || p.Title.Contains(text, StringComparison.OrdinalIgnoreCase) || p.DisplayDescription.Contains(text, StringComparison.OrdinalIgnoreCase)).ToArray();
-        _result = new(matches.Skip(_filter.Page * 20).Take(20).ToArray(), matches.Length, _filter.Page);
+        _listBudgetReached = matches.Length > ContinuousProjectBudget;
+        _listHasMore = false;
+        _result = new(matches.Take(ContinuousProjectBudget).ToArray(), matches.Length, 0) { HasMore = false };
         ShowResults(); UpdatePagination();
     }
     private bool IsSaved(ResourceProject project) => _favorites.Projects.Any(p => p.Sources.Intersect(project.Sources).Any());
@@ -582,22 +531,23 @@ internal sealed partial class ResourcesPageController : IDisposable
         TrackIcon(icon, project, DetailPage);
         return icon;
     }
-    private void Cancel() { ResetCatalogRenewal(); _stop.Cancel(); _stop.Dispose(); _stop = new(); _searching = null; _reading = null; _instanceReading = null; }
+    private void Cancel() { ResetCatalogRenewal(); _stop.Cancel(); _stop.Dispose(); _stop = new(); _reading = null; _instanceReading = null; }
     private void CancelIcons() { _iconStop.Cancel(); _iconStop.Dispose(); _iconStop = new(); _icons.Clear(); _iconPage = default; }
     private void CancelTranslations() { _translations.Clear(); _translationStop.Cancel(); _translationStop.Dispose(); _translationStop = new(); }
-    private readonly record struct ResourcePageIcon(XsrUiEntityId Entity, string Url, XsrUiEntityId Page);
-    private void TrackIcon(XsrUiEntityId entity, ResourceProject project, XsrUiEntityId page)
+    private readonly record struct ResourcePageIcon(XsrUiEntityId Entity, string Url, XsrUiEntityId Page, CancellationToken Lease = default);
+    private void TrackIcon(XsrUiEntityId entity, ResourceProject project, XsrUiEntityId page, CancellationToken lease = default)
     {
         if (project.IconUrl is not { } url) return;
-        ResourcePageIcon descriptor = new(entity, url, page);
+        ResourcePageIcon descriptor = new(entity, url, page, lease);
         _iconDescriptors.Add(descriptor);
         if (_iconPage == page) ReadIcon(descriptor);
     }
     private void ReadIcon(ResourcePageIcon descriptor)
     {
-        if (!_queries.TryResolve(ResourceCatalogContract.Icon, out var route)) return;
-        var read = _queries.QueryAsync<ResourceIconQuery, ResourceIconResult>(route, new(descriptor.Url), cancellationToken: _iconStop.Token).AsTask();
-        _icons.Add((descriptor.Entity, read)); Wake(read, _iconStop.Token);
+        if (descriptor.Lease.IsCancellationRequested || !_queries.TryResolve(ResourceCatalogContract.Icon, out var route)) return;
+        var token = descriptor.Lease.CanBeCanceled ? descriptor.Lease : _iconStop.Token;
+        var read = _queries.QueryAsync<ResourceIconQuery, ResourceIconResult>(route, new(descriptor.Url), cancellationToken: token).AsTask();
+        _icons.Add((descriptor.Entity, read)); Wake(read, token);
     }
     private void SyncIcons(XsrUiEntityId page)
     {
@@ -742,7 +692,7 @@ internal sealed partial class ResourcesPageController : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true; RetireSidecarSource(); _moduleSourceStop.Dispose(); _planStop.Cancel(); _planStop.Dispose(); _contextStop.Cancel(); _contextStop.Dispose(); _downloadsStop.Cancel(); _downloadsStop.Dispose();
+        _disposed = true; DisposeContinuousList(); RetireSidecarSource(); _moduleSourceStop.Dispose(); _planStop.Cancel(); _planStop.Dispose(); _contextStop.Cancel(); _contextStop.Dispose(); _downloadsStop.Cancel(); _downloadsStop.Dispose();
         _iconStop.Cancel(); _iconStop.Dispose(); _translationStop.Cancel(); _translationStop.Dispose(); ReleaseIcons(); _iconDescriptors.Clear(); _icons.Clear(); _translations.Clear();
         _stop.Cancel(); _stop.Dispose(); _intents.IntentEmitted -= OnIntent; _shell.Renderer.FramePreparing -= OnFrame;
     }

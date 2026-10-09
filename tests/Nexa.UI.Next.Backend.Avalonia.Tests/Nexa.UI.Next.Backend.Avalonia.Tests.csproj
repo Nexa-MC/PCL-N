@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="../../Nexa.Desktop/Assets/Brand/neon-n-light.png" LogicalName="Nexa.Brand.Tests.light.png" />
+    <EmbeddedResource Include="../../Nexa.Desktop/Assets/Brand/neon-n-dark.png" LogicalName="Nexa.Brand.Tests.dark.png" />
     <!-- Headless is a test-only platform: it runs the real desktop lifetime for regression
          tests without a display and must never leak into product projects. -->
     <PackageReference Include="Avalonia.Headless" Version="12.1.0" />

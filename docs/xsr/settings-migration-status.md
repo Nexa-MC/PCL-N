@@ -5,14 +5,20 @@ The read-only dev checkout supplies behavior requirements. The active catalog ha
 global navigation categories (eight currently populated in the entry map), nine instance
 destinations and ten instance-settings groups.
 Cloud and cloud sync are excluded. Version settings merge Java into Game. The current
-catalog has 543 positions. The value schema declares 97 definitions, with 96 mutable
-contracts and 80 exportable contracts. `java.compatibility` is retained only for
+catalog has 542 positions. The value schema declares 96 definitions, with 95 mutable
+contracts and 79 exportable contracts. `java.compatibility` is retained only for
 compatibility reads; writes reject because checks are mandatory. Its catalog position
 now displays that mandatory policy instead of exposing an ineffective editor.
-The raw catalog contains 399 Available, 12 PlatformUnsupported and 132 NotImplemented
+The raw catalog contains 398 Available, 12 PlatformUnsupported and 132 NotImplemented
 positions. The latter comprise 78 structural Group/Choice positions and 54 functional
 roadmap positions without delivered contracts. Platform conditions can further restrict
-available consumers. These counts describe IA positions, not 543 implemented capabilities.
+available consumers. These counts describe IA positions, not 542 implemented capabilities.
+
+[XSR-832](XSR-832-retire-low-power-previews.md) retires launcher low-power mode at the
+user's request. Its catalog, schema and runtime consumer are removed. Existing
+`UiUltraLowPowerMode` and `appearance.low-power` fields remain inert without an
+automatic user-data rewrite. User-selected animation fps and both reduced-motion
+and legacy animation-disable preferences keep their working consumers.
 
 XSR-794 adds working consumers to the two existing developer diagnostics positions:
 read-only renderer snapshots and paged state metadata. The catalog remains 540 positions,
@@ -112,7 +118,10 @@ using the existing inventory query and instance-scoped policy writes.
 
 XSR-775 delivers durable custom Java registration, native executable selection, and runtime enable/disable. Removal unregisters external files without deleting them. Discovery and explicit launch selection honor disabled entries; successful writes invalidate discovery caches. Canceled pickers and probes, stale registry revisions, and persistence failures cannot publish registration changes.
 
-XSR-776 connects low-power presentation to window activity and the existing task, launch and sign-in state. Idle background windows request at most 10 fps; foreground activity restores the stored animation rate. The renderer remains demand-driven and no transfer, native window animation or input clock is suspended.
+XSR-776 previously connected low-power presentation to window activity and the existing
+task, launch and sign-in state. That slice was retired on 2026-10-09 by
+[XSR-832](XSR-832-retire-low-power-previews.md). Its migration record retains the former
+behavior as history; no current setting or frame-rate consumer implements it.
 
 XSR-778 connects durable update channel preferences and an optional startup discovery check. Discovery follows the current build by default; active update transactions retain their captured channel. Switching preferences retires old offers and responses.
 

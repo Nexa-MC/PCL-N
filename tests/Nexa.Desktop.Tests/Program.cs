@@ -34,6 +34,21 @@ internal static partial class Program
             return;
         }
         if (Environment.GetEnvironmentVariable("NEXA_COUNTRY") is null) Environment.SetEnvironmentVariable("NEXA_COUNTRY", "CN");
+        if (args is ["--native-settings-preview", var settingsPreviewTheme, var settingsPreviewDirectory])
+        {
+            Environment.ExitCode = RunNativeSettingsPreview(settingsPreviewTheme, settingsPreviewDirectory);
+            return;
+        }
+        if (args is ["--native-resource-preview", var previewTheme, var previewDirectory])
+        {
+            Environment.ExitCode = RunNativeResourcePreview(previewTheme, previewDirectory);
+            return;
+        }
+        if (args.Contains("--native-resource-scroll-smoke"))
+        {
+            Environment.ExitCode = RunNativeResourceScrollSmoke();
+            return;
+        }
         if (args.Contains("--soak"))
         {
             Environment.ExitCode = RunDesktopSoak(args);
@@ -66,11 +81,21 @@ internal static partial class Program
 
     private static readonly (string Name, Action Body)[] TestCases =
     [
+        ("StartupAppearanceReadsDurableThemeAndMotionPreferences", StartupAppearanceReadsDurableThemeAndMotionPreferences),
+        ("StartupAppearanceRejectsInvalidDocumentsWithoutWrites", StartupAppearanceRejectsInvalidDocumentsWithoutWrites),
+        ("StartupAppearanceFallbackModesApplyOnlyWithoutCommittedCells", StartupAppearanceFallbackModesApplyOnlyWithoutCommittedCells),
         ("StartupReadinessOrdersAndReusesFiniteSteps", StartupReadinessOrdersAndReusesFiniteSteps),
         ("StartupReadinessBoundsOfflineWorkAndKeepsCancellation", StartupReadinessBoundsOfflineWorkAndKeepsCancellation),
         ("StartupReadinessPropagatesMandatoryFailure", StartupReadinessPropagatesMandatoryFailure),
         ("StartupSettingsMetadataPreparesRetainedPageBeforeNavigation", StartupSettingsMetadataPreparesRetainedPageBeforeNavigation),
         ("ResourcePagesRenewCachedMetadataOnceAndRetireLateDetail", ResourcePagesRenewCachedMetadataOnceAndRetireLateDetail),
+        ("ResourceContinuousListAppendsOnceAndRetainsRowsScrollAndDraft", ResourceContinuousListAppendsOnceAndRetainsRowsScrollAndDraft),
+        ("ResourceContinuousListPreservesRowsAndExplicitlyRetriesTheSamePage", ResourceContinuousListPreservesRowsAndExplicitlyRetriesTheSamePage),
+        ("ResourceContinuousListRetiresSearchAndSourceGenerations", ResourceContinuousListRetiresSearchAndSourceGenerations),
+        ("ResourceContinuousListKeepsHiddenBatchesAndSourceQualifiedIdentities", ResourceContinuousListKeepsHiddenBatchesAndSourceQualifiedIdentities),
+        ("ResourceContinuousListBoundsRowsProjectsAndViewportMedia", ResourceContinuousListBoundsRowsProjectsAndViewportMedia),
+        ("ResourceContinuousListRenewsEachRetainedPageWithoutReplacingOthers", ResourceContinuousListRenewsEachRetainedPageWithoutReplacingOthers),
+        ("ResourceContinuousListRenewsOverlappingPagesWithoutLosingSourceFacts", ResourceContinuousListRenewsOverlappingPagesWithoutLosingSourceFacts),
         ("InstanceIdentityDraftSurvivesScopedFactRebuildsAndRetiresOnNavigation", InstanceIdentityDraftSurvivesScopedFactRebuildsAndRetiresOnNavigation),
         ("DialogLiteralBodiesPreserveCatalogMatchesAndRefreshTranslationPolicy", DialogLiteralBodiesPreserveCatalogMatchesAndRefreshTranslationPolicy),
         ("ContentIntegrityDetailsShowActualFactsAndRetireScopedReads", ContentIntegrityDetailsShowActualFactsAndRetireScopedReads),
@@ -168,9 +193,9 @@ internal static partial class Program
         ("updates check outside settings and retire old channels", UpdatePreferencesCheckOutsideSettingsAndRetireOldChannels),
         ("disabled startup updates keep manual check", DisabledStartupUpdatesKeepManualCheck),
         ("resource language uses original metadata and rejects late Chinese translations", ResourceLanguageUsesOriginalMetadataAndRejectsLateChineseTranslations),
-        ("low power presentation yields to work and restores preference", LowPowerPresentationYieldsToWorkAndRestoresPreference),
         ("Java registration picker retires on navigation and dispatches captured revision", JavaRegistrationPickerRetiresOnNavigationAndDispatchesCapturedRevision),
         ("Presentation settings apply outside navigation and preserve activity policy", PresentationSettingsApplyWithoutNavigation),
+        ("retired low power facts cannot override presentation preferences", RetiredLowPowerFactsCannotOverridePresentationPreferences),
         ("Java vendor selector fits and scrolls in a narrow window", JavaVendorSelectorFitsAndScrollsInNarrowWindow),
         ("Settings pointer selection scrolls fully visible options", SettingsPointerSelectionScrollsFullyVisibleOptions),
         ("version settings use scoped controls and inset forms", VersionSettingsUseScopedControlsAndInsetForms),

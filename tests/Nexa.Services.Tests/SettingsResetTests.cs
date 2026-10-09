@@ -18,7 +18,7 @@ internal static partial class Program
         AssertTrue(policy.Set(new("game.width", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "1024"))).IsSuccess);
         AssertTrue(policy.Set(new("game.width", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "1234"), first)).IsSuccess);
         AssertTrue(policy.Set(new("game.width", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "1500"), second)).IsSuccess);
-        AssertTrue(policy.Set(new("appearance.low-power", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
+        AssertTrue(policy.Set(new("appearance.animations-disabled", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
         AssertTrue(policy.Set(new("network.proxy-password", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "keep-private"))).IsSuccess);
         long beforeRejectedWrite = store.Revision;
         AssertFalse(policy.Set(new("java.compatibility", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "true"))).IsSuccess);
@@ -37,13 +37,13 @@ internal static partial class Program
         AssertTrue(global.Changes.All(change => change.Layer == SettingsLayer.Global && change.InstanceId is null));
         AssertTrue(global.Changes.Any(change => change.Key == "network.proxy-password"));
         AssertFalse(global.Changes.Any(change => change.Key == "java.compatibility"));
-        AssertTrue(global.Changes.Any(change => change.Key == "appearance.low-power"));
+        AssertTrue(global.Changes.Any(change => change.Key == "appearance.animations-disabled"));
         AssertEqual("1024", Effective(policy, "game.width").Value.Value);
         AssertTrue(policy.ApplyReset(new(global.Revision)).IsSuccess);
         AssertEqual("854", Effective(policy, "game.width").Value.Value);
         AssertEqual(59, store.GetValue<int>("UiAniFPS").Value);
-        AssertEqual("false", Effective(policy, "appearance.low-power").Value.Value);
-        AssertEqual(false, store.GetValue<bool>("UiUltraLowPowerMode").Value);
+        AssertEqual("false", Effective(policy, "appearance.animations-disabled").Value.Value);
+        AssertEqual(false, store.GetValue<bool>("SystemDisableUiAnimations").Value);
         AssertEqual("", Effective(policy, "network.proxy-password").Value.Value);
         AssertEqual("false", Effective(policy, "java.compatibility").Value.Value);
         var (_, reopened) = PolicyFixture(port);

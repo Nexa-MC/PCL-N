@@ -100,7 +100,6 @@ public static class SettingsPolicySchema
         new("appearance.animations-disabled", SettingsValueKind.Boolean, "false", false, false, "SystemDisableUiAnimations", SettingsApplyTiming.Immediate),
         new("appearance.animation-fps", SettingsValueKind.Number, "60", false, false, null, SettingsApplyTiming.Immediate, "fps", 1, 240),
         new("appearance.lock-window", SettingsValueKind.Boolean, "false", false, false, "UiLockWindowSize", SettingsApplyTiming.Immediate),
-        new("appearance.low-power", SettingsValueKind.Boolean, "false", false, false, "UiUltraLowPowerMode", SettingsApplyTiming.Immediate),
         new("appearance.hardware-acceleration-disabled", SettingsValueKind.Boolean, "false", false, false, "SystemDisableHardwareAcceleration", SettingsApplyTiming.Restart),
         new("appearance.theme-mode", SettingsValueKind.Enum, "2", false, false, "UiDarkMode", SettingsApplyTiming.Immediate, Choices: "2|0|1"),
         new("appearance.accent", SettingsValueKind.Enum, "blue", false, false, "UiAccentColor", SettingsApplyTiming.Immediate, Choices: "blue|purple|green|orange"),

@@ -1,14 +1,19 @@
 # Settings value contracts
 
-The original IA enumerated 566 positions. As of 2026-10-08, the catalog contains 543
-positions and `SettingsPolicySchema` contains 97 value definitions. There are 96
+The original IA enumerated 566 positions. As of 2026-10-09, the catalog contains 542
+positions and `SettingsPolicySchema` contains 96 value definitions. There are 95
 mutable policy keys; the retained obsolete `java.compatibility` definition has no
-mutable consumer. The export service admits 80 keys, excluding 16 local-only keys and
+mutable consumer. The export service admits 79 keys, excluding 16 local-only keys and
 `java.compatibility`. These counts describe contracts, not physical platform acceptance.
 Groups, choices, actions and facts do not own persisted values. Reserved settings remain
 `NotImplemented` until a real consumer exists; platform and dependency limitations remain
 explicit. See [settings migration status](settings-migration-status.md) for consumers and
 [XSR-820](XSR-820-completion-closure.md) for integrated verification evidence.
+
+[XSR-832](XSR-832-retire-low-power-previews.md) retires launcher low-power mode.
+`appearance.low-power` and legacy `UiUltraLowPowerMode` are no longer declared or
+consumed. Old persisted fields remain inert and are preserved when other settings
+are saved; animation frame rate and reduced-motion preferences remain authoritative.
 
 The earlier 540 catalog positions, 50 value definitions and 49 available consumers are
 historical foundation-slice figures. Earlier slice validation counts remain historical;
@@ -27,7 +32,6 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 | appearance.animations-disabled | Bool | false | G | SystemDisableUiAnimations | Immediate | Yes |
 | appearance.animation-fps | Number, 1–240 actual fps | 60 | G | UiAniFPS + 1 (write fps - 1) | Immediate | Yes |
 | appearance.lock-window | Bool | false | G | UiLockWindowSize | Immediate | Yes |
-| appearance.low-power | Bool | false | G | UiUltraLowPowerMode | Immediate | Yes |
 | appearance.theme-mode | 2 system / 0 light / 1 dark | 2 | G | UiDarkMode | Immediate | Yes |
 | appearance.accent | blue / purple / green / orange | blue | G | New Text UiAccentColor; no guessed custom-palette conversion | Immediate | Yes |
 | java.runtime | Fully qualified path / Auto | Auto | G/I | New | Next launch | No |
@@ -71,7 +75,7 @@ The following foundation contracts are declared in `SettingsPolicySchema`. Owner
 
 ## Completion value contracts
 
-These 47 additional definitions complete the 97-key schema. `New` means no legacy-key
+These 47 additional definitions complete the 96-key schema. `New` means no legacy-key
 conversion is declared. An enum choice named `auto` is a custom string value; it does not
 grant the payload-free `Auto` override mode. None of these additional keys supports that
 mode. `G/I` also permits the bounded Profile/Temporary lifecycle described below.

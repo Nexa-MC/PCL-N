@@ -35,10 +35,8 @@ public sealed partial class AvaloniaUiShellWindow : Window
     private XsrUiColor? _committedWindowBackground;
     private readonly Grid _maskedContent;
     private readonly Grid _root;
-    private readonly Bitmap? _closeIcon;
+    private Bitmap? _closeIcon;
     private EllipseGeometry? _revealMask;
-    private Image? _startupIcon;
-    private ScaleTransform? _startupIconScale;
     private ScaleTransform? _closeIconScale;
     private bool _awaitingFirstSceneCommit;
     private bool _closeAnimationStarted;
@@ -82,13 +80,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
         TransparencyBackgroundFallback = new SolidColorBrush(Color.FromRgb(shell.Palette.WindowBackground.Red, shell.Palette.WindowBackground.Green, shell.Palette.WindowBackground.Blue));
         TransparencyLevelHint = [WindowTransparencyLevel.Transparent, WindowTransparencyLevel.None];
         ExtendClientAreaTitleBarHeightHint = XsrUiShell.TitleBarHeight;
-        if (iconStream is not null)
-        {
-            // The same product icon closes the loop: taskbar icon at rest, and the image the
-            // window collapses into on close.
-            _closeIcon = new Bitmap(iconStream);
-            Icon = new WindowIcon(_closeIcon);
-        }
+        InitializeBranding(iconStream);
 
         _shadowSurface = new Border
         {
@@ -126,9 +118,8 @@ public sealed partial class AvaloniaUiShellWindow : Window
         if (!OperatingSystem.IsMacOS()) chrome.Children.Add(_windowActions);
         _chromeSurface.Child = chrome;
 
-        // Everything the circular mask may clip lives in this subtree; the product icon is a
-        // sibling above it so the reveal can collapse to (or expand from) radius zero while
-        // the icon stays fully visible.
+        // Close clips this subtree while its icon remains above it. Startup only decorates
+        // the prepared scene and leaves its complete native shape and input regions intact.
         _maskedContent = new Grid();
         _maskedContent.Children.Add(_shadowSurface);
         _maskedContent.Children.Add(_chromeSurface);
@@ -147,9 +138,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
     }
 
     /// <summary>
-    /// Raised once the startup reveal has fully expanded (or was skipped under reduced motion).
-    /// The host dismisses the splash at this point, so the icon never leaves the screen until
-    /// the window has taken over.
+    /// Raised once the finite startup entrance has finished or was skipped under reduced motion.
     /// </summary>
     public event EventHandler? StartupRevealCompleted;
 
@@ -185,15 +174,13 @@ public sealed partial class AvaloniaUiShellWindow : Window
         _hasOpened = true;
         _ = AvaloniaWindowsFrame.SuppressBorder(this);
         UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
-        if (_shell.Renderer.EffectiveReducedMotion)
+        if (_shell.Renderer.ReducedMotion)
         {
-            StartupRevealCompleted?.Invoke(this, EventArgs.Empty);
+            OnStartupRevealCompleted();
             return;
         }
 
-        // The reveal must expand over rendered content, so it starts at the surface's first
-        // committed scene rather than at Opened — otherwise the mask grows across a blank
-        // window and the product UI simply pops in when the first frame lands.
+        // Entrance decorates the actual prepared scene, never an empty native window.
         if (_surface.Scene is not null)
         {
             RunStartupReveal();
@@ -253,128 +240,15 @@ public sealed partial class AvaloniaUiShellWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _disposed = true;
+        CancelStartupEntrance();
         AvaloniaUiMotion.CancelAll(this);
         PropertyChanged -= OnWindowPropertyChanged;
         _surface.TitleBarDragRequested -= OnTitleBarDragRequested;
         _surface.SceneCommitted -= OnSceneCommitted;
         _surface.Dispose();
         _windowActions.Dispose();
+        DisposeBranding();
         base.OnClosed(e);
-    }
-
-    /// <summary>
-    /// Expands a smooth circular mask from radius zero out to the full window. The product icon
-    /// is deliberately outside the masked subtree, so the reveal never clips it: the splash
-    /// shows the icon, the mask grows behind it, and the window's own icon copy takes over when
-    /// the splash closes. Reduced motion skips the mask entirely.
-    /// </summary>
-    private void RunStartupReveal()
-    {
-        double width = _root.Bounds.Width;
-        double height = _root.Bounds.Height;
-        if (width <= 0 || height <= 0)
-        {
-            OnStartupRevealCompleted();
-            return;
-        }
-
-        Point center = new(width / 2, height / 2);
-        double fullRadius = Math.Sqrt((width * width) + (height * height)) / 2;
-        EllipseGeometry mask = new()
-        {
-            Center = center,
-            RadiusX = 0,
-            RadiusY = 0,
-        };
-        _revealMask = mask;
-        _maskedContent.Clip = mask;
-        ApplyNativeShape();
-        if (_closeIcon is not null)
-        {
-            // The icon the window inherits from the splash: identical pixels at the identical
-            // position, layered above the mask so it never disappears with the reveal.
-            _startupIconScale = new ScaleTransform(1, 1);
-            _startupIcon = new Image
-            {
-                Source = _closeIcon,
-                Width = CloseIconSize,
-                Height = CloseIconSize,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                IsHitTestVisible = false,
-                RenderTransform = _startupIconScale,
-                RenderTransformOrigin = RelativePoint.Center,
-            };
-            _root.Children.Add(_startupIcon);
-        }
-
-        AvaloniaUiMotion.Animate(
-            this,
-            "startup-reveal",
-            () => mask.RadiusX,
-            value =>
-            {
-                mask.RadiusX = value;
-                mask.RadiusY = value;
-                ApplyNativeShape();
-
-                // Mutating the clip geometry alone does not invalidate the visual tree; the
-                // mask would otherwise apply only for the first frame and never redraw.
-                _maskedContent.InvalidateVisual();
-            },
-            fullRadius,
-            AvaloniaMotionTokens.StartupRevealMilliseconds,
-            AvaloniaUiMotion.EaseOut,
-            completed: OnStartupRevealCompleted,
-            reducedMotion: () => _shell.Renderer.EffectiveReducedMotion);
-    }
-
-    private void OnStartupRevealCompleted()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _maskedContent.Clip = null;
-        _revealMask = null;
-        ApplyNativeShape();
-        StartupRevealCompleted?.Invoke(this, EventArgs.Empty);
-        if (_startupIcon is not null && _startupIconScale is not null)
-        {
-            // The icon continues where the splash left off: a small bounce upward, then it
-            // shrinks into the content and is removed.
-            ScaleTransform scale = _startupIconScale;
-            Image icon = _startupIcon;
-            AvaloniaUiMotion.Animate(
-                this, ("startup-icon", "up"), () => scale.ScaleX, value =>
-                {
-                    scale.ScaleX = value;
-                    scale.ScaleY = value;
-                    ApplyNativeShape();
-                },
-                1.12,
-                AvaloniaMotionTokens.IconBounceMilliseconds,
-                AvaloniaUiMotion.EaseOut,
-                completed: () => AvaloniaUiMotion.Animate(
-                    this, ("startup-icon", "down"), () => scale.ScaleX, value =>
-                    {
-                        scale.ScaleX = value;
-                        scale.ScaleY = value;
-                        ApplyNativeShape();
-                    },
-                    0,
-                    AvaloniaMotionTokens.IconCollapseMilliseconds,
-                    AvaloniaUiMotion.EaseIn,
-                    reducedMotion: () => _shell.Renderer.EffectiveReducedMotion,
-                    completed: () =>
-                    {
-                        if (!_disposed)
-                        {
-                            _root.Children.Remove(icon);
-                        }
-                    }));
-        }
     }
 
     private void PlayCloseCollapse()
@@ -382,16 +256,8 @@ public sealed partial class AvaloniaUiShellWindow : Window
         // The circular reveal clips scene content, not the system's outside shadow.
         _awaitingFirstSceneCommit = false;
         double? presentedRadius = _revealMask?.RadiusX;
-        double presentedIconScale = _startupIcon is not null ? _startupIconScale?.ScaleX ?? 0 : 0;
-        AvaloniaUiMotion.Cancel(this, "startup-reveal");
-        AvaloniaUiMotion.Cancel(this, ("startup-icon", "up"));
-        AvaloniaUiMotion.Cancel(this, ("startup-icon", "down"));
-        if (_startupIcon is not null)
-        {
-            _root.Children.Remove(_startupIcon);
-            _startupIcon = null;
-        }
-        _closeIconScale = new ScaleTransform(presentedIconScale, presentedIconScale);
+        CancelStartupEntrance();
+        _closeIconScale = new ScaleTransform(0, 0);
         _shadowSurface.IsVisible = false;
         _shadowSurface.BoxShadow = default;
         double width = _root.Bounds.Width;
@@ -402,9 +268,8 @@ public sealed partial class AvaloniaUiShellWindow : Window
             return;
         }
 
-        // Close reverses the startup sequence: the window content contracts back to radius
-        // zero while the icon bounces back in above it, then the icon folds away and the
-        // window closes for real.
+        // Preserve the existing close sequence: content contracts to radius zero while the
+        // current product icon appears above it, then the icon folds away before native close.
         Point center = new(width / 2, height / 2);
         double fullRadius = Math.Sqrt((width * width) + (height * height)) / 2;
         EllipseGeometry mask = new()
@@ -664,7 +529,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
         ChromeCornerRadius,
         _revealMask?.RadiusX,
         _revealMask is null ? null : _closeIcon is null ? 0 : CloseIconSize * .56
-            * (_closeAnimationStarted ? _closeIconScale?.ScaleX ?? 0 : _startupIconScale?.ScaleX ?? 1));
+            * (_closeIconScale?.ScaleX ?? 0));
     }
 
     private void OnMaximizeRequested(object? sender, EventArgs e) => ToggleMaximized();
@@ -676,6 +541,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
 
     private void OnSceneCommitted(object? sender, AvaloniaUiSceneCommittedEventArgs e)
     {
+        ApplyCommittedBranding(e.Scene);
         var title = e.Scene.Nodes.FirstOrDefault(node => node.Role == XsrUiSemanticRole.TitleBar).VisualStyle.Background;
         var body = e.Scene.Nodes.FirstOrDefault(node => node.Entity == _shell.Root).VisualStyle.Background;
         if (!_disposed && (title != _committedTitleBackground || body != _committedWindowBackground))

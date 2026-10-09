@@ -23,7 +23,7 @@ internal sealed partial class ResourcesPageController
     private void SelectSourceFromPage(int index)
     {
         if (_sourcePolicyForced) return;
-        _filter = _filter with { MirrorFirst = index == 0 }; Search(0);
+        _filter = _filter with { MirrorFirst = index == 0 }; Search();
     }
 
     private void UpdateSourcePolicyNotice()
@@ -59,6 +59,6 @@ internal sealed partial class ResourcesPageController
             _shell.Tree.MarkDirty(option, XsrUiDirtyKinds.Paint);
         }
         _shell.Tree.MarkDirty(_sourcePolicyNote, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
-        if (changed) Search(0);
+        if (changed) Search();
     }
 }

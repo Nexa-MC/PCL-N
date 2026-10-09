@@ -10,16 +10,82 @@ namespace Nexa.Services.Tests;
 
 internal static partial class Program
 {
-    private static void LowPowerSettingRetainsLegacyScopeAndDurability()
+    private static void RetiredLowPowerSettingsAreInertAndPreserveUserData()
     {
-        var port = new InMemorySettingsPort(); var (store, policy) = PolicyFixture(port);
-        AssertTrue(store.SetValue("UiUltraLowPowerMode", true).IsSuccess);
-        AssertEqual("true", Effective(policy, "appearance.low-power").Value.Value);
-        AssertTrue(policy.Set(new("appearance.low-power", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "false"))).IsSuccess);
-        AssertEqual(false, store.GetValue<bool>("UiUltraLowPowerMode").Value);
-        var (_, reopened) = PolicyFixture(port); AssertEqual("false", Effective(reopened, "appearance.low-power").Value.Value);
-        AssertFalse(policy.Set(new("appearance.low-power", SettingsLayer.Instance, new(SettingsOverrideMode.Custom, "true"), Path.GetFullPath("low-power-instance"))).IsSuccess);
-        AssertEqual(SettingsCapabilityAvailability.Available, SettingsCatalog.Read(new()).Entries.Single(e => e.SettingKey == "appearance.low-power").Availability);
+        var schema = LauncherDefaults.CreateSchema();
+        AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse("UiUltraLowPowerMode")) is null);
+        AssertFalse(LauncherDefaults.BooleanDefaults.ContainsKey("UiUltraLowPowerMode"));
+        AssertFalse(SettingsPolicySchema.ByKey.ContainsKey("appearance.low-power"));
+        AssertFalse(SettingsPolicySchema.Definitions.Any(definition => definition.LegacyKey == "UiUltraLowPowerMode"));
+        AssertFalse(SettingsCatalog.Read(new(true)).Entries.Any(entry => entry.SettingKey == "appearance.low-power"
+            || entry.Id == "global.appearance.8a3bf6aa3ebd"));
+        string directory = CreateTempDirectory();
+        try
+        {
+            // Even an obsolete payload shape must not invalidate current settings.
+            foreach (string retiredFact in new[] { """{"mode":"Custom","value":"true"}""", """{"mode":"Custom","value":"false"}""", "\"obsolete-format\"" })
+            {
+                string path = Path.Combine(directory, "settings.json");
+                var layers = new JsonObject
+                {
+                    ["version"] = 1,
+                    ["global"] = new JsonObject
+                    {
+                        ["appearance.low-power"] = JsonNode.Parse(retiredFact),
+                        ["appearance.animation-fps"] = new JsonObject { ["mode"] = "Custom", ["value"] = "144" },
+                        ["appearance.reduced-motion"] = new JsonObject { ["mode"] = "Custom", ["value"] = "true" },
+                    },
+                    ["instances"] = new JsonObject(),
+                };
+                File.WriteAllText(path, new JsonObject
+                {
+                    ["schemaVersion"] = 1,
+                    ["customFuture"] = new JsonObject { ["keep"] = true },
+                    ["booleanOptions"] = new JsonObject { ["UiUltraLowPowerMode"] = true, ["SystemDisableUiAnimations"] = true },
+                    ["integerOptions"] = new JsonObject { ["UiAniFPS"] = 29 },
+                    ["textOptions"] = new JsonObject { [SettingsPolicySchema.StorageKey] = layers.ToJsonString(), ["FutureKey"] = "keep" },
+                }.ToJsonString());
+                string original = File.ReadAllText(path);
+                var port = new LauncherSettingsJsonPort(path, schema);
+                var (store, policy) = PolicyFixture(port);
+                AssertTrue(store.LoadError is null);
+                var read = policy.Read(new()); AssertTrue(read.IsSuccess);
+                AssertFalse(read.Value!.Values.Any(value => value.Key == "appearance.low-power"));
+                AssertEqual("144", Effective(policy, "appearance.animation-fps").Value.Value);
+                AssertEqual("true", Effective(policy, "appearance.reduced-motion").Value.Value);
+                AssertEqual("true", Effective(policy, "appearance.animations-disabled").Value.Value);
+                var exported = policy.Export(new()); AssertTrue(exported.IsSuccess);
+                AssertFalse(JsonNode.Parse(exported.Value!)!["values"]!.AsObject().ContainsKey("appearance.low-power"));
+                long revision = store.Revision;
+                AssertFalse(store.GetValue<bool>("UiUltraLowPowerMode").IsSuccess);
+                AssertFalse(store.SetValue("UiUltraLowPowerMode", false).IsSuccess);
+                AssertFalse(policy.Set(new("appearance.low-power", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "false"))).IsSuccess);
+                AssertEqual(revision, store.Revision);
+                AssertEqual(original, File.ReadAllText(path));
+                AssertTrue(policy.Set(new("appearance.animation-fps", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "120"))).IsSuccess);
+                AssertEqual(119, store.GetValue<int>("UiAniFPS").Value);
+                AssertTrue(policy.Set(new("appearance.reduced-motion", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "false"))).IsSuccess);
+                AssertTrue(policy.Set(new("appearance.animations-disabled", SettingsLayer.Global, new(SettingsOverrideMode.Custom, "false"))).IsSuccess);
+                var (_, reopened) = PolicyFixture(new LauncherSettingsJsonPort(path, schema));
+                AssertEqual("120", Effective(reopened, "appearance.animation-fps").Value.Value);
+                AssertEqual("false", Effective(reopened, "appearance.reduced-motion").Value.Value);
+                AssertEqual("false", Effective(reopened, "appearance.animations-disabled").Value.Value);
+                var saved = JsonNode.Parse(File.ReadAllText(path))!;
+                AssertTrue(saved["booleanOptions"]!["UiUltraLowPowerMode"]!.GetValue<bool>());
+                AssertTrue(saved["customFuture"]!["keep"]!.GetValue<bool>());
+                AssertEqual("keep", saved["textOptions"]!["FutureKey"]!.GetValue<string>());
+                var savedLayers = JsonNode.Parse(saved["textOptions"]![SettingsPolicySchema.StorageKey]!.GetValue<string>())!;
+                AssertEqual(JsonNode.Parse(retiredFact)!.ToJsonString(), savedLayers["global"]!["appearance.low-power"]!.ToJsonString());
+                AssertFalse(File.Exists(port.QuarantinePath));
+            }
+            var legacy = new InMemorySettingsPort();
+            legacy.Save(new Dictionary<string, string> { ["UiUltraLowPowerMode"] = "true", ["UiAniFPS"] = "71", ["SystemDisableUiAnimations"] = "true" });
+            var (_, legacyPolicy) = PolicyFixture(legacy);
+            AssertEqual("72", Effective(legacyPolicy, "appearance.animation-fps").Value.Value);
+            AssertEqual("false", Effective(legacyPolicy, "appearance.reduced-motion").Value.Value);
+            AssertEqual("true", Effective(legacyPolicy, "appearance.animations-disabled").Value.Value);
+        }
+        finally { Directory.Delete(directory, true); }
     }
 
     private static void AnimationFrameRateUsesActualFpsAndLegacySliderEncoding()
@@ -202,7 +268,7 @@ internal static partial class Program
     {
         var catalog = SettingsCatalog.Read(new(true));
         AssertEqual(10, catalog.GlobalPages.Count); AssertEqual(9, catalog.InstancePages.Count); AssertEqual(10, catalog.InstanceSettingsSections.Count);
-        AssertEqual(543, catalog.Entries.Count);
+        AssertEqual(542, catalog.Entries.Count);
         AssertFalse(catalog.GlobalPages.Any(page => page.Id == "cloud"));
         AssertFalse(catalog.Entries.Any(entry => entry.Page is "cloud" or "sync" || entry.Label.Contains("云同步", StringComparison.Ordinal)));
         AssertTrue(catalog.InstanceSettingsSections.Any(page => page.Id == "backup"));
@@ -288,7 +354,7 @@ internal static partial class Program
             AssertEqual("1440", result.Value!.Values.Single(item => item.Key == "game.width").Value.Value);
             AssertEqual(1L, host.StateStore.Read<long>(host.StateStore.Resolve(SettingsPolicyContract.RevisionKey)).Value);
             var content = await runtime.Queries.QueryAsync<SettingsCatalogQuery, SettingsCatalogSnapshot>(catalog, new(true));
-            AssertTrue(content.IsSuccess); AssertEqual(543, content.Value!.Entries.Count);
+            AssertTrue(content.IsSuccess); AssertEqual(542, content.Value!.Entries.Count);
             AssertTrue(runtime.Queries.TryResolve(SettingsPolicyContract.ResetPreviewQuery, out var resetPreview));
             AssertTrue(runtime.Commands.TryResolve(SettingsPolicyContract.ResetCommand, out var reset));
             var proposal = await runtime.Queries.QueryAsync<SettingsResetQuery, SettingsResetPreview>(resetPreview, new());

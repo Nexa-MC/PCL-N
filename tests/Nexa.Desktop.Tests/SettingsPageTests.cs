@@ -176,7 +176,13 @@ internal static partial class Program
         AssertTrue(javaRuntimePresent);
         AssertFalse(scene.Nodes.Any(node => fixture.Shell.Tree.Name(node.Entity) is "SettingsNav.java" or "SettingsNav.components"));
         fixture.Shell.Renderer.SetTextInputValue(input.Entity, "1440");
-        Emit(fixture.Intents, "ui.settings.edit", ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsEdit.game.width").Entity);
+        fixture.Shell.Renderer.Focus(input.Entity);
+        // Showing Apply pumps asynchronous management facts; preserve a real focused edit through any rebuild.
+        var apply = ShowSettingsFixtureControl(fixture, settings, ref scene, "SettingsEdit.game.width");
+        input = FindByKey(fixture.Shell, scene, "SettingsInput.game.width");
+        AssertEqual("1440", fixture.Shell.Tree.GetComponent<XsrUiTextInput>(input.Entity)!.ReadDraft());
+        AssertEqual(input.Entity, fixture.Shell.Renderer.Focused);
+        Emit(fixture.Intents, "ui.settings.edit", apply.Entity);
         fixture.Shell.Render(new(1000, 650));
         string? ReadWidth(string? scope) => fixture.Foundation.Host.SettingsPolicy.Read(new(scope)).Value!.Values.Single(item => item.Key == "game.width").Value.Value;
         AssertTrue(SpinWait.SpinUntil(() =>

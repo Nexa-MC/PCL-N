@@ -528,18 +528,6 @@
     "availability": "Available"
   },
   {
-    "id": "global.appearance.8a3bf6aa3ebd",
-    "parent": "global.appearance.8d55de7d5c9b",
-    "scope": "global",
-    "page": "appearance",
-    "section": "动画",
-    "label": "超低功耗模式",
-    "kind": "Setting",
-    "key": "appearance.low-power",
-    "developer": false,
-    "availability": "Available"
-  },
-  {
     "id": "global.appearance.f87b191444e7",
     "parent": null,
     "scope": "global",

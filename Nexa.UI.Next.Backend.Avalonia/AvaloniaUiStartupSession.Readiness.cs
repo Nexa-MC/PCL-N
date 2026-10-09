@@ -9,6 +9,7 @@ public sealed partial class AvaloniaUiStartupSession
     private AvaloniaUiShellWindow? _preparedWindow;
     private bool _shellWarmed;
     private TaskCompletionSource? _retryRequested;
+    internal AvaloniaUiShellWindow? PreparedWindow => _preparedWindow;
 
     public async Task InvokeAsync(Action action, CancellationToken token = default)
     {
@@ -37,6 +38,7 @@ public sealed partial class AvaloniaUiStartupSession
         _preparedWindow?.DiscardStartup();
         using Stream? icon = AvaloniaUiShellHost.TryOpenProductAsset("Nexa.Desktop.Assets.icon.png");
         _preparedWindow = AvaloniaUiShellLifetime.Prepare(shell, icon);
+        _preparedWindow.StartupMotionSuppressed = _appearance.ReducedMotion;
         _preparedShell = shell;
         _shellWarmed = false;
         actions?.AttachForStartup(_preparedWindow);

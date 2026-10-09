@@ -33,11 +33,11 @@ internal static partial class Program
     internal static ValueTask LauncherSchemaMatchesLegacyDefaults()
     {
         SettingsSchema schema = LauncherDefaults.CreateSchema();
-        // Legacy defaults remain intact; four desktop lifecycle preferences are additive.
+        // Supported legacy defaults retain parity; low-power mode is retired and four desktop lifecycle preferences are additive.
         string[] desktopKeys = ["SystemSingleInstance", "UiTrayEnabled", "UiCloseToTray", "UiMinimizeToTray"];
-        AssertEqual(112, schema.Count);
-        AssertEqual(108, schema.Definitions.Count(definition => !desktopKeys.Contains(definition.Key.Value, StringComparer.Ordinal)));
-        AssertEqual(44, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Bool
+        AssertEqual(111, schema.Count);
+        AssertEqual(107, schema.Definitions.Count(definition => !desktopKeys.Contains(definition.Key.Value, StringComparer.Ordinal)));
+        AssertEqual(43, schema.Definitions.Count(definition => definition.ValueType == SettingValueType.Bool
             && !desktopKeys.Contains(definition.Key.Value, StringComparer.Ordinal)));
         foreach (string key in desktopKeys)
             AssertTrue(schema.TryGetDefinition(XsrSemanticId.Parse(key)) is { ValueType: SettingValueType.Bool } item

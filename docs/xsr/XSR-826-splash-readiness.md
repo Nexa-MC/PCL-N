@@ -23,6 +23,10 @@ decodes raster assets, resolves icon geometry and draws an off-screen frame. Han
 that prepared window, transfers the main-window lifetime, then closes the startup window.
 No main window may be shown by activation or preference callbacks before handoff.
 
+The startup window's theme-aware neon identity and long-lived topmost presentation follow
+[XSR-830](XSR-830-neon-brand-startup.md). Prolonged loading remains visually quiet and does
+not repeatedly activate the window or schedule decorative motion.
+
 ## Finite work and reuse
 
 Readiness names a finite set of initial facts; it does not enumerate all worlds, download

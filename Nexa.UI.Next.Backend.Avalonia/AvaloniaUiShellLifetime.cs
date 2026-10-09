@@ -48,6 +48,8 @@ public static class AvaloniaUiShellLifetime
         AvaloniaSplashWindow? splash = splashIcon is null ? null : new AvaloniaSplashWindow(splashIcon);
         if (splash is not null)
         {
+            splash.SetAppearance(new(shell.Renderer.ColorScheme.IsDark ? XsrUiThemeMode.Dark : XsrUiThemeMode.Light,
+                shell.Renderer.EffectiveReducedMotion, ProductVersion: shell.Version));
             splash.Show();
         }
         AvaloniaUiShellWindow window = Prepare(shell, windowIcon);
@@ -71,6 +73,7 @@ public static class AvaloniaUiShellLifetime
             }
 
             window.StartupRevealCompleted += (_, _) => CloseSplash();
+            window.Closed += (_, _) => CloseSplash();
             fallback.Tick += (_, _) => CloseSplash();
             fallback.Start();
         }

@@ -28,8 +28,10 @@ Time To Splash从用户启动进程到首次实际呈现测量，争取100–200
 独立 dispatcher，报告实际阶段、初始化失败和取消；主 shell 准备后交接同一个
 application lifetime。`FirstRenderElapsed` 测量首次 Render 提交回调，
 `ShellReadyElapsed` 单独测量交接。它们不等同于屏幕扫描输出，也不证明100–200ms
-实机 SLA。旧 `AvaloniaSplashWindow` 保留为其他同步宿主的装饰图标，其2秒fallback
-只用于关闭装饰，见 [XSR-805](XSR-805-runtime-performance-completion.md)。
+实机 SLA。加载期的启动窗口始终置顶但不主动抢焦点，主题图标和卡片跟随启动偏好，
+初次出现后不维持装饰动画时钟；见 [XSR-830](XSR-830-neon-brand-startup.md)。
+`AvaloniaSplashWindow` 为其他同步宿主复用同一卡片，其2秒fallback只用于关闭装饰，
+不限制真正初始化窗口的加载/重试时长，见 [XSR-805](XSR-805-runtime-performance-completion.md)。
 
 ## 日志与下载发布契约
 

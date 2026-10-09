@@ -1932,11 +1932,6 @@
     "zh-Hant": "查看項目"
   },
   {
-    "source": "超低功耗模式",
-    "en": "Low power mode",
-    "zh-Hant": "超低功耗模式"
-  },
-  {
     "source": "成功快照",
     "en": "Successful-run snapshot",
     "zh-Hant": "成功快照"
@@ -10343,5 +10338,13 @@
   {"source":"皮肤站将请求重定向到了未授权的地址。","en":"The skin site redirected the request to an unauthorized address.","zh-Hant":"皮膚站將請求重定向到了未授權的地址。"},
   {"source":"皮肤站响应超过大小限制。","en":"The skin site response exceeds the size limit.","zh-Hant":"皮膚站響應超過大小限制。"},
   {"source":"皮肤库暂时无法读取，请重试。","en":"The skin library is temporarily unavailable. Try again.","zh-Hant":"皮膚庫暫時無法讀取，請重試。"},
-  {"source":"皮肤或披风预览尺寸无效。","en":"The skin or cape preview dimensions are invalid.","zh-Hant":"皮膚或披風預覽尺寸無效。"}
+  {"source":"皮肤或披风预览尺寸无效。","en":"The skin or cape preview dimensions are invalid.","zh-Hant":"皮膚或披風預覽尺寸無效。"},
+  {"source":"返回顶部","en":"Back to top","zh-Hant":"返回頂部"},
+  {"source":"加载更多","en":"Load more","zh-Hant":"載入更多"},
+  {"source":"重试加载","en":"Retry loading","zh-Hant":"重試載入"},
+  {"source":"已加载 {0} 项","en":"Loaded {0} items","zh-Hant":"已載入 {0} 項"},
+  {"source":"正在加载更多资源…","en":"Loading more resources…","zh-Hant":"正在載入更多資源…"},
+  {"source":"正在显示缓存资料。","en":"Showing cached information.","zh-Hant":"正在顯示快取資料。"},
+  {"source":"已达到列表显示上限，请缩小搜索范围。","en":"The list display limit has been reached. Refine your search.","zh-Hant":"已達到列表顯示上限，請縮小搜尋範圍。"},
+  {"source":"次下载","en":"downloads","zh-Hant":"次下載"}
 ]

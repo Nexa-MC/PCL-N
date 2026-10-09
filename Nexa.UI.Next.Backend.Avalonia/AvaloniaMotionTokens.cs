@@ -16,17 +16,17 @@ namespace Nexa.UI.Next.Backend.Avalonia;
 /// </summary>
 internal static class AvaloniaMotionTokens
 {
+    /// <summary>The loading card fades once, then remains static throughout readiness and retry.</summary>
+    public const int SplashAppearanceMilliseconds = 180;
+
     /// <summary>
-    /// The startup reveal: a smooth mask expands from the small circle behind the inherited
-    /// splash icon out to the full window (legacy circular-reveal timing).
+    /// One finite mint/cyan N light trace decorates the prepared scene without changing input geometry.
     /// </summary>
-    public const int StartupRevealMilliseconds = 340;
+    public const int StartupRevealMilliseconds = 420;
+    public const double StartupSceneInitialOpacity = .88;
 
-    /// <summary>Close reverses the reveal: the window content collapses back to radius zero.</summary>
+    /// <summary>The existing close sequence contracts the content to radius zero.</summary>
     public const int CloseCollapseMilliseconds = 280;
-
-    /// <summary>The inherited icon bounces slightly upward before it folds away.</summary>
-    public const int IconBounceMilliseconds = 110;
 
     /// <summary>
     /// Page/content enter: a coordinated fade keeps text inside its measured line box.
@@ -38,7 +38,7 @@ internal static class AvaloniaMotionTokens
     public const int PageEnterStaggerMilliseconds = 14;
     public const int PageEnterMaximumStaggerIndex = 16;
 
-    /// <summary>The final stage where the icon shrinks into (or out of) the content.</summary>
+    /// <summary>The close icon folds away after the content has contracted.</summary>
     public const int IconCollapseMilliseconds = 190;
 
     /// <summary>Press responds on pointer-down; the release settles without a bounce.</summary>
