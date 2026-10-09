@@ -57,8 +57,13 @@ public sealed class ResourceDownloadService(IResourceCatalogSource catalog, Down
         catch (Exception e) when (e is not OutOfMemoryException and not AccessViolationException) { task.Fail(e.Message); throw; }
         finally
         {
-            if (stage is not null) foreach (string path in new[] { stage, stage + ".PCLDownloading" })
+            if (stage is not null)
+            {
+                foreach (string path in new[] { stage, stage + ".PCLDownloading" })
+                {
                     try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                }
+            }
         }
     }
     private static void CheckDirectory(string path)

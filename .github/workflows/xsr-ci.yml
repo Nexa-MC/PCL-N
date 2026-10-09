@@ -11,6 +11,40 @@ permissions:
   contents: read
 
 jobs:
+  windows-native-chrome:
+    name: Windows native window and tray restoration
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+      - name: Record native desktop environment
+        shell: pwsh
+        run: |
+          [System.Environment]::OSVersion.VersionString
+          Get-Process -Id $PID | Select-Object ProcessName, SessionId
+          Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion
+      - name: Build native window probe
+        run: dotnet build tests/Nexa.UI.Next.Backend.Avalonia.Tests -c Release
+      - name: Exercise actual Win32 decorations and tray restoration
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'windows-native-chrome.log'
+          & dotnet tests/Nexa.UI.Next.Backend.Avalonia.Tests/bin/Release/net10.0/Nexa.UI.Next.Backend.Avalonia.Tests.dll --native-corner-smoke *> $log
+          $probeExitCode = $LASTEXITCODE
+          Get-Content $log
+          exit $probeExitCode
+      - name: Retain native window evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-native-chrome
+          path: ${{ runner.temp }}/windows-native-chrome.log
+          if-no-files-found: warn
+          retention-days: 14
+
   sidecar-ipc:
     name: NativeAOT Sidecar full lifecycle (${{ matrix.os }})
     strategy:

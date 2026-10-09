@@ -275,7 +275,9 @@ public sealed partial class InstallCatalogService : IDisposable
         }
         catch (Exception error) when (error is not OutOfMemoryException and not AccessViolationException)
         {
-            lock (_gate) if (Current())
+            lock (_gate)
+            {
+                if (Current())
                 {
                     // A retained record may expire while its bounded network renewal is running.
                     _cache.TryGet(CacheKey(key), out retained, allowStale: true);
@@ -284,6 +286,7 @@ public sealed partial class InstallCatalogService : IDisposable
                             : error is OperationCanceledException ? "请求已取消。" : error.Message)
                     { CacheHit = retained is not null, IsStale = retained is not null });
                 }
+            }
         }
         finally
         {

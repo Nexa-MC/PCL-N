@@ -65,15 +65,17 @@ public sealed partial class AvaloniaUiShellWindow : Window
         // Keep WS_CAPTION / resizable-window styles on Windows so DWM owns native min/max
         // transitions. Only suppress Avalonia's drawn decorations, not the native capability.
         WindowDecorations = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? WindowDecorations.Full : WindowDecorations.None;
-        ExtendClientAreaToDecorationsHint = true;
         if (OperatingSystem.IsWindows())
         {
-            Resources[typeof(WindowDrawnDecorations)] = new ControlTheme
+            // Extension can create and style decorations synchronously. Bind their theme
+            // explicitly first; a later resource cannot replace a cached implicit theme.
+            WindowDecorationsTheme = new ControlTheme
             {
                 TargetType = typeof(WindowDrawnDecorations),
                 Setters = { new Setter(WindowDrawnDecorations.TemplateProperty, new EmptyWindowDecorationsTemplate()) },
             };
         }
+        ExtendClientAreaToDecorationsHint = true;
         // Transparent edge pixels are composited; the inner surface remains fully opaque.
         // A layered Win32 fallback is rejected after the platform handle becomes available.
         Background = Brushes.Transparent;
@@ -167,13 +169,14 @@ public sealed partial class AvaloniaUiShellWindow : Window
 
     protected override void OnOpened(EventArgs e)
     {
+        // Native Show reapplies Avalonia's DWM frame even when restoring a hidden normal
+        // window. Repair every opening, before observers, independently of first entrance.
+        UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
         base.OnOpened(e);
         _surface.SetRasterPresentationEnabled(WindowState != WindowState.Minimized);
         _shell.PublishWindowActivity(IsActive, WindowState == WindowState.Minimized);
         if (_hasOpened) return;
         _hasOpened = true;
-        _ = AvaloniaWindowsFrame.SuppressBorder(this);
-        UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
         if (_shell.Renderer.ReducedMotion)
         {
             OnStartupRevealCompleted();

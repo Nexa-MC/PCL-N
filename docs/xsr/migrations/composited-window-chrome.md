@@ -24,6 +24,10 @@ region in this mode; it must contain all client corners, leaving rounded clippin
 Native regression checks non-client rendering disabled and native capability styles retained through
 resize/maximize/minimize/restore. Perceived system animation still requires visual acceptance.
 
+[XSR-833](../XSR-833-windows-decoration-lifecycle.md) also reapplies this policy on
+every native show, including hidden-normal tray restoration, and binds the empty
+managed-decoration theme explicitly before client-area extension.
+
 Validation: backend console tests and the 31-project architecture regression pass. Windows native
 `--native-corner-smoke` passes at 125% scale: actual transparency is Transparent, WS_EX_LAYERED
 is absent, no native clipping region, scene size preserved within one physical pixel, input origin
