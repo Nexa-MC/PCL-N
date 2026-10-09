@@ -8,7 +8,7 @@ using Nexa.Services.Files;
 namespace Nexa.Services.Minecraft.Management;
 
 /// <summary>Untrusted presentation metadata only. Never executes content or resolves remote icons.</summary>
-internal static class InstanceContentMetadata
+internal static partial class InstanceContentMetadata
 {
     private const long ProducerReadLimit = 4 * 1024 * 1024;
     private sealed record CachedMetadata(long ReadCost, bool Stable, InstanceContentEntry Entry);
@@ -20,11 +20,25 @@ internal static class InstanceContentMetadata
         ArchiveReadBudget budget, ISharedStateCache? sharedCache, CancellationToken token)
     {
         List<InstanceContentEntry> entries = [];
+        ArchiveReadBudget screenshotHeaders = new(10000 * ScreenshotHeaderLength);
         int worlds = 0;
         foreach (var entry in snapshot.Entries)
         {
             token.ThrowIfCancellationRequested();
             var result = entry with { DisplayName = entry.Name };
+            if (snapshot.PageId == "screenshots")
+            {
+                result = result with { Icon = null, ImageWidth = null, ImageHeight = null };
+                try
+                {
+                    string path = Path.GetFullPath(Path.Combine(directory, entry.Name));
+                    result = await ReadScreenshotAsync(result, path, budget, screenshotHeaders, token).ConfigureAwait(false);
+                }
+                catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+                { /* Unreadable or changed screenshots retain an unknown preview and aspect ratio. */ }
+                entries.Add(result);
+                continue;
+            }
             if (budget.Remaining > 0 && (snapshot.PageId != "mods" || entry.Enabled is not null) && (snapshot.PageId != "saves" || ++worlds <= 64))
             {
                 try
@@ -85,11 +99,6 @@ internal static class InstanceContentMetadata
     private static async Task<InstanceContentEntry> ReadAsync(InstanceContentEntry item, string page, string path,
         ArchiveReadBudget budget, CancellationToken token)
     {
-        if (page == "screenshots")
-        {
-            if (!path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) return item;
-            return item with { Icon = PngImage.TryCreatePreview(await ReadFile(path, 16 * 1024 * 1024, budget, token).ConfigureAwait(false)) };
-        }
         if (page == "saves")
         {
             string icon = Path.Combine(path, "icon.png");

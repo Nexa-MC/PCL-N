@@ -21,5 +21,25 @@ internal static partial class Program
         try { _ = Nexa.UI.Next.Backend.Avalonia.AvaloniaUiScreenshotCodec.Crop(bytes, 4, 3, 2, 2); }
         catch (InvalidDataException) { rejected = true; }
         AssertTrue(rejected);
+
+        string path = Path.Combine(Path.GetTempPath(), "nexa-share-" + Guid.NewGuid().ToString("N") + ".png");
+        try
+        {
+            File.WriteAllBytes(path, original);
+            long ticks = File.GetLastWriteTimeUtc(path).Ticks;
+            Nexa.UI.Next.Backend.Avalonia.AvaloniaUiPlatformActions.VerifyScreenshotIdentity(path, original.Length, ticks);
+            File.SetLastWriteTimeUtc(path, new DateTime(ticks, DateTimeKind.Utc).AddSeconds(5));
+            rejected = false;
+            try { Nexa.UI.Next.Backend.Avalonia.AvaloniaUiPlatformActions.VerifyScreenshotIdentity(path, original.Length, ticks); }
+            catch (IOException) { rejected = true; }
+            AssertTrue(rejected);
+            File.WriteAllBytes(path, [.. original, 0]);
+            File.SetLastWriteTimeUtc(path, new DateTime(ticks, DateTimeKind.Utc));
+            rejected = false;
+            try { Nexa.UI.Next.Backend.Avalonia.AvaloniaUiPlatformActions.VerifyScreenshotIdentity(path, original.Length, ticks); }
+            catch (IOException) { rejected = true; }
+            AssertTrue(rejected);
+        }
+        finally { File.Delete(path); }
     }
 }

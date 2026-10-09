@@ -45,6 +45,7 @@ internal static partial class Program
         ("document transfers bound actual bytes and replace atomically", DocumentTransfersBoundActualBytesAndReplaceAtomically),
         ("lifetime: splash never owns the process and main window close terminates", LifetimeSplashNeverOwnsProcessAndMainWindowCloseTerminates),
         ("window entrance preserves prepared input and retires motion", WindowEntrancePreservesPreparedInputAndRetiresMotion),
+        ("tray visibility retargets retained content and retires lifetimes", TrayVisibilityRetargetsRetainedContentAndRetiresLifetimes),
         ("memory pressure preserves visible leases and disposes idle resources", MemoryPressurePreservesVisibleLeasesAndDisposesIdle),
         ("VerifyBackgroundFitAndImageOpacityDrawing", VerifyBackgroundFitAndImageOpacityDrawing),
         ("RuntimeDiagnosticsObserveRealCommitsPaintAndAdmission", RuntimeDiagnosticsObserveRealCommitsPaintAndAdmission),
@@ -427,6 +428,7 @@ internal static partial class Program
             VerifyNativeContextMenusPreserveLeftClickAndPasswordRules();
             VerifyTrayCloseAndExplicitExitAdmission(window, shell);
             await VerifyPreparedWindowEntranceAsync(window).ConfigureAwait(true);
+            await VerifyTrayVisibilityAsync(window).ConfigureAwait(true);
             VerifyAccessibleContentAndNativeFocus(window, shell, surface);
             VerifyPointerCursorProjection(window, shell, surface);
             VerifyPostNavigationDoubleClickRouting(window);

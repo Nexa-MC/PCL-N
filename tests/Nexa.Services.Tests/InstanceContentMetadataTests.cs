@@ -39,7 +39,8 @@ internal static partial class Program
             AssertEqual("too-large.jar", bounded.Entries[0].DisplayName);
             AssertTrue(bounded.Entries[0].Icon is null);
             File.WriteAllBytes(Path.Combine(root, "screen.png"), png);
-            var screenshots = await InstanceContentMetadata.EnrichAsync(new("screenshots", [new("screen.png", false, png.Length)], true, null), root, new(8 * 1024 * 1024), default);
+            var screenshots = await InstanceContentMetadata.EnrichAsync(new("screenshots", [new("screen.png", false, png.Length)
+            { ModifiedUtcTicks = File.GetLastWriteTimeUtc(Path.Combine(root, "screen.png")).Ticks }], true, null), root, new(8 * 1024 * 1024), default);
             AssertTrue(screenshots.Entries[0].Icon is not null);
             using var stop = new CancellationTokenSource(); stop.Cancel();
             try { await InstanceContentMetadata.EnrichAsync(mods, root, new(1024), stop.Token); throw new InvalidOperationException("Cancellation ignored"); }

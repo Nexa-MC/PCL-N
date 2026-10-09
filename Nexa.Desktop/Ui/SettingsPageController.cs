@@ -82,7 +82,7 @@ internal sealed partial class SettingsPageController : IDisposable
     private void OnIntent(object? sender, DesktopUiIntentEventArgs args)
     {
         if (_shell.Stage.Navigation.Current != Page) return;
-        if (IsRuntimeTraceIntent(args.Intent.Command) || IsRuntimeDiagnosticsIntent(args.Intent.Command) || args.Intent.Command == IdentityAction || args.Intent.Command == NetworkProbeStart || args.Intent.Command == NetworkTraceRefresh || args.Intent.Command == ContentWorkspaceAction || args.Intent.Command == LaunchProfileAction || IsDeveloperDiagnosticsIntent(args.Intent.Command) || IsHookIntent(args.Intent.Command) || IsProxyIntent(args.Intent.Command) || IsStoragePreferencesIntent(args.Intent.Command) || IsJavaInventoryIntent(args.Intent.Command) || IsSettingsTransferIntent(args.Intent.Command) || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
+        if (IsRuntimeTraceIntent(args.Intent.Command) || IsRuntimeDiagnosticsIntent(args.Intent.Command) || args.Intent.Command == IdentityAction || args.Intent.Command == NetworkProbeStart || args.Intent.Command == NetworkTraceRefresh || args.Intent.Command == ContentWorkspaceAction || args.Intent.Command == LaunchProfileAction || IsDeveloperDiagnosticsIntent(args.Intent.Command) || IsHookIntent(args.Intent.Command) || IsProxyIntent(args.Intent.Command) || IsStoragePreferencesIntent(args.Intent.Command) || IsJavaInventoryIntent(args.Intent.Command) || IsSettingsTransferIntent(args.Intent.Command) || IsUpdateIntent(args.Intent.Command) || args.Intent.Command == ScreenshotPreviewAction || args.Intent.Command == ManagementAction || args.Intent.Command == Inherit || args.Intent.Command == Select || args.Intent.Command == Edit || args.Intent.Command == Choice || args.Intent.Command == ArgumentAdd || args.Intent.Command == ArgumentRemove || args.Intent.Command == RefreshPlatform) _pending.Enqueue(args.Intent);
         else if (args.Intent.Command == RemediationExecuted) OnPlatformRemediation(sender, args);
     }
     private void OnFrame(object? sender, EventArgs args)
@@ -182,6 +182,7 @@ internal sealed partial class SettingsPageController : IDisposable
             if (IsStoragePreferencesIntent(intent.Command)) { HandleStoragePreferences(intent.Command, intent.Source); continue; }
             if (IsJavaInventoryIntent(intent.Command)) { HandleJavaInventory(intent.Command, intent.Source); continue; }
             if (IsSettingsTransferIntent(intent.Command)) { HandleSettingsTransfer(intent.Command, intent.Source); continue; }
+            if (intent.Command == ScreenshotPreviewAction) { HandleScreenshotPreviewIntent(intent); continue; }
             if (intent.Command == ManagementAction && _managementActions.TryGetValue(intent.Source, out var action)) { action(); continue; }
             if (IsUpdateIntent(intent.Command)) { HandleUpdateIntent(intent.Command); continue; }
             if (intent.Command == Inherit && _inheritButtons.TryGetValue(intent.Source, out var inheritKey)
@@ -244,6 +245,7 @@ internal sealed partial class SettingsPageController : IDisposable
 
     private void SwitchPage(string page)
     {
+        CloseScreenshotPreview(restoreFocus: false); CancelScreenshotThumbnails();
         CancelContentIntegrity();
         RetireHardwareAdvice(); RetireDeveloperDiagnostics(); RetireRuntimeDiagnostics(); RetireRuntimeTrace(); CancelNetworkProbe(); CancelAdvancedWorkspace();
         CancelIdentityRead(); CancelSettingsTransfer(); CancelJavaInventory(); CancelDiskLogExport(); CancelStoragePreferences(); CancelContentWorkspace();

@@ -25,6 +25,10 @@ internal static class AvaloniaMotionTokens
     public const int StartupRevealMilliseconds = 420;
     public const double StartupSceneInitialOpacity = .88;
 
+    /// <summary>Tray visibility retargets the retained content without changing native geometry.</summary>
+    public const int TrayHideMilliseconds = 220;
+    public const int TrayRestoreMilliseconds = 260;
+
     /// <summary>The existing close sequence contracts the content to radius zero.</summary>
     public const int CloseCollapseMilliseconds = 280;
 

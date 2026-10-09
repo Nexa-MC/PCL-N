@@ -75,17 +75,29 @@ public sealed partial class AvaloniaUiPlatformActions
         else if (_owner is Window window) Dispatcher.UIThread.Post(window.Close);
     }
 
-    public void HideWindow() { if (_owner is Window window) window.Hide(); }
+    public void HideWindow()
+    {
+        if (_startupHidden) return;
+        if (_owner is AvaloniaUiShellWindow shellWindow) shellWindow.HideToTray();
+        else if (_owner is Window window) window.Hide();
+    }
     public void MinimizeWindow()
     {
         if (_owner is not Window window || window.WindowState == WindowState.Minimized) return;
         _stateBeforeMinimize = window.WindowState;
-        window.WindowState = WindowState.Minimized;
+        if (window is AvaloniaUiShellWindow shellWindow) shellWindow.RequestMinimize();
+        else window.WindowState = WindowState.Minimized;
     }
     public void RestoreWindow()
     {
         if (_startupHidden) return;
         if (_owner is not Window window) return;
+        if (window is AvaloniaUiShellWindow shellWindow)
+        {
+            shellWindow.RestoreFromTray(_stateBeforeMinimize);
+            _stateBeforeMinimize = null;
+            return;
+        }
         if (!window.IsVisible) window.Show();
         if (window.WindowState == WindowState.Minimized) window.WindowState = _stateBeforeMinimize ?? WindowState.Normal;
         _stateBeforeMinimize = null;

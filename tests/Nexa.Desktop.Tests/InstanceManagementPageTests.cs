@@ -196,7 +196,7 @@ internal static partial class Program
             Emit(fixture.Intents, "ui.settings.management.action", card.Entity);
             scene = fixture.Shell.Render(new(1000, 650));
             AssertTrue(scene.Nodes.Any(node => node.Text == "图像尺寸"));
-            Emit(fixture.Intents, "ui.settings.management.action", FindByKey(fixture.Shell, scene, "Management.返回列表").Entity);
+            Emit(fixture.Intents, "ui.settings.screenshot-preview.action", FindByKey(fixture.Shell, scene, "ScreenshotPreview.Close").Entity);
             scene = fixture.Shell.Render(new(1000, 650));
             AssertTrue(scene.Nodes.Any(node => fixture.Shell.Tree.Name(node.Entity) == "ManagementScreenshot.screen.png"));
             Emit(fixture.Intents, "ui.settings.section", FindByKey(fixture.Shell, scene, "SettingsNav.saves").Entity);

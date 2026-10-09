@@ -35,6 +35,7 @@ internal sealed partial class SettingsPageController
 
     private void CancelManagementRead()
     {
+        CloseScreenshotPreview(); CancelScreenshotThumbnails();
         CancelOnlineList(); CancelServers(); CancelExport(); CancelFileWorkspace(); CancelWorldHealth(); CancelInstanceDiagnostics();
         CancelAdvancedLaunchDiagnostics();
         _managementStop?.Cancel(); _managementStop?.Dispose(); _managementStop = null;
@@ -54,6 +55,8 @@ internal sealed partial class SettingsPageController
     private void UpdateManagement()
     {
         if (_instanceDirectory is null || _instance is null) return;
+        UpdateScreenshotPreview();
+        UpdateScreenshotThumbnails();
         UpdateWorldPlatformAction();
         UpdateFileWorkspace();
         UpdateInstanceDiagnostics();
@@ -179,7 +182,7 @@ internal sealed partial class SettingsPageController
             _shell.Renderer.SetTextInputValue(_contentSearch, _contentFilter);
             ManagementButton(toolbar, "打开文件夹", () => OpenContentDirectory(directory), 100);
             if (_selected == "screenshots") ManagementButton(toolbar, _screenshotTimeline ? "画廊" : "时间线", () =>
-            { _screenshotTimeline = !_screenshotTimeline; _screenshotTimelinePage = 0; BuildSections(true); }, 84);
+            { _screenshotTimeline = !_screenshotTimeline; BuildSections(true); }, 84);
             ManagementRefreshIcon(toolbar);
             _contentSnapshot = snapshot.Contents.FirstOrDefault(item => item.PageId == _selected);
             if (_selected == "mods") BuildModCategories();
@@ -232,10 +235,9 @@ internal sealed partial class SettingsPageController
     private void UpdateContentWindow()
     {
         if (!_contentList.IsAssigned || !_shell.Tree.IsAlive(_contentList) || _contentSnapshot is not { } snapshot) return;
-        if (_selected == "screenshots" && _screenshotTimeline) { BuildScreenshotTimeline(snapshot); return; }
-        bool gallery = _selected == "screenshots";
-        int columns = gallery ? Math.Max(1, (int)((_shell.Renderer.Viewport.Width - 130) / 250)) : 1;
-        double rowHeight = gallery ? 210 : _selected == "resourcepacks" ? 104 : 84;
+        if (_selected == "screenshots") { UpdateScreenshotWaterfall(snapshot); return; }
+        int columns = 1;
+        double rowHeight = _selected == "resourcepacks" ? 104 : 84;
         int rows = (snapshot.Entries.Count + columns - 1) / columns;
         int start = Math.Clamp((int)((_shell.Tree.GetComponent<XsrUiScroll>(_sections)!.OffsetY - 92) / rowHeight) - 3, 0, Math.Max(0, rows - 1));
         int count = Math.Min(rows - start, (int)Math.Ceiling(_shell.Renderer.Viewport.Height / rowHeight) + 8);
@@ -249,50 +251,43 @@ internal sealed partial class SettingsPageController
         Element(_contentList, "ManagementContentBefore", XsrUiSemanticRole.None, null, height: start * rowHeight);
         for (int rowIndex = start; rowIndex < start + count; rowIndex++)
         {
-            var row = Stack(_contentList, "ManagementContentRow", XsrUiOrientation.Horizontal, gallery ? 12 : 0);
+            var row = Stack(_contentList, "ManagementContentRow", XsrUiOrientation.Horizontal, 0);
             var layout = _shell.Tree.GetComponent<XsrUiElement>(row)!;
-            layout.Height = rowHeight - (gallery ? 12 : 8);
-            layout.Margin = new(0, 0, 0, gallery ? 12 : 8);
-            if (!gallery) Style(row, White, Ink, 12);
+            layout.Height = rowHeight - 8;
+            layout.Margin = new(0, 0, 0, 8);
+            Style(row, White, Ink, 12);
             foreach (var item in snapshot.Entries.Skip(rowIndex * columns).Take(columns))
             {
-                if (gallery) BuildScreenshotCard(row, item);
+                var body = Stack(row, "ManagementContentBody", XsrUiOrientation.Horizontal, 14);
+                var bodyLayout = _shell.Tree.GetComponent<XsrUiElement>(body)!;
+                bodyLayout.Weight = 1;
+                bodyLayout.VerticalAlignment = XsrUiAlignment.Stretch;
+                bodyLayout.Padding = new(16, 10, 16, 10);
+                _contentIconEntities[item.Name] = ContentImage(body, item, 48, 48);
+                var text = Stack(body, "ManagementContentIdentity", XsrUiOrientation.Vertical, 2);
+                _shell.Tree.GetComponent<XsrUiElement>(text)!.Weight = 1;
+                if (_selected == "resourcepacks")
+                {
+                    ContentName(text, ResourcePackTitle(item), 15, 26);
+                    ContentName(text, item.Description, 12, item.UpdateAvailable == true ? 22 : 40, maxLines: item.UpdateAvailable == true ? 1 : 2, foreground: Muted);
+                    if (item.UpdateAvailable == true) Text(text, "可更新至 " + item.UpdateVersion, 12, Muted, 22);
+                }
                 else
                 {
-                    var body = Stack(row, "ManagementContentBody", XsrUiOrientation.Horizontal, 14);
-                    var bodyLayout = _shell.Tree.GetComponent<XsrUiElement>(body)!;
-                    bodyLayout.Weight = 1;
-                    bodyLayout.VerticalAlignment = XsrUiAlignment.Stretch;
-                    bodyLayout.Padding = new(16, 10, 16, 10);
-                    _contentIconEntities[item.Name] = ContentImage(body, item, 48, 48);
-                    var text = Stack(body, "ManagementContentIdentity", XsrUiOrientation.Vertical, 2);
-                    _shell.Tree.GetComponent<XsrUiElement>(text)!.Weight = 1;
-                    if (_selected == "resourcepacks")
-                    {
-                        ContentName(text, ResourcePackTitle(item), 15, 26);
-                        ContentName(text, item.Description, 12, item.UpdateAvailable == true ? 22 : 40, maxLines: item.UpdateAvailable == true ? 1 : 2, foreground: Muted);
-                        if (item.UpdateAvailable == true) Text(text, "可更新至 " + item.UpdateVersion, 12, Muted, 22);
-                    }
-                    else
-                    {
-                        ContentName(text, item.DisplayName.Length == 0 ? item.Name : item.DisplayName, 15, 26);
-                        Text(text, item.Name + (item.Enabled == false ? " · 已禁用" : "") + (item.PackageProblem.Length > 0 ? " · 包异常" : item.UpdateAvailable == true ? " · 可更新" : ""), 12, Muted, 22);
-                    }
-                    if (_selected is "mods" or "resourcepacks" or "shaderpacks")
-                    {
-                        BuildContentUpdateSelection(body, item);
-                        string release = _selected == "mods" ? item.Version : OnlineFile(item) is { } key && _onlineList.TryGetValue(key, out var online) ? online.InstalledVersion ?? "" : "";
-                        var version = Text(body, release.Length > 0 ? release : _selected == "mods" ? "版本未标注" : "", 12, Muted, 24);
-                        _shell.Tree.GetComponent<XsrUiElement>(version)!.Width = 116;
-                        _shell.Tree.GetComponent<XsrUiVisualStyle>(version)!.TextAlignment = XsrUiTextAlignment.End;
-                    }
-                    var details = ActionButton(body, "ManagementContentDetails." + item.Name, "详情", ManagementAction, 64);
-                    RegisterContentAction(details, () => OpenContentDetail(item));
+                    ContentName(text, item.DisplayName.Length == 0 ? item.Name : item.DisplayName, 15, 26);
+                    Text(text, item.Name + (item.Enabled == false ? " · 已禁用" : "") + (item.PackageProblem.Length > 0 ? " · 包异常" : item.UpdateAvailable == true ? " · 可更新" : ""), 12, Muted, 22);
                 }
+                if (_selected is "mods" or "resourcepacks" or "shaderpacks")
+                {
+                    BuildContentUpdateSelection(body, item);
+                    string release = _selected == "mods" ? item.Version : OnlineFile(item) is { } key && _onlineList.TryGetValue(key, out var online) ? online.InstalledVersion ?? "" : "";
+                    var version = Text(body, release.Length > 0 ? release : _selected == "mods" ? "版本未标注" : "", 12, Muted, 24);
+                    _shell.Tree.GetComponent<XsrUiElement>(version)!.Width = 116;
+                    _shell.Tree.GetComponent<XsrUiVisualStyle>(version)!.TextAlignment = XsrUiTextAlignment.End;
+                }
+                var details = ActionButton(body, "ManagementContentDetails." + item.Name, "详情", ManagementAction, 64);
+                RegisterContentAction(details, () => OpenContentDetail(item));
             }
-            if (gallery)
-                for (int missing = columns - Math.Min(columns, snapshot.Entries.Count - rowIndex * columns); missing > 0; missing--)
-                    _shell.Tree.GetComponent<XsrUiElement>(Element(row, "GallerySpace", XsrUiSemanticRole.None, null))!.Weight = 1;
         }
         Element(_contentList, "ManagementContentAfter", XsrUiSemanticRole.None, null, height: (rows - start - count) * rowHeight);
         _shell.Tree.MarkDirty(_contentList, XsrUiDirtyKinds.Layout | XsrUiDirtyKinds.Paint);
@@ -317,13 +312,16 @@ internal sealed partial class SettingsPageController
             StartModRemovalPreview(new(snapshot.InstanceDirectory, page, item.Name, item.IsDirectory, item.Size, item.ModifiedUtcTicks), previewRoute);
             return;
         }
-        _feedback.ShowDialog("content.remove", "移除内容", $"将“{item.Name}”移至已移除内容，可随时还原。", "移除", "取消", accepted =>
+        long? previewGeneration = page == "screenshots" && _screenshotPreviewQuery is { } file && SameScreenshot(item, file) ? _screenshotPreviewGeneration : null;
+        var removalDialog = _feedback.ShowDialog("content.remove", "移除内容", $"将“{item.Name}”移至已移除内容，可随时还原。", "移除", "取消", accepted =>
         {
-            if (!accepted || _managementWrite is not null || _instance != snapshot.InstanceDirectory) return;
+            if (!accepted || _managementWrite is not null || _instance != snapshot.InstanceDirectory
+                || previewGeneration is { } generation && (_screenshotPreviewGeneration != generation || _selected != "screenshots" || !_visible)) return;
             _managementWriteInstance = snapshot.InstanceDirectory;
             _managementWrite = _commands.Dispatch(route, new InstanceContentRemoveCommand(snapshot.InstanceDirectory, page, item.Name, item.IsDirectory, item.Size, item.ModifiedUtcTicks)).Completion;
             WakeOnPlatformCompletion(_managementWrite);
         });
+        if (previewGeneration is not null) _screenshotRemovalDialog = removalDialog;
     }
 
     private void BuildContentTrash(InstanceManagementSnapshot snapshot)

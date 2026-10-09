@@ -46,18 +46,41 @@ public sealed partial class AvaloniaUiPlatformActions
     public Task ShareScreenshotAsync(string path) => Dispatcher.UIThread.CheckAccess()
         ? ShareScreenshotOnUiAsync(path) : Dispatcher.UIThread.InvokeAsync(() => ShareScreenshotOnUiAsync(path));
 
-    private async Task ShareScreenshotOnUiAsync(string path)
+    public Task ShareScreenshotAsync(string path, long expectedSize, long expectedModifiedUtcTicks) => Dispatcher.UIThread.CheckAccess()
+        ? ShareScreenshotOnUiAsync(path, expectedSize, expectedModifiedUtcTicks)
+        : Dispatcher.UIThread.InvokeAsync(() => ShareScreenshotOnUiAsync(path, expectedSize, expectedModifiedUtcTicks));
+
+    private async Task ShareScreenshotOnUiAsync(string path, long? expectedSize = null, long? expectedModifiedUtcTicks = null)
     {
+        var identity = new FileInfo(path);
+        long size = expectedSize ?? identity.Length;
+        long modified = expectedModifiedUtcTicks ?? identity.LastWriteTimeUtc.Ticks;
+        VerifyScreenshotIdentity(path, size, modified);
         _ = ReadScreenshot(path);
+        VerifyScreenshotIdentity(path, size, modified);
         var owner = _owner ?? throw new InvalidOperationException("The native window is not ready.");
         var file = await owner.StorageProvider.TryGetFileFromPathAsync(new Uri(Path.GetFullPath(path))).ConfigureAwait(true)
             ?? throw new IOException("The screenshot is no longer available.");
         using (file)
         {
+            // Native storage lookup can yield to the UI thread. Do not share a replacement
+            // file merely because it now has the same pathname as the selected screenshot.
+            VerifyScreenshotIdentity(path, size, modified);
             var clipboard = owner.Clipboard ?? throw new InvalidOperationException("The native clipboard is not ready.");
             await clipboard.SetFileAsync(file).ConfigureAwait(true);
             try { await clipboard.FlushAsync().ConfigureAwait(true); } catch (NotSupportedException) { }
         }
+    }
+
+    internal static void VerifyScreenshotIdentity(string path, long expectedSize, long expectedModifiedUtcTicks)
+    {
+        if (!Path.IsPathFullyQualified(path) || !Path.GetExtension(path).Equals(".png", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("请选择 PNG 截图。");
+        var info = new FileInfo(path);
+        if (!info.Exists || expectedSize is < 33 or > 16 * 1024 * 1024 || info.Length != expectedSize
+            || expectedModifiedUtcTicks <= 0 || info.LastWriteTimeUtc.Ticks != expectedModifiedUtcTicks
+            || (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            throw new IOException("截图已变化，请刷新后重试。");
     }
 
     internal static byte[] ReadScreenshot(string path)

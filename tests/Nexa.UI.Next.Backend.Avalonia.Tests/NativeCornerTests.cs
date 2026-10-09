@@ -60,7 +60,7 @@ internal static partial class Program
                     openings++;
                     if (openings == 1)
                         Dispatcher.UIThread.Post(() => _ = VerifyNativeCornerLifecycleAsync(
-                            desktop, window, actions, handle, () => openings, () => reveals));
+                            desktop, shell, window, actions, handle, () => openings, () => reveals));
                 };
             }
             base.OnFrameworkInitializationCompleted();
@@ -68,7 +68,7 @@ internal static partial class Program
     }
 
     private static async Task VerifyNativeCornerLifecycleAsync(
-        IClassicDesktopStyleApplicationLifetime desktop, AvaloniaUiShellWindow window,
+        IClassicDesktopStyleApplicationLifetime desktop, XsrUiShell shell, AvaloniaUiShellWindow window,
         AvaloniaUiPlatformActions actions, nint handle, Func<int> openings, Func<int> reveals)
     {
         try
@@ -114,6 +114,7 @@ internal static partial class Program
             window.WindowState = WindowState.Normal;
             await WaitForNativeCornerLayoutAsync(() => NativeCornerViewportMatches(window, 950, 550));
             VerifyCompositedViewport(window, 950, 550);
+            await VerifyAnimatedNativeTrayAsync(shell, window, actions, handle, reveals);
             window.WindowState = WindowState.Minimized;
             await WaitForNativeCornerLayoutAsync(() => window.WindowState == WindowState.Minimized);
             window.WindowState = WindowState.Normal;
@@ -132,10 +133,53 @@ internal static partial class Program
             VerifyCompositedViewport(window, 950, 550);
             AssertEqual(handle, window.TryGetPlatformHandle()!.Handle);
             AssertEqual(1, reveals());
-            Console.WriteLine("PASS: empty managed decorations before show; immediate DWM suppression on every opening; same HWND, viewport and input origin through repeated normal/maximized tray restores; once-only entrance, native composition and opaque fallback; optional DWM attributes checked where readable");
+            Console.WriteLine("PASS: empty managed decorations before show; immediate DWM suppression on every opening; same HWND, viewport and input origin through repeated normal/maximized and animated reversible tray restores; once-only entrance, native composition and opaque fallback; optional DWM attributes checked where readable");
             desktop.Shutdown(0);
         }
         catch (Exception error) { Console.Error.WriteLine(error); desktop.Shutdown(1); }
+    }
+
+    private static async Task VerifyAnimatedNativeTrayAsync(XsrUiShell shell, AvaloniaUiShellWindow window,
+        AvaloniaUiPlatformActions actions, nint handle, Func<int> reveals)
+    {
+        shell.Renderer.ReducedMotion = false;
+        Grid content = TrayPresentation(window);
+        actions.HideWindow();
+        AssertTrue(window.IsVisible && window.IsHidingToTray);
+        await WaitForNativeCornerLayoutAsync(() => content.Opacity is > 0 and < 1);
+        double presented = content.Opacity;
+        VerifyCompositedViewport(window, 950, 550);
+        actions.RestoreWindow();
+        AssertEqual(presented, content.Opacity);
+        await WaitForNativeCornerLayoutAsync(() => content.Opacity == 1);
+        await Task.Delay(AvaloniaMotionTokens.TrayHideMilliseconds + 40).ConfigureAwait(true);
+        VerifyNativeCornerRestoration(window, handle, WindowState.Normal, reveals);
+
+        actions.HideWindow();
+        await WaitForNativeCornerLayoutAsync(() => !window.IsVisible);
+        AssertEqual(0d, content.Opacity);
+        shell.Renderer.OptionalMotionSuspended = true;
+        AssertTrue(shell.Renderer.OptionalMotionSuspended && !shell.Renderer.ReducedMotion);
+        ForceNativeCornerStaleFrame(window);
+        actions.RestoreWindow();
+        AssertEqual(0d, content.Opacity);
+        VerifyNativeCornerRestoration(window, handle, WindowState.Normal, reveals);
+        await WaitForNativeCornerLayoutAsync(() => content.Opacity is > 0 and < 1);
+        AssertEqual(1d, window.Opacity);
+        VerifyCompositedViewport(window, 950, 550);
+        presented = content.Opacity;
+        actions.HideWindow();
+        AssertEqual(presented, content.Opacity);
+        await WaitForNativeCornerLayoutAsync(() => !window.IsVisible);
+        actions.RestoreWindow();
+        await WaitForNativeCornerLayoutAsync(() => content.Opacity == 1);
+        VerifyNativeCornerRestoration(window, handle, WindowState.Normal, reveals);
+        VerifyCompositedViewport(window, 950, 550);
+        AssertTrue(content.Clip is null && content.RenderTransform is null);
+        AssertEqual(1d, window.Opacity);
+        shell.Renderer.OptionalMotionSuspended = false;
+        shell.Renderer.ReducedMotion = true;
+        Console.WriteLine("PASS: actual intermediate tray fades reverse continuously; native Hide is deferred; hidden scene suspension does not suppress restore; no layered HWND or viewport/input changes");
     }
 
     private static void VerifyNativeCornerManagedDecorations(AvaloniaUiShellWindow window)

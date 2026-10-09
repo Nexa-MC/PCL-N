@@ -34,6 +34,11 @@ internal static partial class Program
             return;
         }
         if (Environment.GetEnvironmentVariable("NEXA_COUNTRY") is null) Environment.SetEnvironmentVariable("NEXA_COUNTRY", "CN");
+        if (args is ["--native-screenshot-preview", var screenshotPreviewTheme, var screenshotPreviewDirectory])
+        {
+            Environment.ExitCode = RunNativeScreenshotPreview(screenshotPreviewTheme, screenshotPreviewDirectory);
+            return;
+        }
         if (args is ["--native-settings-preview", var settingsPreviewTheme, var settingsPreviewDirectory])
         {
             Environment.ExitCode = RunNativeSettingsPreview(settingsPreviewTheme, settingsPreviewDirectory);
@@ -119,6 +124,13 @@ internal static partial class Program
         ("DeveloperRuntimeDiagnosticsCaptureActualSceneAndRemainReadOnly", DeveloperRuntimeDiagnosticsCaptureActualSceneAndRemainReadOnly),
         ("JavaDiagnosticWorkspaceDispatchesSelectedRevisionCopiesPreviewAndRetiresReads", JavaDiagnosticWorkspaceDispatchesSelectedRevisionCopiesPreviewAndRetiresReads),
         ("BackgroundPresentationPreservesVideoPriorityAndRoutedAppearance", BackgroundPresentationPreservesVideoPriorityAndRoutedAppearance),
+        ("ScreenshotWaterfallLayoutKeepsRatiosAndBoundedWindows", ScreenshotWaterfallLayoutKeepsRatiosAndBoundedWindows),
+        ("ScreenshotGalleryRealizesVisibleWaterfallAndKeepsModalScroll", ScreenshotGalleryRealizesVisibleWaterfallAndKeepsModalScroll),
+        ("ScreenshotPreviewRoutesIdentityRetiresReadsAndPreservesCropDrafts", ScreenshotPreviewRoutesIdentityRetiresReadsAndPreservesCropDrafts),
+        ("ScreenshotVisibleReadsAreBoundedCachedAndRetired", ScreenshotVisibleReadsAreBoundedCachedAndRetired),
+        ("ScreenshotPreviewWaitsForOriginalBeforeCropAndRetiresRefresh", ScreenshotPreviewWaitsForOriginalBeforeCropAndRetiresRefresh),
+        ("ScreenshotVisibleCarriersSurviveLruEvictionWithoutRepeatedReads", ScreenshotVisibleCarriersSurviveLruEvictionWithoutRepeatedReads),
+        ("ScreenshotThumbnailQuotaIncludesRealizedImagesAndReadReservations", ScreenshotThumbnailQuotaIncludesRealizedImagesAndReadReservations),
         ("WorldHealthAndScreenshotTimelineUseScopedActualRoutes", WorldHealthAndScreenshotTimelineUseScopedActualRoutes),
         ("CommandRoutesForwardNumericDestinationsAndSafeBootstrapRefusesOwner", CommandRoutesForwardNumericDestinationsAndSafeBootstrapRefusesOwner),
         ("SystemPreferencesConsumeRoutedCommittedChanges", SystemPreferencesConsumeRoutedCommittedChanges),

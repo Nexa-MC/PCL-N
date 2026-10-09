@@ -42,26 +42,16 @@ internal sealed partial class SettingsPageController
         Style(surface, White, Ink, 16);
         var hero = Stack(surface, "ManagementContentDetailBody", XsrUiOrientation.Vertical, 16);
         _shell.Tree.GetComponent<XsrUiElement>(hero)!.Padding = new(16, 16, 16, 16);
-        if (_selected == "screenshots")
+        var identity = Stack(hero, "ContentDetailIdentity", XsrUiOrientation.Horizontal, 18);
+        ContentImage(identity, item, 72, 72);
+        var titles = Stack(identity, "ContentDetailTitles", XsrUiOrientation.Vertical, 4);
+        _shell.Tree.GetComponent<XsrUiElement>(titles)!.Weight = 1;
+        if (_selected == "resourcepacks") ContentName(titles, ResourcePackTitle(item), 21, 34);
+        else ContentName(titles, item.DisplayName.Length > 0 ? item.DisplayName : item.Name, 21, 34);
+        Text(titles, Pages.First(page => page.Id == _selected).Label + (item.Enabled is { } active ? active ? " · 已启用" : " · 已停用" : ""), 13, Muted, 26);
+        if (item.Description.Length > 0)
         {
-            ContentImage(hero, item, null, Math.Min(420, _shell.Renderer.Viewport.Height * .5));
-            ContentName(hero, item.Name, 19, 32);
-            if (item.Icon is { } image) ManagementFactIn(hero, "图像尺寸", $"{image.Width} × {image.Height}");
-            else Text(hero, "暂时无法预览此图片，可在文件夹中查看原文件。", 13, Muted, 28);
-        }
-        else
-        {
-            var identity = Stack(hero, "ContentDetailIdentity", XsrUiOrientation.Horizontal, 18);
-            ContentImage(identity, item, 72, 72);
-            var titles = Stack(identity, "ContentDetailTitles", XsrUiOrientation.Vertical, 4);
-            _shell.Tree.GetComponent<XsrUiElement>(titles)!.Weight = 1;
-            if (_selected == "resourcepacks") ContentName(titles, ResourcePackTitle(item), 21, 34);
-            else ContentName(titles, item.DisplayName.Length > 0 ? item.DisplayName : item.Name, 21, 34);
-            Text(titles, Pages.First(page => page.Id == _selected).Label + (item.Enabled is { } active ? active ? " · 已启用" : " · 已停用" : ""), 13, Muted, 26);
-            if (item.Description.Length > 0)
-            {
-                ContentName(hero, item.Description, 14, null, maxLines: 0);
-            }
+            ContentName(hero, item.Description, 14, null, maxLines: 0);
         }
         if (_selected == "mods")
         {
@@ -70,7 +60,6 @@ internal sealed partial class SettingsPageController
                 : item.UpdateAvailable == false ? "未发现更新" : "尚未检测或未识别");
         }
         if (_selected == "saves") BuildWorldDetails(hero, item);
-        if (_selected == "screenshots") BuildScreenshotActions(hero, item);
         ManagementFactIn(hero, "文件名", item.Name);
         if (item.Version.Length > 0) ManagementFactIn(hero, _selected == "resourcepacks" ? "资源包格式" : "版本", item.Version);
         ManagementFactIn(hero, "大小", item.Size is { } bytes ? FormatContentSize(bytes) : "文件夹");
@@ -98,34 +87,16 @@ internal sealed partial class SettingsPageController
     private static string FormatContentSize(long bytes) => bytes >= 1024 * 1024
         ? $"{bytes / (1024d * 1024):N1} MB" : $"{bytes / 1024d:N1} KB";
 
-    private XsrUiEntityId ContentImage(XsrUiEntityId parent, InstanceContentEntry item, double? width, double height)
+    private XsrUiEntityId ContentImage(XsrUiEntityId parent, InstanceContentEntry item, double? width, double height, string name = "ManagementContentIcon")
     {
         string placeholder = _selected switch { "mods" => "lucide/blocks", "resourcepacks" => "nexa/content-package", "shaderpacks" => "nexa/content-shader", "saves" => "nexa/content-world", _ => "nexa/content-image" };
-        var entity = Element(parent, "ManagementContentIcon", XsrUiSemanticRole.None, null, width, height);
+        var entity = Element(parent, name, XsrUiSemanticRole.None, null, width, height);
         Style(entity, new(242, 245, 249), Muted, 10);
         var image = new XsrUiImage(placeholder);
         if (item.Icon is { } png)
             image.Raster = new(png, [new(new(0, 0, png.Width, png.Height), new(0, 0, 1, 1))]) { FitToBounds = true };
         _shell.Tree.SetComponent(entity, image);
         return entity;
-    }
-
-    private void BuildScreenshotCard(XsrUiEntityId parent, InstanceContentEntry item, bool includeTimestamp = false)
-    {
-        var card = Stack(parent, "ManagementScreenshot." + item.Name, XsrUiOrientation.Vertical, 8);
-        var layout = _shell.Tree.GetComponent<XsrUiElement>(card)!;
-        layout.Weight = 1; layout.Height = includeTimestamp ? 224 : 198;
-        Style(card, White, Ink, 14);
-        _shell.Tree.SetComponent(card, new XsrUiSemantic(XsrUiSemanticRole.Button, "查看截图 " + item.Name));
-        _shell.Tree.SetComponent(card, new XsrUiInput { Clickable = true, Focusable = true });
-        _shell.Tree.SetComponent(card, new XsrUiCommandBinding(ManagementAction));
-        RegisterContentAction(card, () => OpenContentDetail(item));
-        var body = Stack(card, "ManagementScreenshotBody", XsrUiOrientation.Vertical, 8);
-        _shell.Tree.GetComponent<XsrUiElement>(body)!.Padding = new(12, 12, 12, 12);
-        ContentImage(body, item, null, 140);
-        DesktopLiteralText.Preserve(_shell.Tree, Text(body, item.Name, 12, Ink, 26));
-        if (includeTimestamp && ScreenshotTimestamp(item.ModifiedUtcTicks) is { } timestamp)
-            DesktopLiteralText.Preserve(_shell.Tree, Text(body, timestamp.ToString("HH:mm:ss", System.Globalization.CultureInfo.CurrentCulture), 11, Muted, 20));
     }
 
     private static string ResourcePackTitle(InstanceContentEntry item) =>

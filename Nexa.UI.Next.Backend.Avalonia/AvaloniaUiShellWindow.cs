@@ -108,7 +108,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
         };
-        _windowActions.MinimizeRequested += (_, _) => WindowState = WindowState.Minimized;
+        _windowActions.MinimizeRequested += (_, _) => RequestMinimize();
         _windowActions.MaximizeRequested += OnMaximizeRequested;
         _windowActions.CloseRequested += (_, _) => RequestWindowClose();
 
@@ -172,6 +172,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
         // Native Show reapplies Avalonia's DWM frame even when restoring a hidden normal
         // window. Repair every opening, before observers, independently of first entrance.
         UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
+        if (_hasOpened && !_showingForTrayRestore) CancelTrayVisibility();
         base.OnOpened(e);
         _surface.SetRasterPresentationEnabled(WindowState != WindowState.Minimized);
         _shell.PublishWindowActivity(IsActive, WindowState == WindowState.Minimized);
@@ -203,6 +204,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
         if (e.Cancel) return;
         if (!_explicitCloseRequested && !_closeAnimationStarted && HideToTrayRequested?.Invoke() == true) { e.Cancel = true; return; }
         if (!_closeAnimationStarted && CloseGuard?.Invoke() == false) { e.Cancel = true; return; }
+        CancelTrayVisibility();
         if (_closeAnimationStarted || _shell.Renderer.EffectiveReducedMotion)
         {
             return;
@@ -224,6 +226,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
     {
         if (!_closeAnimationStarted && CloseGuard?.Invoke() == false) return;
         _explicitCloseRequested = true;
+        CancelTrayVisibility();
         if (_closeAnimationStarted || _shell.Renderer.EffectiveReducedMotion)
         {
             Close();
@@ -243,6 +246,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _disposed = true;
+        CancelTrayVisibility();
         CancelStartupEntrance();
         AvaloniaUiMotion.CancelAll(this);
         PropertyChanged -= OnWindowPropertyChanged;
@@ -439,6 +443,7 @@ public sealed partial class AvaloniaUiShellWindow : Window
             UpdateChromeForState(WindowState is WindowState.Maximized or WindowState.FullScreen);
         if (e.Property == Window.WindowStateProperty)
         {
+            if (WindowState != WindowState.Minimized) _lastNonMinimizedState = WindowState;
             bool maximized = e.NewValue is WindowState state && state is WindowState.Maximized or WindowState.FullScreen;
             _windowActions.SetMaximized(maximized);
             UpdateChromeForState(maximized);

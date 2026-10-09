@@ -28,6 +28,7 @@ public sealed partial class AvaloniaUiShellWindow
     {
         _explicitCloseRequested = true;
         _closeAnimationStarted = true;
+        CancelTrayVisibility();
         CloseGuard = null;
         HideToTrayRequested = null;
         Close();

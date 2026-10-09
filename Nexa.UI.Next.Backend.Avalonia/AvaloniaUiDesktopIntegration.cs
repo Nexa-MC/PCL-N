@@ -31,6 +31,7 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
         _window = window; _restore = restore; _settings = settings; _localize = localize;
         _createTray = createTray ?? throw new ArgumentNullException(nameof(createTray));
         window.HideToTrayRequested = TryHide;
+        window.MinimizeToTrayRequested = TryMinimizeToTray;
         window.PropertyChanged += OnChanged;
         window.Closed += OnClosed;
     }
@@ -46,7 +47,7 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
             _hostAvailable = !OperatingSystem.IsLinux();
             _tray?.Dispose(); _tray = null;
             _availabilityStop?.Cancel(); _availabilityStop?.Dispose(); _availabilityStop = null;
-            if (!_window.IsVisible) _restore();
+            if (!_window.IsVisible || _window.IsHidingToTray) _restore();
             return;
         }
         if (_tray is not null || _window.Icon is null) return;
@@ -80,15 +81,21 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
     private bool TryHide()
     {
         if (!_policy.CloseToTray || !_policy.TrayEnabled) return false;
-        if (TrayAvailable) _window.Hide();
+        if (TrayAvailable) _window.HideToTray();
         else _window.WindowState = WindowState.Minimized;
+        return true;
+    }
+    private bool TryMinimizeToTray()
+    {
+        if (!_policy.MinimizeToTray || !TrayAvailable) return false;
+        _window.HideToTray();
         return true;
     }
     private void OnChanged(object? sender, AvaloniaPropertyChangedEventArgs args)
     {
         if (args.Property == Window.IconProperty && _tray is not null) _tray.Icon = _window.Icon;
         if (args.Property == Window.WindowStateProperty && _window.WindowState == WindowState.Minimized
-            && _policy.MinimizeToTray && TrayAvailable) _window.Hide();
+            && _policy.MinimizeToTray && TrayAvailable) _window.HideToTray();
     }
     private void OnClosed(object? sender, EventArgs args) => Dispose();
     private async Task MonitorHostAsync(CancellationToken token)
@@ -102,7 +109,7 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
                 {
                     if (_disposed || token.IsCancellationRequested) return;
                     _hostAvailable = available;
-                    if (!available && !_window.IsVisible) _restore();
+                    if (!available && (!_window.IsVisible || _window.IsHidingToTray)) _restore();
                 });
                 await Task.Delay(TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
             }
@@ -114,10 +121,12 @@ internal sealed class AvaloniaUiDesktopIntegration : IDisposable
         if (_disposed) return;
         _disposed = true;
         _window.HideToTrayRequested = null;
+        _window.MinimizeToTrayRequested = null;
         _window.PropertyChanged -= OnChanged;
         _window.Closed -= OnClosed;
         _tray?.Dispose(); _tray = null;
         _availabilityStop?.Cancel(); _availabilityStop?.Dispose(); _availabilityStop = null;
+        if (_window.IsHidingToTray) _restore();
     }
 }
 

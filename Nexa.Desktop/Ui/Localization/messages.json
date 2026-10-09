@@ -1,4 +1,12 @@
 [
+  {"source":"截图预览","en":"Screenshot preview","zh-Hant":"截圖預覽"},
+  {"source":"收起裁剪","en":"Hide crop controls","zh-Hant":"收起裁切"},
+  {"source":"裁剪副本","en":"Crop a copy","zh-Hant":"裁切副本"},
+  {"source":"截图操作已完成。","en":"Screenshot operation completed.","zh-Hant":"截圖操作已完成。"},
+  {"source":"截图操作未完成，请刷新后重试。","en":"The screenshot operation did not complete. Refresh and try again.","zh-Hant":"截圖操作未完成，請重新整理後重試。"},
+  {"source":"无法读取原图，请刷新后重试；仍可打开所在文件夹。","en":"Unable to read the original image. Refresh and try again; you can still open its folder.","zh-Hant":"無法讀取原圖，請重新整理後重試；仍可開啟所在資料夾。"},
+  {"source":"修改时间未知","en":"Modification time unknown","zh-Hant":"修改時間未知"},
+  {"source":"截图已变化，请刷新后重试。","en":"The screenshot has changed. Refresh and try again.","zh-Hant":"截圖已變更，請重新整理後重試。"},
   {"source":"发现插件接口","en":"Discovering plugin interfaces","zh-Hant":"探索外掛介面"},
   {"source":"读取更新状态","en":"Reading update state","zh-Hant":"讀取更新狀態"},
   {"source":"检查启动器更新","en":"Checking launcher updates","zh-Hant":"檢查啟動器更新"},

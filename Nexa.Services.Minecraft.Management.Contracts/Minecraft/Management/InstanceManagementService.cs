@@ -18,6 +18,8 @@ public sealed record InstanceContentEntry(string Name, bool IsDirectory, long? S
     public string Version { get; init; } = "";
     public string Description { get; init; } = "";
     public Nexa.Core.Media.PngImage? Icon { get; init; }
+    public int? ImageWidth { get; init; }
+    public int? ImageHeight { get; init; }
     public bool? Enabled { get; init; }
     public bool? PackageReadable { get; init; }
     public string PackageProblem { get; init; } = "";
