@@ -14,6 +14,8 @@ from verify import expected_names
 
 REPOSITORY = "PCL-N-Edition/PCL-N"
 ROOT = Path(__file__).resolve().parents[2]
+HISTORY_LIST_LIMIT = 2  # At most the current release and one preceding published record.
+HISTORY_LIST_BYTES = 4 * 1024 * 1024
 
 
 def download(url, output, maximum, authenticated=False):
@@ -55,6 +57,37 @@ def validate_remote_manifest(raw, version):
     return assets
 
 
+def latest_history_candidate(raw, version):
+    """Select only the first other published record, never an older fallback."""
+    releases = json.loads(raw, object_pairs_hook=unique_object)
+    if not isinstance(releases, list) or len(releases) > HISTORY_LIST_LIMIT:
+        raise ValueError("Invalid bounded historical release list")
+    seen_ids, seen_versions = set(), set()
+    for release in releases:
+        if (not isinstance(release, dict) or type(release.get("id")) is not int or release["id"] <= 0
+                or type(release.get("draft")) is not bool or not isinstance(release.get("tag_name"), str)
+                or not release["tag_name"] or len(release["tag_name"]) > 128):
+            raise ValueError("Invalid historical release record")
+        value = release["tag_name"].removeprefix("v")
+        if release["id"] in seen_ids or value in seen_versions:
+            raise ValueError("Duplicate historical release record")
+        seen_ids.add(release["id"])
+        seen_versions.add(value)
+    for release in releases:
+        tag = release["tag_name"]
+        value = tag.removeprefix("v")
+        if release["draft"] or value == version:
+            continue
+        try:
+            eligible = release_channel(value) == release_channel(version) and canonical_order(value) < canonical_order(version)
+        except ValueError:
+            eligible = False
+        # The latest other published release owns the one-history slot, even if it
+        # is incompatible. Do not search the second record for a more useful base.
+        return (value, tag) if eligible else None
+    return None
+
+
 def fetch(history, version):
     history.mkdir(parents=True, exist_ok=True)
     if release_channel(version) == "ci":
@@ -63,22 +96,11 @@ def fetch(history, version):
         work = Path(temp)
         import_public(home, (ROOT / "GPG-PUBLIC-KEY.asc").read_bytes(), FINGERPRINT)
         listing = work / "releases"
-        download(f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=100", listing, 4 * 1024 * 1024, authenticated=True)
-        releases = json.loads(listing.read_bytes())
-        candidates = []
-        for release in releases:
-            tag = release.get("tag_name", "")
-            value = tag.removeprefix("v")
-            try:
-                eligible = release_channel(value) == release_channel(version) and canonical_order(value) < canonical_order(version)
-            except ValueError:
-                continue
-            if eligible and not release.get("draft"):
-                candidates.append((canonical_order(value), value, tag))
+        download(f"https://api.github.com/repos/{REPOSITORY}/releases?per_page={HISTORY_LIST_LIMIT}&page=1",
+                 listing, HISTORY_LIST_BYTES, authenticated=True)
+        candidate = latest_history_candidate(listing.read_bytes(), version)
         accepted = 0
-        for _, value, tag in sorted(candidates, reverse=True):
-            if accepted == 3:
-                break
+        for value, tag in [candidate] if candidate is not None else []:
             directory = work / value
             directory.mkdir()
             base = f"https://github.com/{REPOSITORY}/releases/download/{tag}/"
@@ -107,7 +129,7 @@ def fetch(history, version):
             accepted += 1
             print(f"Authenticated historical source {value} for six platforms")
         if not accepted:
-            print("No compatible authenticated historical source; publishing full packages only.")
+            print("The latest historical release has no compatible authenticated source; publishing full packages only.")
 
 
 if __name__ == "__main__":
@@ -116,3 +138,4 @@ if __name__ == "__main__":
     parser.add_argument("version")
     args = parser.parse_args()
     fetch(args.history, args.version)
+
