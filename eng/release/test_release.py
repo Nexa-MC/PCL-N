@@ -37,7 +37,7 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 verify(root, "2.0.0")
 
-    def test_changelog_preserves_commit_text_without_executing_it(self):
+    def test_manual_notes_are_preserved_without_commit_log_fallback_or_execution(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             def git(*args):
@@ -53,11 +53,16 @@ class ReleaseTests(unittest.TestCase):
             sha = git("rev-parse", "HEAD")
             environment = dict(os.environ)
             environment.pop("GITHUB_OUTPUT", None)
-            subprocess.run([sys.executable, str(Path(__file__).with_name("metadata.py")), "--ref", "refs/tags/v2.0.0.beta.1", "--sha", sha, "--output", "out"], cwd=root, env=environment, check=True)
+            manual = "# 手写更新\n\n- literal $(touch SHOULD_NOT_EXIST)\nDetails with `backticks` and 中文\n"
+            (root / "manual.md").write_text(manual, encoding="utf-8")
+            subprocess.run([sys.executable, str(Path(__file__).with_name("metadata.py")), "--ref", "refs/tags/v2.0.0.beta.1", "--sha", sha, "--output", "out", "--release-notes-file", "manual.md"], cwd=root, env=environment, check=True)
             notes = (root / "out/CHANGELOG.md").read_text(encoding="utf-8")
             self.assertIn("$(touch SHOULD_NOT_EXIST)", notes)
             self.assertIn("Details with `backticks` and 中文", notes)
             self.assertNotIn("old entry", notes)
+            self.assertNotIn("fix:", notes)
+            self.assertEqual(manual, notes)
+            self.assertEqual(manual, (root / "out/RELEASE.md").read_text(encoding="utf-8"))
             self.assertFalse((root / "SHOULD_NOT_EXIST").exists())
 
 
@@ -160,3 +165,4 @@ class ReleaseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

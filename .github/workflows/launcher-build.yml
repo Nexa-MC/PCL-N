@@ -4,6 +4,11 @@ on:
     branches: [refactor/xsr]
     tags: ['[0-9]*', 'v[0-9]*']
   workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Manual notes for a new tagged Release; existing Release body is authoritative'
+        required: false
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -27,8 +32,21 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s eng/release -p 'test_*.py'
+      - name: Require human-written notes before building a tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANUAL_RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          python eng/release/release_notes.py prepare --repository "$GITHUB_REPOSITORY" \
+            --tag "$GITHUB_REF_NAME" --output release-metadata/RELEASE.md
       - id: version
-        run: python eng/release/metadata.py --base origin/dev --output release-metadata
+        run: |
+          args=()
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            args+=(--release-notes-file release-metadata/RELEASE.md)
+          fi
+          python eng/release/metadata.py --output release-metadata "${args[@]}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-metadata
@@ -251,16 +269,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          set -euo pipefail
-          flags=()
-          if [[ "$VERSION_CHANNEL" != stable ]]; then flags+=(--prerelease --latest=false); fi
-          # Re-runs on an existing tag update the description and re-attach assets instead of
-          # failing; the notes carry the download guide plus the changelog.
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release edit "$GITHUB_REF_NAME" --title "Nexa $PRODUCT_VERSION" \
-              --notes-file release-metadata/RELEASE.md "${flags[@]}"
-            gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber
-          else
-            gh release create "$GITHUB_REF_NAME" artifacts/* --verify-tag \
-              --title "Nexa $PRODUCT_VERSION" --notes-file release-metadata/RELEASE.md "${flags[@]}"
-          fi
+          python3 eng/release/release_notes.py publish --repository "$GITHUB_REPOSITORY" \
+            --tag "$GITHUB_REF_NAME" --version "$PRODUCT_VERSION" --channel "$VERSION_CHANNEL" \
+            --notes-file release-metadata/RELEASE.md --assets-directory artifacts
+
