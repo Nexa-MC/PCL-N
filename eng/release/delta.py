@@ -13,6 +13,8 @@ from manifest import release_channel, unique_object
 INDEX_NAME = "Nexa-Delta.json"
 ALGORITHM = "nexa-file-delta-v1"
 RIDS = ("win-x64", "win-arm64", "linux-x64", "linux-arm64", "osx-x64", "osx-arm64")
+MAX_HISTORY_SOURCES = 5
+MAX_PATCHES = MAX_HISTORY_SOURCES * len(RIDS)
 MAX_PACKAGE = 2 * 1024**3
 MAX_FILE = 1024**3
 MAX_TREE = 4 * 1024**3
@@ -304,7 +306,7 @@ def validate_index(directory, version):
     if set(index) != {"schemaVersion", "product", "version", "runtimeVariant", "configuration", "patches"} or (
             type(index["schemaVersion"]) is not int or index["schemaVersion"] != 1 or index["product"] != "nexacl"
             or index["version"] != version or index["runtimeVariant"] != "nativeaot-self-contained"
-            or index["configuration"] != "Release" or not isinstance(index["patches"], list) or not 0 < len(index["patches"]) <= 18):
+            or index["configuration"] != "Release" or not isinstance(index["patches"], list) or not 0 < len(index["patches"]) <= MAX_PATCHES):
         raise ValueError("Invalid differential index identity")
     names, keys = {INDEX_NAME}, set()
     for patch in index["patches"]:
@@ -333,3 +335,4 @@ if __name__ == "__main__":
     parser.add_argument("history", type=Path)
     args = parser.parse_args()
     generate(args.directory, args.version, args.history)
+
