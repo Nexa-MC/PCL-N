@@ -90,3 +90,34 @@ New XSR projects import `eng/xsr/Xsr.Version.props`. Builds may set:
 - `XsrCommitShort=ffffff` for CI, or provide `GITHUB_SHA` from which the first six characters are derived.
 
 The build fails when the selected channel lacks its required sequence/hash or the resulting product version does not match the canonical grammar.
+
+## Human-written release notes
+
+Tagged Launcher Build runs require non-empty, human-written notes before any platform build.
+Maintain the full description in the matching GitHub Release. An existing non-empty Release
+body is authoritative; CI preserves it, its title, and its publication state when attaching
+assets, including edits made while the build is running. CI never replaces it with Git logs.
+The prepared body is also saved verbatim in the release metadata artifacts.
+
+For a Release that does not yet exist, a manual tagged dispatch may supply `release_notes`.
+An existing Release with an empty body must be filled in the Release editor; dispatch input
+cannot override it. Empty input fails in the metadata job with an actionable error. If an
+existing body is cleared during the build, publication fails without restoring old text. Missing
+notes never produce an empty public release or silently fall back to generated commit text.
+Read/authentication failures also fail closed. A newly created release requires both non-empty
+notes and distribution assets. Branch CI remains a non-release build and uses an explicit
+non-public placeholder instead of inventing a changelog.
+The preparation artifact also records whether the Release was absent. Only that explicit
+manual-input path may create a new Release; a previously existing Release removed during
+the build is never silently recreated, and a draft is never implicitly made public.
+
+The normal tag-push path works by writing the description in GitHub Release before its build
+starts. The optional dispatch input is not a replacement for that path: at the time of this
+change, default branch `dev` has no `launcher-build.yml`, so its Actions-page manual input
+cannot be assumed available. Enabling that entry point is a separate change. Dispatching a
+branch still creates CI artifacts, not a tagged release.
+
+Changes here apply only to refs containing the new workflow/scripts. Re-running an older tag
+uses its older implementation. This change does not move existing tags or repair the separate
+historical-package lookup used to generate differential updates.
+

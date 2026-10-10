@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from release_notes import require_notes
+
 TAG = re.compile(r"v?((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))(?:\.(alpha|beta)\.([1-9]\d*)|\.ci\.([0-9a-f]{6}))?$")
 
 # Asset purposes for the release page; keys mirror eng/release/verify.py FORMATS so the
@@ -125,21 +127,21 @@ def main():
     parser.add_argument("--base", default=os.environ.get("RELEASE_BASE", ""),
                         help="branch scoping the first release's changelog, e.g. origin/dev")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--release-notes-file", type=Path,
+                        help="non-empty human-written GitHub Release body; required for tags")
     args = parser.parse_args()
     sha = git("rev-parse", f"{args.sha}^{{commit}}")
     data = identity(args.ref, sha)
-    # Only tags in this product's own version line (same dotted prefix, e.g. 2.0.0.*) can be
-    # a previous release; the repository also carries legacy tags from other product lines
-    # (e.g. 2.10.x) that must never scope this product's changelog.
-    prefix = data["prefix"]
-    previous = next((tag for tag in git("tag", "--merged", sha, "--sort=-creatordate").splitlines()
-                     if (bare := tag.removeprefix("v")) != prefix and bare.startswith(prefix + ".")
-                     and TAG.fullmatch(tag) and git("rev-parse", f"{tag}^{{commit}}") != sha), None)
-    changelog_text = changelog(data["version"], previous, sha, args.base)
-    body = release_body(data, changelog_text, previous)
+    if data["release"] == "true":
+        if args.release_notes_file is None:
+            parser.error("tag builds require --release-notes-file; automatic Git logs are disabled")
+        body = require_notes(args.release_notes_file.read_text(encoding="utf-8"))
+    else:
+        # Branch artifacts are not releases and must not fabricate public release notes.
+        body = "CI build only. Release notes are maintained manually in GitHub Release.\n"
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "metadata.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
-    (args.output / "CHANGELOG.md").write_text(changelog_text, encoding="utf-8")
+    (args.output / "CHANGELOG.md").write_text(body, encoding="utf-8")
     (args.output / "RELEASE.md").write_text(body, encoding="utf-8")
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, "a", encoding="utf-8") as stream:
@@ -149,3 +151,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
