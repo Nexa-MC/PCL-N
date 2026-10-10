@@ -24,29 +24,37 @@ def record(version, identifier=1, draft=False):
 
 class HistorySelectionTests(unittest.TestCase):
     def select(self, records):
-        return history.latest_history_candidate(json.dumps(records).encode(), CURRENT)
+        return history.recent_history_candidates(json.dumps(records).encode(), CURRENT)
 
-    def test_excludes_current_with_or_without_v_prefix(self):
+    def five(self):
+        return [record("v2.0.0.alpha." + str(i), 10 + i) for i in range(5, 0, -1)]
+
+    def expected_five(self):
+        return [("2.0.0.alpha." + str(i), "v2.0.0.alpha." + str(i)) for i in range(5, 0, -1)]
+
+    def test_current_present_with_or_without_v_leaves_five_history_slots(self):
         for current in (CURRENT, "v" + CURRENT):
             with self.subTest(current=current):
-                self.assertEqual((PREVIOUS, "v" + PREVIOUS),
-                    self.select([record(current), record("v" + PREVIOUS, 2)]))
+                self.assertEqual(self.expected_five(), self.select([record(current), *self.five()]))
 
-    def test_current_absent_only_first_other_published_record_is_selected(self):
-        self.assertEqual((PREVIOUS, "v" + PREVIOUS),
-            self.select([record("v" + PREVIOUS), record("v2.0.0.alpha.4", 2)]))
+    def test_current_absent_does_not_use_sixth_historical_record(self):
+        records = [*self.five(), record("v1.9.9.alpha.1", 99)]
+        self.assertEqual(self.expected_five(), self.select(records))
 
-    def test_incompatible_newer_or_legacy_first_record_does_not_scan_older(self):
-        for newest in ("v2.0.0.beta.1", "v2.0.0.alpha.7", "v1.4.14", "not-a-version", "v2.0.0.ci.abcdef"):
-            with self.subTest(newest=newest):
-                self.assertIsNone(self.select([record(newest), record("v" + PREVIOUS, 2)]))
+    def test_incompatible_entries_consume_slots_without_refill(self):
+        records = [record("v2.0.0.beta." + str(i), i) for i in range(1, 6)]
+        self.assertEqual([], self.select([*records, record("v" + PREVIOUS, 99)]))
+        for incompatible in ("v2.0.0.beta.1", "v2.0.0.alpha.7", "v1.4.14", "not-a-version", "v2.0.0.ci.abcdef"):
+            with self.subTest(incompatible=incompatible):
+                self.assertEqual([(PREVIOUS, "v" + PREVIOUS)],
+                    self.select([record(incompatible), record("v" + PREVIOUS, 2)]))
 
     def test_drafts_and_empty_or_current_only_windows_have_no_source(self):
         for records in ([], [record("v" + CURRENT)],
                         [record("v2.0.0.alpha.7", draft=True), record("v" + CURRENT, 2)]):
             with self.subTest(records=records):
-                self.assertIsNone(self.select(records))
-        self.assertEqual((PREVIOUS, "v" + PREVIOUS), self.select([
+                self.assertEqual([], self.select(records))
+        self.assertEqual([(PREVIOUS, "v" + PREVIOUS)], self.select([
             record("v2.0.0.alpha.7", draft=True), record("v" + PREVIOUS, 2)]))
 
     def test_invalid_or_duplicate_response_is_not_silently_full_only(self):
@@ -54,13 +62,13 @@ class HistorySelectionTests(unittest.TestCase):
                    [dict(id=1, tag_name="v" + PREVIOUS, draft="false")],
                    [record("v" + PREVIOUS), record("v2.0.0.alpha.4")],
                    [record(PREVIOUS), record("v" + PREVIOUS, 2)],
-                   [record("x" * 129)], [record("v2.0.0.alpha." + str(i), i) for i in (1, 2, 3)]]
+                   [record("x" * 129)], [record("v2.0.0.alpha." + str(i), i) for i in range(1, 8)]]
         for records in invalid:
             with self.subTest(records=records), self.assertRaises(ValueError):
                 self.select(records)
         for raw in (b"not json", b'[{"id":1,"id":2,"tag_name":"v2.0.0.alpha.5","draft":false}]'):
             with self.subTest(raw=raw), self.assertRaises(ValueError):
-                history.latest_history_candidate(raw, CURRENT)
+                history.recent_history_candidates(raw, CURRENT)
 
 
 class HistoryFetchTests(unittest.TestCase):
@@ -74,7 +82,7 @@ class HistoryFetchTests(unittest.TestCase):
         self.records = [record("v" + CURRENT), record("v" + PREVIOUS, 2)]
         self.raw_listing = None
         self.responses = {}
-        self.listing_url = f"https://api.github.com/repos/{history.REPOSITORY}/releases?per_page=2&page=1"
+        self.listing_url = f"https://api.github.com/repos/{history.REPOSITORY}/releases?per_page=6&page=1"
         self.asset_base = f"https://github.com/{history.REPOSITORY}/releases/download/v{PREVIOUS}/"
         assets = []
         for name in sorted(expected_names(PREVIOUS)):
@@ -128,15 +136,56 @@ class HistoryFetchTests(unittest.TestCase):
         self.assertEqual(1, self.calls.count(self.listing_url))
         self.assertEqual(9, len(self.calls))  # One list, manifest, signature and six packages.
 
-    def test_latest_missing_manifest_is_full_only_without_older_fallback(self):
+    def add_source(self, version):
+        base = f"https://github.com/{history.REPOSITORY}/releases/download/v{version}/"
+        manifest = copy.deepcopy(self.manifest)
+        manifest["version"] = version
+        for asset in manifest["assets"]:
+            asset["name"] = asset["name"].replace(PREVIOUS, version)
+            content = (asset["name"] + " trusted fixture").encode()
+            asset["size"] = len(content)
+            asset["sha256"] = hashlib.sha256(content).hexdigest()
+            self.responses[base + asset["name"]] = content
+        self.responses[base + "Nexa-Release.json"] = json.dumps(manifest).encode()
+        self.responses[base + "Nexa-Release.json.asc"] = b"signature fixture"
+
+    def test_all_five_sources_can_be_downloaded_for_all_six_platforms(self):
+        self.records = [record("v" + CURRENT)]
+        for number in range(5, 0, -1):
+            version = "2.0.0.alpha." + str(number)
+            self.records.append(record("v" + version, number + 10))
+            self.add_source(version)
+        self.fetch()
+        self.assertEqual({"2.0.0.alpha." + str(i) for i in range(1, 6)},
+                         {path.name for path in self.output.iterdir()})
+        self.assertEqual(30, len(list(self.output.glob("*/*"))))
+        self.assertEqual(41, len(self.calls))
+        self.assertEqual(1, self.calls.count(self.listing_url))
+
+    def test_missing_manifest_can_use_other_sources_only_inside_window(self):
         self.records = [record("v" + PREVIOUS), record("v2.0.0.alpha.4", 2)]
         self.responses[self.manifest_url] = urllib.error.HTTPError(self.manifest_url, 404, "missing", {}, None)
+        self.add_source("2.0.0.alpha.4")
         self.fetch()
-        self.assertEqual([self.listing_url, self.manifest_url], self.calls)
+        self.assertEqual(["2.0.0.alpha.4"], [path.name for path in self.output.iterdir()])
+        self.assertEqual(1, self.calls.count(self.listing_url))
+
+    def test_five_missing_manifests_do_not_refill_from_sixth_release(self):
+        self.records = []
+        manifests = []
+        for number in range(5, 0, -1):
+            self.records.append(record("v2.0.0.alpha." + str(number), number + 10))
+            url = self.manifest_url.replace(PREVIOUS, "2.0.0.alpha." + str(number))
+            manifests.append(url)
+            self.responses[url] = urllib.error.HTTPError(url, 404, "missing", {}, None)
+        self.records.append(record("v1.9.9.alpha.1", 99))
+        self.fetch()
+        self.assertEqual([self.listing_url, *manifests], self.calls)
         self.assertEqual([], list(self.output.iterdir()))
 
-    def test_incompatible_latest_does_not_fetch_manifests_or_next_page(self):
-        self.records = [record("v2.0.0.beta.1"), record("v" + PREVIOUS, 2)]
+    def test_incompatible_five_do_not_fetch_sixth_manifest_or_next_page(self):
+        self.records = [record("v2.0.0.beta." + str(i), i) for i in range(1, 6)]
+        self.records.append(record("v" + PREVIOUS, 99))
         self.fetch()
         self.assertEqual([self.listing_url], self.calls)
         self.assertEqual([], list(self.output.iterdir()))

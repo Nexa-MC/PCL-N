@@ -18,6 +18,7 @@ internal static partial class Program
             {
                 using var directory = new UpdateFixtureDirectory(path);
                 var fixture = CreateDeltaFixture(rid);
+                fixture.Source.SetIndexPatchCount(30);
                 SeedDeltaSource(directory, fixture);
                 var transaction = new AutomaticUpdateTransaction(directory, fixture.Identity, fixture.Verifier, fixture.Source);
                 string slot = await transaction.InstallAsync("2.0.0.alpha.6", "alpha");
@@ -37,7 +38,8 @@ internal static partial class Program
     private static async ValueTask AutomaticUpdateDeltaFailureFallsBack()
     {
         foreach (string failure in new[] { "index-signature", "bundle-digest", "base-modified", "source-range", "traversal",
-                     "missing-host", "stored-size", "duplicate", "target-digest", "unprofitable", "missing-index", "missing-bundle" })
+                     "missing-host", "stored-size", "duplicate", "target-digest", "unprofitable", "missing-index", "missing-bundle",
+                     "index-over-limit" })
         {
             string path = CreateTempDirectory();
             try
@@ -51,6 +53,7 @@ internal static partial class Program
                     .InstallAsync("2.0.0.alpha.6", "alpha");
                 AssertDeltaOutput(directory, slot, fixture);
                 AssertEqual(1, fixture.Source.FullRequests);
+                if (failure == "index-over-limit") AssertEqual(0, fixture.Source.DeltaRequests);
             }
             finally { Directory.Delete(path, recursive: true); }
         }
@@ -332,6 +335,31 @@ internal static partial class Program
             SignIndex();
         }
         private void SignIndex() { _indexBytes = Encoding.UTF8.GetBytes(_index.ToJsonString()); _signature = Encoding.ASCII.GetBytes(_sign(_indexBytes)); }
+        internal void SetIndexPatchCount(int count)
+        {
+            string[] rids = ["win-x64", "win-arm64", "linux-x64", "linux-arm64", "osx-x64", "osx-arm64"];
+            string[] versions = ["2.0.0.alpha.5", "2.0.0.alpha.4", "2.0.0.alpha.3", "2.0.0.alpha.2", "2.0.0.alpha.1", "1.9.9"];
+            if (count < 1 || count > rids.Length * versions.Length) throw new ArgumentOutOfRangeException(nameof(count));
+            JsonNode selected = _index["patches"]![0]!.DeepClone();
+            string selectedRid = selected["rid"]!.GetValue<string>();
+            var patches = new JsonArray(selected);
+            foreach (string from in versions)
+            {
+                foreach (string rid in rids)
+                {
+                    if (patches.Count == count) break;
+                    if (from == "2.0.0.alpha.5" && rid == selectedRid) continue;
+                    JsonNode patch = selected.DeepClone();
+                    patch["fromVersion"] = from;
+                    patch["rid"] = rid;
+                    patch["name"] = $"Nexa-2.0.0.alpha.6-{rid}.from-{from}.delta.zip";
+                    patches.Add(patch);
+                }
+            }
+            // All identities stay valid and unique, so only the entry budget rejects item 31.
+            _index["patches"] = patches;
+            SignIndex();
+        }
         internal void Mutate(string failure)
         {
             _failure = failure;
@@ -345,6 +373,7 @@ internal static partial class Program
             if (failure == "bundle-digest") Bundle[^1] ^= 1;
             if (failure == "target-digest") { _index["patches"]![0]!["targetSha256"] = new string('0', 64); SignIndex(); }
             if (failure == "unprofitable") { _index["patches"]![0]!["size"] = Full.Length; SignIndex(); }
+            if (failure == "index-over-limit") SetIndexPatchCount(31);
         }
         public Task<(byte[] Manifest, byte[] Signature)> ReadReleaseAsync(string version, CancellationToken token)
             => Offline ? throw new IOException("Offline") : Task.FromResult((_release, _releaseSignature));
@@ -363,3 +392,4 @@ internal static partial class Program
         }
     }
 }
+

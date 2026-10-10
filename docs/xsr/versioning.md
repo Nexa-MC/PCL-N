@@ -121,14 +121,19 @@ The human-written-notes changes above apply only to refs containing the new work
 Re-running an older tag uses its older implementation. Those notes changes do not move existing
 tags or alter the separate historical-package lookup described below.
 
-## Single historical source for differential updates
+## Five-release window for differential updates
 
-Differential generation considers only the latest other published Release returned by GitHub.
-One request reads at most two Release records (the current tag may already be present), under
-the existing 4 MiB response budget. There is no pagination or fallback scan into older history.
-The selected release must precede the target in the same channel. If it is incompatible or
-has no `Nexa-Release.json` (HTTP 404), publish full packages only. Drafts and the current version
-are excluded; finding no other published record in this bounded window also means full-only.
+Differential generation considers at most the five latest other published Release records
+returned by GitHub. One request reads at most six records (the current tag may already be
+present), under the existing 4 MiB response budget. Drafts and the current version are excluded.
+There is no pagination or refill from a sixth historical release: incompatible versions and
+missing `Nexa-Release.json` files (HTTP 404) consume their place in the five-record window.
+Each compatible, authenticated source in that window may produce a direct delta to the target
+for each of six platforms, but only when the delta is smaller than the full package. If none
+qualify, publish full packages only. Publisher and client accept at most 30 index entries
+(five sources times six platforms), still within the 1 MiB index budget. Older clients with
+the previous 18-entry bound safely fall back to independently verified full packages when
+given a larger index; they do not accept an unchecked delta.
 Malformed/duplicate responses, missing or invalid signatures, signed identity mismatches,
 package length/hash errors and other download failures remain errors. The pinned repository,
 publisher key, manifest contract and package verification are unchanged.

@@ -8,7 +8,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from delta import (INDEX_NAME, RIDS, build_bundle, canonical_order, delta_name, digest,
+from delta import (INDEX_NAME, MAX_HISTORY_SOURCES, MAX_PATCHES, RIDS, build_bundle, canonical_order, delta_name, digest,
                    generate, package_name, safe_path, unpack, validate_index)
 from delta_history import validate_remote_manifest
 from manifest import build_manifest
@@ -101,6 +101,39 @@ class DeltaTests(unittest.TestCase):
             self.assertFalse((output / INDEX_NAME).exists())
             self.assertFalse(list(output.glob("*.delta.zip")))
 
+    def test_five_sources_generate_thirty_entries_and_thirty_one_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); output, history = root / "out", root / "history"
+            output.mkdir(); history.mkdir()
+            version = "2.0.0.alpha.6"
+            self.assertEqual(5, MAX_HISTORY_SOURCES)
+            self.assertEqual(30, MAX_PATCHES)
+            data = random.Random(21).randbytes(256 * 1024)
+            for name in expected_names(version):
+                (output / name).write_bytes(b"installer fixture")
+            for number in range(1, 6):
+                previous = history / f"2.0.0.alpha.{number}"; previous.mkdir()
+                for rid in RIDS:
+                    self.make_archive(previous, previous.name, rid, data)
+            for rid in RIDS:
+                self.make_archive(output, version, rid, data + b"new tail")
+            generate(output, version, history)
+            index_path = output / INDEX_NAME
+            index = json.loads(index_path.read_text())
+            self.assertEqual(30, len(index["patches"]))
+            self.assertEqual(31, len(validate_index(output, version)))
+            verify(output, version)
+            self.assertEqual(49, len((output / "SHA256SUMS").read_text().splitlines()))
+            extra = copy.deepcopy(index["patches"][0])
+            source = "1.9.9.alpha.1"
+            extra["fromVersion"] = source
+            extra["name"] = delta_name(version, extra["rid"], source)
+            (output / extra["name"]).write_bytes((output / index["patches"][0]["name"]).read_bytes())
+            index["patches"].append(extra)
+            index_path.write_text(json.dumps(index))
+            with self.assertRaisesRegex(ValueError, "index identity"):
+                validate_index(output, version)
+
     def test_untrusted_archive_paths_links_and_actual_size_mismatch_are_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -135,4 +168,5 @@ class DeltaTests(unittest.TestCase):
                     validate_remote_manifest(json.dumps(invalid).encode(), "2.0.0.alpha.5")
             with self.assertRaises(ValueError):
                 canonical_order("2.0.0.ci.abcdef")
+
 

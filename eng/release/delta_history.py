@@ -7,14 +7,14 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from delta import MAX_PACKAGE, RIDS, canonical_order, digest, package_name
+from delta import MAX_HISTORY_SOURCES, MAX_PACKAGE, RIDS, canonical_order, digest, package_name
 from manifest import release_channel, unique_object
 from sign import FINGERPRINT, gpg, import_public, keyring
 from verify import expected_names
 
 REPOSITORY = "PCL-N-Edition/PCL-N"
 ROOT = Path(__file__).resolve().parents[2]
-HISTORY_LIST_LIMIT = 2  # At most the current release and one preceding published record.
+HISTORY_LIST_LIMIT = MAX_HISTORY_SOURCES + 1  # The current release may already be present.
 HISTORY_LIST_BYTES = 4 * 1024 * 1024
 
 
@@ -57,8 +57,8 @@ def validate_remote_manifest(raw, version):
     return assets
 
 
-def latest_history_candidate(raw, version):
-    """Select only the first other published record, never an older fallback."""
+def recent_history_candidates(raw, version):
+    """Filter within five other published records, never refill from older history."""
     releases = json.loads(raw, object_pairs_hook=unique_object)
     if not isinstance(releases, list) or len(releases) > HISTORY_LIST_LIMIT:
         raise ValueError("Invalid bounded historical release list")
@@ -73,19 +73,23 @@ def latest_history_candidate(raw, version):
             raise ValueError("Duplicate historical release record")
         seen_ids.add(release["id"])
         seen_versions.add(value)
+    candidates, considered = [], 0
     for release in releases:
         tag = release["tag_name"]
         value = tag.removeprefix("v")
         if release["draft"] or value == version:
             continue
+        if considered == MAX_HISTORY_SOURCES:
+            break
+        considered += 1
         try:
             eligible = release_channel(value) == release_channel(version) and canonical_order(value) < canonical_order(version)
         except ValueError:
             eligible = False
-        # The latest other published release owns the one-history slot, even if it
-        # is incompatible. Do not search the second record for a more useful base.
-        return (value, tag) if eligible else None
-    return None
+        # Incompatible releases still consume a slot in the five-record window.
+        if eligible:
+            candidates.append((value, tag))
+    return candidates
 
 
 def fetch(history, version):
@@ -98,9 +102,9 @@ def fetch(history, version):
         listing = work / "releases"
         download(f"https://api.github.com/repos/{REPOSITORY}/releases?per_page={HISTORY_LIST_LIMIT}&page=1",
                  listing, HISTORY_LIST_BYTES, authenticated=True)
-        candidate = latest_history_candidate(listing.read_bytes(), version)
+        candidates = recent_history_candidates(listing.read_bytes(), version)
         accepted = 0
-        for value, tag in [candidate] if candidate is not None else []:
+        for value, tag in candidates:
             directory = work / value
             directory.mkdir()
             base = f"https://github.com/{REPOSITORY}/releases/download/{tag}/"
@@ -129,7 +133,7 @@ def fetch(history, version):
             accepted += 1
             print(f"Authenticated historical source {value} for six platforms")
         if not accepted:
-            print("The latest historical release has no compatible authenticated source; publishing full packages only.")
+            print("The five-release history window has no compatible authenticated source; publishing full packages only.")
 
 
 if __name__ == "__main__":

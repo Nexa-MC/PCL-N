@@ -28,7 +28,8 @@ internal sealed record VerifiedUpdateDelta(string Name, long Size, string Sha256
                 || Text(root, "version") != release.Version || Text(root, "runtimeVariant") != "nativeaot-self-contained"
                 || Text(root, "configuration") != "Release") throw new InvalidDataException("差分索引身份不匹配。");
             JsonElement patches = root.GetProperty("patches");
-            if (patches.ValueKind != JsonValueKind.Array || patches.GetArrayLength() > 18)
+            // Five historical versions across the six supported runtime identifiers.
+            if (patches.ValueKind != JsonValueKind.Array || patches.GetArrayLength() > 30)
                 throw new InvalidDataException("差分索引条目超限。");
             var identities = new HashSet<string>(StringComparer.Ordinal);
             VerifiedUpdateDelta? selected = null;
@@ -86,3 +87,4 @@ internal sealed record VerifiedUpdateDelta(string Name, long Size, string Sha256
         if (seen.Count != names.Length) throw new InvalidDataException("差分字段缺失。");
     }
 }
+
