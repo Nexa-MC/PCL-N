@@ -1,0 +1,81 @@
+name: XSR read-only cleanup inventory
+
+on:
+  push:
+    branches: [audit/xsr-cleanup-inventory-24a97b9b]
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Read the frozen source, not the audit branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 24a97b9b45d4652b755ad2edbe897928fde543f5
+          persist-credentials: false
+      - name: Inventory project boundaries without changing source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/xsr-audit"
+          git archive --format=zip HEAD -o "$RUNNER_TEMP/xsr-audit/source-24a97b9b.zip"
+          python3 - <<'PY'
+          import collections, hashlib, json, os, pathlib, subprocess
+          import xml.etree.ElementTree as ET
+          root = pathlib.Path.cwd()
+          output = pathlib.Path(os.environ['RUNNER_TEMP']) / 'xsr-audit'
+          paths = [pathlib.Path(p) for p in subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0') if p]
+          projects = sorted(p for p in paths if p.suffix in ('.csproj', '.fsproj', '.vbproj', '.vcxproj'))
+          source_ext = {'.cs', '.fs', '.vb', '.cpp', '.c', '.h', '.hpp', '.py', '.ps1', '.sh', '.java', '.ts', '.tsx', '.js'}
+          source = [p for p in paths if p.suffix in source_ext]
+          rows = []
+          for p in source:
+              raw = p.read_bytes()
+              text = raw.decode('utf-8-sig', errors='replace')
+              owners = [q for q in projects if p.is_relative_to(q.parent)]
+              owner = str(max(owners, key=lambda q: len(q.parts))) if owners else None
+              rows.append({'path': str(p), 'project': owner, 'lines': len(text.splitlines()), 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()})
+          groups = collections.defaultdict(list)
+          for row in rows:
+              groups[row['sha256']].append(row['path'])
+          duplicates = [v for v in groups.values() if len(v) > 1]
+          project_rows = []
+          duplicate_items = []
+          for p in projects:
+              own = [r for r in rows if r['project'] == str(p)]
+              project_rows.append({'project': str(p), 'source_files': len(own), 'source_lines': sum(r['lines'] for r in own), 'over_800': sum(r['lines'] > 800 for r in own)})
+              tree = ET.parse(p)
+              seen = collections.defaultdict(list)
+              for parent in tree.getroot().iter():
+                  for item in parent:
+                      tag = item.tag.split('}')[-1]
+                      if tag in ('ProjectReference', 'PackageReference', 'Compile') and 'Include' in item.attrib:
+                          key = (tag, tuple(sorted(item.attrib.items())), parent.get('Condition', ''), tuple(ET.tostring(c, encoding='unicode') for c in item))
+                          seen[key].append(item.get('Include'))
+              for key, items in seen.items():
+                  if len(items) > 1:
+                      duplicate_items.append({'project': str(p), 'kind': key[0], 'include': items[0], 'count': len(items)})
+          rules = {str(p): p.read_text(encoding='utf-8-sig') for p in paths if p.name in ('AGENTS.md', 'CLAUDE.md')}
+          solution_projects = [n.get('Path') for n in ET.parse('NexaCL.slnx').iter('Project')]
+          data = {'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip(), 'solution_projects': solution_projects, 'projects': project_rows, 'source_files': rows, 'over_800': sorted([r for r in rows if r['lines'] > 800], key=lambda r: -r['lines']), 'exact_file_duplicates': duplicates, 'duplicate_project_items': duplicate_items, 'rules': rules, 'limitations': ['Static inventory only; no source modifications, compilation, reachability proof, or automatic deletions.', 'Ownership is physical-directory based; linked Compile items require a separate evaluated-project review.']}
+          (output / 'inventory.json').write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+          print(json.dumps({'commit': data['commit'], 'project_count': len(projects), 'solution_project_count': len(solution_projects), 'source_files': len(source), 'over_800_count': len(data['over_800']), 'duplicate_project_items': duplicate_items, 'exact_file_duplicates': duplicates, 'rules': list(rules)}, ensure_ascii=False, indent=2))
+          print('\nFILES OVER 800 LINES')
+          for row in data['over_800']:
+              print(str(row['lines']) + '\t' + row['path'])
+          PY
+      - name: Bundle optional C-sharp parser wheels for offline audit
+        continue-on-error: true
+        shell: bash
+        run: python3 -m pip download --only-binary=:all: --dest "$RUNNER_TEMP/xsr-audit/parser-wheels" tree-sitter tree-sitter-c-sharp
+      - name: Retain the frozen-source audit evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: xsr-cleanup-inventory-24a97b9b
+          path: ${{ runner.temp }}/xsr-audit/
+          retention-days: 3
+          if-no-files-found: error
