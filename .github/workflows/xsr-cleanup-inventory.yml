@@ -24,11 +24,10 @@ jobs:
           mkdir -p "$RUNNER_TEMP/xsr-audit"
           git rev-parse HEAD > "$RUNNER_TEMP/xsr-audit/source-commit.txt"
           git archive --format=zip HEAD -o "$RUNNER_TEMP/xsr-audit/source-24a97b9b.zip"
-      - name: Bundle optional C-sharp parser wheels for offline audit
-        continue-on-error: true
+      - name: Bundle pinned C-sharp parser wheels for offline audit
         shell: bash
         run: |
-          python3 -m pip download --only-binary=:all: --python-version 3.13 --dest "$RUNNER_TEMP/xsr-audit/parser-wheels" tree-sitter tree-sitter-c-sharp
+          python3 -m pip download --only-binary=:all: --python-version 3.13 --dest "$RUNNER_TEMP/xsr-audit/parser-wheels" tree-sitter==0.25.2 tree-sitter-c-sharp==0.23.5
       - name: Retain the frozen-source audit evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
