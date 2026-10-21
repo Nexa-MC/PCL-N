@@ -113,7 +113,7 @@ def handoff(token, phase, refs=None, status=None):
         'branch': BRANCH, 'message': f'ci: request authorized Git transfer ({phase})',
         'content': base64.b64encode(json.dumps(request, indent=2).encode()).decode()})
     log('Awaiting authorized cloud Git transfer: ' + phase)
-    until = time.monotonic() + 900
+    until = time.monotonic() + 7200
     while time.monotonic() < until:
         item = api(token, 'GET', f'repos/{OLD}/contents/{receipt_path}?ref=' +
                    urllib.parse.quote(BRANCH, safe=''), missing=True)
