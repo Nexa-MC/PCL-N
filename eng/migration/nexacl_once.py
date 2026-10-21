@@ -122,10 +122,11 @@ def handoff(token, phase, refs=None, status=None):
             require(receipt.get('binding') == binding() and receipt.get('phase') == phase
                     and receipt.get('complete') is True, 'Git transfer receipt does not match this run.')
             if refs:
-                remote = dict((line.split()[1], line.split()[0])
-                              for line in git(token, 'ls-remote', f'https://github.com/{SOURCE}.git').splitlines())
-                require(all(remote.get(ref) == sha for ref, sha in refs.items()),
-                        'Independent destination Git ref verification failed.')
+                for ref, sha in refs.items():
+                    require(ref.startswith('refs/tags/'), 'Expected a source release tag.')
+                    actual = api(token, 'GET', f'repos/{SOURCE}/git/ref/' + ref.removeprefix('refs/'))
+                    require(actual['object']['type'] == 'commit' and actual['object']['sha'] == sha,
+                            'Independent destination Git ref verification failed.')
             log('Authorized cloud Git transfer independently verified: ' + phase)
             return
         time.sleep(5)

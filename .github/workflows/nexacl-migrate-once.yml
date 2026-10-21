@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 240
     env:
       TRANSFER_BRANCH: ci/migrate-nexacl-8ea8b7405620
-      TRANSFER_NONCE: 65091e9a727ccbb1a048c479493599a7
+      TRANSFER_NONCE: 5db0f489afd15efe6169c23b0e357eab
       TRANSFER_SOURCE_SHA: e2e2c6b8e0259b6c6b3dc6450d1ee2fe1f92a611
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -29,7 +29,7 @@ jobs:
       - name: Publish only the run-bound transport public key
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nexacl-alpha8-transfer-public-65091e9a727ccbb1a048c479493599a7
+          name: nexacl-alpha8-transfer-public-5db0f489afd15efe6169c23b0e357eab
           path: ${{ runner.temp }}/nexacl-transfer/public/*
           retention-days: 1
           if-no-files-found: error
