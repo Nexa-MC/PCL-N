@@ -253,28 +253,28 @@ def release(token, bare):
     log('Destination XSR CI succeeded; preparing maintained Beta 1 release notes.')
     notes = command(['git', 'show', SOURCE_SHA + ':docs/releases/2.0.0.beta.1.md'], cwd=bare).decode()
     releases = api(token, 'GET', f'repos/{SOURCE}/releases?per_page=100')
-    matching = [item for item in releases if item['tag_name'] == TAG]
-    require(len(matching) <= 1, 'Ambiguous existing Beta 1 release.')
-    if matching:
-        draft = matching[0]
-        require(draft['body'].strip() and draft['prerelease'], 'Existing Beta 1 notes/channel are invalid.')
-    else:
-        draft = api(token, 'POST', f'repos/{SOURCE}/releases', {
-            'tag_name': TAG, 'target_commitish': SOURCE_SHA,
-            'name': 'NexaCL Firefly Beta 1 · v2.0.0.beta.1',
-            'body': notes, 'draft': True, 'prerelease': True})
+    require(not any(item['tag_name'] == TAG for item in releases),
+            'Beta 1 already has a Release; preserve it and review before a new publication.')
+    # Existing publication contracts keep prewritten drafts private. Use the explicit
+    # manual-notes dispatch path instead: the verified source workflow creates the
+    # public release with its own GITHUB_TOKEN, preventing recursive release builds.
     existing_tag = api(token, 'GET', f'repos/{SOURCE}/git/ref/tags/{TAG}', missing=True)
     if existing_tag is None:
-        git(token, 'tag', TAG, SOURCE_SHA, cwd=bare)
-        git(token, 'push', f'https://github.com/{SOURCE}.git', 'refs/tags/' + TAG, cwd=bare)
+        api(token, 'PUT', f'repos/{SOURCE}/actions/workflows/launcher-build.yml/disable')
+        try:
+            git(token, 'tag', TAG, SOURCE_SHA, cwd=bare)
+            git(token, 'push', f'https://github.com/{SOURCE}.git', 'refs/tags/' + TAG, cwd=bare)
+        finally:
+            api(token, 'PUT', f'repos/{SOURCE}/actions/workflows/launcher-build.yml/enable')
     else:
         require(existing_tag['object']['type'] == 'commit' and existing_tag['object']['sha'] == SOURCE_SHA,
                 'Existing Beta 1 tag does not identify the verified source commit.')
-    wait_run(token, SOURCE, 'launcher-build.yml', sha=SOURCE_SHA, event='push')
-    current = api(token, 'GET', f'repos/{SOURCE}/releases/{draft["id"]}')
-    require(len(current['assets']) >= 20, 'Signed build did not attach the full distribution.')
-    if current['draft']:
-        api(token, 'PATCH', f'repos/{SOURCE}/releases/{draft["id"]}', {'draft': False, 'make_latest': 'false'})
+    after = dispatch(token, SOURCE, 'launcher-build.yml', TAG, {'release_notes': notes})
+    wait_run(token, SOURCE, 'launcher-build.yml', sha=SOURCE_SHA,
+             event='workflow_dispatch', after=after)
+    current = api(token, 'GET', f'repos/{SOURCE}/releases/tags/{TAG}')
+    require(not current['draft'] and len(current['assets']) >= 20,
+            'Signed build did not publish the full distribution.')
     after = dispatch(token, UPDATES, 'publish.yml', 'main', {'tag': TAG})
     wait_run(token, UPDATES, 'publish.yml', event='workflow_dispatch', after=after, minutes=40)
     verify_release_pair(token)
