@@ -149,6 +149,37 @@ def copy_secrets(token):
         os.environ.pop('TRANSFER_SECRET_' + name, None)
 
 
+
+def handoff(token, phase, refs=None, status=None):
+    # The cloud connection has authorized Git/workflow write access. The PAT
+    # remains limited to Secrets, Actions and repository administration.
+    request_path = f'.migration/request-{NONCE}-{phase}.json'
+    receipt_path = f'.migration/complete-{NONCE}-{phase}.json'
+    request = {'binding': binding(), 'phase': phase, 'repository': SOURCE,
+               'refs': refs or {}, 'status': status or ''}
+    api(token, 'PUT', f'repos/{OLD}/contents/{request_path}', {
+        'branch': BRANCH, 'message': f'ci: request authorized Git transfer ({phase})',
+        'content': base64.b64encode(json.dumps(request, indent=2).encode()).decode()})
+    log('Awaiting authorized cloud Git transfer: ' + phase)
+    until = time.monotonic() + 900
+    while time.monotonic() < until:
+        item = api(token, 'GET', f'repos/{OLD}/contents/{receipt_path}?ref=' +
+                   urllib.parse.quote(BRANCH, safe=''), missing=True)
+        if item is not None:
+            receipt = json.loads(base64.b64decode(item['content']))
+            require(receipt.get('binding') == binding() and receipt.get('phase') == phase
+                    and receipt.get('complete') is True, 'Git transfer receipt does not match this run.')
+            if refs:
+                remote = dict((line.split()[1], line.split()[0])
+                              for line in git(token, 'ls-remote', f'https://github.com/{SOURCE}.git').splitlines())
+                require(all(remote.get(ref) == sha for ref, sha in refs.items()),
+                        'Independent destination Git ref verification failed.')
+            log('Authorized cloud Git transfer independently verified: ' + phase)
+            return
+        time.sleep(5)
+    raise RuntimeError('Authorized Git transfer deadline exceeded: ' + phase)
+
+
 def migrate_history(token):
     old_head = api(token, 'GET', f'repos/{OLD}/git/ref/heads/refactor/xsr')['object']['sha']
     require(old_head == SOURCE_SHA, 'Source branch changed; refusing to migrate a different commit.')
@@ -164,8 +195,8 @@ def migrate_history(token):
     require('refs/heads/refactor/xsr' in refs, 'Migration source branch not present.')
     try:
         api(token, 'PUT', f'repos/{SOURCE}/actions/permissions', {'enabled': False})
-        git(token, 'push', '--atomic', f'https://github.com/{SOURCE}.git',
-            *[ref + ':' + ref for ref in refs], cwd=bare)
+        expected = {ref: git(token, 'rev-parse', ref, cwd=bare) for ref in refs}
+        handoff(token, 'history', expected)
         api(token, 'PATCH', f'repos/{SOURCE}', {
             'default_branch': 'refactor/xsr', 'has_issues': True, 'has_discussions': True,
             'description': 'NexaCL Firefly — cross-platform Minecraft launcher; continues PCL-N XSR history.'})
@@ -277,8 +308,7 @@ def release(token, bare):
     if existing_tag is None:
         api(token, 'PUT', f'repos/{SOURCE}/actions/workflows/launcher-build.yml/disable')
         try:
-            git(token, 'tag', TAG, SOURCE_SHA, cwd=bare)
-            git(token, 'push', f'https://github.com/{SOURCE}.git', 'refs/tags/' + TAG, cwd=bare)
+            handoff(token, 'tag', {'refs/tags/' + TAG: SOURCE_SHA})
         finally:
             api(token, 'PUT', f'repos/{SOURCE}/actions/workflows/launcher-build.yml/enable')
     else:
@@ -298,10 +328,6 @@ def release(token, bare):
 
 
 def retire_and_archive(token):
-    ref_path = f'repos/{OLD}/git/refs/heads/{BRANCH}'
-    latest = api(token, 'GET', f'repos/{OLD}/git/ref/heads/{BRANCH}')['object']['sha']
-    commit = api(token, 'GET', f'repos/{OLD}/git/commits/{latest}')
-    paths = [*WORKFLOW_FILES, f'.migration/transfer-{NONCE}.json']
     status = (f'# NexaCL migration — verified publication\n\n'
               f'- Continuation: https://github.com/{SOURCE}/tree/refactor/xsr\n'
               f'- Exact verified source: `{SOURCE_SHA}`\n'
@@ -314,16 +340,11 @@ def retire_and_archive(token):
               'This commit retires the one-time workflow and encrypted credential envelope. '
               'Old-source archival is the final operation immediately following this record; '
               'the repository archived flag is authoritative.\n')
-    status_blob = api(token, 'POST', f'repos/{OLD}/git/blobs', {'content': status, 'encoding': 'utf-8'})
-    entries = [{'path': path, 'mode': '100644', 'type': 'blob', 'sha': None} for path in paths]
-    entries.append({'path': 'eng/migration/STATUS.md', 'mode': '100644', 'type': 'blob',
-                    'sha': status_blob['sha']})
-    tree = api(token, 'POST', f'repos/{OLD}/git/trees', {
-        'base_tree': commit['tree']['sha'], 'tree': entries})
-    cleanup = api(token, 'POST', f'repos/{OLD}/git/commits', {
-        'message': 'chore: retire completed one-time NexaCL migration',
-        'tree': tree['sha'], 'parents': [latest]})
-    api(token, 'PATCH', ref_path, {'sha': cleanup['sha'], 'force': False})
+    handoff(token, 'retire', status=status)
+    for path in [*WORKFLOW_FILES, f'.migration/transfer-{NONCE}.json']:
+        item = api(token, 'GET', f'repos/{OLD}/contents/{path}?ref=' +
+                   urllib.parse.quote(BRANCH, safe=''), missing=True)
+        require(item is None, 'Temporary migration file was not retired: ' + path)
     (ROOT / 'transport-private.pem').unlink(missing_ok=True)
     log('Migration workflow and encrypted credential envelope retired; transport private key removed.')
     log('Source CI, signed Beta 1 and independently verified update mirror all passed; archiving old source.')
