@@ -1,5 +1,10 @@
-# NexaCL Alpha 8 — publication pending
+# NexaCL migration — verified publication
 
-Source is Nexa-MC/NexaCL on main only; six release Secrets are migrated.
-The unpublished Beta 1 attempt and its tag were retired. No Beta 1 Release was created.
-Alpha 8 source CI, signed publication and independent mirror verification must pass before old-source archival.
+- Continuation: https://github.com/Nexa-MC/NexaCL/tree/main
+- Exact verified source: `e2e2c6b8e0259b6c6b3dc6450d1ee2fe1f92a611`
+- Signed Alpha 8: https://github.com/Nexa-MC/NexaCL/releases/tag/v2.0.0.alpha.8
+- Independently verified mirror: https://github.com/Nexa-MC/NexaCL-Update/releases/tag/v2.0.0.alpha.8
+
+Migrated Git history and release Secrets were preserved; main is the sole source branch. Historical release tags remain unchanged. Exact-commit destination CI and the tagged six-platform build succeeded. Source and update assets have identical names, lengths and SHA256 digests after independent publisher signature verification.
+
+This commit retires the one-time workflow and encrypted credential envelope. Old-source archival is the final operation immediately following this record; the repository archived flag is authoritative.
