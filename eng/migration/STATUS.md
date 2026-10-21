@@ -13,8 +13,9 @@ branch HEAD. No plaintext PAT is stored in Git, artifacts or workflow configurat
   `Nexa-MC/NexaCL:refactor/xsr`, SHA `1b69f8c3a8553d8c7970e6659024242f68b35d09`.
   The effective cloud connection can push Contents, unlike the PAT in the runner.
 - The destination's original `main` commit `c0479eb3c1f31fb993d6a55e6bb7d647533bf883`
-  is preserved. Its only added commit registers the unchanged migrated workflow definitions
-  so manual XSR validation can run without repository-administration rights. It remains
+  is preserved. Its added commits register the unchanged migrated workflow definitions
+  and point visitors to the current XSR source. Manual XSR validation runs without
+  repository-administration rights. It remains
   the default branch until authorized Administration access is available.
 - `Nexa-MC/NexaCL-Update:main` was initialized at
   `19753aa431eaf07fc3f75f455e2c42ebed8cd708` with its verified publisher workflow, README,
@@ -25,8 +26,12 @@ branch HEAD. No plaintext PAT is stored in Git, artifacts or workflow configurat
   `legacy = Nexa-MC/PCL-N`. Both remote XSR branch SHAs were verified identical.
 - Local Release solution build: zero warnings/errors; architecture tests: 72 projects passed;
   release tooling: 70 tests passed; native update/discovery/loopback scenarios: all seven passed.
-- Destination CI is running against the exact migrated source commit:
+- Destination CI passed all 21 jobs against the exact migrated source commit:
   https://github.com/Nexa-MC/NexaCL/actions/runs/39534012941 .
+- The old source's same-commit XSR CI and six-platform Launcher Build also passed:
+  https://github.com/Nexa-MC/PCL-N/actions/runs/39533312361 and
+  https://github.com/Nexa-MC/PCL-N/actions/runs/39533312377 . This validates CI artifacts,
+  installation checks and signing; it is not a public Beta 1 release.
 
 ## Actual permission blockers
 
