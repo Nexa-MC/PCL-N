@@ -313,9 +313,32 @@ def main():
             # Verify the PAT's actual account and repository rights inside GitHub's runner.
             identity = api(token, 'GET', 'user')
             log('Authenticated authorized migration credential as: ' + identity['login'])
-            copy_secrets(token)
-            bare = migrate_history(token)
+            blocked = []
+            try:
+                copy_secrets(token)
+            except RuntimeError as error:
+                blocked.append(str(error))
+                log('Release credentials pending: ' + str(error))
+            try:
+                bare = migrate_history(token)
+            except RuntimeError as error:
+                # Contents rights can exist independently of Actions administration.
+                # Import only XSR ancestry if historical tag events cannot be paused.
+                if 'HTTP 403' not in str(error):
+                    raise
+                blocked.append(str(error))
+                log('Full ref import pending: ' + str(error))
+                bare = ROOT / 'source-ancestry.git'
+                git(token, 'clone', '--bare', f'https://github.com/{OLD}.git', str(bare))
+                require(git(token, 'rev-parse', 'refs/heads/refactor/xsr', cwd=bare) == SOURCE_SHA,
+                        'Source branch changed during migration.')
+                git(token, 'push', f'https://github.com/{SOURCE}.git',
+                    'refs/heads/refactor/xsr:refs/heads/refactor/xsr', cwd=bare)
+                log('XSR branch and complete reachable Git ancestry migrated; existing main preserved.')
             seed_updates(token, bare)
+            if blocked:
+                log('Completed all operations allowed by the PAT; release and archival remain pending.')
+                raise RuntimeError('; '.join(blocked))
             release(token, bare)
             retire_and_archive(token)
         finally:
