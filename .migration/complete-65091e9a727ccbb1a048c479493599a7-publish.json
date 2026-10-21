@@ -1,0 +1,13 @@
+{
+  "binding": {
+    "schema": 1,
+    "repository": "Nexa-MC/PCL-N",
+    "branch": "ci/migrate-nexacl-8ea8b7405620",
+    "nonce": "65091e9a727ccbb1a048c479493599a7",
+    "source_sha": "e2e2c6b8e0259b6c6b3dc6450d1ee2fe1f92a611",
+    "run_id": "39549750544",
+    "workflow_sha": "bb9c115de6b695ec4642d5c298f2d529210ad543"
+  },
+  "phase": "publish",
+  "complete": true
+}
