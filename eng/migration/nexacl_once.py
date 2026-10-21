@@ -52,7 +52,16 @@ def clean_env(token=None):
 def command(args, *, token=None, cwd=None, data=None):
     result = subprocess.run(args, input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             cwd=cwd, env=clean_env(token))
-    # Do not repeat command output: a failing credential operation may contain secret text.
+    # Credential commands stay opaque. Git receives no secret stdin, and its clean
+    # environment only contains the masked token; retain bounded server rejections.
+    if result.returncode and args[0] == 'git':
+        detail = result.stderr.decode(errors='replace')
+        if token:
+            detail = detail.replace(token, '[masked credential]')
+        detail = re.sub(r'(?:github_pat_|gh[pousr]_)[A-Za-z0-9_]+', '[masked credential]', detail)
+        useful = [line for line in detail.splitlines()
+                  if any(marker in line.lower() for marker in ('error:', 'remote rejected', 'denied', 'refusing'))]
+        log('Git rejection: ' + '\n'.join(useful)[:5000])
     require(result.returncode == 0, f'Command failed: {Path(args[0]).name} (exit {result.returncode})')
     return result.stdout
 
