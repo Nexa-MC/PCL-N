@@ -131,38 +131,6 @@ def handoff(token, phase, refs=None, status=None):
         time.sleep(5)
     raise RuntimeError('Authorized Git transfer deadline exceeded: ' + phase)
 
-def workflow_run(token, repo, workflow, *, sha=None, event=None, after=None):
-    path = f'repos/{repo}/actions/workflows/{workflow}/runs?per_page=50'
-    runs = api(token, 'GET', path)['workflow_runs']
-    return next((run for run in runs if (sha is None or run['head_sha'] == sha)
-                 and (event is None or run['event'] == event)
-                 and (after is None or run['created_at'] >= after)), None)
-
-def wait_run(token, repo, workflow, *, sha=None, event=None, after=None, minutes=65):
-    until = time.monotonic() + minutes * 60
-    last = None
-    run = None
-    while time.monotonic() < until:
-        run = (api(token, 'GET', f'repos/{repo}/actions/runs/{run["id"]}') if run else
-               workflow_run(token, repo, workflow, sha=sha, event=event, after=after))
-        if run:
-            state = (run['id'], run['status'], run['conclusion'])
-            if state != last:
-                log(f'{repo} {workflow}: {run["html_url"]} — {run["status"]}/{run["conclusion"]}')
-                last = state
-            if run['status'] == 'completed':
-                require(run['conclusion'] == 'success', 'Destination workflow failed: ' + run['html_url'])
-                return run
-        time.sleep(20)
-    raise RuntimeError('Destination workflow deadline exceeded: ' + repo + '/' + workflow)
-
-def dispatch(token, repo, workflow, ref, inputs=None):
-    # Use server time to bind the subsequent run without depending on runner clock drift.
-    after = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - 5))
-    api(token, 'POST', f'repos/{repo}/actions/workflows/{workflow}/dispatches',
-        {'ref': ref, **({'inputs': inputs} if inputs else {})})
-    return after
-
 def verify_release_pair(token):
     source = api(token, 'GET', f'repos/{SOURCE}/releases/tags/{TAG}')
     update = api(token, 'GET', f'repos/{UPDATES}/releases/tags/{TAG}')
@@ -207,30 +175,11 @@ def publish(token):
     require(not source['archived'] and source['default_branch']=='main','Source must remain active on main.')
     heads=api(token,'GET',f'repos/{SOURCE}/branches?per_page=100')
     require(len(heads)==1 and heads[0]['name']=='main' and heads[0]['commit']['sha']==SOURCE_SHA,'Unexpected source branch topology or commit.')
-    secrets=api(token,'GET',f'repos/{SOURCE}/actions/secrets?per_page=100')
-    names={item['name'] for item in secrets['secrets']}
-    require({'CURSEFORGE_API_KEY','PCLN_API_CLIENT_PFX_BASE64','GPG_PRIVATE_KEY'}<=names,'Required migrated release secret names are missing.')
-    require(bool(names & {'CLIENT_ID','MS_CLIENT_ID','PCL_MS_CLIENT_ID'}),'Microsoft client ID secret is missing.')
-    wait_run(token,SOURCE,'xsr-ci.yml',sha=SOURCE_SHA,event='push',minutes=65)
-    current=api(token,'GET',f'repos/{SOURCE}/releases/tags/{TAG}',missing=True)
-    if current is None:
-        notes_file=api(token,'GET',f'repos/{SOURCE}/contents/docs/releases/2.0.0.alpha.8.md?ref={SOURCE_SHA}')
-        notes=base64.b64decode(notes_file['content']).decode()
-        tag=api(token,'GET',f'repos/{SOURCE}/git/ref/tags/{TAG}',missing=True)
-        if tag is None:
-            api(token,'PUT',f'repos/{SOURCE}/actions/workflows/launcher-build.yml/disable')
-            try: handoff(token,'tag',{'refs/tags/'+TAG:SOURCE_SHA})
-            finally: api(token,'PUT',f'repos/{SOURCE}/actions/workflows/launcher-build.yml/enable')
-        else:
-            require(tag['object']['type']=='commit' and tag['object']['sha']==SOURCE_SHA,'Existing Alpha 8 tag differs from the verified source.')
-            api(token,'PUT',f'repos/{SOURCE}/actions/workflows/launcher-build.yml/enable')
-        after=dispatch(token,SOURCE,'launcher-build.yml',TAG,{'release_notes':notes})
-        wait_run(token,SOURCE,'launcher-build.yml',sha=SOURCE_SHA,event='workflow_dispatch',after=after,minutes=80)
-        current=api(token,'GET',f'repos/{SOURCE}/releases/tags/{TAG}')
-    require(not current['draft'] and current['prerelease'] and len(current['assets'])>=20,'Alpha 8 must be a complete public prerelease.')
-    api(token,'PATCH',f'repos/{SOURCE}/releases/{current["id"]}',{'name':'NexaCL Firefly Alpha 8 · v2.0.0.alpha.8'})
-    after=dispatch(token,UPDATES,'publish.yml','main',{'tag':TAG})
-    wait_run(token,UPDATES,'publish.yml',event='workflow_dispatch',after=after,minutes=40)
+    checked=api(token,'GET',f'repos/{SOURCE}/actions/runs/39548161849')
+    require(checked['conclusion']=='success' and checked['head_sha']==SOURCE_SHA,'Exact Alpha 8 source CI did not pass.')
+    # The authorized cloud connection owns Actions scheduling and Git/workflow writes.
+    # The run-bound PAT is used for old-source archival only; no Actions writes are attempted here.
+    handoff(token,'publish',{'refs/tags/'+TAG:SOURCE_SHA})
     verify_release_pair(token)
     retire_and_archive(token)
 
