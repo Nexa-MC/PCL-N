@@ -71,7 +71,9 @@ def api(token, method, path, payload=None, *, missing=False):
     except urllib.error.HTTPError as error:
         if missing and error.code == 404:
             return None
-        raise RuntimeError(f'GitHub {method} {path.split("?")[0]}: HTTP {error.code}') from None
+        needed = error.headers.get('X-Accepted-GitHub-Permissions', '')
+        detail = f' (required: {needed})' if needed else ''
+        raise RuntimeError(f'GitHub {method} {path.split("?")[0]}: HTTP {error.code}{detail}') from None
     return json.loads(content) if content else None
 
 
@@ -248,8 +250,12 @@ def verify_release_pair(token):
 
 
 def release(token, bare):
-    after = dispatch(token, SOURCE, 'xsr-ci.yml', 'refactor/xsr')
-    wait_run(token, SOURCE, 'xsr-ci.yml', sha=SOURCE_SHA, event='workflow_dispatch', after=after)
+    checked = workflow_run(token, SOURCE, 'xsr-ci.yml', sha=SOURCE_SHA)
+    if checked and checked['status'] == 'completed' and checked['conclusion'] == 'success':
+        log('Reusing successful exact-commit destination XSR CI: ' + checked['html_url'])
+    else:
+        after = dispatch(token, SOURCE, 'xsr-ci.yml', 'refactor/xsr')
+        wait_run(token, SOURCE, 'xsr-ci.yml', sha=SOURCE_SHA, event='workflow_dispatch', after=after)
     log('Destination XSR CI succeeded; preparing maintained Beta 1 release notes.')
     notes = command(['git', 'show', SOURCE_SHA + ':docs/releases/2.0.0.beta.1.md'], cwd=bare).decode()
     releases = api(token, 'GET', f'repos/{SOURCE}/releases?per_page=100')
@@ -287,9 +293,24 @@ def retire_and_archive(token):
     latest = api(token, 'GET', f'repos/{OLD}/git/ref/heads/{BRANCH}')['object']['sha']
     commit = api(token, 'GET', f'repos/{OLD}/git/commits/{latest}')
     paths = [*WORKFLOW_FILES, f'.migration/transfer-{NONCE}.json']
+    status = (f'# NexaCL migration — verified publication\n\n'
+              f'- Continuation: https://github.com/{SOURCE}/tree/refactor/xsr\n'
+              f'- Exact verified source: `{SOURCE_SHA}`\n'
+              f'- Signed Beta 1: https://github.com/{SOURCE}/releases/tag/{TAG}\n'
+              f'- Independently verified mirror: https://github.com/{UPDATES}/releases/tag/{TAG}\n\n'
+              'Historical heads/tags and release Secrets were migrated; existing destination values '
+              'and main history were preserved. Exact-commit destination CI and the tagged six-platform '
+              'build succeeded. Source and update assets have identical names, lengths and SHA256 '
+              'digests after independent publisher signature verification.\n\n'
+              'This commit retires the one-time workflow and encrypted credential envelope. '
+              'Old-source archival is the final operation immediately following this record; '
+              'the repository archived flag is authoritative.\n')
+    status_blob = api(token, 'POST', f'repos/{OLD}/git/blobs', {'content': status, 'encoding': 'utf-8'})
+    entries = [{'path': path, 'mode': '100644', 'type': 'blob', 'sha': None} for path in paths]
+    entries.append({'path': 'eng/migration/STATUS.md', 'mode': '100644', 'type': 'blob',
+                    'sha': status_blob['sha']})
     tree = api(token, 'POST', f'repos/{OLD}/git/trees', {
-        'base_tree': commit['tree']['sha'],
-        'tree': [{'path': path, 'mode': '100644', 'type': 'blob', 'sha': None} for path in paths]})
+        'base_tree': commit['tree']['sha'], 'tree': entries})
     cleanup = api(token, 'POST', f'repos/{OLD}/git/commits', {
         'message': 'chore: retire completed one-time NexaCL migration',
         'tree': tree['sha'], 'parents': [latest]})
