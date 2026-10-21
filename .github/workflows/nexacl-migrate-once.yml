@@ -1,0 +1,51 @@
+name: One-time NexaCL migration
+on:
+  push:
+    branches: [ci/migrate-nexacl-8ea8b7405620]
+    paths:
+      - '.github/workflows/nexacl-migrate-once.yml'
+      - 'eng/migration/nexacl_once.py'
+permissions:
+  contents: read
+concurrency:
+  group: one-time-nexacl-migration
+  cancel-in-progress: false
+jobs:
+  migrate:
+    if: github.repository == 'Nexa-MC/PCL-N'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      TRANSFER_BRANCH: ci/migrate-nexacl-8ea8b7405620
+      TRANSFER_NONCE: 022636fee8c9a2e38ac28bf4d88b6402
+      TRANSFER_SOURCE_SHA: 1b69f8c3a8553d8c7970e6659024242f68b35d09
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Prepare ephemeral credential transport
+        run: python3 eng/migration/nexacl_once.py prepare
+      - name: Publish only the bound transport public key
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nexacl-transfer-public-022636fee8c9a2e38ac28bf4d88b6402
+          path: ${{ runner.temp }}/nexacl-transfer/public/*
+          if-no-files-found: error
+          retention-days: 1
+      - name: Migrate history and Secrets, validate CI, publish Beta 1 and archive
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TRANSFER_SECRET_CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+          TRANSFER_SECRET_PCLN_API_CLIENT_PFX_BASE64: ${{ secrets.PCLN_API_CLIENT_PFX_BASE64 }}
+          TRANSFER_SECRET_GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          TRANSFER_SECRET_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          TRANSFER_SECRET_CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          TRANSFER_SECRET_MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          TRANSFER_SECRET_PCL_MS_CLIENT_ID: ${{ secrets.PCL_MS_CLIENT_ID }}
+          TRANSFER_SECRET_LITTLESKIN_CLIENT_ID: ${{ secrets.LITTLESKIN_CLIENT_ID }}
+          TRANSFER_SECRET_PCL_LITTLESKIN_CLIENT_ID: ${{ secrets.PCL_LITTLESKIN_CLIENT_ID }}
+        run: python3 eng/migration/nexacl_once.py migrate
+      - name: Remove ephemeral transport key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/nexacl-transfer/transport-private.pem"
