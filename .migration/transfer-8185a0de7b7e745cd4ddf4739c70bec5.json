@@ -1,0 +1,12 @@
+{
+  "binding": {
+    "schema": 1,
+    "repository": "Nexa-MC/PCL-N",
+    "branch": "ci/migrate-nexacl-8ea8b7405620",
+    "nonce": "8185a0de7b7e745cd4ddf4739c70bec5",
+    "source_sha": "1b69f8c3a8553d8c7970e6659024242f68b35d09",
+    "run_id": "39543060254",
+    "workflow_sha": "8fbca297a8677cf5a3a99637a007aac1d9f103c3"
+  },
+  "ciphertext": "TejG0OmvSTD5pdoAyFEzymucaKhGbBIDqlwV4ODVFG8+14lzEwMxVuZxOa7ZCyVgkhvP2pDgex678rNacjbSQHwHkM+HCisZS5rc5yalyt6PrIiXzChLfy+ulrfPLNwVPSgw+F3dc6L1+4zKkDpoNS7zW0CCIPyxfGFpczhBGEI1F4Dpqzd804Z3NbJfLWfBCL4Ti0BXgLqOdh6sI8RLXAXCOCEk3gjAKElK20HHZpjckAv/YeKCZ8mwBoWzDR1cHyZjPVf/s3YBVEpgoWiWNDYD9EOrN2EguidEZ7P7UgaWyUiS4qJYpv7poVF2v4h9DioD1ds6KoVpbNrQuRefesb+qMgT7zJstCbKMIi2NNaz35Z1u9yNOOaKZs9UQnqd1USzA3R9LW7csTycRBlvMr5MqGQwgR7vGSUlbLml+BMtqufh+dGAwA9/CDTPeTnGfixAxuAsWBJS2OvGdYpVBvNDw008bahU5AOsHOdVIp9FPRT9aSLaUTPPojwHTXke"
+}
