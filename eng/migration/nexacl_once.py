@@ -275,6 +275,8 @@ def release(token, bare):
     current = api(token, 'GET', f'repos/{SOURCE}/releases/tags/{TAG}')
     require(not current['draft'] and len(current['assets']) >= 20,
             'Signed build did not publish the full distribution.')
+    api(token, 'PATCH', f'repos/{SOURCE}/releases/{current["id"]}',
+        {'name': 'NexaCL Firefly Beta 1 · v2.0.0.beta.1'})
     after = dispatch(token, UPDATES, 'publish.yml', 'main', {'tag': TAG})
     wait_run(token, UPDATES, 'publish.yml', event='workflow_dispatch', after=after, minutes=40)
     verify_release_pair(token)
